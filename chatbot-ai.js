@@ -1,5 +1,4 @@
 // Chatbot AI using Google Gemini
-import { CONFIG } from './config.js';
 
 // ========== CẤU HÌNH PROXY ==========
 // CÁCH 1: Sử dụng Google Apps Script Proxy (bảo mật API Key)
@@ -7,7 +6,17 @@ const USE_PROXY = true; // Đổi thành true khi đã setup proxy
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycbxUECm-8_DoYZwJTf9mle24TcphZXClID-fTNqD2CRRHyoZpkquyQlsQy_bhdLCLEu8XQ/exec'; // Thay bằng URL từ Apps Script
 
 // CÁCH 2: Gọi trực tiếp (KHÔNG an toàn khi public)
-const DIRECT_API_KEY = CONFIG.GEMINI_API_KEY;
+// Chỉ dùng khi USE_PROXY = false (local development)
+let DIRECT_API_KEY = '';
+if (!USE_PROXY) {
+    // Chỉ import config.js khi cần thiết (local dev)
+    try {
+        const { CONFIG } = await import('./config.js');
+        DIRECT_API_KEY = CONFIG.GEMINI_API_KEY;
+    } catch (error) {
+        console.warn('config.js not found - using proxy mode');
+    }
+}
 
 // API Key từ config.js (chỉ dùng khi USE_PROXY = false)
 const OVERRIDE_KEY = typeof localStorage !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY') : null;
