@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Nhật ký hệ thống</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  
+  <style>
+    /* Cố định layout cho bảng */
+    #logsTable {
+      table-layout: fixed;
+      width: 100%;
+      word-wrap: break-word; /* Đảm bảo từ dài nhất cũng sẽ được xuống dòng */
+    }
+
+    /* Thiết lập độ rộng cụ thể cho từng cột và căn chỉnh */
+    #logsTable th:nth-child(1), #logsTable td:nth-child(1) { width: 15%; } /* Cột Thời gian */
+    #logsTable th:nth-child(2), #logsTable td:nth-child(2) { width: 15%; } /* Cột Người dùng */
+    #logsTable th:nth-child(3), #logsTable td:nth-child(3) { width: 20%; } /* Cột Hành động */
+    #logsTable th:nth-child(4), #logsTable td:nth-child(4) { width: 50%; } /* Cột Chi tiết */
+    
+    /* Căn giữa tiêu đề và căn trái nội dung */
+    #logsTable th {
+      text-align: center;
+      background-color: #e8ebf5;
+      padding: 12px 8px;
+    }
+    
+    #logsTable td {
+      text-align: left;
+      padding: 8px;
+    }
+
+
+    /* Đảm bảo nội dung trong các ô có thể xuống dòng */
+    #logsTable td {
+      white-space: normal !important; /* Ghi đè các style khác để buộc xuống dòng */
+      vertical-align: top; /* Căn nội dung lên trên cùng của ô cho dễ đọc */
+    }
+    
+  </style>
+  </head>
+<body>
+  <div id="menu-placeholder"></div>
+  
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+
+  <div id="noPermission" style="display:none;">
+    🚫 Bạn không có quyền truy cập trang này.
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <h2>📜 Nhật ký hệ thống</h2>
+    <div class="card-body"> 
+
+  <div class="filter-box">
+    <label>Từ ngày: <input type="date" id="startDateInput"></label>
+    <label>Đến ngày: <input type="date" id="endDateInput"></label>
+    <label style="white-space:nowrap;">Hành động:</label>
+    <select id="actionFilter"><option value="">--Tất cả--</option></select>
+    <label style="white-space:nowrap;">Người dùng:</label>
+    <select id="userFilter"><option value="">--Tất cả--</option></select>
+    <button id="toggleFilterBtn" type="button">Áp dụng</button>
+  </div>
+  <div class="note" id="defaultDateRange" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
+    
+    <form>
+      <div style="margin-bottom: 12px;">
+        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm nhật ký..." style="width: 100%; padding: 8px;">
+      </div>
+        <table id="logsTable">
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Người dùng</th>
+              <th>Hành động</th>
+              <th>Chi tiết</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+    </form>
+        <div style="text-align: right; margin-top: 10px;">
+        <label for="displayCount">Hiển thị:</label>
+        <select id="displayCount">
+            <option value="7">7 dòng</option>
+            <option value="20">20 dòng</option>
+            <option value="all">Toàn bộ</option>
+        </select>
+    </div>
+  </div>
+</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module">
+    import { initMenu } from "./menu.js";
+    import { db, onAuth, getRole } from "./script.js";
+    import {
+      collection,
+      query,
+      orderBy,
+      where,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+    // Load menu
+    fetch("menu.html")
+      .then(r => r.text())
+      .then(h => {
+        document.getElementById("menu-placeholder").innerHTML = h;
+        initMenu();
+      });
+
+  const notLogged = document.getElementById("notLogged");
+  const noPermission = document.getElementById("noPermission");
+  const content = document.getElementById("pageContent");
+  const tbody = document.querySelector("#logsTable tbody");
+  const searchInput = document.getElementById("searchInput");
+  const displayCountSelect = document.getElementById("displayCount");
+  const startDateInput = document.getElementById('startDateInput');
+  const endDateInput = document.getElementById('endDateInput');
+  const actionFilter = document.getElementById('actionFilter');
+  const userFilter = document.getElementById('userFilter');
+  const toggleFilterBtn = document.getElementById('toggleFilterBtn');
+
+  let allLogs = []; 
+  let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
+
+    const filterAndRenderLogs = (logs, query, limit) => {
+        const lowerCaseQuery = query.toLowerCase().trim();
+        const filteredLogs = logs.filter(log => {
+            const searchContent = [
+                log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString() : "",
+                log.email,
+                log.action,
+                log.company,
+                log.chi_so,
+                log.ngay_ghi,
+                log.ghi_chu,
+                log.fileId,
+                log.error_code,
+                log.userAgent,
+                log.job,
+                log.note,
+                log.displayName,
+                log.user, 
+                log.deletedRule?.job,
+                log.deletedJob?.job,
+                log.deletedPattern?.displayName
+            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
+            
+            return searchContent.includes(lowerCaseQuery);
+        });
+        
+        let finalData = filteredLogs;
+        if (lowerCaseQuery === "" && limit !== "all") {
+            finalData = filteredLogs.slice(0, parseInt(limit));
+        }
+
+          tbody.innerHTML = "";
+          finalData.forEach(log => {
+            const time = log.createdAt?.toDate
+                ? log.createdAt.toDate().toLocaleString('vi-VN')
+                : "";
+            
+            // Từ điển chuyển đổi action -> tiếng Việt
+            const actionTooltips = {
+                // Đăng nhập & Xác thực
+                "login_success": "Đăng nhập thành công",
+                "login_failure": "Đăng nhập thất bại",
+                "logout": "Đăng xuất khỏi hệ thống",
+
+                // Quản lý quy tắc công việc
+                "admin_create_work_rule": "Admin tạo quy tắc công việc mới",
+                "admin_delete_work_rule": "Admin xóa quy tắc công việc",
+                "admin_create_manual_job": "Admin tạo công việc thủ công",
+                "admin_delete_manual_job": "Admin xóa công việc thủ công",
+                "admin_create_work_pattern": "Admin tạo mẫu lịch làm việc",
+                "admin_delete_work_pattern": "Admin xóa mẫu lịch làm việc",
+                "apps_script_add_user_success": "Thêm người dùng qua Apps Script thành công",
+
+                // Báo cáo ca trực - Thao tác chính
+                "report_create_success": "Tạo báo cáo ca trực mới thành công",
+                "report_update_success": "Cập nhật báo cáo ca trực thành công",
+                "report_save_failure": "Lỗi khi lưu báo cáo ca trực",
+                "report_view_existing": "Xem báo cáo ca trực hiện có",
+                "report_edit_initiated": "Bắt đầu chỉnh sửa báo cáo ca trực",
+
+                // Báo cáo ca trực - Quản lý file
+                "report_upload_success": "Tải lên file đính kèm thành công",
+                "report_upload_failure": "Lỗi khi tải lên file đính kèm",
+                "report_delete_success": "Xóa file đính kèm thành công",
+                "report_delete_failure": "Lỗi khi xóa file đính kèm",
+                "file_creation_success": "Tạo file HTML thành công",
+                "file_creation_failure": "Lỗi khi tạo file HTML",
+                "file_creation_connection_error": "Lỗi kết nối khi tạo file HTML",
+
+                // Quản lý ca làm việc
+                "admin_create_shift_success": "Admin tạo ca làm việc mới thành công",
+                "admin_create_shift_failure": "Lỗi khi Admin tạo ca làm việc mới",
+                "admin_delete_shift_success": "Admin xóa ca làm việc thành công",
+                "admin_delete_shift_failure": "Lỗi khi Admin xóa ca làm việc",
+
+                // Quản lý dữ liệu chỉ số
+                "indicator_entry": "Nhập liệu chỉ số mới",
+                "indicator_edit": "Chỉnh sửa chỉ số",
+                "indicator_delete": "Xóa chỉ số",
+
+                // Quản lý file & tài liệu
+                "file_upload": "Tải lên file mới",
+                "file_download": "Tải xuống file",
+                "file_delete": "Xóa file",
+                "file_rename": "Đổi tên file",
+                
+                // Quản lý người dùng
+                "user_role_update": "Cập nhật quyền người dùng",
+                "user_profile_update": "Cập nhật thông tin cá nhân",
+                "user_password_change": "Thay đổi mật khẩu",
+                "user_disable": "Vô hiệu hóa tài khoản",
+                "user_enable": "Kích hoạt tài khoản",
+
+                // Cấu hình hệ thống
+                "system_config_update": "Cập nhật cấu hình hệ thống",
+                "backup_created": "Tạo bản sao lưu dữ liệu",
+                "restore_completed": "Khôi phục dữ liệu từ bản sao lưu"
+            };
+            
+            let details = "";            switch (log.action) {
+                case "login_success":
+                    details = `Đăng nhập thành công. Thiết bị: ${log.userAgent || "N/A"}`;
+                    break;
+                case "login_failure":
+                    details = `Lỗi đăng nhập: ${log.error_code || "N/A"}. Thiết bị: ${log.userAgent || "N/A"}`;
+                    break;
+                case "logout":
+                    details = `Đăng xuất thành công.`;
+                    break;
+                case "admin_create_work_rule":
+                    details = `
+                        <b>Công việc:</b> ${log.job || "N/A"}<br>
+                        <b>Ngày cụ thể:</b> ${log.date || "-"}<br>
+                        <b>Ghi chú:</b> ${log.note || "-"}
+                    `;
+                    break;
+                case "admin_delete_work_rule":
+                    details = `Đã xóa quy tắc: <b>${log.deletedRule?.job || "N/A"}</b>`;
+                    break;
+                case "admin_create_manual_job":
+                    details = `
+                        <b>Công việc:</b> ${log.job || "N/A"}<br>
+                        <b>Ngày:</b> ${log.date || "N/A"}<br>
+                        <b>Ghi chú:</b> ${log.note || "-"}
+                    `;
+                    break;
+                case "admin_delete_manual_job":
+                    details = `Đã xóa công việc thủ công: <b>${log.deletedJob?.job || "N/A"}</b>`;
+                    break;
+                case "admin_create_work_pattern":
+                    details = `
+                        <b>Tên hiển thị:</b> ${log.displayName || "N/A"}<br>
+                        <b>Nhân viên:</b> ${log.user || "N/A"}<br>
+                        <b>Loại:</b> ${log.type || "N/A"}<br>
+                        <b>Ngày BĐ:</b> ${log.patternStartDate || "N/A"}
+                    `;
+                    break;
+                case "admin_delete_work_pattern":
+                    details = `Đã xóa quy tắc của: <b>${log.deletedPattern?.displayName || "N/A"}</b>`;
+                    break;
+                case "apps_script_add_user_success":
+                    details = `Gửi yêu cầu Apps Script thành công cho: <b>${log.targetUser || "N/A"}</b>`;
+                    break;
+                // ⭐️⭐️⭐️ BẮT ĐẦU KHỐI CODE CẦN DÁN ⭐️⭐️⭐️
+
+                // --- BÁO CÁO CA TRỰC (HÀNH ĐỘNG) ---
+                case "report_create_success":
+                case "report_update_success":
+                    details = `
+                        <b>ReportID:</b> ${log.reportId || "N/A"}<br>
+                        <b>Ngày:</b> ${log.date || "N/A"}<br>
+                        <b>Ca:</b> ${log.shift || "N/A"}<br>
+                        <b>Người nhận ca:</b> ${log.receivingStaff ? log.receivingStaff.join(', ') : "N/A"}
+                    `;
+                    break;
+                case "report_save_failure":
+                    details = `
+                        <b>ReportID:</b> ${log.reportId || "N/A"}<br>
+                        <b style="color:red;">Lỗi:</b> ${log.error || "N/A"}<br>
+                        <b>Có file mới:</b> ${log.hasNewFiles ? "Có" : "Không"}
+                    `;
+                    break;
+                case "report_view_existing":
+                case "report_edit_initiated":
+                    details = `
+                        <b>ReportID:</b> ${log.reportId || "N/A"}<br>
+                        <b>Ngày:</b> ${log.date || "N/A"}<br>
+                        <b>Ca:</b> ${log.shift || "N/A"}
+                    `;
+                    break;
+
+                // --- BÁO CÁO CA TRỰC (QUẢN LÝ FILE) ---
+                case "report_upload_success":
+                    details = `
+                        <b>File:</b> ${log.file || "N/A"}<br>
+                        <b>FileID:</b> ${log.fileId || "N/A"}
+                    `;
+                    break;
+                case "report_upload_failure":
+                    details = `
+                        <b>File:</b> ${log.file || "N/A"}<br>
+                        <b style="color:red;">Lỗi:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+                case "report_delete_success":
+                    details = `<b>Đã xóa FileID:</b> ${log.fileId || "N/A"}`;
+                    break;
+                case "report_delete_failure":
+                    details = `
+                        <b>FileID:</b> ${log.fileId || "N/A"}<br>
+                        <b style="color:red;">Lỗi xóa:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+                case "file_creation_success":
+                    details = `
+                        <b>ReportID:</b> ${log.reportId || "N/A"}<br>
+                        <b>FileID (HTML):</b> ${log.fileId || "N/A"}
+                    `;
+                    break;
+                case "file_creation_failure":
+                case "file_creation_connection_error":
+                     details = `
+                        <b>ReportID:</b> ${log.reportId || "N/A"}<br>
+                        <b style="color:red;">Lỗi tạo file HTML:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+
+                // --- ADMIN QUẢN LÝ CA ---
+                case "admin_create_shift_success":
+                    details = `
+                        <b>ShiftID:</b> ${log.shiftId || "N/A"}<br>
+                        <b>Tên ca:</b> ${log.shiftName || "N/A"}<br>
+                        <b>Thời gian:</b> ${log.time || "N/A"}
+                    `;
+                    break;
+                case "admin_create_shift_failure":
+                    details = `
+                        <b>Tên ca:</b> ${log.shiftName || "N/A"}<br>
+                        <b style="color:red;">Lỗi:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+                case "admin_delete_shift_success":
+                    details = `
+                    <b>ShiftID:</b> ${log.shiftId || "N/A"}<br>    
+                    <b>Đã xóa ca:</b> ${log.shiftName || "N/A"}<br>  
+                    <b>Thời gian:</b> ${log.time || "N/A"}    
+                    `;
+                    break;
+                case "admin_delete_shift_failure":
+                    details = `
+                    <b>ShiftID:</b> ${log.shiftId || "N/A"}<br>    
+                    <b>Tên ca:</b> ${log.shiftName || "N/A"}<br>   
+                    <b style="color:red;">Lỗi:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+
+                default:
+                    details = `
+                        ${log.company ? "<b>Cty:</b> " + log.company + "<br>" : ""}
+                        ${log.chi_so ? "<b>Chỉ số:</b> " + log.chi_so + "<br>" : ""}
+                        ${log.ngay_ghi ? "<b>Ngày ghi:</b> " + log.ngay_ghi + "<br>" : ""}
+                        ${log.ghi_chu ? "<b>Nội dung:</b> " + log.ghi_chu + "<br>" : ""}
+                        ${log.fileId ? "<b>FileId:</b> " + log.fileId + "<br>" : ""}
+                        ${log.fileUrl ? `<a href="${log.fileUrl}" target="_blank">Xem file</a>` : ""}
+                    `;
+                    break;
+            }
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${time}</td>
+                <td>${log.email || ""}</td>
+                <td title="${actionTooltips[log.action] || log.action || ""}">${log.action || ""}</td>
+                <td>${details.trim() ? details : 'Không có chi tiết'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    onAuth(async user => {
+      if (user) {
+        const role = await getRole(user.email);
+        if (role === "admin") {
+          notLogged.style.display = "none";
+          noPermission.style.display = "none";
+          content.style.display = "block";
+          
+          // helper: build query based on date inputs
+          function buildLogsQuery() {
+            const coll = collection(db, "logs");
+            const startVal = startDateInput.value;
+            const endVal = endDateInput.value;
+            const clauses = [];
+            
+            // Ngày bắt đầu: nếu không có thì lấy 1/1 của năm hiện tại
+            const currentYear = new Date().getFullYear();
+            const startDate = startVal ? 
+              new Date(startVal + 'T00:00:00') : 
+              new Date(currentYear, 0, 1, 0, 0, 0); // 1/1 năm hiện tại
+            clauses.push(where('createdAt', '>=', startDate));
+            
+            // Ngày kết thúc: nếu không có thì lấy ngày hiện tại
+            const endDate = endVal ? 
+              new Date(endVal + 'T23:59:59') : 
+              new Date(new Date().setHours(23, 59, 59, 999)); // ngày hiện tại 23:59:59
+            clauses.push(where('createdAt', '<=', endDate));
+            // Filter by action and user if selected (use server-side where when possible)
+            const actionVal = actionFilter ? actionFilter.value : '';
+            const userVal = userFilter ? userFilter.value : '';
+            if (actionVal) {
+              clauses.push(where('action', '==', actionVal));
+            }
+            if (userVal) {
+              clauses.push(where('email', '==', userVal));
+            }
+            // Always order by createdAt desc
+            if (clauses.length > 0) {
+              return query(coll, ...clauses, orderBy('createdAt', 'desc'));
+            }
+            return query(coll, orderBy('createdAt', 'desc'));
+          }
+
+          // Refresh realtime listener safely
+          function refreshLogsListener() {
+            // validate date range
+            if (startDateInput.value && endDateInput.value) {
+              const s = new Date(startDateInput.value + 'T00:00:00');
+              const e = new Date(endDateInput.value + 'T23:59:59');
+              if (s > e) {
+                Swal.fire('Lỗi', 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.', 'error');
+                return;
+              }
+            }
+
+            if (typeof unsubscribeLogs === 'function') {
+              try { unsubscribeLogs(); } catch (err) { /* ignore */ }
+              unsubscribeLogs = null;
+            }
+
+            const q = buildLogsQuery();
+            unsubscribeLogs = onSnapshot(q, (snapshot) => {
+              allLogs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id }));
+              populateFilterOptions(allLogs);
+              filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+            });
+          }
+
+          // initial listener
+          refreshLogsListener();
+
+          // Populate selects helper (unique actions and emails)
+          function populateFilterOptions(logs) {
+            if (!Array.isArray(logs)) return;
+            const actions = new Set();
+            const users = new Set();
+            logs.forEach(l => {
+              if (l.action) actions.add(l.action);
+              if (l.email) users.add(l.email);
+            });
+            // clear existing but keep empty option
+            if (actionFilter) {
+              const prev = actionFilter.value;
+              actionFilter.innerHTML = '<option value="">--Tất cả--</option>' + Array.from(actions).sort().map(a => `<option value="${a}">${a}</option>`).join('');
+              if (Array.from(actions).includes(prev)) actionFilter.value = prev;
+            }
+            if (userFilter) {
+              const prevU = userFilter.value;
+              userFilter.innerHTML = '<option value="">--Tất cả--</option>' + Array.from(users).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+              if (Array.from(users).includes(prevU)) userFilter.value = prevU;
+            }
+          }
+          // Hàm cập nhật text hiển thị khoảng thời gian
+          function updateDateRangeText() {
+            const defaultSpan = document.getElementById('defaultDateRange');
+            const startVal = startDateInput.value;
+            const endVal = endDateInput.value;
+            const currentYear = new Date().getFullYear();
+            
+            let startText = startVal ? new Date(startVal).toLocaleDateString('vi-VN') : `1/1/${currentYear}`;
+            let endText = endVal ? new Date(endVal).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
+            
+            if (!startVal || !endVal) {
+              defaultSpan.textContent = `Đang xem dữ liệu từ ${startText} đến ${endText}`;
+            } else {
+              defaultSpan.textContent = `Đang xem dữ liệu từ ${startText} đến ${endText}`;
+            }
+          }
+
+          // Cập nhật text khi trang load và khi giá trị thay đổi
+          updateDateRangeText();
+          startDateInput.addEventListener('change', updateDateRangeText);
+          endDateInput.addEventListener('change', updateDateRangeText);
+
+          // wire up toggle button (Áp dụng <-> Bỏ lọc)
+          // initial state: not active
+          if (toggleFilterBtn) toggleFilterBtn.dataset.active = 'false';
+
+          toggleFilterBtn.addEventListener('click', () => {
+            const isActive = toggleFilterBtn.dataset.active === 'true';
+            if (isActive) {
+              // Clear filters (behave like previous "Xóa")
+              startDateInput.value = '';
+              endDateInput.value = '';
+              if (actionFilter) actionFilter.value = '';
+              if (userFilter) userFilter.value = '';
+              toggleFilterBtn.dataset.active = 'false';
+              toggleFilterBtn.textContent = 'Áp dụng';
+              toggleFilterBtn.style.background = '#3498db';
+              // refresh to listener without filters
+              refreshLogsListener();
+            } else {
+              // Apply current filter values
+              // validate date range
+              if (startDateInput.value && endDateInput.value) {
+                const s = new Date(startDateInput.value + 'T00:00:00');
+                const e = new Date(endDateInput.value + 'T23:59:59');
+                if (s > e) {
+                  Swal.fire('Lỗi', 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.', 'error');
+                  return;
+                }
+              }
+              toggleFilterBtn.dataset.active = 'true';
+              toggleFilterBtn.textContent = 'Bỏ lọc';
+              // change color to indicate active filter (neutral)
+              toggleFilterBtn.style.background = '#777';
+              // refresh listener with current filters
+              refreshLogsListener();
+            }
+          });
+
+          // Note: selects (action/user) do NOT auto-apply; user must click Áp dụng to activate filters.
+
+          searchInput.addEventListener("input", () => {
+            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+          });
+
+          displayCountSelect.addEventListener("change", () => {
+            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+          });
+
+        } else {
+          notLogged.style.display = "none";
+          noPermission.style.display = "block";
+          content.style.display = "none";
+        }
+      } else {
+        notLogged.style.display = "block";
+        noPermission.style.display = "none";
+        content.style.display = "none";
+      }
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Bảng dữ liệu</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    /* 🆕 CSS CỐ ĐỊNH CHIỀU RỘNG CHO CỘT STT */
+    #dataTable th:first-child,
+    #dataTable td:first-child {
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px; 
+    }
+    
+    #dataTable th,
+    #dataTable td {
+        text-align: center;
+        vertical-align: middle;
+        padding: 8px;
+    }
+
+    .admin-only {
+        display: none;
+    }
+
+    .admin-visible {
+        display: table-cell !important;
+    }
+    /* 🆕 CSS MỚI CHO CÁC CONTROLS DƯỚI BỘ LỌC CHÍNH */
+    .controls-row {
+        display: flex;
+        justify-content: space-between; /* Đẩy các nhóm điều khiển ra hai phía */
+        align-items: center; /* Căn chỉnh theo chiều dọc */
+        margin-top: 10px;
+        margin-bottom: 10px; /* Thêm khoảng cách với bảng bên dưới */
+    }
+
+    .left-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px; /* Khoảng cách giữa checkbox và ghi chú lọc */
+    }
+
+    .right-controls {
+        display: flex;
+        align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+  <div id="alert-placeholder"></div>
+
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <h2>📊 Bảng dữ liệu báo cáo chỉ số đồng hồ</h2>
+    <div class="card-body">
+
+    <div class="filter-box">
+      <label>Từ ngày: <input type="date" id="fromDate"></label>
+      <label>Đến ngày: <input type="date" id="toDate"></label>
+      <label>Năm nhanh:
+        <select id="yearSelect">
+          <option value="">--Chọn năm--</option>
+        </select>
+      </label>
+      <button id="applyFilter" type="button">Áp dụng</button>
+    </div>
+    <div class="note" id="filterNote" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
+
+
+      <form>
+    <div style="margin-bottom: 20px;">
+        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%; padding: 8px;">
+    </div>
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th class="admin-only">Người gửi</th>
+              <th>Công ty</th>
+              <th>Chỉ số</th>
+              <th>Ghi chú</th>
+              <th>File</th>
+              <th>Ngày ghi</th>
+              <th class="admin-only">Thời gian</th>
+              <th class="admin-only">Hành động</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </form>
+      <div class="controls-row">
+        <div class="left-controls">
+          <label><input type="checkbox" id="meterResetFilter"> Chỉ xem Ngày chỉ số đặc biệt</label>
+        </div>
+        <div class="right-controls">
+          <label for="displayCount">Hiển thị:</label>
+          <select id="displayCount">
+              <option value="7">7 dòng</option>
+              <option value="20">20 dòng</option>
+              <option value="all">Toàn bộ</option>
+          </select>
+        </div>
+      </div>
+    </div>
+<div id="footer-placeholder"></div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module">
+    // === 1. IMPORT (ĐÃ SỬA LỖI) ===
+    
+    // Import các hàm TÙY CHỈNH (custom helpers) từ file script.js
+    import { auth, onAuth, deleteReport, getRole, showLoading, hideLoading, showSwal, showConfirmSwal, 
+             getReportsByDate, db } from "./script.js";
+             
+    // Import các hàm GỐC (native) của Firebase SDK
+    import { collection, query, where, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    
+    // Import menu
+    import { initMenu } from "./menu.js";
+
+    // === 2. TẢI GIAO DIỆN CHUNG ===
+    fetch("menu.html").then(r => r.text()).then(h => {
+      document.getElementById("menu-placeholder").innerHTML = h;
+      initMenu();
+    });
+    fetch("modal.html").then(r => r.text()).then(h => {
+      document.getElementById("loading-placeholder").innerHTML = h;
+    });
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+
+    // === 3. THAM CHIẾU DOM VÀ BIẾN TOÀN CỤC ===
+    const notLogged = document.getElementById("notLogged");
+    const content   = document.getElementById("pageContent");
+    const tbody     = document.querySelector("#dataTable tbody");
+    const searchInput = document.getElementById("searchInput");
+    const displayCountSelect = document.getElementById("displayCount");
+    const fromInput = document.getElementById("fromDate");
+    const toInput = document.getElementById("toDate");
+    const yearSelect = document.getElementById("yearSelect");
+    const applyFilterBtn = document.getElementById("applyFilter");
+    const filterNote = document.getElementById("filterNote"); 
+    const meterResetFilterInput = document.getElementById("meterResetFilter"); 
+    
+    let currentFilter = { from: null, to: null };
+    let initialLoad = true;
+    let allSearchData = []; // Mảng này giờ sẽ lưu kết quả đã lọc
+    let userRole = null;
+
+    // === 4. CÁC HÀM TIỆN ÍCH (Giữ nguyên) ===
+    function formatISODate(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+    function getRecordDate(record) {
+        return record.ngay_ghi;
+    }
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return "";
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '/');
+    };
+    
+    // === 5. CÁC HÀM RENDER VÀ SỰ KIỆN (Giữ nguyên) ===
+    const attachDeleteEventListeners = () => {
+      document.querySelectorAll(".delBtn").forEach(btn => {
+          btn.addEventListener("click", async () => {
+              const id = btn.dataset.id;
+              const isConfirmed = await showConfirmSwal(
+                  "Xác nhận xóa báo cáo",
+                  "Bạn có chắc muốn **Xóa vĩnh viễn** không? Hành động này không thể hoàn tác.",
+                  "Có, xóa báo cáo", "Không, hủy bỏ", "error"
+              );
+              if (isConfirmed) {
+                  showLoading("Đang xóa dữ liệu...");
+                  try {
+                      await deleteReport("reports_1", id);
+                      showSwal("success", "Đã xóa báo cáo!");
+                      // Tải lại dữ liệu sau khi xóa
+                      await fetchAndRenderData(); 
+                  } catch (err) {
+                      console.error("Lỗi khi xóa báo cáo:", err);
+                      showSwal("error", "Lỗi khi xóa", "Không thể xóa báo cáo. Vui lòng thử lại.");
+                  } finally {
+                      hideLoading();
+                  }
+              }
+          });
+      });
+    };
+
+    // Hàm render (Giữ nguyên, không thay đổi)
+    const filterAndRenderData = (data, query, limit) => {
+        const isMeterResetFilterActive = meterResetFilterInput ? meterResetFilterInput.checked : false;
+        let fromDate = null;
+        let toDate = null;
+        const now = new Date();
+        const currentYearStart = formatISODate(new Date(now.getFullYear(), 0, 1)); 
+        if (currentFilter.from) fromDate = new Date(currentFilter.from); 
+        else fromDate = new Date(currentYearStart); 
+        if (currentFilter.to) toDate = new Date(currentFilter.to);
+        else toDate = now; 
+        toDate.setHours(23,59,59,999);
+        
+        // Lưu ý: filterByDate chỉ chạy trên mảng data đã được lọc bởi Firebase
+        let filteredByDate = data.filter(r => {
+            const dateString = getRecordDate(r);
+            if (!dateString) return false; 
+            const d = new Date(dateString);
+            if (isNaN(d)) return false; 
+            // LỌC BỔ SUNG: Kiểm tra trạng thái Chỉ số đặc biệt (ĐÃ MỞ RỘNG)
+            if (isMeterResetFilterActive) {
+                // Kiểm tra xem bản ghi này có "đặc biệt" hay không
+                const isReset = r.isMeterReset === true;
+                const isAutoInit = r.ghi_chu === "Chi so khoi tao tu dong (Auto-Init)";
+
+                // Nếu nó KHÔNG phải là 'Reset' VÀ KHÔNG phải là 'Auto-Init', thì ẩn nó đi
+                if (!isReset && !isAutoInit) {
+                    return false; 
+                }
+                // Nếu nó là 1 trong 2 (hoặc cả 2), nó sẽ vượt qua bộ lọc và được hiển thị
+            }
+            // Việc lọc ngày đã được Firebase làm, nhưng kiểm tra này vẫn tốt
+            return d >= fromDate && d <= toDate; 
+        });
+        
+        filterNote.textContent = `Đang xem dữ liệu từ ${fromDate.toLocaleDateString('vi-VN')} đến ${toDate.toLocaleDateString('vi-VN')}`;
+        
+        const lowerCaseQuery = query.toLowerCase().trim();
+        const isAdmin = userRole === "admin";
+
+        const filteredData = filteredByDate.filter(item => { 
+            const searchString = [
+                item.createdBy, item.company, item.ghi_chu, getRecordDate(item), item.chi_so ? item.chi_so.toString() : ""
+            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
+            return searchString.includes(lowerCaseQuery);
+        });
+        
+        // Sắp xếp đã được Firebase orderBy lo, nhưng sort lại an toàn
+        filteredData.sort((a, b) => {
+            const dateA = new Date(getRecordDate(a) || 0);
+            const dateB = new Date(getRecordDate(b) || 0);
+            return dateB - dateA; // Mới nhất lên đầu
+        });
+        
+        let finalData = filteredData;
+        if (lowerCaseQuery === "" && limit !== "all") {
+            finalData = filteredData.slice(0, parseInt(limit));
+        }
+
+        let html = "";
+        let sttCounter = 1; 
+        finalData.forEach(r => {
+            const fileLink = r.fileUrl ? `<a href="${r.fileUrl}" target="_blank">Link</a>` : "";
+            const formattedTime = formatTimestamp(r.updatedAt || r.createdAt);
+            let combinedGhiChu = r.ghi_chu || "";
+            if (r.isMeterReset) {
+                combinedGhiChu += `<br>(Chỉ số ĐB: ${r.ngay_ghi})`; 
+            }
+            html += `
+                <tr>
+                    <td>${sttCounter++}</td> 
+                    <td class="admin-only">${r.createdBy || ""}</td> 
+                    <td>${r.company || ""}</td>                     
+                    <td>${r.chi_so != null ? r.chi_so.toLocaleString('vi-VN') : 0}</td>                      
+                    <td>${combinedGhiChu}</td>                      
+                    <td>${fileLink}</td>                           
+                    <td>${r.ngay_ghi || ""}</td>                   
+                    <td class="admin-only">${formattedTime}</td>     
+                    <td class="admin-only"><button type="button" data-id="${r.id}" class="delBtn">Xóa</button></td> 
+                </tr>`;
+        });
+        tbody.innerHTML = html;
+        attachDeleteEventListeners();
+        document.querySelectorAll("#dataTable th.admin-only, #dataTable td.admin-only").forEach(el => {
+            el.style.display = isAdmin ? "table-cell" : "none";
+        });
+    };
+
+    // === 6. HÀM TẢI DỮ LIỆU MỚI (Từ lần trước) ===
+    async function fetchAndRenderData() {
+        // 1. Lấy ngày từ bộ lọc
+        const fromVal = fromInput.value;
+        const toVal = toInput.value;
+        const yearVal = yearSelect.value;
+        
+        let startDate, endDate;
+        const todayISO = formatISODate(new Date());
+        const currentYearStart = new Date().getFullYear() + '-01-01';
+
+        if (yearVal) {
+            startDate = `${yearVal}-01-01`;
+            endDate = `${yearVal}-12-31`;
+            // Cập nhật biến global filter
+            currentFilter.from = startDate;
+            currentFilter.to = endDate;
+        } else if (fromVal && toVal) {
+            startDate = fromVal;
+            endDate = toVal;
+            currentFilter.from = startDate;
+            currentFilter.to = endDate;
+        } else if (toVal) {
+            startDate = currentYearStart;
+            endDate = toVal;
+            currentFilter.from = startDate;
+            currentFilter.to = endDate;
+        } else if (fromVal) {
+            startDate = fromVal;
+            endDate = todayISO;
+            currentFilter.from = startDate;
+            currentFilter.to = endDate;
+        } else {
+            // Nếu không có gì được chọn, dùng mặc định
+            startDate = currentFilter.from || currentYearStart;
+            endDate = currentFilter.to || todayISO;
+        }
+
+        // 2. ⭐️ GỌI HÀM getReportsByDate ⭐️
+        allSearchData = await getReportsByDate("reports_1", "ngay_ghi", startDate, endDate);
+
+        // 3. Render dữ liệu
+        filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+    }
+    
+    // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC (ĐÃ SỬA) ===
+    function resetYearSelectIfEditingDates() {
+      if (yearSelect && yearSelect.value !== "") yearSelect.value = "";
+    }
+    [fromInput, toInput].forEach(el => {
+      if (!el) return;
+      el.addEventListener("focus", resetYearSelectIfEditingDates);
+      el.addEventListener("input", resetYearSelectIfEditingDates);
+      el.addEventListener("change", resetYearSelectIfEditingDates);
+    });
+
+    if(applyFilterBtn) {
+        applyFilterBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            fetchAndRenderData(); // Gọi hàm mới
+        });
+    }
+
+    if(yearSelect) {
+        yearSelect.addEventListener("change", (e) => {
+            // Tự động tải lại khi chọn năm
+            fetchAndRenderData(); 
+        });
+    }
+
+    if (meterResetFilterInput) {
+        meterResetFilterInput.addEventListener("change", () => {
+            // Chỉ render lại, không tải lại
+            filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+        });
+    }
+
+    // === 8. HÀM ON AUTH (ĐÃ SỬA LỖI TRUY VẤN - PHIÊN BẢN CUỐI) ===
+    onAuth(async (user) => {
+        if (user) {
+            notLogged.style.display = "none";
+            // (content.style.display = "none" - Mặc định ẩn)
+            
+            try {
+                // 1. Cài đặt UI Admin
+                userRole = await getRole(user.email);
+                const isAdmin = userRole === "admin";
+                
+                document.querySelectorAll("#dataTable th.admin-only").forEach(th => {
+                    th.style.display = isAdmin ? "table-cell" : "none";
+                });
+                const formElement = document.querySelector('#pageContent form'); 
+                if (formElement) {
+                    formElement.addEventListener('submit', (e) => e.preventDefault());
+                }
+
+                // --- 2. TẢI DANH SÁCH NĂM (ĐÃ TỐI ƯU - TỐN 2 LƯỢT ĐỌC) ---
+                showLoading("Đang tải danh sách năm..."); 
+
+                // ⭐️ SỬA LỖI: Quay lại dùng 2 truy vấn limit(1) ⭐️
+                const newestReportQuery = query(
+                    collection(db, "reports_1"),
+                    orderBy("ngay_ghi", "desc"), 
+                    limit(1) // Chỉ lấy 1 bản ghi mới nhất
+                );
+                const oldestReportQuery = query(
+                    collection(db, "reports_1"),
+                    orderBy("ngay_ghi", "asc"),  
+                    limit(1) // Chỉ lấy 1 bản ghi cũ nhất
+                );
+
+                const [newestSnapshot, oldestSnapshot] = await Promise.all([
+                    getDocs(newestReportQuery),
+                    getDocs(oldestReportQuery)
+                ]);
+                // --- KẾT THÚC SỬA LỖI ---
+
+                let years = []; 
+
+                if (!newestSnapshot.empty && !oldestSnapshot.empty) {
+                    const newestDateStr = newestSnapshot.docs[0].data().ngay_ghi;
+                    const oldestDateStr = oldestSnapshot.docs[0].data().ngay_ghi;
+
+                    const newestYear = parseInt(newestDateStr.substring(0, 4));
+                    const oldestYear = parseInt(oldestDateStr.substring(0, 4));
+
+                    for (let y = newestYear; y >= oldestYear; y--) {
+                        years.push(y.toString());
+                    }
+                } else {
+                     console.log("Không có dữ liệu trong 'reports_1' để tạo danh sách năm.");
+                }
+                
+                const ys = document.getElementById("yearSelect");
+                if(ys) {
+                  ys.innerHTML = `<option value="">--Chọn năm--</option>`;
+                  years.forEach(y => ys.innerHTML += `<option value="${y}">${y}</option>`);
+                }
+
+                // 3. Thiết lập bộ lọc mặc định (Giữ nguyên)
+                if(initialLoad) {
+                    const currentYear = new Date().getFullYear().toString();
+                    if (years.includes(currentYear) && ys) {
+                      const todayISO = formatISODate(new Date());
+                      const currentYearStart = currentYear + '-01-01';
+                      ys.value = currentYear;
+                      currentFilter.from = currentYearStart;
+                      currentFilter.to = todayISO; 
+                    } else if (years.length > 0) {
+                        ys.value = years[0];
+                        currentFilter.from = `${years[0]}-01-01`;
+                        currentFilter.to = `${years[0]}-12-31`;
+                    }
+                    initialLoad = false;
+                }
+
+                // 4. Tải dữ liệu chính (Lần đầu)
+                await fetchAndRenderData(); 
+                
+                // 5. HIỂN THỊ NỘI DUNG (Chống giật)
+                content.style.display = "block"; 
+                hideLoading(); // Ẩn loading sau khi đã render
+
+            } catch (err) {
+                 showSwal("error", "Lỗi tải dữ liệu", err.message);
+                 console.error("Lỗi onAuth:", err); // Thêm log lỗi chi tiết
+                 hideLoading(); 
+            }
+            
+            // 6. Gắn listener (Giữ nguyên)
+            searchInput.addEventListener("input", () => {
+                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+            });
+            displayCountSelect.addEventListener("change", () => {
+                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+            });
+
+        } else {
+            notLogged.style.display = "block";
+            content.style.display = "none";
+            hideLoading(); 
+        }
+    });
+  </script>
+</body>
+</html>

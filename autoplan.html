@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Lịch làm việc</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+  /* ======= BẢNG CHUNG ======= */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+
+  /* ======= KHUNG MỖI PHẦN (3 KHUNG ADMIN) ======= */
+  .rule-box {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    background: #f7f7f7;
+    display: block;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Hàng nhập liệu trong mỗi khung */
+  .rule-box .input-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  /* Ô nhập văn bản co giãn hợp lý */
+  .rule-box input[type="text"] {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  /* Phần tử còn lại: select, date, button */
+  .rule-box select,
+  .rule-box input[type="date"],
+  .rule-box input[type="time"],
+  .rule-box button {
+    height: 32px;
+    padding: 4px 8px;
+  }
+
+  /* ======= NÚT TRONG BẢNG ======= */
+  .rule-box table button {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .rule-box table button:hover {
+    background: #c0392b;
+  }
+
+  /* ======= CÁC BẢNG TRONG PHẦN ADMIN ======= */
+  .rule-box table {
+    width: 100%;
+    /* border-collapse: collapse;  <-- ĐÃ XÓA (Thừa) */
+    margin-top: 0px;
+    background: #fff;
+    border: none;
+  }
+
+  .rule-box table thead th {
+    background-color: #f0f0f0;
+    font-weight: 600;
+    text-align: center; /* Kế thừa từ 'th' toàn cục */
+    padding: 8px;
+    border: 1px solid #ccc;
+  }
+
+  .rule-box table tbody td {
+    border: 1px solid #ccc;
+    padding: 6px 8px;
+    text-align: center; /* Kế thừa từ 'td' toàn cục */
+    vertical-align: middle;
+  }
+
+  .rule-box table tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+  }
+  .rule-box table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+
+  .rule-box table tbody tr:hover {
+    background-color: #eaf3ff;
+    transition: background-color 0.2s ease;
+  }
+
+  .rule-box + .rule-box {
+    margin-top: 20px;
+  }
+
+  .rule-box h3 {
+    margin-top: 0;
+    text-align: left;
+    color: #333;
+  }
+
+  .rule-box table th,
+  .rule-box table td {
+    white-space: normal;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .rule-box table td:first-child
+  {
+    text-align: left;
+    padding-left: 10px;
+  }
+
+  .rule-box table th:first-child {
+    text-align: center;
+    padding-left: 10px;
+  }
+
+  /* ======= PHẦN 3: CÀI ĐẶT QUY TẮC NGÀY LÀM ======= */
+  #workPatternConfig #dayCheckboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  #workPatternConfig #dayCheckboxes label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid #ccc;
+    padding: 3px 6px;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  /* ======= BẢNG LỊCH LÀM VIỆC ======= */
+  #scheduleTable {
+    table-layout: fixed;
+    word-wrap: break-word;
+    /* border-collapse: collapse; <-- ĐÃ XÓA (Thừa) */
+    width: 100%;
+    background: white;
+  }
+
+  #scheduleTable thead th {
+    background-color: #f0f0f0;
+    font-weight: 600;
+    text-align: center !important; 
+    padding: 10px;
+    border: 1px solid #ccc;
+  }
+
+  /* --- ĐÃ TỐI ƯU HÓA --- */
+  #scheduleTable tbody td {
+    border: 1px solid #ccc;
+    padding: 8px 10px; /* Thêm padding trái/phải mặc định */
+    text-align: left; /* Căn trái tất cả TD trong tbody */
+    line-height: 1.4em;
+  }
+  
+  /* Căn lề trái cho cột Ngày (vốn đã left) */
+  #scheduleTable td:nth-child(1) {
+     padding-left: 8px; /* Giữ nguyên padding riêng */
+  }
+  /* --- KẾT THÚC TỐI ƯU HÓA --- */
+
+  #scheduleTable tbody tr:nth-child(odd) {
+    background-color: #fafafa;
+  }
+
+  #scheduleTable tbody tr:nth-child(even) {
+    background-color: #ffffff;
+  }
+
+  #scheduleTable tbody tr:hover {
+    background-color: #eaf3ff;
+    transition: background-color 0.2s ease;
+  }
+  
+  /* Độ rộng bảng <-- ĐÃ XÓA KHỐI NÀY (Thừa) */
+
+  /* Độ rộng cột cụ thể */
+  #scheduleTable th:nth-child(1),
+  #scheduleTable td:nth-child(1) {
+    width: 15%;
+    min-width: 150px; 
+    /* (Đã xóa text-align: left;) */
+  }
+
+  #scheduleTable th:nth-child(2),
+  #scheduleTable td:nth-child(2) {
+    width: 20%;
+    min-width: 150px;
+    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
+    /* padding-left: 10px; <-- ĐÃ XÓA (Đã gộp) */
+    /* line-height: 1.4em; <-- ĐÃ XÓA (Đã gộp) */
+  }
+
+  #scheduleTable th:nth-child(3),
+  #scheduleTable td:nth-child(3) {
+    width: 45%;
+    min-width: 150px;
+    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
+    /* padding-left: 10px; <-- ĐÃ XÓA (Đã gộp) */
+    /* line-height: 1.4em; <-- ĐÃ XÓA (Đã gộp) */
+  }
+
+  #scheduleTable th:nth-child(4),
+  #scheduleTable td:nth-child(4) {
+    width: 20%;
+    min-width: 150px;
+    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
+    padding-left: 8px; /* Giữ padding riêng */
+  }
+
+  /* Dòng “hôm nay” tô sáng */
+  #scheduleTable tr.today-row {
+    background-color: #dff0ff !important;
+    font-weight: 600;
+  }
+  /* ======= MODAL XEM LỊCH CÁ NHÂN ======= */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4); 
+}
+
+#personalScheduleModal .modal-content {
+    background-color: #fefefe;
+    margin: 4% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 900px; 
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+    animation-name: animatetop;
+    animation-duration: 0.4s
+}
+
+@keyframes animatetop {
+    from {top: -300px; opacity: 0}
+    to {top: 0; opacity: 1}
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#personalScheduleDetails {
+    margin-top: 15px;
+    text-align: left;
+}
+/* === CSS CHO DANH SÁCH ẨN/HIỆN === */
+.list-header {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    margin-top: 20px;
+}
+.list-header h4 {
+    margin: 0;
+}
+
+/* KHỐI .toggle-visibility-btn ĐÃ BỊ XÓA */
+
+.collapsible-content {
+    display: block; /* Luôn hiển thị */
+    max-height: 175px; /* Giới hạn chiều cao */
+    overflow-y: auto; /* Bật thanh cuộn dọc */
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+}
+/* --- MỚI: Ghim cố định tiêu đề bảng khi cuộn --- */
+.collapsible-content thead th {
+    position: sticky;
+    top: 0px; /* Ghim vào mép trên (dùng -1px để che viền) */
+    
+    /* Đảm bảo tiêu đề có nền, không bị trong suốt */
+    background-color: #f0f0f0; 
+    z-index: 1; /* Đảm bảo tiêu đề luôn nằm trên nội dung */
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    
+}
+/* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
+#scheduleTable tr.highlight {
+    background-color: #fff8c4 !important;
+    font-weight: bold;
+}
+
+/* === CSS CHO BỐ CỤC ĐIỀU KHIỂN TUẦN === */
+#weekNavigator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f9f9f9;
+}
+
+.week-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+#weekNavigator button {
+    padding: 3px 12px;
+    font-size: 14px !important;
+    border: 1px solid #ccc;
+    background-color: #e01313bd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#weekNavigator button:hover {
+    background-color: #7789ecb7;
+}
+
+#weekNumberDisplay {
+    font-weight: bold;
+    font-size: 14px;
+    margin: 0 10px;
+    width: 100px;
+    text-align: center;
+}
+
+.week-label {
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* === CSS CHO MÀU NỀN NHÓM XEN KẼ === */
+.rule-box table tbody tr.group-color-a {
+    background-color: #f8f9fa;
+}
+.rule-box table tbody tr.group-color-b {
+    background-color: #e9f7ef;
+}
+
+.rule-box table tbody tr.group-color-a:hover,
+.rule-box table tbody tr.group-color-b:hover {
+    background-color: #eaf3ff !important;
+}
+/* === GIAO DIỆN DẠNG THẺ CHO MÀN HÌNH NHỎ (CẢI TIẾN) === */
+@media (max-width: 768px) {
+  /* Reset độ rộng bảng khi sang giao diện thẻ dọc */
+  #scheduleTable {
+    table-layout: auto !important;
+    width: 100% !important;
+  }
+
+  #scheduleTable th,
+  #scheduleTable td {
+    width: auto !important;
+    min-width: unset !important;
+    max-width: none !important;
+  }
+
+  #scheduleTable,
+  #scheduleTable thead,
+  #scheduleTable tbody,
+  #scheduleTable th,
+  #scheduleTable td,
+  #scheduleTable tr {
+    display: block;
+    width: 100%;
+  }
+
+  #scheduleTable thead {
+    display: none; /* Ẩn tiêu đề cột */
+  }
+
+  #scheduleTable tr {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+
+  #scheduleTable td {
+    display: flex;
+    flex-direction: column;
+    border: none;
+    padding: 6px 0;
+    font-size: 14px;
+    text-align: left;
+    line-height: 1.5em;
+  }
+
+  #scheduleTable td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #444;
+    font-size: 13px;
+  }
+
+  #scheduleTable tr.today-row {
+    background-color: #eef6ff !important;
+    border-color: #99c4ff;
+  }
+
+  #scheduleTable td + td {
+    margin-top: 2px;
+  }
+
+  #scheduleTable td[data-label="Ghi chú"] {
+    color: #555;
+    font-style: italic;
+  }
+
+  #scheduleTable td[data-label="Ngày"] br {
+    display: none;
+  }
+
+  #scheduleTable td[data-label="Ngày"] {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+
+  #scheduleTable td[data-label="Ngày"] .week-label {
+    display: none;
+  }
+
+  #scheduleTable td[data-label="Ngày"]::before {
+    content: "📅 " attr(data-label);
+  }
+
+  #scheduleTable td[data-label="Người làm"]::before {
+    content: "👤 " attr(data-label);
+  }
+
+  #scheduleTable td[data-label="Công việc"]::before {
+    content: "💼 " attr(data-label);
+  }
+
+  #scheduleTable td[data-label="Ghi chú"]::before {
+    content: "📝 " attr(data-label);
+  }
+}
+</style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+<div id="personalScheduleModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>Công việc Sắp tới của bạn</h2>
+        <hr>
+        <div id="personalScheduleDetails">
+            <p>Đang tải lịch...</p>
+        </div>
+
+        <div style="text-align:center; margin-top: 20px;">
+            <button id="closeModalBottom" style="padding: 8px 20px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">Đóng</button>
+        </div>
+        
+    </div>
+  </div>
+
+  <div id="pageContent" style="display:none;">
+  <h2>📅 Lịch làm việc trong tuần</h2>
+
+  <div class="card-body">
+  <div style="margin-bottom: 15px; margin-top: 10px;">
+      <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box;">
+  </div>
+
+  <div class="table-responsive-wrapper">
+  <table id="scheduleTable">
+    <thead>
+        <tr>
+        <th>Thứ & Ngày</th>
+        <th>Người làm</th>
+        <th>Công việc</th>
+        <th>Ghi chú</th>
+        </tr>
+    </thead>
+    <tbody id="scheduleBody"></tbody>
+  </table>
+  </div>
+
+  <div id="weekNavigator">
+    <button id="todayWeekBtn">Tuần hiện tại</button>
+    
+    <div class="week-nav-group">
+      <button id="firstWeekBtn" title="Tuần đầu tiên của năm">|&lt;</button>
+      <button id="prevWeekBtn" title="Tuần trước">&lt;&lt;</button>
+      <span id="weekNumberDisplay"></span>
+      <button id="nextWeekBtn" title="Tuần kế tiếp">&gt;&gt;</button>
+      <button id="lastWeekBtn" title="Tuần cuối cùng của năm">&gt;|</button>
+    </div>
+  </div>
+
+
+  <div id="adminConfig" class="rule-box admin-only">
+  <h3>⚙️ 1.Cài đặt quy tắc công việc (Admin)</h3>
+  <div class="input-row">
+    <input type="text" id="jobName" placeholder="Tên công việc">
+    <label><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
+    <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc">
+    <select id="domSelect">
+      <option value="">--Ngày--</option>
+      <script>
+        for (let i = 1; i <= 31; i++) {
+          document.write(`<option value="${i}">${i}</option>`);
+        }
+      </script>
+    </select>
+    <select id="daySelect">
+      <option value="">--Thứ--</option>
+      <option value="2">T2</option>
+      <option value="3">T3</option>
+      <option value="4">T4</option>
+      <option value="5">T5</option>
+      <option value="6">T6</option>
+      <option value="7">T7</option>
+      <option value="8">CN</option>
+      <option value="all">Mọi ngày</option>
+    </select>
+    <select id="weekSelect">
+      <option value="">--Tuần--</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="all">Mọi tuần</option>
+    </select>
+    <select id="monthSelect">
+      <option value="">--Tháng--</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+      <option value="9">9</option>
+      <option value="10">10</option>
+      <option value="11">11</option>
+      <option value="12">12</option>
+      <option value="all">Mọi tháng</option>
+    </select>
+    
+    <button id="saveRule">💾 Lưu</button>
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)">
+  </div>
+
+  <div class="list-header">
+      <h4>Danh sách quy tắc đã thêm</h4>
+  </div>
+  <div class="collapsible-content">
+    <table id="ruleList">
+    <thead>
+      <tr>
+        <th>Công việc</th><th>Giờ</th><th>Ngày</th><th>Thứ</th><th>Tuần</th><th>Tháng</th><th>Ghi chú</th><th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+  </table>
+</div>
+
+<div id="manualJobConfig" class="rule-box admin-only">
+  <h3>📝 2.Thêm công việc thủ công (bất kỳ ngày nào)</h3>
+  <div class="input-row">
+    <input type="text" id="manualJobName" placeholder="Tên công việc">
+    <label><input type="checkbox" id="isAdminManualJobCheckbox"> #CV Admin</label>
+    <input type="time" id="manualJobTime" title="Chọn giờ phải hoàn thành công việc">
+    <input type="date" id="manualJobDate">
+    
+    <button id="saveManualJob">💾 Lưu</button>
+  </div>
+  <input type="text" id="manualJobNote" placeholder="Ghi chú (Tùy chọn)">
+  <div class="list-header">
+    <h4>Danh sách công việc thủ công</h4>
+  </div>
+  <div class="collapsible-content">
+    <table id="manualJobList">
+    <thead>
+      <tr><th>Công việc</th><th>Giờ</th><th>Ngày</th><th>Ghi chú</th><th>Hành động</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+  </table>
+</div>
+<div id="workPatternConfig" class="rule-box admin-only">
+  <h3>🧭 3.Cài đặt quy tắc ngày làm (Admin)</h3>
+
+<div class="input-row">
+    <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
+    <input type="text" id="patternDisplayName" placeholder="Tên hiển thị trên lịch">
+    <input type="date" id="patternStartDate" title="Ngày bắt đầu áp dụng quy tắc">
+    <select id="patternTypeSelect">
+      <option value="administrative">1.Lịch Cố định</option>
+      <option value="shift_rotation">2.Lịch Theo Ca</option>
+    </select>
+    <button id="savePattern">💾 Lưu</button>
+  </div>
+
+  <div id="administrativeInputs">
+    <div class="input-row">
+      <label>Thứ làm việc:</label>
+      <div id="dayCheckboxes">
+        <label><input type="checkbox" value="2">T2</label>
+        <label><input type="checkbox" value="3">T3</label>
+        <label><input type="checkbox" value="4">T4</label>
+        <label><input type="checkbox" value="5">T5</label>
+        <label><input type="checkbox" value="6">T6</label>
+        <label><input type="checkbox" value="7">T7</label>
+        <label><input type="checkbox" value="8">CN</label>
+      </div>
+    </div>
+    <div class="input-row">
+        <label>Giờ bắt đầu:</label> <input type="time" id="adminStartTime">
+        <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime">
+
+    </div>
+  </div>
+
+  <div id="shiftRotationInputs" style="display:none;">
+      <div class="input-row">
+          <label>Giờ bắt đầu ca:</label>
+          <input type="time" id="shiftStartTime">
+          <label>Giờ kết thúc ca:</label>
+          <input type="time" id="shiftEndTime">
+          
+      </div>
+  </div>
+
+  <div class="input-row">
+      <input type="text" id="patternNote" placeholder="Ghi chú (Tùy chọn)">
+  </div>
+
+  <div class="list-header">
+      <h4>Danh sách quy tắc ngày làm</h4>      
+  </div>
+  <div class="collapsible-content">
+    <table id="patternList">
+    <thead>
+      <tr><th>Nhân viên</th><th>Tên hiển thị</th><th>Kiểu</th><th>Chi tiết</th><th>Ngày Bắt đầu</th><th>Ngày Kết thúc</th><th>Giờ BĐ</th><th>Giờ KT</th><th>Hành động</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+</div>
+</div>
+
+<div id="footer-placeholder"></div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module">
+    import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail } from "./script.js";
+    import { collection, addDoc, deleteDoc, doc, getDocs, serverTimestamp, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { initMenu } from "./menu.js";
+
+     // === HÀM CHUẨN HÓA KÝ TỰ ĐẦU TIÊN CỦA CHUỖI ===
+    function getNormalizedFirstChar(str) {
+          if (!str || str.trim() === "") return '?';
+          return str
+              .trim()
+              .normalize('NFD') // Tách ký tự và dấu (VD: "É" -> "E" + "´")
+              .replace(/[\u0300-\u036f]/g, '') // Xóa tất cả các loại dấu
+              .charAt(0) // Lấy ký tự đầu tiên đã được chuẩn hóa
+              .toUpperCase(); // Viết hoa
+    }
+
+    // === Load menu, modal và footer===
+    fetch("menu.html").then(r => r.text()).then(h => {
+      document.getElementById("menu-placeholder").innerHTML = h;
+      initMenu();
+    });
+    fetch("modal.html").then(r => r.text()).then(h => {
+      document.getElementById("loading-placeholder").innerHTML = h;
+    });
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+
+    const notLogged = document.getElementById("notLogged");
+    const content = document.getElementById("pageContent");
+    let currentlyViewedDate = new Date();
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return [d.getUTCFullYear(), weekNo];
+    }
+
+    const scheduleBody = document.getElementById("scheduleBody");
+    const ruleListBody = document.querySelector("#ruleList tbody");
+    const jobInput = document.getElementById("jobName");
+    const daySelect = document.getElementById("daySelect");
+    const weekSelect = document.getElementById("weekSelect");
+    const monthSelect = document.getElementById("monthSelect"); 
+    const domSelect = document.getElementById("domSelect");
+    const saveBtn = document.getElementById("saveRule");
+    const adminConfig = document.getElementById("adminConfig");
+    const manualJobInput = document.getElementById("manualJobName");
+    const manualJobDate = document.getElementById("manualJobDate");
+    const saveManualBtn = document.getElementById("saveManualJob");
+    const manualJobList = document.querySelector("#manualJobList tbody");
+
+    let allRulesData = [];
+    let allManualJobsData = [];
+    let allPatternsData = [];
+
+    // --- DÒNG MỚI THÊM VÀO ---
+    let rulesLoaded = false;
+    let manualJobsLoaded = false;
+    let patternsLoaded = false;
+    let initialLoadComplete = false; // Cờ chính
+
+    const specificDate = document.getElementById("specificDate");
+    const jobNoteInput = document.getElementById("jobNote");
+    const manualJobNoteInput = document.getElementById("manualJobNote");
+    const personalScheduleModal = document.getElementById("personalScheduleModal");
+    const closeModalBtn = document.getElementById("closeModal");
+    const personalScheduleDetails = document.getElementById("personalScheduleDetails");
+
+
+    let userRole = "user";
+
+    // --- HÀM 1 (MỚI): onAuth ---
+    onAuth(async (user) => {
+        if (!user) {
+            notLogged.style.display = "block";
+            content.style.display = "none";
+            return;
+        }
+        userRole = await getRole(user.email);
+        notLogged.style.display = "none";
+        content.style.display = "block";
+        if (userRole === "admin") adminConfig.classList.add("admin-visible");
+
+        // Bắt đầu lắng nghe thời gian thực
+        setupRealtimeListeners(user.email, userRole);
+    });
+
+    // --- HÀM 2 (MỚI): checkAllDataLoadedAndRender ---
+    function checkAllDataLoadedAndRender(email, role) {
+        // Nếu đã tải xong lần đầu, chỉ cần vẽ lại lịch
+        if (initialLoadComplete) {
+            console.log("Real-time: Dữ liệu thay đổi, vẽ lại lịch.");
+            renderSchedule(globalSearchInput.value, currentlyViewedDate);
+            return;
+        }
+        
+        // Kiểm tra xem cả 3 listener đã sẵn sàng chưa
+        if (rulesLoaded && manualJobsLoaded && patternsLoaded) {
+            initialLoadComplete = true; // Đánh dấu hoàn tất tải lần đầu
+            
+            console.log("Tất cả dữ liệu đã tải. Hiển thị lần đầu.");
+            renderSchedule(globalSearchInput.value, currentlyViewedDate);
+            showPersonalScheduleModal(email, role); // Gọi modal sau khi đã có dữ liệu
+        }
+    }
+
+    // --- HÀM 3 (MỚI): setupRealtimeListeners ---
+    // (Hàm này thay thế cho cả 3 hàm load... cũ)
+    function setupRealtimeListeners(email, role) {
+        
+        // 1. Lắng nghe work_rules
+        onSnapshot(collection(db, "work_rules"), (snapshot) => {
+            console.log("Real-time: work_rules đã thay đổi.");
+            allRulesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            
+            // (Copy y hệt logic Sắp xếp từ hàm loadRules cũ của bạn)
+            allRulesData.sort((a, b) => {
+                const groupA = getNormalizedFirstChar(a.job);
+                const groupB = getNormalizedFirstChar(b.job);
+                if (groupA !== groupB) return groupA.localeCompare(groupB);
+                if (b.createdAt && a.createdAt) return b.createdAt.toMillis() - a.createdAt.toMillis();
+                return 0;
+            });
+
+            renderRuleList(allRulesData); // Cập nhật bảng admin
+            
+            if (!rulesLoaded) rulesLoaded = true; // Đặt cờ
+            checkAllDataLoadedAndRender(email, role); // Kiểm tra
+        });
+
+        // 2. Lắng nghe manual_jobs
+        onSnapshot(collection(db, "manual_jobs"), (snapshot) => {
+            console.log("Real-time: manual_jobs đã thay đổi.");
+            allManualJobsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+
+            // (Copy y hệt logic Sắp xếp từ hàm loadManualJobs cũ của bạn)
+            allManualJobsData.sort((a, b) => {
+                const groupA = getNormalizedFirstChar(a.job);
+                const groupB = getNormalizedFirstChar(b.job);
+                if (groupA !== groupB) return groupA.localeCompare(groupB);
+                if (b.createdAt && a.createdAt) return b.createdAt.toMillis() - a.createdAt.toMillis();
+                return 0;
+            });
+
+            renderManualJobList(allManualJobsData); // Cập nhật bảng admin
+            
+            if (!manualJobsLoaded) manualJobsLoaded = true; // Đặt cờ
+            checkAllDataLoadedAndRender(email, role); // Kiểm tra
+        });
+
+        // 3. Lắng nghe work_patterns
+        onSnapshot(collection(db, "work_patterns"), (snapshot) => {
+            console.log("Real-time: work_patterns đã thay đổi.");
+            allPatternsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+
+            // (Copy y hệt logic Sắp xếp từ hàm loadPatterns cũ của bạn)
+            allPatternsData.sort((a, b) => {
+                return (a.user || "").localeCompare(b.user || "");
+            });
+
+            renderPatternList(allPatternsData); // Cập nhật bảng admin
+            
+            if (!patternsLoaded) patternsLoaded = true; // Đặt cờ
+            checkAllDataLoadedAndRender(email, role); // Kiểm tra
+        });
+    }
+        
+    //
+    function renderRuleList(rulesToRender) {
+        ruleListBody.innerHTML = "";
+        let lastGroupChar = null;
+        let useColorB = false; // Bắt đầu với màu A (false)
+
+        rulesToRender.forEach(d => {
+            const currentGroupChar = getNormalizedFirstChar(d.job);
+
+            // Nếu chuyển sang một nhóm mới, hãy đảo màu
+            if (currentGroupChar !== lastGroupChar) {
+                useColorB = !useColorB; // Đảo màu (A -> B, B -> A)
+                lastGroupChar = currentGroupChar;
+            }
+
+            const tr = document.createElement("tr");
+            tr.className = useColorB ? 'group-color-b' : 'group-color-a';
+
+            const noteDisplay = (d.note || "-").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+
+            tr.innerHTML = `
+                <td>${d.job}</td>
+                <td>${d.time || "-"}</td>
+                <td>${d.dom || "-"}</td>
+                <td>${d.day === "8" ? "CN" : (d.day === "all" ? "Mọi ngày" : (d.day ? "T" + d.day : "-"))}</td>
+                <td>${d.week === "all" ? "Mọi tuần" : (d.week || "-")}</td>
+                <td>${d.month === "all" ? "Mọi tháng" : (d.month || "-")}</td>
+                <td>${noteDisplay}</td>
+                <td><button data-id="${d.id}">🗑️</button></td>`;
+
+            tr.querySelector("button").addEventListener("click", async () => {
+                const ruleIdToDelete = d.id;
+                const ruleData = allRulesData.find(r => r.id === ruleIdToDelete);
+                try {
+                    await deleteDoc(doc(db, "work_rules", ruleIdToDelete));
+                    addLog("admin_delete_work_rule", {
+                        email: getCurrentUserEmail(),
+                        deletedRuleId: ruleIdToDelete,
+                        deletedRule: ruleData || {}
+                    });
+                    showSwal("success", "Đã xóa quy tắc!");
+                } catch (error) {
+                    addLog("admin_delete_work_rule_error", {
+                        email: getCurrentUserEmail(),
+                        ruleId: ruleIdToDelete,
+                        error: error.message
+                    });
+                    showSwal("error", "Lỗi khi xóa quy tắc!");
+                }
+            });
+            ruleListBody.appendChild(tr);
+        });
+    }
+
+    
+
+    function renderManualJobList(jobsToRender) {
+        manualJobList.innerHTML = "";
+        let lastGroupChar = null;
+        let useColorB = false; // Bắt đầu với màu A (false)
+
+        jobsToRender.forEach(d => {
+            const currentGroupChar = getNormalizedFirstChar(d.job);
+
+            if (currentGroupChar !== lastGroupChar) {
+                useColorB = !useColorB;
+                lastGroupChar = currentGroupChar;
+            }
+
+            const tr = document.createElement("tr");
+            tr.className = useColorB ? 'group-color-b' : 'group-color-a';
+
+            const noteDisplay = (d.note || "-").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+
+            tr.innerHTML = `
+                <td>${d.job}</td>
+                <td>${d.time || "-"}</td>
+                <td>${d.date}</td>
+                <td>${noteDisplay}</td>
+                <td><button data-id="${d.id}">🗑️</button></td>`;
+
+            tr.querySelector("button").addEventListener("click", async () => {
+                const jobIdToDelete = d.id;
+                const jobData = allManualJobsData.find(j => j.id === jobIdToDelete);
+                try {
+                    await deleteDoc(doc(db, "manual_jobs", jobIdToDelete));
+                    addLog("admin_delete_manual_job", {
+                        email: getCurrentUserEmail(),
+                        deletedJobId: jobIdToDelete,
+                        deletedJob: jobData || {} 
+                    });
+                    showSwal("success", "Đã xóa công việc thủ công!");
+                } catch (error) {
+                    addLog("admin_delete_manual_job_error", {
+                        email: getCurrentUserEmail(),
+                        jobId: jobIdToDelete,
+                        error: error.message
+                    });
+                    showSwal("error", "Lỗi khi xóa công việc!");
+                }
+            });
+            manualJobList.appendChild(tr);
+        });
+    }
+
+    saveBtn.addEventListener("click", async () => {
+        const isAdmin = document.getElementById("isAdminJobRuleCheckbox").checked;
+        const originalNote = jobNoteInput.value.trim();
+        
+        const jobData = {
+            job: jobInput.value.trim(),
+            time: document.getElementById("jobTime").value,
+            day: daySelect.value,
+            week: weekSelect.value,
+            month: monthSelect.value,
+            dom: domSelect.value,
+            // --- LOGIC MỚI CHO GHI CHÚ ---
+            note: isAdmin ? `[CVAdmin] ${originalNote}`.trim() : originalNote,
+            is_admin_job: isAdmin, // Vẫn lưu boolean để ẩn/hiện trên lịch
+            createdAt: serverTimestamp()
+        };
+        if (!jobData.job) return showSwal("error", "Vui lòng nhập tên công việc!");
+        // (logic validation của bạn ở đây)
+
+        try {
+            const docRef = await addDoc(collection(db, "work_rules"), jobData);
+            addLog("admin_create_work_rule", {
+                email: getCurrentUserEmail(),
+                ruleId: docRef.id,
+                ...jobData
+            });
+            showSwal("success", "Đã lưu quy tắc!");
+            [jobInput, daySelect, weekSelect, monthSelect, domSelect, jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+        } catch (error) {
+            addLog("admin_create_work_rule_error", {
+                email: getCurrentUserEmail(),
+                error: error.message,
+                data: jobData
+            });
+            showSwal("error", "Lỗi!", "Không thể lưu quy tắc: " + error.message);
+        }
+    });
+
+    saveManualBtn.addEventListener("click", async () => {
+        const isAdmin = document.getElementById("isAdminManualJobCheckbox").checked;
+        const originalNote = manualJobNoteInput.value.trim();
+
+        const jobData = {
+            job: manualJobInput.value.trim(),
+            time: document.getElementById("manualJobTime").value,
+            date: manualJobDate.value,
+            // --- LOGIC MỚI CHO GHI CHÚ ---
+            note: isAdmin ? `[CVAdmin] ${originalNote}`.trim() : originalNote,
+            is_admin_job: isAdmin, // Vẫn lưu boolean
+            createdAt: serverTimestamp()
+        };
+        if (!jobData.job || !jobData.date) return showSwal("error", "Vui lòng nhập tên và chọn ngày!");
+
+        try {
+            const docRef = await addDoc(collection(db, "manual_jobs"), jobData);
+            addLog("admin_create_manual_job", {
+                email: getCurrentUserEmail(),
+                jobId: docRef.id,
+                ...jobData
+            });
+            showSwal("success", "Đã lưu công việc thủ công!");
+            [manualJobInput, manualJobDate, manualJobNoteInput, document.getElementById("manualJobTime")].forEach(el => el.value = "");
+        } catch (error) {
+            addLog("admin_create_manual_job_error", {
+                email: getCurrentUserEmail(),
+                error: error.message,
+                data: jobData
+            });
+            showSwal("error", "Lỗi!", "Không thể lưu công việc: " + error.message);
+        }
+    });
+
+    function getWeekOfMonth(date) {
+        const day = date.getDate();
+        return Math.ceil(day / 7);
+    }
+
+// --- LOGIC MỚI: ĐIỀU KHIỂN GIAO DIỆN MỤC 3 ---
+    const patternTypeSelect = document.getElementById('patternTypeSelect');
+    const administrativeInputs = document.getElementById('administrativeInputs');
+    const shiftRotationInputs = document.getElementById('shiftRotationInputs');
+
+    patternTypeSelect.addEventListener('change', () => {
+        if (patternTypeSelect.value === 'administrative') {
+            administrativeInputs.style.display = 'block';
+            shiftRotationInputs.style.display = 'none';
+        } else {
+            administrativeInputs.style.display = 'none';
+            shiftRotationInputs.style.display = 'block';
+        }
+    });
+
+    //THAY THẾ HÀM savePattern CŨ
+    document.getElementById("savePattern").addEventListener("click", async () => {
+        // --- BƯỚC 1: LẤY DỮ LIỆU CHUNG ---
+        const user = document.getElementById("patternUser").value.trim();
+        const displayName = document.getElementById("patternDisplayName").value.trim();
+        const patternStartDate = document.getElementById("patternStartDate").value;
+        const note = document.getElementById("patternNote").value.trim();
+        const type = document.getElementById("patternTypeSelect").value;
+
+        // --- VALIDATION CƠ BẢN ---
+        if (!user || !displayName || !patternStartDate) {
+            return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Nhân viên, Tên hiển thị và Ngày bắt đầu.", "warning");
+        }
+
+        let data = { user, displayName, patternStartDate, note, type, createdAt: serverTimestamp() };
+
+        // --- BƯỚC 2: LẤY DỮ LIỆU VÀ VALIDATE TÙY THEO LOẠI QUY TẮC ---
+        if (type === 'administrative') {
+            const workDaysOfWeek = Array.from(document.querySelectorAll("#dayCheckboxes input:checked")).map(cb => parseInt(cb.value));
+            const startTime = document.getElementById("adminStartTime").value;
+            const endTime = document.getElementById("adminEndTime").value;
+
+            if (workDaysOfWeek.length === 0) return Swal.fire("Thiếu thông tin!", "Vui lòng chọn ít nhất một thứ làm việc.", "warning");
+            if (!startTime || !endTime) return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Giờ bắt đầu và kết thúc.", "warning");
+            
+            data.workDaysOfWeek = workDaysOfWeek;
+            data.startTime = startTime;
+            data.endTime = endTime;
+
+            // Logic tự động phát hiện ca gối đầu
+            const [startH, startM] = (data.startTime || "00:00").split(':').map(Number);
+            const [endH, endM] = (data.endTime || "00:00").split(':').map(Number);
+            if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                data.isNextDay = true;
+            } else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+                data.isNextDay = true;
+            } else {
+                data.isNextDay = false;
+            }
+
+        } else { // type === 'shift_rotation'
+            const startTime = document.getElementById("shiftStartTime").value;
+            const endTime = document.getElementById("shiftEndTime").value;
+            if (!startTime || !endTime) return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Giờ bắt đầu và Giờ kết thúc ca.", "warning");
+            data.startTime = startTime;
+            data.endTime = endTime;
+
+            // Logic tự động phát hiện ca gối đầu
+            const [startH, startM] = (data.startTime || "00:00").split(':').map(Number);
+            const [endH, endM] = (data.endTime || "00:00").split(':').map(Number);
+            if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                data.isNextDay = true;
+            } else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+                data.isNextDay = true;
+            } else {
+                data.isNextDay = false;
+            }
+        }
+
+        // --- BƯỚC 3: LƯU VÀO FIRESTORE VÀ GỌI APPS SCRIPT ---
+        try {
+            showLoading("Đang lưu quy tắc...");
+            const docRef = await addDoc(collection(db, "work_patterns"), data);
+            addLog("admin_create_work_pattern", {
+                email: getCurrentUserEmail(),
+                patternId: docRef.id,
+                ...data
+            });
+            hideLoading(); // Tắt loading "Đang lưu quy tắc"
+            
+
+            // === BẮT ĐẦU KHỐI GỬI EMAIL (ĐÃ SỬA LỖI LOADING) ===
+            try {
+                showLoading("Đang gửi email chào mừng..."); // Bật loading "Gửi email"
+                const idToken = await auth.currentUser.getIdToken(true);
+                const scriptUrl = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
+                
+                const formData = new FormData();
+                formData.append("action", "addUser");
+                formData.append("idToken", idToken);
+                formData.append("data", JSON.stringify({ name: displayName, email: user })); 
+                
+                const response = await fetch(scriptUrl, { method: "POST", body: formData });
+                const result = await response.json();
+                
+                if (result.success) {
+                    addLog("apps_script_add_user_success", { email: getCurrentUserEmail(), status: "success", targetUser: user });
+                    showSwal("success", "Đã gửi email chào mừng!");
+                } else {
+                    addLog("apps_script_add_user_failure", { email: getCurrentUserEmail(), targetEmail: user, error: result.message || result.error });
+                    showSwal("warning", "Đã lưu (Lỗi gửi email)", `Đã lưu quy tắc, nhưng không thể gửi email: ${result.message || result.error}`);
+                }
+            } catch (err) {
+                addLog("apps_script_call_error", { email: getCurrentUserEmail(), targetEmail: user, error: err.message });
+                showSwal("warning", "Đã lưu (Lỗi gọi Script)", `Đã lưu quy tắc, nhưng không thể kết nối tới Apps Script: ${err.message}`);
+            } finally {
+                hideLoading();
+                Swal.fire("✅ Đã lưu!", "Quy tắc đã được thêm thành công.", "success");
+            }
+            // === KẾT THÚC KHỐI GỬI EMAIL ===
+
+        } catch (error) {
+            // Lỗi khi lưu vào Firestore
+            hideLoading();
+            addLog("admin_create_work_pattern_error", {
+                email: getCurrentUserEmail(),
+                error: error.message,
+                data: data
+            });
+            Swal.fire("Lỗi!", "Không thể lưu quy tắc: " + error.message, "error");
+        }
+    });
+
+    
+function renderPatternList(patternsToRender) {
+        const tbody = document.querySelector("#patternList tbody");
+        tbody.innerHTML = "";
+        
+        patternsToRender.forEach(d => {
+            let detail = "", startTime = d.startTime || "-", endTime = "-";
+
+            if (d.type === 'administrative') {
+                const mapDay = {2:"T2",3:"T3",4:"T4",5:"T5",6:"T6",7:"T7",8:"CN"};
+                detail = (d.workDaysOfWeek || []).map(x => mapDay[x]).join(", ");
+                endTime = d.endTime || "-"; // Hiển thị giờ KT
+                if(d.isNextDay) detail += " (Gối đầu)"; // Thêm chi tiết gối đầu
+            } else if (d.type === 'shift_rotation') {
+                endTime = d.endTime || "-"; // Hiển thị giờ KT
+                if (d.isNextDay === true) {
+                    detail = "Ca xoay vòng (Kết thúc hôm sau)";
+                } else {
+                    detail = "Ca xoay vòng (Trong ngày)";
+                }
+            }
+            if (d.isNextDay === true && endTime !== "-") {
+                                endTime += " *";
+            }
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${d.user}</td>
+                <td>${d.displayName || "-"}</td>
+                <td>${d.type === "administrative" ? "Cố định" : "Xoay Vòng"}</td>
+                <td>${detail}</td>
+                <td>${d.patternStartDate}</td>
+                <td><input type="date" class="end-date-input" data-id="${d.id}" value="${d.patternEndDate || ""}" title="Chọn để đặt ngày kết thúc."></td>
+                <td>${startTime}</td>
+                <td>${endTime}</td>
+                <td><button class="delPattern" data-id="${d.id}">🗑️</button></td>`;
+
+            // Gắn sự kiện Tự động lưu Ngày Kết thúc
+            tr.querySelector(".end-date-input").addEventListener('change', async (e) => {
+                const ruleId = e.target.dataset.id;
+                const newEndDate = e.target.value;
+                const ruleRef = doc(db, "work_patterns", ruleId);
+                
+                try {
+                    showLoading("Đang cập nhật...");
+                    await updateDoc(ruleRef, {
+                        patternEndDate: newEndDate || null 
+                    });
+                    hideLoading();
+                    Swal.fire("Đã cập nhật!", "Đã cập nhật ngày kết thúc.", "success");
+                } catch (error) {
+                    hideLoading();
+                    Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
+                }
+            });
+
+            // Gắn sự kiện cho nút Xóa (CẢI TIẾN 3)
+            tr.querySelector(".delPattern").addEventListener("click", async (e) => {
+                const patternIdToDelete = e.target.dataset.id;
+                
+                // --- BẮT ĐẦU CẢNH BÁO ---
+                Swal.fire({
+                    title: 'Bạn có chắc chắn?',
+                    text: "Xóa vĩnh viễn quy tắc này có thể làm xáo trộn lịch sử xoay ca! Bạn nên sử dụng 'Ngày kết thúc' để thay thế.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Vẫn xóa!',
+                    cancelButtonText: 'Hủy'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            await deleteDoc(doc(db, "work_patterns", patternIdToDelete));
+                            Swal.fire('Đã xóa!', 'Quy tắc đã bị xóa.', 'success');
+                        } catch (error) {
+                            Swal.fire('Lỗi!', 'Không thể xóa: ' + error.message, 'error');
+                        }
+                    }
+                });
+                // --- KẾT THÚC CẢNH BÁO ---
+            });
+            tbody.appendChild(tr);
+        });
+    }
+    // Xóa hàm findWorkersForDate cũ đi.
+    // Thay thế hoàn toàn hàm renderSchedule cũ bằng hàm mới này.
+
+// Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
+function ruleMatchesDate(rule, d) {
+    const dayNum = d.getDate();                    // ngày trong tháng (1..31)
+    const monthNum = d.getMonth() + 1;             // tháng (1..12)
+    const weekOfMonth = getWeekOfMonth(d);         // hàm bạn đã có
+    const weekDay = d.getDay() === 0 ? 8 : d.getDay() + 1; // mapping: CN -> 8, T2..T7 -> 2..7
+
+    // Ngày cụ thể trong tháng (dom)
+    if (rule.dom && rule.dom !== "" && rule.dom !== String(dayNum)) return false;
+
+    // Thứ
+    if (rule.day && rule.day !== "" && rule.day !== "all") {
+        // rule.day có thể lưu là string '8' cho CN hoặc số khác
+        if (Number(rule.day) !== Number(weekDay)) return false;
+    }
+
+    // Tuần trong tháng
+    if (rule.week && rule.week !== "" && rule.week !== "all") {
+        if (Number(rule.week) !== Number(weekOfMonth)) return false;
+    }
+
+    // Tháng
+    if (rule.month && rule.month !== "" && rule.month !== "all") {
+        if (Number(rule.month) !== Number(monthNum)) return false;
+    }
+
+    return true;
+}
+
+// Tìm danh sách công việc (work_rules) phù hợp cho 1 người vào 1 ngày
+function findJobsForPersonOnDate(personDisplayName, d) {
+    // Nếu muốn match theo user (email/mã) thay displayName bằng pattern.user
+    // Ở đây ta match theo rule chung (không gán admin job mặc định)
+    const matched = allRulesData.filter(rule => {
+        // Bỏ qua quy tắc chỉ dành cho admin (nếu bạn muốn bao gồm, remove điều kiện này)
+        if (rule.is_admin_job) return false;
+        return ruleMatchesDate(rule, d);
+    });
+
+    // Nếu muốn giới hạn job theo người cụ thể (vd rule có trường assignedTo), thêm điều kiện ở trên.
+    // Trả về mảng chuỗi mô tả ngắn
+    return matched.map(r => {
+        const timePart = r.time ? ` ${r.time}` : "";
+        return `${r.job}${timePart}${r.note ? " — " + r.note : ""}`;
+    });
+}
+//
+/**
+     * Helper 1: Kiểm tra quy tắc còn hiệu lực
+     */
+    const isRuleActiveOnDate = (rule, date) => {
+        const startDate = new Date(rule.patternStartDate + 'T00:00:00');
+        const endDate = rule.patternEndDate ? new Date(rule.patternEndDate + 'T00:00:00') : null;
+        if (date < startDate) return false;
+        if (endDate && date > endDate) return false;
+        return true;
+    };
+    
+    /**
+     * Helper 2 (MỚI): Logic sắp xếp xoay ca 3 cấp
+     * Ưu tiên 1: Ngày bắt đầu (sớm nhất trước)
+     * Ưu tiên 2: Giờ bắt đầu (sớm nhất trước)
+     * Ưu tiên 3: Tên A-Z
+     */
+    const sortShiftRules = (a, b) => {
+        // 1. So sánh Ngày
+        const dateA = new Date(a.patternStartDate);
+        const dateB = new Date(b.patternStartDate);
+        if (dateA - dateB !== 0) {
+            return dateA - dateB;
+        }
+
+        // 2. So sánh Giờ (nếu Ngày trùng)
+        const timeA = a.startTime || "00:00";
+        const timeB = b.startTime || "00:00";
+        if (timeA.localeCompare(timeB) !== 0) {
+            return timeA.localeCompare(timeB);
+        }
+
+        // 3. So sánh Tên (nếu cả Ngày và Giờ trùng)
+        return (a.displayName || "").localeCompare(b.displayName || "");
+    };
+// Hàm renderSchedule thay thế — dán đè hàm cũ
+async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
+    scheduleBody.innerHTML = "";
+    
+    const lowerCaseQuery = searchQuery.toLowerCase().trim();
+
+    const weekStart = new Date(referenceDate);
+    weekStart.setDate(referenceDate.getDate() - weekStart.getDay() + (weekStart.getDay() === 0 ? -6 : 1));
+
+    const adminRules = allPatternsData.filter(p => p.type === 'administrative');
+    const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        const yesterday = new Date(d);
+        yesterday.setDate(d.getDate() - 1);
+
+        let people = [];  // danh sách người làm (tên + ca/giờ)
+
+        const dayOfWeek = d.getDay() === 0 ? 8 : d.getDay() + 1;
+
+        // ===== 1) LỊCH CỐ ĐỊNH (CẬP NHẬT CẢI TIẾN 1) =====
+        adminRules.forEach(rule => {
+            if (!isRuleActiveOnDate(rule, d) || !Array.isArray(rule.workDaysOfWeek)) {
+                return;
+            }
+
+            const startTime = rule.startTime || "00:00";
+            const endTime = rule.endTime || "00:00";
+            
+            // --- LOGIC MỚI TỰ SUY LUẬN ---
+            const [startH, startM] = (startTime || "00:00").split(':').map(Number);
+            const [endH, endM] = (endTime || "00:00").split(':').map(Number);
+            let isNightShift = false;
+
+            if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                isNightShift = true;
+            } else if (rule.isNextDay === true && startH === endH && startM === endM) {
+                isNightShift = true; // Xử lý ca 24h
+            }
+            // --- KẾT THÚC LOGIC MỚI ---
+            
+            const prevDay = dayOfWeek === 2 ? 8 : dayOfWeek - 1;
+
+            // 1️⃣ Ca bắt đầu hôm nay
+            if (rule.workDaysOfWeek.includes(dayOfWeek)) {
+                const shiftLabel = isNightShift
+                    ? `- ${rule.displayName} (${startTime} – ${endTime} hôm sau)`
+                    : `- ${rule.displayName} (${startTime} – ${endTime})`;
+                people.push(shiftLabel);
+                // (Không tìm công việc ở đây nữa)
+            }
+            // 2️⃣ Ca bắt đầu hôm qua nhưng kéo sang hôm nay
+            else if (isNightShift && rule.workDaysOfWeek.includes(prevDay)) {
+                //const shiftLabel = `- ${rule.displayName} (Tiếp ca đêm ${startTime} hôm qua – ${endTime} sáng nay)`;
+                //people.push(shiftLabel);
+                // (Không tìm công việc ở đây nữa)
+            }
+        });
+
+
+        // ===== 2) LỊCH XOAY CA (CẬP NHẬT CẢI TIẾN 4) =====
+        if (allShiftRules.length > 0) {
+            
+            // 1. Tìm "Ngày 0" (refDate) ổn định - DÙNG LOGIC SẮP XẾP MỚI
+            // (Chúng ta sắp xếp toàn bộ 1 lần để tìm ra người đầu tiên tuyệt đối)
+            const sortedAllRules = [...allShiftRules].sort(sortShiftRules);
+            const refDate = new Date(sortedAllRules[0].patternStartDate + 'T00:00:00');
+            
+            // 2. Lọc và SẮP XẾP danh sách HÔM QUA (DÙNG LOGIC MỚI)
+            const membersYesterday = allShiftRules
+                .filter(rule => isRuleActiveOnDate(rule, yesterday))
+                .sort(sortShiftRules); // <-- ÁP DỤNG LOGIC SẮP XẾP MỚI
+            
+            // 3. Lọc và SẮP XẾP danh sách HÔM NAY (DÙNG LOGIC MỚI)
+            const membersToday = allShiftRules
+                .filter(rule => isRuleActiveOnDate(rule, d))
+                .sort(sortShiftRules); // <-- ÁP DỤNG LOGIC SẮP XẾP MỚI
+
+            let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
+
+            // 4. TÍNH CA HÔM QUA
+            if (membersYesterday.length > 0) {
+                const n_yesterday = membersYesterday.length;
+                const daysSinceYesterday = Math.floor((yesterday - refDate) / (1000 * 60 * 60 * 24));
+                const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                
+                workerYesterday = membersYesterday[workerIndexYesterday];
+                workerYesterdayName = workerYesterday.displayName;
+                if (workerYesterday) {
+                    const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
+                    const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+
+                    if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                        isNightYesterday = true;
+                    } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
+                        isNightYesterday = true; // Ca 24h
+                    }
+                }
+                
+                if (isNightYesterday) {
+                    //const shiftLabel = `- ${workerYesterday.displayName} (Tiếp ca đêm ${workerYesterday.startTime} hôm qua – ${workerYesterday.endTime} sáng nay)`;
+                    //people.push(shiftLabel);
+                }
+            }
+
+            // 5. TÍNH CA HÔM NAY
+            if (membersToday.length > 0) {
+                const n_today = membersToday.length;
+                const daysSinceToday = Math.floor((d - refDate) / (1000 * 60 * 60 * 24));
+                const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                const workerToday = membersToday[workerIndexToday];
+                
+                if (workerToday) {
+                    let isNightToday = false;
+                    const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+                    const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+
+                    if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                        isNightToday = true;
+                    } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
+                        isNightToday = true; // Ca 24h
+                    }
+                    if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                        const shiftLabel = `- ${workerToday.displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})`;
+                        people.push(shiftLabel);
+                    }
+                }
+            }
+        }
+
+// ===== 3) TỔNG HỢP CÔNG VIỆC (CẬP NHẬT CẢI TIẾN 2) =====
+        
+        let jobsForDay = []; // Khởi tạo mảng công việc
+        let notesForDay = []; // KHỞI TẠO MẢNG GHI CHÚ (MỚI)
+        
+        // 3.1) Lọc Công việc Quy tắc (Mục 1)
+        const allRuleJobs = allRulesData.filter(rule => 
+            ( !rule.is_admin_job || userRole === 'admin' ) &&
+            ruleMatchesDate(rule, d) 
+        );
+        allRuleJobs.forEach(r => {
+            jobsForDay.push(`${r.job}${r.time ? " " + r.time : ""}`);
+            
+            // Tạo ghi chú
+            const noteDisplay = (r.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+            
+            // --- SỬA LOGIC ---
+            // Luôn push 1 giá trị để 2 mảng song hành
+            notesForDay.push(noteDisplay && noteDisplay !== "" ? noteDisplay : "");
+        });
+
+        // 3.2) Lọc Công việc Thủ công (Mục 2)
+        const isoDate = d.toISOString().slice(0, 10);
+        const allManualJobs = allManualJobsData.filter(m => 
+            ( !m.is_admin_job || userRole === 'admin' ) &&
+            m.date === isoDate 
+        );
+        allManualJobs.forEach(mj => {
+            jobsForDay.push(`${mj.job}${mj.time ? " " + mj.time : ""}`);
+            
+            // Tạo ghi chú
+            const noteDisplay = (mj.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+
+            // --- SỬA LOGIC ---
+            // Luôn push 1 giá trị để 2 mảng song hành
+            notesForDay.push(noteDisplay && noteDisplay !== "" ? noteDisplay : "");
+        });
+
+        // ===== 4) HIỂN THỊ TRÊN BẢNG =====
+        const thuDisplay = d.getDay() === 0 ? 'Chủ Nhật' : 'Thứ ' + (d.getDay() + 1);
+        const dateStr = d.toLocaleDateString("vi-VN");
+        const [year, weekNo] = getWeekNumber(d);
+        const tr = document.createElement("tr");
+        
+        // Thêm tô sáng "hôm nay"
+        const today = new Date();
+        if (d.toDateString() === today.toDateString()) {
+            tr.classList.add('today-row');
+        }
+
+        // Tạo nội dung cho cột Ghi chú
+        const notesContent = notesForDay.length 
+            ? notesForDay.map(n => (n !== "") ? `- ${n}` : "").join('<br>') 
+            : '-';
+
+        tr.innerHTML = `
+            <td data-label="Ngày">${thuDisplay} (${dateStr}) <br> <span class="week-label">(Tuần ${weekNo})</span></td>
+            <td data-label="Người làm">${people.length ? people.join('<br>') : '-'}</td>
+            <td data-label="Công việc">${jobsForDay.length ? jobsForDay.map(j => `- ${j}`).join('<br>') : '-'}</td>
+            <td data-label="Ghi chú">${notesContent}</td>
+        `;
+        if (lowerCaseQuery && tr.textContent.toLowerCase().includes(lowerCaseQuery)) {
+            tr.classList.add('highlight');
+        }
+        scheduleBody.appendChild(tr);
+    }
+
+    const [year, weekNo] = getWeekNumber(referenceDate);
+    document.getElementById('weekNumberDisplay').textContent = `Tuần ${weekNo} / ${year}`;
+}
+
+    
+
+
+    function getDaysDifference(date1, date2) {
+        const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+        const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+        return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+    }
+    
+    // Logic modal
+    closeModalBtn.onclick = () => personalScheduleModal.style.display = "none";
+    window.onclick = (event) => { if (event.target == personalScheduleModal) personalScheduleModal.style.display = "none"; };
+    document.getElementById("closeModalBottom").onclick = () => personalScheduleModal.style.display = "none";
+
+    
+
+    // Logic tìm kiếm
+    const globalSearchInput = document.getElementById('globalSearchInput');
+    globalSearchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        filterAndRenderAdminLists(query);
+        renderSchedule(query, currentlyViewedDate);
+    });
+
+    function filterAndRenderAdminLists(query) {
+        // Nếu không có query, hiển thị lại tất cả
+        if (!query) {
+            renderRuleList(allRulesData);
+            renderManualJobList(allManualJobsData);
+            renderPatternList(allPatternsData);
+            return;
+        }
+
+        // 1. Lọc Bảng 1: Quy tắc công việc (Tìm theo Tên CV, Ghi chú)
+        const filteredRules = allRulesData.filter(rule => 
+            (rule.job && rule.job.toLowerCase().includes(query)) ||
+            (rule.note && rule.note.toLowerCase().includes(query))
+        );
+        renderRuleList(filteredRules);
+
+        // 2. Lọc Bảng 2: CV Thủ công (Tìm theo Tên CV, Ghi chú, Ngày)
+        const filteredManualJobs = allManualJobsData.filter(job => 
+            (job.job && job.job.toLowerCase().includes(query)) ||
+            (job.note && job.note.toLowerCase().includes(query)) ||
+            (job.date && job.date.includes(query))
+        );
+        renderManualJobList(filteredManualJobs);
+
+        // 3. Lọc Bảng 3: Quy tắc ngày làm (Tìm theo Email, Tên hiển thị)
+        const filteredPatterns = allPatternsData.filter(p => 
+            (p.user && p.user.toLowerCase().includes(query)) ||
+            (p.displayName && p.displayName.toLowerCase().includes(query))
+        );
+        renderPatternList(filteredPatterns);
+    }
+    // Logic chuyển tuần
+    const weekNav = document.getElementById('weekNavigator');
+    if (weekNav) {
+        weekNav.addEventListener('click', (event) => {
+            const targetId = event.target.id;
+            const currentYear = currentlyViewedDate.getFullYear();
+            switch (targetId) {
+                case 'prevWeekBtn': currentlyViewedDate.setDate(currentlyViewedDate.getDate() - 7); break;
+                case 'nextWeekBtn': currentlyViewedDate.setDate(currentlyViewedDate.getDate() + 7); break;
+                case 'todayWeekBtn': currentlyViewedDate = new Date(); break;
+                case 'firstWeekBtn': currentlyViewedDate = new Date(currentYear, 0, 1); break;
+                case 'lastWeekBtn': currentlyViewedDate = new Date(currentYear, 11, 31); break;
+                default: return;
+            }
+            renderSchedule(globalSearchInput.value, currentlyViewedDate);
+        });
+    }
+
+  // Hàm gọi modal lịch làm việc cá nhân (ĐÃ SỬA LẠI HOÀN TOÀN)
+  async function showPersonalScheduleModal(email, currentUserRole) {
+      personalScheduleModal.style.display = "block";
+      personalScheduleDetails.innerHTML = "<p>Đang tải lịch cá nhân...</p>";
+
+      // 1. LẤY QUY TẮC CÁ NHÂN
+      const todayForFilter = new Date();
+      const userPatterns = allPatternsData.filter(p => p.user === email && isRuleActiveOnDate(p, todayForFilter));
+
+      if (userPatterns.length === 0) {
+          personalScheduleDetails.innerHTML = "<p>Không tìm thấy quy tắc làm việc nào đang hoạt động cho tài khoản này.</p>";
+          return;
+      }
+
+      // 2. LẤY THÔNG TIN ĐỂ TÍNH XOAY CA (NẾU CÓ)
+      const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+      const sortedAllRules = [...allShiftRules].sort(sortShiftRules);
+      const refDate = (sortedAllRules.length > 0) ? new Date(sortedAllRules[0].patternStartDate + 'T00:00:00') : null;
+
+      const today = new Date();
+      
+      // 3. TÍNH KHUNG THỜI GIAN (TỪ HÔM NAY ĐẾN CHỦ NHẬT)
+      const currentDayOfWeek = today.getDay(); // 0=CN, 1=T2, 6=T7
+      // daysToScan = số ngày còn lại (0 = hôm nay)
+      // T2(1) -> 6 (i=0..6)
+      // T7(6) -> 1 (i=0..1)
+      // CN(0) -> 0 (i=0)
+      const daysToScan = (currentDayOfWeek === 0) ? 0 : (7 - currentDayOfWeek);
+
+      let html = `<table style="width:100%; border-collapse:collapse; border:1px solid #ccc; text-align:left;">
+        <thead>
+          <tr style="background:#f0f0f0;">
+            <th style="padding: 8px; border: 1px solid #ccc; text-align: center;">Ngày & Ca làm</th>
+            <th style="padding: 8px; border: 1px solid #ccc; text-align: center;">Công việc & Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      let hasWorkDay = false; // Biến kiểm tra
+
+      // 4. LẶP QUA CÁC NGÀY CÒN LẠI TRONG TUẦN
+      for (let i = 0; i <= daysToScan; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          const dayNum = d.getDay() === 0 ? 8 : d.getDay() + 1;
+          const isToday = d.toDateString() === today.toDateString();
+          const dateStr = d.toLocaleDateString("vi-VN");
+          const thuDisplay = d.getDay() === 0 ? 'Chủ Nhật' : 'Thứ ' + (d.getDay() + 1);
+
+          let matchedShifts = [];
+
+          // --- TÌM CA LÀM CỦA CÁ NHÂN ---
+          userPatterns.forEach(rule => {
+              if (!isRuleActiveOnDate(rule, d)) return;
+              // Lịch Cố định
+              if (rule.type === "administrative" && Array.isArray(rule.workDaysOfWeek) && rule.workDaysOfWeek.includes(dayNum)) {
+                  matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})`);
+              }
+              // Lịch Xoay Vòng
+              if (rule.type === "shift_rotation" && refDate) {
+                  const allMembersToday = allShiftRules.filter(r => isRuleActiveOnDate(r, d)).sort(sortShiftRules);
+                  if (allMembersToday.length > 0) {
+                      const n_today = allMembersToday.length;
+                      const daysSinceToday = Math.floor((d - refDate) / (1000 * 60 * 60 * 24));
+                      const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                      const workerToday = allMembersToday[workerIndexToday];
+                      
+                      if (workerToday && workerToday.displayName === rule.displayName) {
+                          matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})`);
+                      }
+                  }
+              }
+          });
+          // --- KẾT THÚC TÌM CA LÀM ---
+
+          // Chỉ hiển thị ngày có làm việc
+          if (matchedShifts.length > 0) {
+              hasWorkDay = true;
+              let tasksHtml = "";
+
+              // --- TÌM CÔNG VIỆC (SỬA LẠI LOGIC HIỂN THỊ) ---
+              // (Code lọc allRuleJobs và allManualJobs)
+              const allRuleJobs = allRulesData.filter(rule => 
+                  ( !rule.is_admin_job || currentUserRole === 'admin' ) && 
+                  ruleMatchesDate(rule, d)
+              );
+              const isoDate = d.toISOString().slice(0, 10);
+              const allManualJobs = allManualJobsData.filter(m => 
+                  ( !m.is_admin_job || currentUserRole === 'admin' ) &&
+                  m.date === isoDate
+              );
+              
+              const allTasks = [...allRuleJobs, ...allManualJobs];
+
+              if (allTasks.length > 0) {
+                  // Dùng logic map().join() giống hệt bảng chính
+                  const tasksArray = allTasks.map(task => {
+                      const noteDisplay = (task.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+                      const noteString = noteDisplay && noteDisplay !== "" ? ` <i>— ${noteDisplay}</i>` : "";
+                      // Thêm gạch ngang "- "
+                      return `- ${task.job} ${task.time ? `(${task.time})` : ""}${noteString}`;
+                  });
+                  tasksHtml = tasksArray.join('<br>'); // Nối bằng <br>
+              } else {
+                  // Bỏ padding-left
+                  tasksHtml = "<i style='font-size: 0.9em;'>Không có công việc chung nào được gán.</i>";
+              }
+              // --- KẾT THÚC TÌM CÔNG VIỆC ---
+              // --- KẾT THÚC TÌM CÔNG VIỆC ---
+
+              // Gộp nội dung ca làm
+              const shiftContent = matchedShifts.join("<br>");
+
+              html += `
+                <tr${isToday ? " style='background:#dff0ff;font-weight:bold;'" : ""}>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: center;">
+                    ${thuDisplay}<br>${dateStr}
+                    <br>
+                    <span style="font-size: 0.9em; color: #333;">${shiftContent}</span>
+                  </td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: left;">${tasksHtml}</td>
+                </tr>`;
+          }
+      } // Kết thúc vòng lặp
+
+      html += `</tbody></table>`;
+      
+      if (!hasWorkDay) {
+          html = `<p>Bạn không có lịch làm việc nào từ hôm nay đến cuối tuần.</p>`;
+      }
+      
+      personalScheduleDetails.innerHTML = html;
+  }
+
+  </script>
+
+</body>
+</html>

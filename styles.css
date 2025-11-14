@@ -1,0 +1,655 @@
+/* Reset cơ bản */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #f5f7fa;
+  color: #222;
+  line-height: 1.5;
+  padding: 2px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Thanh menu trên cùng ===== */
+nav.navbar {
+  background: #273668;
+  padding: 8px 20px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-left a,
+.dropbtn {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.nav-left a:hover,
+.dropbtn:hover {
+  background: #1a254a;
+}
+
+/* Logo */
+.logo {
+  font-weight: bold;
+  font-size: 14px;
+  margin-right: 10px;
+}
+
+/* Dropdown nhóm Tác vụ */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropbtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.dropdown-content {
+  /* display: none; <-- Xóa hoặc vô hiệu hóa dòng này */
+  visibility: hidden; /* Ẩn hoàn toàn, không thể tương tác */
+  opacity: 0; /* Trong suốt */
+  transform: translateY(-10px); /* Dịch chuyển nhẹ lên trên */
+  transition: all 0.4s ease-in-out; /* Tạo hiệu ứng cho tất cả thuộc tính trong 0.4 giây */
+
+  position: absolute;
+  background-color: #273668;
+  min-width: 180px;
+  border-radius: 6px;
+  box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+
+.dropdown-content a {
+  color: #fff;
+  padding: 10px 14px;
+  text-decoration: none;
+  display: block;
+  font-weight: normal;
+}
+
+.dropdown-content a:hover {
+  background-color: #1a254a;
+}
+
+.dropdown:hover .dropdown-content {
+  /* display: block; <-- Xóa hoặc vô hiệu hóa dòng này */
+  visibility: visible; /* Cho phép nhìn thấy và tương tác */
+  opacity: 1; /* Hiện rõ */
+  transform: translateY(0); /* Trở về vị trí ban đầu */
+}
+
+/* Khối bên phải */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#userEmail {
+  color: #fff;
+  font-size: 14px;
+}
+
+/* Nút đăng nhập / đăng xuất */
+#loginBtn,
+#logoutBtn {
+  background: #fff;
+  color: #273668;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#loginBtn:hover,
+#logoutBtn:hover {
+  background: #e8ebf5;
+}
+
+/* ===== Modal đăng nhập ===== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 200;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  width: 320px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+  margin-bottom: 15px;
+  color: #273668;
+  text-align: center;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 8px 10px;
+  margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.modal-content button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #273668;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background: #1a254a;
+}
+
+.close {
+  float: right;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* ===== Tiêu đề trang ===== */
+h2 {
+  margin-bottom: 10px;
+  color: #273668;
+}
+
+/* ===== Form ===== */
+form {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  max-width: 100%;
+}
+
+form div {
+  margin-bottom: 15px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="file"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+button {
+  background: #273668;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1a254a;
+}
+
+/* ===== Bảng dữ liệu ===== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+th {
+  background: #e8ebf5;
+}
+tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* ===== Khối thông báo login ===== */
+#notLogged {
+  color: #b00;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* ===== Modal Loading ===== */
+.loading-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+  color: #fff;
+  font-size: 16px;
+}
+
+.loading-spinner {
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #273668;
+  border-radius: 50%;
+  width: 50px; height: 50px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+/* ===== Modal Alert + Confirm ===== */
+.alert-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.alert-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.alert-box h3 {
+  margin-bottom: 10px;
+}
+
+.alert-box p {
+  margin-bottom: 15px;
+}
+
+.alert-box button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.alert-success h3 { color: green; }
+.alert-error h3 { color: red; }
+
+.alert-box button {
+  background: #273668;
+  color: #fff;
+}
+
+.alert-box button:hover {
+  background: #1a254a;
+}
+
+
+/* Các quy tắc CSS chung cho cả 2 form (ví dụ từ lần trước) */
+.card-body {
+    padding-top: 0rem;   /* Chỉnh khoảng cách phía trên */
+    padding-bottom: 1.5rem; /* Giữ nguyên khoảng cách phía dưới */
+    padding-left: 1.5rem;  /* Giữ nguyên khoảng cách bên trái */
+    padding-right: 1.5rem; /* Giữ nguyên khoảng cách bên phải */
+}
+.form-field {
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+.form-field label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.3rem;
+    display: block;
+}
+.form-field .form-control, .form-field .form-control-file {
+    border-radius: 0.5rem;
+    border: 1px solid #ced4da;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.0;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+.form-field .form-control:focus, .form-field .form-control-file:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+.submit-btn {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    width: 100%;
+}
+.submit-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+.submit-btn:active {
+    background-color: #004085;
+    transform: translateY(0);
+}
+
+/* Các quy tắc CSS riêng cho Form 1 */
+.form-style-1 h2 {
+    color: #273668; /* Tiêu đề màu */
+    text-align: center;
+}
+.form-style-1 .submit-btn {
+    background-color: #28a745; /* Nút Gửi màu xanh lá */
+}
+
+/* Các quy tắc CSS riêng cho Form 2 */
+.form-style-2 h2 {
+    color: #273668; /* Tiêu đề màu */
+    text-align: center;
+}
+.form-style-2 .form-field .form-control {
+    border-width: 2px; /* Đường viền dày hơn */
+}
+.form-style-2 .submit-btn {
+    background-color: #17a2b8; /* Nút Gửi màu xanh lam */
+}
+
+/* ================= CSS MỚI CHO MODAL THÔNG TIN CẤU HÌNH ================= */
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; /* Đảm bảo nằm trên mọi thứ */
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7); 
+}
+
+.modal-content-config {
+    background-color: #fefefe;
+    margin: 5% auto; /* 5% từ trên và căn giữa */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%; /* Độ rộng lớn hơn cho nội dung cấu hình */
+    max-width: 800px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-section {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.modal-section h4 {
+    color: #034892;
+    border-bottom: 2px solid #034892;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.modal-section table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+.modal-section th, .modal-section td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.modal-section th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+.modal-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+.modal-section ul li {
+    padding: 2px 0;
+    border-bottom: 1px dotted #ccc;
+}
+
+/* === FOOTER STYLES === */
+.site-footer {
+  background-color: #f2f2f2; /* Màu nền xám nhạt */
+  color: #555; /* Màu chữ tối */
+  padding: 1px 0; /* Khoảng đệm trên và dưới */
+  text-align: center; /* Căn giữa nội dung */
+  border-top: 1px solid #dddddda8; /* Một đường kẻ mỏng ở trên */
+  
+  /* Thuộc tính này sẽ tạo khoảng trống với nội dung chính của trang */
+  margin-top: 1px; 
+}
+
+.site-footer .footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+  font-size: 15px;
+}
+
+.site-footer p {
+  margin: 2px 0; /* Giảm khoảng cách giữa các dòng văn bản */
+}
+
+.site-footer a {
+  color: #007bff; /* Màu cho liên kết */
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline; /* Gạch chân khi di chuột qua */
+}
+
+/* ===== CSS cho Responsive Menu ===== */
+
+/* 1. Thiết lập cho nút hamburger */
+.hamburger {
+  display: none; /* Mặc định ẩn trên màn hình lớn */
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+/* 2. Thiết lập cho màn hình nhỏ */
+@media (max-width: 820px) {
+
+  /* --- Cấu hình cho menu chính (hamburger) --- */
+  .nav-links {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease-in-out;
+
+    flex-direction: column;
+    width: 100%;
+    background-color: #273668;
+    border-radius: 6px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 999;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Trạng thái khi menu chính được mở */
+  .nav-links.active {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  /* Cấu hình cho nút hamburger */
+  .hamburger {
+    display: block;
+    order: -1;
+  }
+
+  /* --- Cấu hình cho menu con "Tác vụ" (Accordion) --- */
+
+  /* Vô hiệu hóa hiệu ứng hover của desktop trên mobile để tránh xung đột */
+  .dropdown:hover .dropdown-content {
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(-10px);
+  }
+
+  /* Trạng thái mặc định (đã gấp lại) của menu "Tác vụ" */
+  .dropdown .dropdown-content {
+      position: static;
+      box-shadow: none;
+      background-color: #1a254a;
+
+      /* Thu gọn hoàn toàn và ẩn nội dung */
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      overflow: hidden;
+      visibility: hidden;
+
+      /* Hiệu ứng chuyển động mượt mà */
+      transition: max-height 0.5s ease-out, padding 0.5s ease-out, opacity 0.4s ease-out;
+  }
+
+  /* Trạng thái khi menu "Tác vụ" được mở ra (thêm class .active) */
+  .dropdown.active .dropdown-content {
+      max-height: 300px; /* Chiều cao đủ lớn để chứa hết các link */
+      opacity: 1;
+      padding-top: 5px;
+      padding-bottom: 5px;
+      visibility: visible;
+  }
+}
+/* Thêm vào cuối file styles.css */
+#pageContent, #content-container {
+    flex: 1; /* Giúp nội dung chính co giãn để đẩy footer xuống */
+}
+
+/* ===== Shared filter-box styles (áp dụng cho các trang có bộ lọc ngày) ===== */
+.filter-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.filter-box label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.filter-box input[type="date"],
+.filter-box select,
+.filter-box button {
+  height: 33px; /* chiều cao chuẩn để đồng bộ */
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+.filter-box button {
+  background: #3498db;
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.filter-box button:hover {
+  background: #2d86c9;
+}
+
+@media (max-width: 820px) {
+  .filter-box { gap: 8px; }
+  .filter-box select, .filter-box button { min-width: 120px; }
+}

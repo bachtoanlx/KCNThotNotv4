@@ -1,0 +1,26 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Firebase
+kcnthotnot25-923a682137f8.json
+*.json
+
+# API Keys
+config.js
+api-keys.js
+
+# Cloud Functions (không dùng)
+functions/
+.firebase/
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

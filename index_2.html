@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Gửi báo cáo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    /* Scrollable container for holiday settings (match statistics.html look) */
+    .quota-scroll {
+      max-height: calc(5 * 40px + 0px);
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      padding: 0;
+      background: #fff;
+    }
+    .quota-scroll table { margin: 0; width: 100%; border-collapse: collapse; }
+    .quota-scroll thead th { position: sticky; top: 0px; background-color: #f0f0f0; z-index: 3; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); padding: 8px; border: 1px solid #ccc; }
+    .quota-scroll tbody tr td { padding: 8px; border: 1px solid #ccc; }
+    .quota-scroll table th:first-child,
+    .quota-scroll table td:first-child {
+      width: 50px;
+      max-width: 50px;
+      text-align: center;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+  <div id="alert-placeholder"></div>
+
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <div class="form-style-1">          
+      <div class="card-body">
+        <form id="registrationForm_2" data-collection="reports_2" data-folder-id="1548M2LcAD4FETW65VPDHaHxs-b33HVaq" 
+              onsubmit="submitForm(event, this.id, this.dataset.collection, this.dataset.folderId)">
+          <div class="form-group form-field">
+            <label for="c_ty">Tên Công ty:</label>
+            <select class="form-control" id="c_ty" name="c_ty" required>
+              <option value="" disabled selected>- Chọn công ty -</option>
+              <option value="Amicogen">Amicogen</option>
+              <option value="Ấn Độ Dương">Ấn Độ Dương</option>
+              <option value="Cá Việt Nam">Cá Việt Nam</option>
+              <option value="Đại Tây Dương">Đại Tây Dương</option>
+              <option value="NTSF">NTSF</option>
+              <option value="Hiệp Phú">Hiệp Phú</option>
+              <option value="Honoroad">Honoroad</option>
+              <option value="Tân Cảng">Tân Cảng</option>
+              <option value="VNPT">VNPT</option>
+              <option value="Petec">Petec</option>
+            </select>
+          </div>
+          <div class="form-group form-field">
+            <label for="ngay_nghi">Ngày nghỉ:</label>
+            <input type="text" class="form-control" placeholder=" Cho phép chọn nhiều ngày..." id="ngay_nghi" name="ngay_nghi">
+          </div>
+          <div class="form-group form-field">
+            <label for="ngay_lam_db">Ngày làm đặc biệt:</label>
+            <input type="text" class="form-control" placeholder=" Ngày, tháng, năm ... " id="ngay_lam_db" name="ngay_lam_db">
+          </div>
+          <div class="form-group form-field">
+            <label for="ghi_chu">Ghi chú:</label>
+            <textarea class="form-control" placeholder="" id="ghi_chu" name="ghi_chu"></textarea>
+          </div>
+          <div class="form-group form-field">
+            <label for="file">Đính kèm thông báo</label>
+            <input type="file" id="file_2" class="form-control-file" accept="image/*">
+          </div>
+        </form>
+        <br>
+        <div class="form-group text-center">
+          <button type="submit" class="submit-btn" form="registrationForm_2">Gửi thông tin</button>
+        </div>    
+      </div>
+    </div>
+  </div>
+
+  <div id="defaultHolidaySettings" class="admin-settings" style="display:none;">
+    
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+      
+      <h3 style="margin: 0;">⚙️ Cài đặt ngày nghỉ mặc định theo công ty</h3>
+      
+      <button id="saveHolidayConfig">Lưu cài đặt ngày nghỉ</button>
+    </div>
+    <div class="quota-scroll">
+      <table id="holidaySettingsTable">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Công ty</th>
+            <th>Ngày nghỉ mặc định</th>
+          </tr>
+        </thead>
+        <tbody id="holidaySettingsBody"></tbody>
+      </table>
+    </div>
+  </div>
+<div id="footer-placeholder"></div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script type="module">
+    import { collection, getDocs, addDoc, deleteDoc, doc, query, where, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { onAuth, addReport, showLoading, hideLoading, showSwal, promptForReAuth, db, getRole, showConfirmSwal} from "./script.js";
+    import { initMenu } from "./menu.js";
+
+    let fpNgayLamDB; 
+    let userRole = null;
+    let companies = [];
+    let loggedInUserEmail = null; 
+
+
+    // ================== LOAD DANH SÁCH CÔNG TY ==================
+    async function loadCompanies() {
+      // Đã sửa để lấy từ reports_1 theo yêu cầu của bạn
+      const snap = await getDocs(collection(db, "reports_1")); 
+      const set = new Set();
+      snap.forEach(d => {
+        const data = d.data();
+        // Giả định trường tên công ty là 'company' hoặc 'c_ty'
+        if (data.company) set.add(data.company);
+        else if (data.c_ty) set.add(data.c_ty); 
+      });
+      companies = Array.from(set).sort(); // Sắp xếp cho dễ nhìn
+      renderHolidaySettings();
+    }
+
+    // ================== RENDER GIAO DIỆN ==================
+    function renderHolidaySettings() {
+      // Logic render giao diện
+      const tbody = document.getElementById("holidaySettingsBody");
+      tbody.innerHTML = "";
+      companies.forEach((c, idx) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${c}</td>
+            <td>
+              <select data-company="${c}" class="holiday-select">
+                <option value="none">N/A</option>
+                <option value="sat">Thứ 7</option>
+                <option value="sun">Chủ Nhật</option>
+                <option value="sat-sun">Thứ 7 & CN</option>
+              </select>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // ================== MENU + MODAL ==================
+    fetch("menu.html").then(r => r.text()).then(h => {
+      document.getElementById("menu-placeholder").innerHTML = h;
+      initMenu();
+    });
+    fetch("modal.html").then(r => r.text()).then(h => {
+      document.getElementById("loading-placeholder").innerHTML = h;
+    });
+    // TẢI FOOTER (thêm đoạn này vào)
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+
+    const notLogged = document.getElementById("notLogged");
+    const content = document.getElementById("pageContent");
+
+    // ================== CHECK LOGIN ==================
+    onAuth(user => {
+      // Logic check login
+      if (user) {
+        notLogged.style.display = "none";
+        content.style.display = "block";
+      } else {
+        notLogged.style.display = "block";
+        content.style.display = "none";
+      }
+    });
+
+    // ================== FLATPICKR ==================
+    function capitalizeFirstLetter(str) {
+      if (!str) return "";
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Logic khởi tạo flatpickr
+      flatpickr("#ngay_nghi", {
+        mode: "multiple",
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+      });
+
+      const inputField = document.getElementById('ghi_chu');
+      inputField.addEventListener('input', function() {
+        inputField.value = capitalizeFirstLetter(inputField.value);
+      });
+
+      fpNgayLamDB = flatpickr("#ngay_lam_db", {
+        dateFormat: "Y-m-d",
+        maxDate: "today",
+        allowInput: true,
+        disableMobile: "true",
+        clickOpens: false
+      });
+
+      const ngayLamDBInput = document.getElementById("ngay_lam_db");
+      ngayLamDBInput.addEventListener("click", async function (e) {
+        e.preventDefault();
+        const isVerified = await promptForReAuth();
+        if (isVerified) {
+          fpNgayLamDB.open();
+        } else {
+          ngayLamDBInput.blur();
+        }
+      });
+    });
+
+    // ================== SAVE CONFIG (ĐÃ KHẮC PHỤC LỖI NGHIÊM TRỌNG) ==================
+document.getElementById("saveHolidayConfig").addEventListener("click", async () => {
+  // 1. CHECK QUYỀN
+  if (userRole !== "admin") {
+    showSwal("error", "Bạn không có quyền!");
+    return;
+  }
+
+  showLoading("Đang xử lý cài đặt ngày nghỉ mặc định...");
+
+  let totalErrorList = [];
+  const adminEmail = loggedInUserEmail || "admin@gmail.com";
+  const newDefaultHolidays = {};
+  const selects = document.querySelectorAll(".holiday-select");
+
+  try {
+    // Lấy config cũ từ Firestore
+    const ref = doc(db, "settings", "reportConfig");
+    const snap = await getDoc(ref);
+    const savedConfig = snap.exists() ? (snap.data().defaultHolidays || {}) : {};
+
+    // ============ VÒNG LẶP CÔNG TY ============
+    for (const sel of selects) {
+      const company = sel.dataset.company;
+      const value = sel.value;
+      newDefaultHolidays[company] = value; // luôn lưu vào config mới
+
+      // 🚨 Nếu không thay đổi so với config cũ thì bỏ qua, không đụng tới reports_2
+      if (savedConfig[company] === value) {
+        continue;
+      }
+
+      let companyErrorList = [];
+
+      if (value === "none") {
+        // XÓA NGÀY NGHỈ MẶC ĐỊNH
+        const q = query(
+          collection(db, "reports_2"),
+          where("company", "==", company),
+          where("isDefaultHoliday", "==", true)
+        );
+        const snap = await getDocs(q);
+        const deletePromises = [];
+
+        snap.forEach(d => {
+          deletePromises.push(
+            deleteDoc(doc(db, "reports_2", d.id)).catch(e => {
+              companyErrorList.push(`Lỗi xóa ngày ${d.data().ngay_nghi} (${e.message})`);
+            })
+          );
+        });
+
+        await Promise.all(deletePromises);
+      } else {
+        // SINH NGÀY NGHỈ
+        const year = new Date().getFullYear();
+        const dates = generateHolidayDates(year, value);
+
+        for (const dateStr of dates) {
+          // KIỂM TRA TRÙNG
+          const qHoliday = query(
+            collection(db, "reports_2"),
+            where("company", "==", company),
+            where("ngay_nghi", "==", dateStr)
+          );
+          const snapHoliday = await getDocs(qHoliday);
+
+          const qSpecial = query(
+            collection(db, "reports_2"),
+            where("company", "==", company),
+            where("ngay_lam_db", "==", dateStr)
+          );
+          const snapSpecial = await getDocs(qSpecial);
+
+          let existingDoc = null;
+          let existingData = null;
+
+          if (!snapHoliday.empty) {
+            existingDoc = snapHoliday.docs[0];
+            existingData = existingDoc.data();
+          } else if (!snapSpecial.empty) {
+            existingDoc = snapSpecial.docs[0];
+            existingData = existingDoc.data();
+          }
+
+          const newRecordData = {
+            company,
+            ngay_nghi: dateStr,
+            isDefaultHoliday: true,
+            isSpecialWorkday: false,
+            createdAt: new Date(),
+            createdBy: adminEmail,
+            ghi_chu: "mặc định"
+          };
+
+          if (existingDoc) {
+            // TRÙNG → XÁC NHẬN GHI ĐÈ
+            hideLoading();
+            const existingType = existingData.isSpecialWorkday
+              ? "Ngày làm Đặc biệt"
+              : (existingData.isDefaultHoliday ? "Ngày nghỉ Mặc định" : "Ngày nghỉ Thủ công");
+
+            const isConfirmed = await showConfirmSwal(
+              "Xác nhận ghi đè",
+              `[ADMIN] Ngày ${dateStr} của ${company} đã tồn tại (loại: ${existingType}).<br><br>Bạn có muốn ghi đè bằng Ngày nghỉ Mặc định không?`,
+              "Có",
+              "Không"
+            );
+
+            showLoading("Đang xử lý cài đặt ngày nghỉ...");
+
+            if (isConfirmed) {
+              try {
+                await deleteDoc(doc(db, "reports_2", existingDoc.id));
+                await addDoc(collection(db, "reports_2"), newRecordData);
+              } catch (e) {
+                companyErrorList.push(`Lỗi ghi đè ngày ${dateStr}`);
+              }
+            }
+          } else {
+            // KHÔNG TRÙNG → THÊM MỚI
+            try {
+              await addDoc(collection(db, "reports_2"), newRecordData);
+            } catch (e) {
+              companyErrorList.push(`Lỗi thêm mới ngày ${dateStr}`);
+            }
+          }
+        }
+      }
+
+      if (companyErrorList.length > 0) {
+        totalErrorList.push(`Công ty ${company}: ${companyErrorList.join(", ")}`);
+      }
+    }
+
+    // ============ LUÔN LƯU CONFIG TỔNG ============
+    try {
+      await setDoc(ref, { defaultHolidays: newDefaultHolidays }, { merge: true });
+
+      if (totalErrorList.length > 0) {
+        let errorMsg = `Hoàn tất cài đặt với một số lỗi:\n\n${totalErrorList.join("\n")}`;
+        showSwal("warning", "Cập nhật hoàn tất VỚI LỖI", { message: errorMsg, timer: 10000, showConfirmButton: true });
+      } else {
+        showSwal("success", "Cập nhật thành công!");
+      }
+    } catch (e) {
+      console.error("Lỗi lưu cấu hình tổng vào Firestore:", e);
+      showSwal("error", "Cập nhật CÓ VẤN ĐỀ", { message: e.message, timer: 10000 });
+    }
+  } catch (error) {
+    console.error("Lỗi nghiêm trọng trong quá trình lưu cài đặt:", error);
+    showSwal("error", "Lỗi nghiêm trọng", { message: error.message, timer: 10000 });
+  } finally {
+    hideLoading();
+  }
+});
+
+
+    // ================== SINH NGÀY NGHỈ ==================
+    function generateHolidayDates(year, type) {
+      // Logic sinh ngày nghỉ
+      const dates = [];
+      const start = new Date(`${year}-01-01`);
+      const end = new Date(`${year}-12-31`);
+
+      let dayIndexes = [];
+      if (type === "sat") dayIndexes = [6];
+      if (type === "sun") dayIndexes = [0];
+      if (type === "sat-sun") dayIndexes = [0, 6];
+
+      let d = new Date(start);
+      while (d <= end) {
+        if (dayIndexes.includes(d.getDay())) {
+          dates.push(d.toISOString().split("T")[0]);
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      return dates;
+    }
+
+    // ================== CHECK ADMIN ==================
+    onAuth(async (user) => {
+      console.log("onAuth callback:", user);
+      // Logic check admin
+      if (!user) {
+        userRole = null;
+        loggedInUserEmail = null;   // <--- reset khi chưa login
+        document.getElementById("defaultHolidaySettings").style.display = "none";
+        return;
+      }
+      try { userRole = await getRole(user.email); }
+      catch(e){ userRole = null; }
+
+      loggedInUserEmail = user.email;  // <--- lưu lại email user đang đăng nhập
+
+      if (userRole === "admin") {
+        document.getElementById("defaultHolidaySettings").style.display = "block";
+        await loadCompanies();
+
+        // load config đã lưu
+        const ref = doc(db, "settings", "reportConfig");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const savedConfig = snap.data().defaultHolidays || {};
+          console.log("Saved config:", savedConfig);
+          document.querySelectorAll(".holiday-select").forEach(sel => {
+            console.log("Company:", sel.dataset.company, "Config value:", savedConfig[sel.dataset.company]);
+            const company = sel.dataset.company;
+            if (savedConfig[company]) {
+              sel.value = savedConfig[company];
+            }
+          });
+        }
+      } else {
+        document.getElementById("defaultHolidaySettings").style.display = "none";
+      }
+    });
+
+  </script>
+</body>
+</html>

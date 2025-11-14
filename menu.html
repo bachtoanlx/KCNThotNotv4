@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Menu</title>
+  <link rel="stylesheet" href="styles.css">
+<style>
+
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-left">
+    <a href="trangchu.html" class="logo">🌱 Quản lý KCN</a>
+    
+    <button class="hamburger">☰</button>
+
+    <div class="nav-links">
+      <a href="trangchu.html">Trang chủ</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tác vụ ▼</button>
+        <div class="dropdown-content">
+          <a href="index.html">📤 Gửi báo cáo</a>
+          <a href="index_2.html">📤 Gửi Thông báo</a>
+          <a href="datatable.html">📋 Bảng DL đồng hồ</a>
+          <a href="datatable_2.html">📋 Bảng DL ngày nghỉ</a>
+          
+        </div>
+      </div>
+      <div class="dropdown">
+        <button class="dropbtn">Thống kê ▼</button>
+        <div class="dropdown-content">
+          <a href="autoplan.html">Lịch làm việc</a>
+          <a href="thongke.html">Thống kê báo cáo</a>
+          <a href="statistics.html">Thống kê lưu lượng</a>
+        </div>
+      </div>
+      <a href="logs.html" class="admin-only" style="display:none;">📜 Nhật ký</a>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <span id="userEmail"></span>
+    <button id="loginBtn">Đăng nhập</button>
+    <button id="logoutBtn" style="display:none;">Đăng xuất</button>
+  </div>
+</nav>
+
+
+  <!-- Modal đăng nhập -->
+  <div id="loginModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Đăng nhập</h2>
+      <form id="loginForm">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Mật khẩu" required>
+        <button type="submit">Đăng nhập</button>
+      </form>
+    </div>
+  </div>
+
+
+  <script type="module" src="menu.js"></script>
+
+</body>
+</html>

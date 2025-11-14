@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chào Mừng</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Thêm thư viện Fuse.js để tìm kiếm mờ -->
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+</head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+
+        }
+
+        /* Div riêng biệt cho ảnh nền */
+        #background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://cdn.vietnambiz.vn/2019/9/19/httpsspecials-imagesforbesimgcomdamimageserve1149089169960x0-15688771604242001572975.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -1; /* Đặt div này ở lớp dưới cùng */
+
+            /* Áp dụng trực tiếp hiệu ứng làm mờ cho hình nền */
+            filter: blur(5px);
+            -webkit-filter: blur(5px); /* Hỗ trợ trình duyệt Safari */
+        }
+
+        /* Container chứa tất cả nội dung trang */
+            #content-container {
+                position: relative;
+                z-index: 1; 
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+
+                /* Thay đổi dòng min-height thành flex: 1 */
+                flex: 1; /* <-- Quan trọng: Dòng này sẽ làm nó chiếm hết không gian thừa */
+            }
+        .welcome-text {
+            color: #1f5a92;
+            text-shadow: 2px 2px 4px rgba(235, 241, 243, 0.9);
+        }
+        /* CSS điểu chỉnh footer */
+        .site-footer {
+            background-color: transparent !important; /* Làm cho nền trong suốt */
+            border-top: none !important; /* Bỏ đường kẻ phía trên footer */
+            color: #fff; /* Đổi màu chữ thành trắng để dễ đọc trên nền ảnh */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Thêm bóng cho chữ để nổi bật hơn */
+        }
+
+        .site-footer a {
+            color: #f0f8ff; /* Đổi màu link cho sáng hơn */
+        }
+        #footer-placeholder {
+            margin-bottom: 40px; /* Thêm khoảng cách để không bị che bởi dòng chữ chạy */
+        }
+        /* Home login box */
+        .home-login-box {
+            margin-top: 18px;
+            background: rgba(255,255,255,0.7); /* slightly translucent */
+            padding: 18px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+            max-width: 420px;
+            width: 95%;
+            color: #034892;
+            text-align: center; /* center labels and header */
+        }
+        /* Keep welcome text centered on all sizes and ensure two-line center alignment */
+        .welcome-text {
+            text-align: center;
+            text-transform: uppercase; /* display in uppercase as requested */
+            line-height: 1.05;
+        }
+        @media (min-width: 900px) {
+            /* On larger screens keep column layout but align items centered */
+            #content-container { flex-direction: column; gap: 18px; }
+        }
+
+        /* Footer bar with scrolling message */
+        .home-footer-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15,30,60,0.6);
+            color: #fff;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1;  /* Đặt z-index thấp hơn để nằm dưới footer */
+            font-size: 14px;
+        }
+        .home-footer-date { margin-left: 8px; white-space: nowrap; }
+        .marquee-wrap { 
+            overflow: hidden; 
+            flex: 1;
+        }
+        .marquee {
+            display: inline-block;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Chatbox styles */
+        .chat-container {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 350px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .chat-header {
+            background: #1f3765;
+            color: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            align-self: flex-end;
+        }
+
+        .bot-message {
+            background: #f5f5f5;
+            align-self: flex-start;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+
+        .chat-input button {
+            padding: 10px 20px;
+            background: #1f3765;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .chat-input button:hover {
+            background: #2c4d8c;
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            background: #1f3765;
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container.hidden {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    </style>
+
+<body>
+
+    <div id="background-image"></div>
+    <div id="menu-placeholder"></div>
+    <div id="loading-placeholder"></div>
+    <div id="alert-placeholder"></div>
+
+    <div id="content-container">
+        <h1 class="welcome-text">CHÀO MỪNG BẠN ĐẾN VỚI<br>KHU CÔNG NGHIỆP THỐT NỐT</h1>
+        <!-- Inline login box (always visible) so users can login without opening modal -->
+        <div class="home-login-box" aria-label="Đăng nhập nhanh">
+            <h3 style="margin:0 0 8px 0; color:#0b3b6f;">Đăng nhập</h3>
+            <form id="homeLoginForm">
+                <input type="email" id="homeEmail" name="email" placeholder="Email" required style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
+                <input type="password" id="homePassword" name="password" placeholder="Mật khẩu" required style="width:100%; padding:8px; margin-bottom:12px; border:1px solid #ddd; border-radius:6px;" />
+                <button type="submit" id="homeLoginSubmit" class="submit-btn" style="width:100%; background:#1f3765; color:#fff; padding:10px; border-radius:6px; border:none;">Đăng nhập</button>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="footer-placeholder"></div>
+    <div class="home-footer-bar" role="contentinfo">
+      <div class="marquee-wrap"><div class="marquee" id="homeMarquee">CHÀO MỪNG BẠN ĐẾN VỚI TRUNG TÂM XÂY DỰNG HẠ TẦNG KHU CÔNG NGHIỆP THỐT NỐT,  KV THỚI HÒA 1, P. THỐT NỐT, TP CẦN THƠ</div></div>
+      <div class="home-footer-date" id="homeFooterDate"></div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <div class="chat-toggle" id="chatToggle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+        </svg>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container hidden" id="chatContainer">
+        <div class="chat-header">
+            <span>Trợ lý KCN Thốt Nốt <span id="aiStatus" style="font-size: 10px; opacity: 0.7;"></span></span>
+            <span style="cursor: pointer" id="chatClose">✕</span>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt. Tôi có thể giúp gì cho bạn?
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Nhập câu hỏi của bạn..." />
+            <button id="chatSubmit">Gửi</button>
+            <button id="chatReset" style="background: #6c757d; margin-left: 5px;" title="Đặt lại hội thoại">↻</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script type="module">
+        import { initMenu } from "./menu.js"; // Giữ nguyên
+        import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+        // Import AI chatbot functions
+        import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey } from "./chatbot-ai.js";
+        // Import Firebase query functions
+        import { 
+            getLatestCompanyIndex, 
+            getCompanyIndexHistory,
+            getTotalCompanies,
+            getAllCompanies,
+            compareCompaniesThisMonth,
+            getHolidays, 
+            getNextHoliday,
+            getSpecialWorkdays,
+            getWeeklyStatistics,
+            getMonthlyStatistics,
+            getTopConsumers,
+            getQuotaMultipliers,
+            getStartDaySettings,
+            getDefaultHolidays
+        } from "./chatbot-firebase-queries.js";
+
+        // load menu
+        fetch("menu.html").then(r => r.text()).then(h => {
+            document.getElementById("menu-placeholder").innerHTML = h;
+            initMenu();
+
+            // Attach submit handler to the inline homepage login form (if present)
+            const homeForm = document.getElementById('homeLoginForm');
+            if (homeForm) {
+                homeForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = (document.getElementById('homeEmail') || {}).value || '';
+                    const password = (document.getElementById('homePassword') || {}).value || '';
+                    try {
+                        await signInWithEmailAndPassword(auth, email, password);
+                        await addLog('login_success', { email, status: 'success', timestamp: new Date().toISOString(), userAgent: navigator.userAgent });
+                        showSwal('success', 'Đăng nhập thành công!');
+                        homeForm.reset();
+                    } catch (err) {
+                        console.error('LOGIN FAIL (home):', err);
+                        try { await addLog('login_failure', { email, status: 'error', error_code: err.code, error_message: err.message, timestamp: new Date().toISOString(), userAgent: navigator.userAgent }); } catch(e){}
+                        showSwal('error', 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản.');
+                    }
+                });
+            }
+        });
+
+        // load modal 
+        fetch("modal.html").then(r => r.text()).then(h => {
+            document.getElementById("loading-placeholder").innerHTML = h;
+        });
+        // TẢI FOOTER (thêm đoạn này vào)
+        fetch("footer.html").then(r => r.text()).then(h => {
+            document.getElementById("footer-placeholder").innerHTML = h;
+        });
+
+        // Loại bỏ hoàn toàn logic kiểm tra đăng nhập để trang luôn hiển thị
+
+        // Setup footer date and marquee behavior
+        (function(){
+          const dEl = document.getElementById('homeFooterDate');
+          if (dEl) dEl.textContent = new Date().toLocaleDateString('vi-VN');
+          const mq = document.getElementById('homeMarquee');
+          if (mq) {
+            mq.addEventListener('mouseenter', ()=> mq.style.animationPlayState = 'paused');
+            mq.addEventListener('mouseleave', ()=> mq.style.animationPlayState = 'running');
+          }
+        })();
+
+        // Chat functionality
+        (function(){ // Đơn giản hóa thành một IIFE duy nhất
+            const chatToggle = document.getElementById('chatToggle');
+            const chatContainer = document.getElementById('chatContainer');
+            const chatClose = document.getElementById('chatClose');
+            const chatInput = document.getElementById('chatInput');
+            const chatSubmit = document.getElementById('chatSubmit');
+            const chatMessages = document.getElementById('chatMessages');
+            
+            let allCompanies = []; // Biến lưu danh sách công ty
+            let fuse; // Biến cho Fuse.js
+            let lastMentionedCompany = null; // Biến lưu tên công ty được nhắc đến gần nhất
+            let companySearchTerm = null; // Khai báo biến này ở đây
+            let chatbotState = 'idle'; // 'idle', 'waitingForCompanyIndexCompany'
+            let lastIntent = null; // e.g., 'getLatestCompanyIndex'
+
+            // Hàm khởi tạo: Tải danh sách công ty một lần
+            async function initializeChatbot() {
+                try {
+                    const companiesRef = collection(db, "reports_1");
+                    const snapshot = await getDocs(companiesRef);
+                    const uniqueCompanies = new Set();
+                    snapshot.forEach(doc => {
+                        if (doc.data().company) uniqueCompanies.add(doc.data().company);
+                    });
+                    allCompanies = Array.from(uniqueCompanies);
+                    fuse = new Fuse(allCompanies, { includeScore: true, threshold: 0.4 }); // Cấu hình Fuse.js
+                    console.log("Chatbot initialized with companies:", allCompanies);
+                } catch (error) { console.error("Failed to initialize chatbot companies:", error); }
+            }
+
+            // Toggle chat visibility
+            chatToggle.addEventListener('click', () => {
+                chatContainer.classList.remove('hidden');
+            });
+
+            chatClose.addEventListener('click', () => {
+                chatContainer.classList.add('hidden');
+            });
+
+            // Handle message submission
+            function addMessage(content, isUser = false, isHtml = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+                if (isHtml) {
+                    messageDiv.innerHTML = content;
+                } else {
+                    // Parse markdown
+                    let parsedContent = content
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') // **bold**
+                        .replace(/\*(.+?)\*/g, '<em>$1</em>') // *italic*
+                        .replace(/`(.+?)`/g, '<code>$1</code>') // `code`
+                        .replace(/\n/g, '<br>'); // Line breaks
+                    messageDiv.innerHTML = parsedContent;
+                }
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // Nếu là tin nhắn có nút xác nhận, thêm event listener
+                if (isHtml && content.includes('confirm-btn')) {
+                    messageDiv.querySelectorAll('.confirm-btn').forEach(btn => {
+                        btn.addEventListener('click', handleConfirmationClick, { once: true });
+                    });
+                }
+            }
+
+            // Hàm xử lý khi người dùng nhấn nút "Đúng" / "Không"
+            async function handleConfirmationClick(event) {
+                const button = event.target;
+                const isConfirmed = button.dataset.confirmed === 'yes';
+                const companyName = button.dataset.company;
+
+                // Vô hiệu hóa các nút trong tin nhắn này
+                button.parentElement.querySelectorAll('.confirm-btn').forEach(b => b.disabled = true);
+
+                if (isConfirmed) {
+                    lastMentionedCompany = companyName; // Set lastMentionedCompany on confirmation
+                    const response = await getLatestCompanyIndexFromFirebase(companyName);
+                    setTimeout(() => addMessage(response), 300);
+                } else { setTimeout(() => addMessage("Xin lỗi, vậy bạn vui lòng gõ lại tên công ty chính xác hơn nhé."), 300); }
+            }
+
+            // Hàm: Lấy số lượng công ty từ Firebase
+            async function getCompanyCountFromFirebase() {
+                try {
+                    const companiesRef = collection(db, "reports_1");
+                    const snapshot = await getDocs(companiesRef);
+                    const uniqueCompanies = new Set();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.company) {
+                            uniqueCompanies.add(data.company);
+                        }
+                    });
+                    return `Hiện tại có ${uniqueCompanies.size} công ty trong KCN Thốt Nốt.`;
+                } catch (error) {
+                    console.error("Chatbot Error - getCompanyCountFromFirebase:", error);
+                    return "Xin lỗi, tôi không thể lấy thông tin số lượng công ty lúc này.";
+                }
+            }
+
+            // Hàm: Lấy chỉ số mới nhất của một công ty từ Firebase
+            async function getLatestCompanyIndexFromFirebase(companyName) {
+                try {
+                    const reportsRef = collection(db, "reports_1");
+                    const q = query(
+                        reportsRef,
+                        where("company", "==", companyName),
+                        orderBy("ngay_ghi", "desc"), // Giả định 'ngay_ghi' là chuỗi ngày có thể sắp xếp (YYYY-MM-DD)
+                        orderBy("createdAt", "desc"), // Sắp xếp phụ nếu có nhiều báo cáo cùng ngày
+                        limit(1) // Chỉ lấy báo cáo mới nhất
+                    );
+                    const snapshot = await getDocs(q);
+
+                    if (!snapshot.empty) {
+                        const latestReport = snapshot.docs[0].data();
+                        const chiSo = latestReport.chi_so ? latestReport.chi_so.toLocaleString('vi-VN') : 'N/A';
+                        const ngayGhi = latestReport.ngay_ghi || 'N/A';
+                        return `Chỉ số mới nhất của ${companyName} là ${chiSo} vào ngày ${ngayGhi}.`;
+                    } else {
+                        return `Không tìm thấy chỉ số nào cho công ty ${companyName}.`;
+                    }
+                } catch (error) {
+                    console.error(`Chatbot Error - getLatestCompanyIndexFromFirebase for ${companyName}:`, error);
+                    return `Xin lỗi, tôi không thể lấy chỉ số mới nhất của ${companyName} lúc này.`;
+                }
+            }
+
+            async function handleUserInput(userMessage) {
+                // Add user message to chat
+                addMessage(userMessage, true);
+
+                const lowerMsg = userMessage.toLowerCase();
+                
+                // ====== AI-POWERED CHATBOT ======
+                // Bước 1: Kiểm tra xem có cần truy vấn database không
+                const dataQuery = detectDataQuery(userMessage);
+                console.log('🔍 detectDataQuery result:', dataQuery);
+                let contextData = null;
+                
+                // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
+                if (dataQuery) {
+                    try {
+                        switch (dataQuery.type) {
+                            case 'companyList':
+                                // Lấy danh sách và số lượng công ty
+                                const totalCount = await getTotalCompanies();
+                                const companies = await getAllCompanies();
+                                contextData = { 
+                                    totalCompanies: totalCount,
+                                    companies: companies.slice(0, 20) // Giới hạn 20 công ty đầu tiên
+                                };
+                                break;
+
+                            case 'companyData':
+                                if (dataQuery.company) {
+                                    // Lấy chỉ số mới nhất của công ty
+                                    console.log('📊 Fetching data for company:', dataQuery.company);
+                                    const latestData = await getLatestCompanyIndex(dataQuery.company);
+                                    console.log('📊 Latest data:', latestData);
+                                    contextData = { companyData: latestData };
+                                } else {
+                                    // Tìm kiếm fuzzy để gợi ý công ty
+                                    console.log('🔎 Running fuzzy search for:', userMessage);
+                                    const results = fuse.search(userMessage);
+                                    console.log('🔎 Fuzzy results:', results);
+                                    if (results.length > 0 && results[0].score < 0.3) {
+                                        const suggestion = results[0].item;
+                                        const confirmationHtml = `<p>Ý bạn là "${suggestion}" phải không?</p>
+                                            <button class="confirm-btn" data-confirmed="yes" data-company="${suggestion}">Đúng</button>
+                                            <button class="confirm-btn" data-confirmed="no">Không</button>`;
+                                        setTimeout(() => addMessage(confirmationHtml, false, true), 500);
+                                        return;
+                                    } else {
+                                        console.warn('⚠️ No fuzzy match found or score too low');
+                                    }
+                                }
+                                break;
+
+                            case 'holidayData':
+                                // Lấy ngày nghỉ tháng này
+                                const now = new Date();
+                                const startDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+                                const endDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-31`;
+                                const holidays = await getHolidays(startDate, endDate);
+                                const nextHoliday = await getNextHoliday();
+                                contextData = { holidays, nextHoliday };
+                                break;
+
+                            case 'specialWorkday':
+                                // Lấy ngày làm việc đặc biệt
+                                const now2 = new Date();
+                                const start2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}-01`;
+                                const end2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}-31`;
+                                const specialDays = await getSpecialWorkdays(start2, end2);
+                                contextData = { specialWorkdays: specialDays };
+                                break;
+
+                            case 'statistics':
+                                // Lấy thống kê theo timeframe
+                                if (dataQuery.timeframe === 'tuần' || dataQuery.timeframe === 'week') {
+                                    contextData = { stats: await getWeeklyStatistics() };
+                                } else if (dataQuery.timeframe === 'tháng' || dataQuery.timeframe === 'month') {
+                                    contextData = { stats: await getMonthlyStatistics() };
+                                } else {
+                                    // Mặc định lấy cả 2
+                                    const weekly = await getWeeklyStatistics();
+                                    const monthly = await getMonthlyStatistics();
+                                    contextData = { weeklyStats: weekly, monthlyStats: monthly };
+                                }
+                                break;
+
+                            case 'comparison':
+                                // So sánh công ty hoặc lấy top consumers
+                                const topConsumers = await getTopConsumers(dataQuery.limit || 5);
+                                const comparison = await compareCompaniesThisMonth();
+                                contextData = { topConsumers, comparison: comparison.slice(0, 10) };
+                                break;
+
+                            case 'quotaMultipliers':
+                                // Lấy hệ số khoán
+                                const quotas = await getQuotaMultipliers();
+                                contextData = { quotas };
+                                break;
+
+                            case 'systemConfig':
+                                // Lấy cấu hình hệ thống
+                                const startDaySettings = await getStartDaySettings();
+                                const defaultHolidays = await getDefaultHolidays();
+                                contextData = { startDaySettings, defaultHolidays };
+                                break;
+
+                            case 'history':
+                                // Lấy lịch sử công ty (nếu có company trong dataQuery)
+                                if (dataQuery.company) {
+                                    const now3 = new Date();
+                                    const start3 = new Date(now3.getFullYear(), now3.getMonth(), 1);
+                                    const end3 = new Date(now3.getFullYear(), now3.getMonth() + 1, 0);
+                                    const startStr = start3.toISOString().split('T')[0];
+                                    const endStr = end3.toISOString().split('T')[0];
+                                    const history = await getCompanyIndexHistory(dataQuery.company, startStr, endStr);
+                                    contextData = { history, company: dataQuery.company };
+                                }
+                                break;
+
+                            default:
+                                // Không có query type cụ thể
+                                break;
+                        }
+                    } catch (error) {
+                        console.error('Error fetching data:', error);
+                        contextData = { error: 'Không thể lấy dữ liệu từ database' };
+                    }
+                }
+
+                // Bước 3: Gọi AI để xử lý và trả lời
+                const aiResponse = await getAIResponse(userMessage, contextData);
+                
+                // Bước 4: Hiển thị phản hồi từ AI
+                setTimeout(() => addMessage(aiResponse), 500);
+            }
+
+            // Handle submit button click
+            chatSubmit.addEventListener('click', () => {
+                const message = chatInput.value.trim();
+                if (message) {
+                    handleUserInput(message);
+                    chatInput.value = '';
+                }
+            });
+
+            // Handle enter key press
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const message = chatInput.value.trim();
+                    if (message) {
+                        handleUserInput(message);
+                        chatInput.value = '';
+                    }
+                }
+            });
+
+            // Handle reset button
+            const chatReset = document.getElementById('chatReset');
+            chatReset.addEventListener('click', () => {
+                resetConversation();
+                chatMessages.innerHTML = '';
+                addMessage('Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt. Tôi có thể giúp gì cho bạn?');
+            });
+
+            // Khởi tạo chatbot khi trang tải xong
+            initializeChatbot();
+            
+            // Kiểm tra và hiển thị trạng thái AI
+            const aiStatusEl = document.getElementById('aiStatus');
+            if (aiStatusEl) {
+                if (!hasValidAPIKey()) {
+                    aiStatusEl.textContent = '(Chế độ cơ bản)';
+                    aiStatusEl.title = 'Chưa có API key. Chatbot hoạt động ở chế độ giới hạn. Xem GEMINI_API_SETUP.md để cấu hình AI.';
+                    aiStatusEl.style.color = '#ffa500';
+                } else {
+                    aiStatusEl.textContent = '(AI)';
+                    aiStatusEl.title = 'Chatbot đang sử dụng Google Gemini AI';
+                    aiStatusEl.style.color = '#00ff00';
+                }
+            }
+        })();
+    </script>
+</body>
+</html>

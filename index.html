@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Gửi báo cáo</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+  <div id="alert-placeholder"></div>
+
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <div class="form-style-1">          
+        <div class="card-body">
+            <form id="registrationForm_1" data-collection="reports_1" data-folder-id="172daCAN-J_TSKBnLvDIzQU_ejbdtLQpB" onsubmit="submitForm(event, this.id, this.dataset.collection, this.dataset.folderId)">
+                <div class="form-group form-field">
+                    <label for="c_ty">Tên Công ty:</label>
+                    <select class="form-control" id="c_ty" name="c_ty" required>
+                        <option value="" disabled selected>- Chọn công ty -</option>
+                        <option value="Amicogen">Amicogen</option>
+                        <option value="Ấn Độ Dương">Ấn Độ Dương</option>
+                        <option value="Cá Việt Nam">Cá Việt Nam</option>
+                        <option value="Đại Tây Dương">Đại Tây Dương</option>
+                        <option value="NTSF">NTSF</option>
+                    </select>
+                </div>
+                <div class="form-group form-field">
+                    <label for="chi_so">Chỉ số:</label>
+                    <input type="text" class="form-control" placeholder="Chỉ số đồng hồ..." id="chi_so" name="chi_so" required>
+                </div>
+                <div class="form-group form-field">
+                    <label for="ngay_ghi">Ngày ghi:</label>
+                    <input type="date" class="form-control" placeholder=" Ngày, tháng, năm ... " id="ngay_ghi" name="ngay_ghi" required>
+                </div>
+                <div class="form-group form-field">
+                    <label for="ghi_chu">Ghi chú:</label>
+                    <textarea class="form-control" placeholder="" id="ghi_chu" name="ghi_chu"></textarea>
+                </div>
+                <div class="form-group form-field">
+                    <label for="file">Chọn hình ảnh</label>
+                    <input type="file" id="file" class="form-control-file" accept="image/*">
+                </div>
+            </form>
+                <br>
+                <div class="form-group text-center">
+                    <button type="submit" class="submit-btn" form="registrationForm_1">Gửi thông tin</button>
+                </div>    
+        </div>
+    </div>
+
+
+</div>
+<div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module">
+    import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal } from "./script.js";
+    import { initMenu } from "./menu.js";
+
+    // load menu
+    fetch("menu.html").then(r => r.text()).then(h => {
+      document.getElementById("menu-placeholder").innerHTML = h;
+      initMenu();
+    });
+    // load modal 
+    fetch("modal.html").then(r => r.text()).then(h => {
+      document.getElementById("loading-placeholder").innerHTML = h;
+    });
+    // TẢI FOOTER (thêm đoạn này vào)
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+
+    const notLogged = document.getElementById("notLogged");
+    const content = document.getElementById("pageContent");
+
+    // kiểm tra trạng thái đăng nhập
+    onAuth(user => {
+      if (user) {
+        notLogged.style.display = "none";
+        content.style.display = "block";
+      } else {
+        notLogged.style.display = "block";
+        content.style.display = "none";
+      }
+    });
+
+    // HÀM LẤY NGÀY HIỆN TẠI DƯỚI DẠNG CHUỖI YYYY-MM-DD
+    function getCurrentDate() {
+        var today = new Date();
+        var year = today.getFullYear();
+        var month = ('0' + (today.getMonth() + 1)).slice(-2);
+        var day = ('0' + today.getDate()).slice(-2);
+        return year + '-' + month + '-' + day;
+    }
+    
+    // HÀM ĐẶT NGÀY HIỆN TẠI LÀ NGÀY MẶC ĐỊNH
+    function setDefaultDateForNgayGhi() {
+        var ngayGhiInput = document.getElementById('ngay_ghi');
+        ngayGhiInput.value = getCurrentDate();
+    }
+    
+    function setMaxDateForNgayGhi() {
+        var ngayGhiInput = document.getElementById('ngay_ghi');
+        ngayGhiInput.setAttribute('max', getCurrentDate());
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        setDefaultDateForNgayGhi();
+        setMaxDateForNgayGhi();
+    });
+
+    // ĐỊNH NGHĨA HÀM ĐỂ VIẾT HOA CHỮ CÁI ĐẦU CỦA CHUỖI
+    function capitalizeFirstLetter(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var inputField = document.getElementById('ghi_chu');
+        inputField.addEventListener('input', function() {
+            var inputValue = inputField.value;
+            var capitalizedValue = capitalizeFirstLetter(inputValue);
+            inputField.value = capitalizedValue;
+        });
+    });
+
+// Dấu phân cách phần ngàn và kiểm tra dữ liệu 
+    document.getElementById("chi_so").addEventListener("input", function (event) {
+        const input = event.target;
+        
+        // Loại bỏ tất cả ký tự không phải số và dấu chấm, dấu phẩy
+        const rawValue = input.value.replace(/[^0-9.,]/g, '');
+        
+        // Dùng biểu thức chính quy để kiểm tra có phải chỉ là số và dấu chấm không
+        if (!/^[0-9.]*$/.test(rawValue)) {
+            input.setCustomValidity("Vui lòng chỉ nhập số.");
+        } else {
+            input.setCustomValidity("");
+        }
+        
+        // Hiển thị thông báo lỗi ngay lập tức
+        input.reportValidity();
+        
+        const onlyDigits = rawValue.replace(/[^0-9]/g, '');
+
+        if (onlyDigits === "") {
+            input.value = "";
+        } else {
+            const formattedValue = new Intl.NumberFormat("de-DE").format(onlyDigits);
+            
+            const oldLength = input.value.length;
+            const cursorPosition = input.selectionStart;
+            input.value = formattedValue;
+            const newLength = formattedValue.length;
+            input.setSelectionRange(cursorPosition + (newLength - oldLength), cursorPosition + (newLength - oldLength));
+        }
+        // ⭐️ LOGIC XỬ LÝ ĐĂNG NHẬP VÀ ADMIN ⭐️
+    onAuth(async user => {
+        const notLogged = document.getElementById("notLogged");
+        const pageContent = document.getElementById("pageContent");
+        
+        if (user) {
+            notLogged.style.display = "none";
+            pageContent.style.display = "block";
+            
+            // Kiểm tra và hiển thị cài đặt nếu là admin
+            const role = await getRole(user.email);
+            if (role === 'admin') {
+                const adminSettingsDiv = document.getElementById("adminHolidaySettings");
+                if (adminSettingsDiv) {
+                    adminSettingsDiv.style.display = "block";
+
+                    // Tải và hiển thị cài đặt
+                    const settings = await loadDefaultHolidaySettings();
+                    renderCompanyHolidaySettings(settings);
+
+                    // Gán sự kiện cho nút Lưu
+                    document.getElementById('saveDefaultHolidays').addEventListener('click', saveDefaultHolidays);
+                }
+            }
+        } else {
+            notLogged.style.display = "block";
+            pageContent.style.display = "none";
+        }
+    });
+    });
+  </script>
+</body>
+</html>

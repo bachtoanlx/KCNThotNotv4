@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo cáo thống kê</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    /* CSS CŨ (GIỮ NGUYÊN) */
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    #reportTable th { text-align: center; vertical-align: middle; background: #034892; color: white; } 
+    #reportTable td:first-child { text-align: left; } 
+    #reportTable td:not(:first-child) { text-align: center; } 
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    
+    .toggle-btn { cursor: pointer; margin-left: 8px; color: rgba(0, 0, 255, 0.527); }
+    .child-row { display: none; background: #f0f0f0; } 
+    /* Compact filter row: use flex layout so controls are tighter and responsive */
+    .filter-box {
+      margin: 8px 0; /* reduce vertical gap */
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px; /* consistent spacing between controls */
+    }
+    /* remove per-control right margin (gap handles spacing), increase padding for click targets */
+    .filter-box input, .filter-box select {
+      margin-right: 0;
+      padding: 6px 8px;
+      box-sizing: border-box;
+      height: 34px;
+    }
+    .note { font-style: italic; margin-bottom: 10px; color: #444; }
+    .admin-settings { border: 1px solid #ccc; padding: 10px; margin-top: 20px; display: none; }
+    .admin-settings h3 { margin-top: 0; }
+    tr.current-row td { font-weight: bold; }
+    tr.past-row td { font-size: 0.85em; color: #444; }
+    tr.total-current-row { background: #eef6ff; }
+    tr.detail-current-row { background: white !important; }
+
+    #quotaMultipliersSetting table { width: 100%; }
+    #quotaMultipliersSetting th, #quotaMultipliersSetting td { padding: 4px 8px; }
+    .pdf-only { display: none; }
+
+
+/* ================= TOGGLE SWITCH 3 NẤC ================= */
+:root {
+  --toggle-height: 35px;       /* Chiều cao công tắc */
+  --label-width: 85px;        /* Chiều rộng mỗi nấc */
+  --gap: 2px;                  /* Khoảng cách giữa các nấc */
+  --accent1: #2b9df4;
+  --accent2: #0362b7;
+  --muted: #dbe9f8;
+  --text: #034892;
+}
+
+/* Container chính */
+.switch-3-n {
+  position: relative;
+  display: flex;
+  width: calc(var(--label-width) * 3 + var(--gap) * 2);
+  height: var(--toggle-height);
+  border-radius: 999px;
+  background: #f0f6ff;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05);
+  padding: 4px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Ẩn input radio */
+.switch-3-n input[type="radio"] {
+  display: none;
+}
+
+/* Label hiển thị text */
+.switch-3-n label {
+  flex: 0 0 var(--label-width);
+  display: flex;                /* Dùng flexbox */
+  align-items: center;          /* Căn giữa dọc */
+  justify-content: center;      /* Căn giữa ngang */
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 3;
+  color: var(--text);
+  transition: color 0.2s;
+}
+
+/* Hover nhẹ */
+.switch-3-n label:hover {
+  color: #022f65;
+}
+
+/* Khối trượt */
+.switch-3-n a {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  width: calc(var(--label-width) - var(--gap));
+  height: calc(var(--toggle-height) - 8px);
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  border-radius: 999px;
+  z-index: 2;
+  box-shadow: 0 4px 1px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+}
+
+/* Label active (radio được chọn) → chữ màu trắng */
+.switch-3-n input:checked + label {
+  color: #fff;
+}
+    
+/* 2. Giảm khoảng cách trên bảng chính (Bảng Báo cáo thống kê) */
+#reportTable {
+/* Ghi đè margin-top: 20px; mặc định của thẻ table */
+    margin-top: 0px !important; 
+}
+
+/*ModeToggle */
+#reportModeToggle {
+    margin: 0 !important; 
+    /* Dùng !important để đảm bảo quy tắc này ghi đè bất kỳ margin nào khác */
+}
+
+/* Đảm bảo khối chứa nó cũng không tạo thêm khoảng cách thừa */
+.toggle-switch-container {
+    margin: 0 !important;
+}
+/* Responsive nhỏ hơn */
+@media (max-width: 700px) {
+  :root {
+    --label-width: 90px;
+    --toggle-height: 36px;
+  }
+  .switch-3-n label {
+    font-size: 12px;
+  }
+}
+
+    /* BẮT ĐẦU CSS MỚI: BẢNG CHI TIẾT NGÀY NGHỈ */
+    #holidayDetailTable {
+        margin-top: 10px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    #holidayDetailReport h3 {
+        margin-bottom: 5px;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 5px;
+        color: #034892;
+    }
+    #holidayDetailTable th {
+        background: #034892;
+        color: white;
+        padding: 18px;
+        text-align: center;
+        vertical-align: top;
+    }
+    #holidayDetailTable td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: center;
+        vertical-align: top;
+        white-space: pre-wrap; /* Preserve line breaks */
+        font-size: 0.9em;
+    }
+    /* THÊM MỚI: Dành cho hàng con trong bảng chi tiết */
+    .child-row-detail { display: none; }
+    /* Kết thúc CSS Mới */
+  /* Scroll container for quota multipliers: show up to ~4 rows then scroll */
+  .quota-scroll {
+    /* show ~4 rows by default; keep no inner padding so sticky header is flush */
+    max-height: calc(4 * 40px + 0px); /* adjust if row height differs */
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    padding: 0; /* IMPORTANT: remove padding so sticky header aligns to top */
+    background: #fff;
+  }
+  .quota-scroll table { margin: 0; width: 100%; border-collapse: collapse; }
+  .quota-scroll thead th { background: transparent; font-weight: 600; }
+  .quota-scroll tbody tr td { padding: 8px; border: 1px solid #ccc; }
+  /* Make the header sticky so it stays visible while scrolling the quota list
+     Match visual style from autoplan: light gray bg, slight shadow, no gap to container */
+  .quota-scroll thead th {
+    position: sticky;
+    top: 0px; /* align to the very top of the scroll container */
+    background-color: #f0f0f0; /* match autoplan look */
+    z-index: 3;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+    border: 1px solid #ccc;
+  }
+  /* Make the first column (STT) narrow and centered */
+  .quota-scroll table th:first-child,
+  .quota-scroll table td:first-child {
+    width: 50px;
+    max-width: 50px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+    /* 🔥 GHI ĐÈ CSS CHO MODAL CẤU HÌNH (TĂNG RỘNG, GIẢM CAO) 🔥 */
+    #configModal .modal-content-config {
+        /* 1. TĂNG BỀ RỘNG VÀ XÓA GIỚI HẠN MAX-WIDTH */
+        width: 85% !important;        /* Tăng bề rộng lên 85% màn hình */
+        max-width: 1200px !important;  /* Tăng giới hạn tối đa lên 1200px (hoặc xóa hẳn bằng none) */
+        
+        /* 2. GIẢM CHIỀU CAO TỐI ĐA */
+        max-height: 80vh !important;  /* Giảm chiều cao tối đa xuống 80% chiều cao màn hình */
+        
+        /* 3. ĐẨY LÊN CAO HƠN (Tùy chọn) */
+        margin: 12vh auto !important;   /* Giảm khoảng cách từ đỉnh xuống (12% chiều cao viewport) */
+    }
+  </style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+  <div id="alert-placeholder"></div>   
+  <div id="notLogged" style="display:none;">
+    ❌ Bạn cần đăng nhập để truy cập trang này.
+  </div>
+
+  <div id="pageContent" style="display:none;">
+  <h2>📊 Báo cáo thống kê</h2>
+
+
+  <form>
+    <div class="filter-box">
+      <label>Từ ngày: <input type="date" id="fromDate"></label>
+      <label>Đến ngày: <input type="date" id="toDate"></label>
+      <label>Năm nhanh:
+        <select id="yearSelect">
+          <option value="">--Chọn năm--</option>
+        </select>
+      </label>
+      <label>Nhóm công ty: 
+        <select id="companyGroupFilter">
+            <option value="group1">Nhóm 1 (đồng hồ)</option>
+            <option value="group2">Nhóm 2 (khoán)</option>
+            <option value="all">Tất cả 2 nhóm</option>
+        </select>
+      </label>
+      
+      <button id="applyFilter">Áp dụng</button>
+      <button type="button" id="exportPDF">Xuất báo cáo (PDF)</button>
+      <button type="button" id="openConfigModal" class="admin-only" style="display:none;">⚙️ Cấu hình</button>
+    </div>
+    
+    <div class="report-header-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px !important; margin-top: 10px !important;">
+        <div class="note" id="filterNote" style="margin-bottom: 0; margin-top: 0;"></div>
+        <div class="toggle-switch-container">
+            
+            <div id="reportModeToggle" class="switch-toggle switch-3-n">
+                <input id="mode-normal" name="report-mode" type="radio" value="0" checked />
+                <label for="mode-normal">Chuẩn</label>
+
+                <input id="mode-count" name="report-mode" type="radio" value="1" />
+                <label for="mode-count">Ngày nghỉ</label>
+
+                <input id="mode-list" name="report-mode" type="radio" value="2" />
+                <label for="mode-list">Chi tiết</label>
+                <a></a>
+            </div>
+        </div>
+
+    </div>
+    <div id="pdfReport"> 
+    <div class="pdf-only">
+      <h2 style="text-align:center">TRUNG TÂM XÂY DỰNG HẠ TẦNG KCN THỐT NỐT</h2>
+      <h2 style="text-align:left">📊 Báo cáo thống kê</h2>
+    </div>
+
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>Lưu lượng</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="reportFooterNote" style="margin-top: 10px; font-style: italic; color: #cc0000; display: none;">
+    **Lưu ý:** Số liệu trong ngoặc đơn cạnh chỉ số khối lượng là ngày nghỉ tương ứng. Ví dụ: 5394 (3) là nghỉ 3 ngày trong kỳ.
+    </div>
+    <div id="holidayDetailReport" style="display: none;">
+        <h3>Chi tiết Ngày nghỉ </h3>
+        <table id="holidayDetailTable">
+            <thead>
+                </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+  </div>
+  </form>
+
+  <div id="adminSettings" class="admin-settings">
+    <h3>⚙️ Cài đặt ngày mốc </h3>
+    <label>Ngày đầu tuần:
+      <select id="weekDayStart">
+        <option value="0">Chủ nhật</option>
+        <option value="1">Thứ 2</option>
+        <option value="2">Thứ 3</option>
+        <option value="3">Thứ 4</option>
+        <option value="4">Thứ 5</option>
+        <option value="5">Thứ 6</option>
+        <option value="6">Thứ 7</option>
+      </select>
+    </label>
+    <label>Ngày đầu tháng:
+      <select id="monthDayStart"></select>
+    </label>
+    <label>Ngày cuối kỳ phí:
+      <select id="billingDayStart"></select>
+    </label>
+    <label>Ngày đầu năm:
+      <select id="yearDayStart"></select>
+    </label>
+    <button id="saveConfig"> Lưu </button>
+
+    <h3>⚙️ Danh sách thêm công ty thủ công</h3>
+    <div id="masterListManager">
+      <input type="text" id="companyNameInput" placeholder="Nhập tên công ty (ví dụ: Nanoco)" style="width: 250px; margin-right: 5px;">
+      <button id="addCompanyBtn">+</button>
+      <button id="removeCompanyBtn">-</button>
+      <div id="currentMasterList" style="margin-top: 10px; font-size: 0.9em;">
+        Danh sách hiện tại: Đang tải...
+      </div>
+      <p>(Master List dùng để hiển thị công ty chưa có chỉ số. Thêm/Xóa bằng cách nhập tên công ty +/-).</p>
+    </div>
+    <h3>⚙️ Cài đặt Hệ số nhân khoán (Mặc định: 0)</h3>
+    <div id="quotaMultipliersSetting"></div>  
+  </div>
+
+<div id="configModal" class="modal">
+  <div class="modal-content-config">
+    <span class="close-btn">&times;</span>
+    <h2>Thông tin Cấu hình và Dữ liệu Đặc biệt</h2>
+    <div id="configModalContent">
+      <p>Đang tải dữ liệu...</p>
+    </div>
+  </div>
+</div>
+<div id="footer-placeholder"></div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="module">
+import { doc, getDoc, deleteDoc, addDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal} from "./script.js";
+import { initMenu } from "./menu.js";
+
+
+
+// ===============================================
+// 🔥 LOGIC CHO MODAL THÔNG TIN CẤU HÌNH
+// ===============================================
+// =========================================================================
+// HÀM TẢI DỮ LIỆU CẤU HÌNH (Sử dụng 2 nguồn Firestore)
+// =========================================================================
+async function fetchReportConfigData() {
+    try {
+        // =======================================================
+        // 1. Chỉ số Đặc biệt (reports_1) - Hợp nhất 3 tiêu chí OR
+        // =======================================================
+
+        // 1a. Chỉ số Reset (isMeterReset=true)
+        const q1a = query(collection(db, "reports_1"), where("isMeterReset", "==", true));
+        const snap1a = await getDocs(q1a);
+
+        // 1b. Chỉ số Bằng 0 (chi_so=0)
+        // Lưu ý: Đảm bảo trường 'chi_so' tồn tại và là kiểu số
+        const q1b = query(collection(db, "reports_1"), where("chi_so", "==", 0));
+        const snap1b = await getDocs(q1b);
+        
+        // 1c. Chỉ số Khởi tạo tự động (ghi_chu="Chi so khoi tao tu dong (Auto-Init)")
+        const q1c = query(collection(db, "reports_1"), where("ghi_chu", "==", "Chi so khoi tao tu dong (Auto-Init)"));
+        const snap1c = await getDocs(q1c);
+        
+        // Hợp nhất kết quả từ 3 truy vấn và loại bỏ trùng lặp dựa trên document ID
+        const allSnapDocs = [...snap1a.docs, ...snap1b.docs, ...snap1c.docs];
+        const uniqueDocs = [];
+        const docIds = new Set();
+
+        allSnapDocs.forEach(d => {
+            if (!docIds.has(d.id)) {
+                docIds.add(d.id);
+                uniqueDocs.push(d);
+            }
+        });
+        
+        const specialIndexes = uniqueDocs.map(d => ({ 
+            id: d.id, 
+            ...d.data(), 
+            // Định dạng ngày tạo hệ thống
+            date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'
+        }));
+
+        // =======================================================
+        // 2. Ngày làm việc Đặc biệt (reports_2: isSpecialWorkday=true)
+        // =======================================================
+        const q2 = query(collection(db, "reports_2"), where("isSpecialWorkday", "==", true));
+        const snap2 = await getDocs(q2);
+        const specialWorkdays = snap2.docs.map(d => ({ 
+            id: d.id, 
+            ...d.data(),
+            date: d.data().createdAt ? d.data().createdAt.toDate().toLocaleDateString('vi-VN') : 'N/A'
+        }));
+
+        // =======================================================
+        // 3. Tải Cài đặt Cấu hình (settings & config)
+        // =======================================================
+
+        // 3a. Lấy defaultHolidays từ settings/reportConfig
+        const settingsHolidayRef = doc(db, "settings", "reportConfig");
+        const settingsHolidaySnap = await getDoc(settingsHolidayRef);
+        const settingsConfig = settingsHolidaySnap.exists() ? settingsHolidaySnap.data() : {};
+        const defaultHolidays = settingsConfig.defaultHolidays || {};
+
+        // 3b. Lấy startDaySettings và quotaMultipliers từ config/reportConfig
+        const configRef = doc(db, "config", "reportConfig"); 
+        const configSnap = await getDoc(configRef);
+        const configData = configSnap.exists() ? configSnap.data() : {};
+
+        const quotaMultipliers = configData.quotaMultipliers || {}; 
+
+        const startDaySettings = {
+            weekDayStart: configData.weekDayStart !== undefined ? configData.weekDayStart : 'Chưa cài đặt',
+            monthDayStart: configData.monthDayStart !== undefined ? configData.monthDayStart : 'Chưa cài đặt',
+            yearDayStart: configData.yearDayStart !== undefined ? configData.yearDayStart : 'Chưa cài đặt',
+            billingDayStart: configData.billingDayStart !== undefined ? configData.billingDayStart : 'Chưa cài đặt',
+        };
+        
+        return {
+            specialIndexes,
+            specialWorkdays,
+            defaultHolidays, 
+            startDaySettings, 
+            quotaMultipliers 
+        };
+
+    } catch (error) {
+        console.error("Lỗi khi tải dữ liệu cấu hình:", error);
+        // showSwal là hàm giả định hiển thị thông báo lỗi
+        showSwal("error", "Lỗi khi tải dữ liệu cấu hình: " + error.message);
+        return null;
+    }
+}
+
+// =========================================================================
+// HÀM RENDER MODAL (Giữ nguyên cấu trúc Mục 1, 2, 3, 4)
+// =========================================================================
+function renderConfigModal(data) {
+    const contentDiv = document.getElementById('configModalContent');
+    if (!data) {
+        contentDiv.innerHTML = '<p style="color:red;">Không thể tải dữ liệu cấu hình. Vui lòng kiểm tra console.</p>';
+        return;
+    }
+
+    let html = '';
+
+    // =======================================================
+    // 1. Chỉ số đặc biệt (Đã cập nhật tiêu đề mô tả logic OR)
+    // =======================================================
+    html += '<div class="modal-section">';
+    html += '<h4>1. Chỉ số Đặc biệt (reports_1: isMeterReset=true **HOẶC chi_so=0 HOẶC ghi_chu="Auto-Init"**)</h4>';
+    if (data.specialIndexes.length > 0) {
+        html += '<table><thead><tr><th>Tên Công ty</th><th>Chỉ số</th><th>Ngày ghi (Báo cáo)</th><th>Ngày tạo (Hệ thống)</th><th>Ghi chú</th></tr></thead><tbody>';
+        data.specialIndexes.forEach(item => {
+            html += `<tr>
+                        <td>${item.company || item.c_ty || 'N/A'}</td>
+                        <td>${item.chi_so !== undefined ? item.chi_so.toLocaleString('vi-VN') : 'N/A'}</td>
+                        <td>${item.ngay_ghi || 'N/A'}</td>
+                        <td>${item.date}</td>
+                        <td>${item.ghi_chu || item.note || ''}</td>
+                    </tr>`;
+        });
+        html += '</tbody></table>';
+    } else {
+        html += '<p>Không có chỉ số đặc biệt nào.</p>';
+    }
+    html += '</div>';
+
+    // =======================================================
+    // 2. Ngày làm việc đặc biệt (reports_2: isSpecialWorkday=true)
+    // =======================================================
+    html += '<div class="modal-section">';
+    html += '<h4>2. Ngày làm việc Đặc biệt (reports_2: isSpecialWorkday=true)</h4>';
+    if (data.specialWorkdays.length > 0) {
+        html += '<table><thead><tr><th>Tên Công ty</th><th>Ngày làm việc đặc biệt (Báo cáo)</th><th>Ngày tạo (Hệ thống)</th><th>Ghi chú</th></tr></thead><tbody>';
+        data.specialWorkdays.forEach(item => {
+            html += `<tr>
+                        <td>${item.company || item.c_ty || 'N/A'}</td>
+                        <td>${item.ngay_lam_db || 'N/A'}</td> 
+                        <td>${item.date}</td>
+                        <td>${item.ghi_chu || item.note || ''}</td>
+                    </tr>`;
+        });
+        html += '</tbody></table>';
+    } else {
+        html += '<p>Không có ngày làm việc đặc biệt nào.</p>';
+    }
+    html += '</div>';
+
+    // =======================================================
+    // 3. Các cài đặt Ngày Đầu Kỳ
+    // =======================================================
+    html += '<div class="modal-section">';
+    html += '<h4>3. Các Cài đặt Ngày Đầu Kỳ</h4>';
+    const dayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+    html += '<table><tbody>';
+    html += `<tr><th>Ngày Đầu Tuần (weekDayStart)</th><td>${dayNames[data.startDaySettings.weekDayStart] || data.startDaySettings.weekDayStart}</td></tr>`;
+    html += `<tr><th>Ngày Đầu Tháng (monthDayStart)</th><td>Ngày ${data.startDaySettings.monthDayStart}</td></tr>`;
+    html += `<tr><th>Ngày Đầu Năm (yearDayStart)</th><td>Ngày ${data.startDaySettings.yearDayStart}</td></tr>`;
+    html += `<tr><th>Ngày Cuối Kỳ Thu Phí (billingDayStart)</th><td>Ngày ${data.startDaySettings.billingDayStart}</td></tr>`;
+    html += '</tbody></table>';
+    html += '</div>';
+    
+    // =======================================================
+    // 4. Ngày nghỉ Mặc định & Hệ số Khoán (Hợp nhất từ 2 nguồn)
+    // =======================================================
+    html += '<div class="modal-section">';
+    html += '<h4>4. Ngày nghỉ Mặc định & Hệ số Khoán theo Công ty</h4>';
+
+    const holidayMap = {
+        'none': ' ',
+        'sun': 'Chủ nhật',
+        'sat': 'Thứ 7',
+        'sat-sun': 'Thứ 7 & CN',
+        'N/A': 'Chưa cài đặt' 
+    };
+
+    // Lấy danh sách tất cả các công ty từ cả hai đối tượng
+    const allCompanies = new Set([
+        ...Object.keys(data.defaultHolidays),
+        ...Object.keys(data.quotaMultipliers)
+    ]);
+    
+    // Sắp xếp danh sách công ty
+    const sortedCompanies = Array.from(allCompanies).sort();
+
+    const configList = sortedCompanies.map(company => {
+        // Xử lý Ngày nghỉ Mặc định (từ settings/reportConfig)
+        const holidayCode = data.defaultHolidays[company] || 'N/A';
+        const holidayDisplay = holidayMap[holidayCode] || 'Mã không hợp lệ';
+
+        // Xử lý Hệ số Khoán (từ config/reportConfig)
+        const quotaValue = data.quotaMultipliers[company] !== undefined 
+                             ? data.quotaMultipliers[company] 
+                             : 'Chưa cài đặt';
+
+        return `<tr>
+                    <td>${company}</td>
+                    <td>${holidayDisplay}</td>
+                    <td>${quotaValue}</td>
+                </tr>`;
+    }).join('');
+
+    if (configList) {
+        html += '<table><thead><tr><th>Tên Công ty</th><th>Ngày nghỉ Mặc định</th><th>Hệ số Khoán (m3/ngày.đêm)</th></tr></thead><tbody>';
+        html += configList;
+        html += '</tbody></table>';
+    } else {
+        html += '<p>Chưa cài đặt cấu hình ngày nghỉ hoặc hệ số khoán cho công ty nào.</p>';
+    }
+    html += '</div>';
+    
+    contentDiv.innerHTML = html;
+}
+// =========================================================================
+// HÀM KHỞI TẠO MODAL (Giữ nguyên)
+// =========================================================================
+function setupConfigModal() {
+    const modal = document.getElementById('configModal');
+    const btn = document.getElementById('openConfigModal');
+    const span = document.getElementsByClassName("close-btn")[0];
+    const contentDiv = document.getElementById('configModalContent');
+
+    if (btn) {
+        btn.onclick = async () => {
+            modal.style.display = "block";
+            contentDiv.innerHTML = '<p>Đang tải dữ liệu...</p>'; // Reset content
+            const data = await fetchReportConfigData();
+            renderConfigModal(data);
+        }
+    }
+
+    if (span) {
+        span.onclick = () => {
+            modal.style.display = "none";
+        }
+    }
+
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+}
+//
+
+
+// load menu
+    fetch("menu.html").then(r => r.text()).then(h => {
+      document.getElementById("menu-placeholder").innerHTML = h;
+      if (typeof initMenu === "function") initMenu();
+    });    
+
+// load modal loading
+    fetch("modal.html").then(r => r.text()).then(h => {
+      document.getElementById("loading-placeholder").innerHTML = h;
+    });
+// TẢI FOOTER (thêm đoạn này vào)
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+    const notLogged = document.getElementById("notLogged");
+    const content   = document.getElementById("pageContent");
+    const tbody     = document.querySelector("#reportTable tbody");
+    const quotaMultipliersSettingDiv = document.getElementById("quotaMultipliersSetting");
+    
+    // MỚI: DOM ref cho bảng chi tiết ngày nghỉ
+    const holidayDetailReportDiv = document.getElementById('holidayDetailReport');
+    const holidayDetailTableBody = document.querySelector('#holidayDetailTable tbody');
+    const holidayDetailTableHead = document.querySelector('#holidayDetailTable thead');
+
+    let userRole = null;
+
+    // DOM refs
+    const theadRow = document.querySelector("#reportTable thead tr");
+    const note = document.getElementById("filterNote");
+
+    // DOM refs cho bộ lọc
+    const fromInput = document.getElementById("fromDate");
+    const toInput = document.getElementById("toDate");
+    const yearSelect = document.getElementById("yearSelect");
+    const applyFilterBtn = document.getElementById("applyFilter");
+    const companyGroupFilter = document.getElementById('companyGroupFilter'); 
+    
+    // DOM ref cho công tắc 3 nấc
+    const reportModeToggle = document.getElementById('reportModeToggle');
+
+
+    // data & config
+    let allReports = []; 
+    let allHolidayRecords = []; 
+    let allProcessedHolidays = {}; 
+    let currentFilter = { from: null, to: null };
+    let config = { weekDayStart: 0, monthDayStart: 1, billingDayStart: 1, yearDayStart: 1, quotaMultipliers: {} }; 
+    let isInitialLoad = true;
+    
+    // MỚI: Biến lưu trữ dữ liệu chi tiết ngày nghỉ (khi Mode 2 bật)
+    let allHolidayDetails = { week: [], month: [], billing: [], year: [] }; 
+
+    
+    // === MASTER LIST NEW VARIABLES ===
+    let allMasterCompanies = [];
+    const companyNameInput = document.getElementById("companyNameInput");
+    const addCompanyBtn = document.getElementById("addCompanyBtn");
+    const removeCompanyBtn = document.getElementById("removeCompanyBtn");
+    const currentMasterListDiv = document.getElementById("currentMasterList");
+    // === END MASTER LIST NEW VARIABLES ===
+    
+    // === START: LOGIC LỌC THEO NHÓM CÔNG TY (Lọc theo CỘT) ===
+    const COMPANY_GROUPS = {
+        'group1': ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam' ], 
+        'group2': ['VNPT', 'Hiệp Phú', 'Honoroad', 'Trường Hải', 'Petec', 'Tân Cảng'], 
+        'all': ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Cá Việt Nam', 'Amicogen', 'VNPT', 'Hiệp Phú', 'Honoroad', 'Trường Hải', 'Petec', 'Tân Cảng'] 
+    };
+    
+    /**
+     * Lọc các cột của bảng chi tiết ngày nghỉ #holidayDetailTable
+     */
+    function filterHolidayDetailTableByCompanyGroup(companies) {
+        const filterSelect = document.getElementById('companyGroupFilter');
+        const detailTable = document.getElementById('holidayDetailTable') 
+                        || document.getElementById('holidayDetailReport');
+        
+        // ✅ Nếu không có filterSelect hoặc bảng chi tiết → thoát ngay
+        if (!filterSelect || !detailTable) {
+            return;
+        }
+
+        const selectedGroup = filterSelect.value;
+        const allowedCompanies = COMPANY_GROUPS[selectedGroup] 
+            ? COMPANY_GROUPS[selectedGroup].map(c => c.toUpperCase()) 
+            : [];
+
+        const theadRow = detailTable.querySelector("thead tr");
+        if (!theadRow) return; // thêm check an toàn
+
+        const tbodyRows = detailTable.querySelectorAll("tbody tr");
+        const companyHeaders = Array.from(theadRow.querySelectorAll('th'));
+        const columnVisibility = [true]; // Cột đầu tiên (Kỳ) luôn hiện
+
+        companyHeaders.slice(1).map(th => th.textContent.trim().toUpperCase())
+            .forEach(name => {
+                const isAllowed = allowedCompanies.includes(name);
+                columnVisibility.push(isAllowed);
+            });
+
+        // Ẩn/Hiện cột trong THEAD
+        companyHeaders.forEach((th, index) => {
+            if (index > 0) { 
+                th.style.display = columnVisibility[index] ? '' : 'none';
+            }
+        });
+
+        // Ẩn/Hiện cột trong TBODY
+        tbodyRows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            if (cells.length === 1) return; 
+            cells.forEach((td, index) => {
+                if (index > 0) { 
+                    td.style.display = columnVisibility[index] ? '' : 'none';
+                }
+            });
+        });
+    }
+
+
+
+    /**
+     * Lọc các cột của bảng #reportTable dựa trên nhóm công ty đã chọn.
+     */
+    function filterReportByCompanyGroup() {
+        const filterSelect = document.getElementById('companyGroupFilter');
+        const reportTable = document.getElementById('reportTable');
+        
+        if (!filterSelect || !reportTable) return;
+        
+        const selectedGroup = filterSelect.value;
+        const allowedCompanies = COMPANY_GROUPS[selectedGroup] ? COMPANY_GROUPS[selectedGroup].map(c => c.toUpperCase()) : [];
+
+        const theadRow = document.querySelector("#reportTable thead tr");
+        const tbodyRows = document.querySelectorAll("#reportTable tbody tr");
+
+        // 1. Lấy tên công ty từ TH và xác định khả năng hiển thị của từng cột
+        const companyHeaders = Array.from(theadRow.querySelectorAll('th'));
+        const columnVisibility = [true]; // Cột đầu tiên (Lưu lượng) luôn hiện
+
+        const companies = companyHeaders.slice(1).map(th => th.textContent.trim().toUpperCase());
+        companies.forEach(name => {
+            const isAllowed = allowedCompanies.includes(name);
+            columnVisibility.push(isAllowed);
+        });
+
+        // 2. Ẩn/Hiện cột trong THEAD
+        companyHeaders.forEach((th, index) => {
+            if (index > 0) { 
+                th.style.display = columnVisibility[index] ? '' : 'none';
+            }
+        });
+
+        // 3. Ẩn/Hiện cột trong TBODY
+        tbodyRows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            cells.forEach((td, index) => {
+                if (index > 0) { 
+                    td.style.display = columnVisibility[index] ? '' : 'none';
+                }
+            });
+        });
+        
+        // 4. Lọc bảng chi tiết ngày nghỉ (nếu có)
+        filterHolidayDetailTableByCompanyGroup(companies);
+
+
+        console.log(`LOG: Đã áp dụng bộ lọc nhóm công ty: ${selectedGroup}.`);
+    }
+    // === END: LOGIC LỌC THEO NHÓM CÔNG TY ===
+    if (getReportMode() === 2) {
+        filterHolidayDetailTableByCompanyGroup();
+    }
+
+    // populate month/year/billing selects
+    const monthSel = document.getElementById("monthDayStart");
+    for (let i=1;i<=28;i++) monthSel.innerHTML += `<option value="${i}">${i}</option>`;
+
+    const billingSel = document.getElementById("billingDayStart"); 
+    for (let i=1;i<=31;i++) billingSel.innerHTML += `<option value="${i}">${i}</option>`;
+
+    const yearSel = document.getElementById("yearDayStart");
+    for (let i=1;i<=31;i++) yearSel.innerHTML += `<option value="${i}">${i}</option>`;
+
+    // ** FIX LỖI TOGGLE: EVENT DELEGATION **
+    tbody.addEventListener('click', (e) => {
+        const toggleBtn = e.target.closest(".toggle-btn");
+        if (!toggleBtn) return;
+        
+        e.stopPropagation();
+
+        const mainRow = toggleBtn.closest("tr.main-row");
+        if (!mainRow) return;
+
+        const target = mainRow.dataset.target;
+        const childRows = document.querySelectorAll(`tr[data-parent="${target}"]`);
+        
+        const isCurrentlyOpen = childRows[0] && childRows[0].style.display === "table-row"; 
+        const isNowOpen = !isCurrentlyOpen; 
+
+        childRows.forEach(row => {
+            row.style.display = isNowOpen ? "table-row" : "none";
+        });
+
+        toggleBtn.textContent = isNowOpen ? "▼" : "▶";
+    });
+    // ** KẾT THÚC FIX LỖI TOGGLE **
+    
+    // LOGIC TOGGLE CHO BẢNG CHI TIẾT NGÀY NGHỈ (ĐỒNG BỘ VỚI VISIBLE COUNTS)
+    const HOLIDAY_DEFAULT_VISIBLE = { week: 5, month: 2, billing: 2, year: 0 };
+
+    holidayDetailTableBody.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest(".toggle-btn");
+    if (!toggleBtn) return;
+    e.stopPropagation();
+
+    const targetId = toggleBtn.dataset.targetId;
+    if (!targetId) return;
+
+    const childRows = document.querySelectorAll(`tr[data-parent-id="${targetId}"]`);
+    if (!childRows || childRows.length === 0) return;
+
+    const isCurrentlyClosed = (toggleBtn.textContent.trim() === '▶'); // ▶ nghĩa là đang gọn, bấm để mở
+
+    if (isCurrentlyClosed) {
+        // Mở: hiện tất cả các hàng
+        childRows.forEach(row => row.style.display = "table-row");
+        toggleBtn.textContent = "▼";
+        return;
+    }
+
+    // Đóng: hiển thị lại theo quy tắc mặc định cho từng loại
+    const typeKey = targetId.replace("toggle-detail-", ""); // => 'week' | 'month' | 'billing' | 'year'
+    const visibleCount = HOLIDAY_DEFAULT_VISIBLE[typeKey] !== undefined ? HOLIDAY_DEFAULT_VISIBLE[typeKey] : childRows.length;
+
+    childRows.forEach((row, index) => {
+        if (index < visibleCount) {
+        row.style.display = "table-row";
+        } else {
+        row.style.display = "none";
+        }
+    });
+
+    toggleBtn.textContent = "▶";
+    });
+
+    // ** KẾT THÚC LOGIC TOGGLE CHI TIẾT NGÀY NGHỈ **
+
+    // ========== UTILS ==========
+    function formatISODate(d) {
+      if (!(d instanceof Date) || isNaN(d)) return null;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatVNDate(d) {
+      if (!(d instanceof Date) || isNaN(d)) return "N/A";
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}`;
+    }
+    function safeFixed(val, digits = 1) { 
+      return (typeof val === "number" && !isNaN(val)) ? val.toFixed(digits) : "N/A";
+    }
+    
+    // HÀM 1: FORMAT NGÀY NGHỈ CHO TOOLTIP (sử dụng &#10;)
+    function formatHolidayDates(dateStrings) {
+        if (!dateStrings || dateStrings.length === 0) return '';
+        
+        dateStrings.sort((a, b) => new Date(a) - new Date(b));
+
+        return "Các ngày nghỉ:\n" + dateStrings.map(isoDate => {
+            const parts = isoDate.split('-');
+            const day = parts[2];
+            const month = parts[1];
+            const year = parts[0];
+            return `${day}/${month}/${year}`; 
+        }).join('&#10;');
+    }
+    
+    // HÀM 2: FORMAT NGÀY NGHỈ CHO CELL (sử dụng <br>)
+    function formatHolidayDatesInline(dateStrings) {
+        if (!dateStrings || dateStrings.length === 0) return 'Không nghỉ';
+        
+        dateStrings.sort((a, b) => new Date(a) - new Date(b));
+
+        return dateStrings.map(isoDate => {
+            const parts = isoDate.split('-');
+            const day = parts[2];
+            const month = parts[1];
+            const year = parts[0];
+            return `${day}/${month}/${year}`; 
+        }).join('<br>');
+    }
+
+    function getWeekStart(date, weekDayStart) {
+      const d = new Date(date);
+      const diff = (d.getDay() - weekDayStart + 7) % 7;
+      d.setDate(d.getDate() - diff);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function getMonthStart(date, monthDayStart) {
+      const d = new Date(date.getFullYear(), date.getMonth(), monthDayStart);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function getYearStart(date, yearDayStart) {
+      const d = new Date(date.getFullYear(), 0, yearDayStart);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+
+    // HÀM 1: Chỉ lấy chính xác tại mốc ngày.
+    function findValueExact(readings, dateMark) {
+      const dateMarkStr = formatISODate(dateMark);
+      const exactReadings = readings.filter(r => formatISODate(r.date) === dateMarkStr);
+      
+      if (exactReadings.length === 0) return null;
+
+      exactReadings.sort((a, b) => a.date - b.date); 
+      return exactReadings[0].value;
+    }
+
+    // HÀM 2: Lấy bản ghi (object) gần nhất TRƯỚC HOẶC ĐÚNG MỐC.
+    function findLatestReadingBeforeOrOnMark(readings, dateMark) {
+      const pastReadings = readings.filter(r => r.date <= dateMark); 
+      
+      if (pastReadings.length === 0) return null;
+
+      pastReadings.sort((a, b) => {
+        if (b.date.getTime() !== a.date.getTime()) {
+            return b.date - a.date;
+        }
+        return b.value - a.value; 
+      }); 
+
+      return pastReadings[0];
+    }
+    
+// HÀM TÍNH TỔNG SỐ NGÀY LÀM VIỆC (TRẢ VỀ OBJECT CHỨA WORKING DAYS, DAY OFFS VÀ DAY OFF DATES)
+function calculateWorkingDays(startDate, endDate, companyName, config, processedHolidayData) {
+    const safeCompany = (typeof companyName === 'string') ? companyName.trim() : companyName;
+
+    if (!startDate || !endDate || startDate > endDate) {
+        console.log(`LOG: calculateWorkingDays - invalid range for ${safeCompany}`);
+        return { workingDays: 0, dayOffsCount: 0, dayOffDates: [] }; 
+    }
+
+    const companyHolidays = (processedHolidayData && processedHolidayData[safeCompany]) 
+                                ? processedHolidayData[safeCompany] 
+                                : { dayOffs: new Set(), specialWorkdays: new Set() };
+
+    let totalDaysInPeriod = 0;
+    let specialDayOffs = 0; 
+    const dayOffDates = []; 
+
+    const endRange = new Date(endDate);
+    endRange.setHours(23, 59, 59, 999);
+
+    let currentDay = new Date(startDate);
+    currentDay.setHours(0,0,0,0);
+
+    while (currentDay <= endRange) {
+        const currentDayStr = (function(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; })(currentDay);
+
+        totalDaysInPeriod++;
+
+        // nếu reports_2 ghi ngày nghỉ thì luôn tính là nghỉ
+        if (companyHolidays.dayOffs && companyHolidays.dayOffs.has(currentDayStr)) {
+            specialDayOffs++;
+            dayOffDates.push(currentDayStr);
+        }
+
+        currentDay.setDate(currentDay.getDate() + 1);
+    }
+
+    // tính net = tổng - nghỉ đặc biệt (Mặc định mọi ngày là ngày làm việc)
+    let netWorkingDays = totalDaysInPeriod - specialDayOffs;
+
+    // logic trừ 1 để đếm khoảng (giữ nguyên logic cũ)
+    if (netWorkingDays > 0) netWorkingDays -= 1;
+
+    // TRẢ VỀ OBJECT CHỨA KẾT QUẢ
+    return { workingDays: netWorkingDays, dayOffsCount: specialDayOffs, dayOffDates };
+}
+
+
+    // ========== HÀM CHUNG CHO TUẦN/THÁNG/NĂM (NHÓM 1) ==========
+    function getPeriodsInFilter(readings, from, to, type, config, processedHolidayData, companyName) {
+      const today = new Date(); 
+      today.setHours(23, 59, 59, 999); 
+      
+      let stepFn, getStartFn;
+      if (type === "week") {
+        stepFn = d => { const nd = new Date(d); nd.setDate(nd.getDate() + 7); return nd; };
+        getStartFn = d => getWeekStart(d, config.weekDayStart);
+      } else if (type === "month") {
+        stepFn = d => { const nd = new Date(d); nd.setMonth(nd.getMonth() + 1); return nd; };
+        getStartFn = d => getMonthStart(d, config.monthDayStart);
+      } else {
+        stepFn = d => { const nd = new Date(d); nd.setFullYear(nd.getFullYear() + 1); return nd; };
+        getStartFn = d => getYearStart(d, config.yearDayStart);
+      }
+
+      const periods = [];
+      let cursor = new Date(from);
+      while (cursor <= to) {
+        const start = getStartFn(cursor);
+        const end = stepFn(start);
+        if (end > from && start <= to) periods.push({ start, end });
+        cursor = end;
+      }
+
+      const uniq = [];
+      const seen = new Set();
+      for (const p of periods) {
+        const key = formatISODate(p.start);
+        if (!seen.has(key)) { uniq.push(p); seen.add(key); }
+      }
+      uniq.sort((a,b) => b.start - a.start);
+
+      const currentStart = getStartFn(new Date()); 
+      const current = uniq.find(p => formatISODate(p.start) === formatISODate(currentStart));
+      const result = { current: null, past: [] };
+
+
+      for (const p of uniq) {
+        const isCurrent = current && formatISODate(p.start) === formatISODate(current.start);
+        
+        const endMarkDate = p.end; 
+        
+        let startValue, endValue, latestDataDate = null;
+        let workingDaysForAvg = 0; 
+        let dayOffsCount = 0;      
+        let dayOffDates = [];      
+        let label = "";
+        
+        // 1. START VALUE
+        startValue = findValueExact(readings, p.start);
+
+        if (isCurrent) {
+            // 2A. END VALUE: Kỳ HIỆN TẠI
+            const latestReading = findLatestReadingBeforeOrOnMark(readings, today);
+
+            endValue = latestReading ? latestReading.value : null;
+            latestDataDate = latestReading ? latestReading.date : null;
+
+            // --- TÍNH TOÁN NGÀY LÀM VIỆC & NGÀY NGHỈ ---
+            
+            // 1. TÍNH WORKING DAYS CHỈ ĐẾN latestDataDate (Dùng cho AVG)
+            if (latestDataDate) {
+                const avgResult = calculateWorkingDays(p.start, latestDataDate, companyName, config, processedHolidayData);
+                workingDaysForAvg = avgResult.workingDays; 
+            }
+
+            // 2. TÍNH DAY OFF LUÔN ĐẾN HÔM NAY (Dùng để hiển thị)
+            const dayOffsResult = calculateWorkingDays(p.start, today, companyName, config, processedHolidayData);
+            dayOffsCount = dayOffsResult.dayOffsCount; 
+            dayOffDates = dayOffsResult.dayOffDates;   
+
+        } else {
+            // 2B. END VALUE: Kỳ QUÁ KHỨ
+            endValue = findValueExact(readings, endMarkDate);
+            
+            // 3B. TÍNH SỐ NGÀY LÀM VIỆC (Đến ngày trước ngày bắt đầu kỳ tiếp theo)
+            const dayBeforeEndMark = new Date(endMarkDate.getTime()); 
+            
+            // 🔥 CHỈNH SỬA Ở ĐÂY: Trừ đi MỘT NGÀY (86400000ms = 1 ngày)
+            dayBeforeEndMark.setTime(dayBeforeEndMark.getTime() - 86400000); // Lùi 1 ngày
+            
+            const pastResult = calculateWorkingDays(p.start, dayBeforeEndMark, companyName, config, processedHolidayData); 
+            
+            workingDaysForAvg = pastResult.workingDays;
+            dayOffsCount = pastResult.dayOffsCount; 
+            dayOffDates = pastResult.dayOffDates;    
+        }
+        
+        // Tạo nhãn
+        if (isCurrent) {
+          label = type === "week" ? "Tuần hiện tại" : type === "month" ? "Tháng hiện tại" : "Năm hiện tại";
+        } else {
+          label = type === "week" ? `Tuần: ${formatVNDate(p.start)} - ${formatVNDate(p.end)}` : type === "month" ? `Tháng: ${formatVNDate(p.start)} - ${formatVNDate(p.end)}` : `Năm: ${formatVNDate(p.start)} - ${formatVNDate(p.end)}`;
+        }
+
+        
+        let numericTotal = "N/A";
+        
+        if (startValue !== null && endValue !== null) {
+            let diff = endValue - startValue;
+            if (diff < 0) diff = 0; 
+            numericTotal = diff; 
+        } 
+        
+        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg,1) : "N/A";
+
+
+        if (isCurrent) {
+          result.current = { label, total: safeFixed(numericTotal,1), avg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }; 
+        } else {
+          result.past.push({ label, total: safeFixed(numericTotal,1), avg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }); 
+        }
+      }
+
+      if (!result.current) {
+        result.current = {
+          label: type==="week"?"Tổng tuần hiện tại":type==="month"?"Tổng tháng hiện tại":"Năm hiện tại",
+          total:"N/A", avg:"N/A", dayOffsCount: 0, holidayDates: [] 
+        };
+      }
+      return result;
+    }
+
+// ========== HÀM CHO KỲ THU PHÍ (BILLING) (NHÓM 2) ==========
+function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayData, companyName) {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    // Lấy Hệ số nhân khoán
+    const QUOTA_MULTIPLIER = config.quotaMultipliers[companyName] !== undefined ? Number(config.quotaMultipliers[companyName]) : 0;
+
+    // 1. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ TIẾP THEO (Revert về logic ban đầu: 16/09 -> 16/10)
+    const stepFn = start => { 
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
+        end.setMonth(end.getMonth() + 1);
+        return end;
+    };
+
+    // 2. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ HIỆN TẠI (Đã sửa đổi để 15 là ngày cuối kỳ)
+    const getStartFn = d => {
+        const endDay = config.billingDayStart; // Ví dụ: 15
+        
+        // A. Xác định ngày kết thúc kỳ (end): Là ngày 15 của tháng hiện tại (d)
+        let end = new Date(d.getFullYear(), d.getMonth(), endDay, 0, 0, 0, 0);
+
+        // B. Nếu ngày tham chiếu (d) nằm sau ngày 15, thì kỳ thu phí sẽ kết thúc vào tháng sau.
+        if (d > end) {
+             end.setMonth(end.getMonth() + 1);
+        }
+        
+        // C. Ngày bắt đầu (start) là ngày 16 của tháng trước ngày kết thúc
+        const start = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 0, 0, 0, 0);
+        start.setMonth(start.getMonth() - 1); // Lùi về tháng trước
+        start.setDate(endDay + 1);            // Đặt ngày là 16 (15 + 1)
+        
+        return start;
+    };
+    
+    // 3. VÒNG LẶP TẠO CÁC KỲ
+    const periods = [];
+    let cursor = new Date(from);
+    while (cursor <= to) {
+        const start = getStartFn(cursor);
+        const end = stepFn(start); // end là ngày 16 của tháng sau
+        
+        if (end > from && start <= to) periods.push({ start, end });
+        
+        // Khắc phục lỗi vòng lặp vô hạn
+        cursor = end; // Dịch chuyển con trỏ tới ngày bắt đầu kỳ tiếp theo
+    }
+
+    // ... (Giữ nguyên logic tạo uniq, sort, current) ...
+    const uniq = [];
+    const seen = new Set();
+    for (const p of periods) {
+        const key = formatISODate(p.start);
+        if (!seen.has(key)) { uniq.push(p); seen.add(key); }
+    }
+    uniq.sort((a,b) => b.start - a.start);
+
+    const currentStart = getStartFn(new Date()); 
+    const current = uniq.find(p => formatISODate(p.start) === formatISODate(currentStart));
+    const result = { current: null, past: [] };
+
+    // 4. LỌC VÀ TÍNH TOÁN DỮ LIỆU TỪNG KỲ
+    for (const p of uniq) {
+        const isCurrent = current && formatISODate(p.start) === formatISODate(current.start);
+        
+        // *** LOGIC GHI NHÃN ĐÃ SỬA CHỮA ***
+        let label = "";
+        if (isCurrent) {
+            // Hiển thị: Kỳ thu phí: 16/09 -> Hôm nay
+            label = `Kỳ thu phí hiện tại: ${formatVNDate(p.start)} -> Hôm nay`; 
+        } else {
+            // Kỳ Quá Khứ: p.end là 16/09. Lùi 1 ngày để hiển thị 15/09.
+            label = `Kỳ thu phí: ${formatVNDate(p.start)} - ${formatVNDate(new Date(p.end.getTime() - 86400000))}`;
+        }
+
+        // --- 1. TÍNH TIÊU THỤ (Tổng Kỳ thu phí) ---
+        let startValue, endValue, latestDataDate = null;
+        let numericTotal = "N/A";
+        let workingDaysResult = { workingDays: 0, dayOffsCount: 0, dayOffDates: [] };
+
+        // START VALUE: Lấy chỉ số tại ngày BẮT ĐẦU kỳ (Ví dụ: 16/09)
+        startValue = findValueExact(readings, p.start);
+
+        if (isCurrent) {
+            // END VALUE: Kỳ HIỆN TẠI - Lấy chỉ số mới nhất (tính đến hôm nay)
+            const latestReading = findLatestReadingBeforeOrOnMark(readings, today);
+            endValue = latestReading ? latestReading.value : null;
+            latestDataDate = latestReading ? latestReading.date : null;
+        } else {
+            // END VALUE: Kỳ QUÁ KHỨ - Lấy chỉ số tại ngày cuối kỳ (15/09)
+            // p.end là 16/09. Lùi 1 ngày để lấy chỉ số 15/09.
+            const lastDayOfPeriod = new Date(p.end.getTime());
+            lastDayOfPeriod.setDate(lastDayOfPeriod.getDate() - 1); 
+            
+            endValue = findValueExact(readings, lastDayOfPeriod);
+        }
+
+        if (startValue !== null && endValue !== null) {
+            let diff = endValue - startValue;
+            if (diff < 0) diff = 0;
+            numericTotal = diff;
+        }
+
+        // --- 2. TÍNH SỐ NGÀY LÀM VIỆC RÒNG (Dùng chung cho Trung bình và Khoán) ---
+        let endDayForCounting = null;
+        if (isCurrent) {
+            // Kỳ Hiện Tại: Đếm ngày từ p.start (16/09) đến Ngày hôm nay
+            endDayForCounting = today; 
+        } else {
+            // Kỳ Quá Khứ: Đếm ngày từ p.start (16/08) đến 15/09
+            endDayForCounting = new Date(p.end.getTime());
+            endDayForCounting.setDate(endDayForCounting.getDate() - 1); // Lùi 1 ngày (16/09 -> 15/09)
+        }
+
+        if (endDayForCounting) {
+            workingDaysResult = calculateWorkingDays(p.start, endDayForCounting, companyName, config, processedHolidayData);
+        }
+        
+        // *** KHẮC PHỤC LỖI THIẾU 1 NGÀY CHO KỲ HIỆN TẠI ***
+        let workingDaysForAvg = workingDaysResult.workingDays;
+        if (isCurrent && workingDaysForAvg > 0) {
+            // Nếu hàm calculateWorkingDays tự động trừ 1 ngày, ta phải cộng lại 1 ngày cho kỳ hiện tại 
+            // để bao gồm cả hôm nay trong tính toán khoán.
+            workingDaysForAvg += 1; 
+        }
+        
+        const dayOffsCount = workingDaysResult.dayOffsCount;
+        const dayOffDates = workingDaysResult.dayOffDates;
+
+        // Khối lượng khoán (Quota)
+        const quotaValue = workingDaysForAvg * QUOTA_MULTIPLIER;
+
+        // --- 3. TÍNH TRUNG BÌNH (AVG) ---
+        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg,1) : "N/A";
+        const totalFixed = safeFixed(numericTotal, 1);
+        const quotaFixed = safeFixed(quotaValue, 0);
+
+        if (isCurrent) {
+            result.current = { label, total: totalFixed, avg, quota: quotaFixed, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates };
+        } else {
+            // Khác với tuần/tháng/năm, billing chỉ giữ tối đa 12 kỳ quá khứ
+            if (result.past.length < 12) {
+                result.past.push({ label, total: totalFixed, avg, quota: quotaFixed, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates });
+            }
+        }
+    }
+
+    if (!result.current) {
+        result.current = { label: "Tổng Kỳ thu phí hiện tại", total:"N/A", avg:"N/A", quota:"N/A", dayOffsCount: 0, holidayDates: [] };
+    }
+    return result;
+}
+    
+    // MỚI: HÀM GET REPORT MODE
+    function getReportMode() {
+        const checkedRadio = document.querySelector('input[name="report-mode"]:checked');
+        return checkedRadio ? Number(checkedRadio.value) : 0; // Default: 0 (Normal)
+    }
+
+    // ========== BỔ SUNG: LOGIC HIỂN THỊ GHI CHÚ CUỐI BẢNG ==========
+    function toggleFooterNoteDisplay() {
+        const reportFooterNote = document.getElementById('reportFooterNote');
+        const mode = getReportMode(); // Lấy giá trị mode (0, 1, 2)
+        
+        if (reportFooterNote) {
+            // Hiển thị nếu mode là 1 (Ngày nghỉ) hoặc 2 (Chi tiết)
+            if (mode === 1 || mode === 2) {
+                reportFooterNote.style.display = 'block';
+            } else {
+                reportFooterNote.style.display = 'none';
+            }
+        }
+    }
+    //
+    // HÀM MỚI: CẬP NHẬT VỊ TRÍ SLIDER CHO TOGGLE SWITCH
+    function updateToggleSlider() {
+        const toggle = document.getElementById('reportModeToggle');
+        const slider = toggle.querySelector('a');
+        const checked = toggle.querySelector('input:checked');
+        if (!checked) return;
+
+        const index = Number(checked.value); // 0,1,2
+        const styles = getComputedStyle(document.documentElement);
+        const labelWidth = parseFloat(styles.getPropertyValue('--label-width'));
+        const gap = parseFloat(styles.getPropertyValue('--gap')) || 0;
+
+        // vị trí = index * (labelWidth + gap)
+        const offset = index * (labelWidth + gap);
+        slider.style.transform = `translateX(${offset}px)`;
+        }
+    // ========== RENDER ==========
+    function reRenderReport() {
+        let finalFrom = currentFilter.from;
+        let finalTo = currentFilter.to;
+        const now = new Date();
+        const currentYearStart = formatISODate(new Date(now.getFullYear(), 0, 1)); 
+        const todayISO = formatISODate(now);
+
+        if (!finalFrom) finalFrom = currentYearStart;
+        if (!finalTo) finalTo = todayISO;
+        
+        note.textContent = `Đang xem dữ liệu từ ${new Date(finalFrom).toLocaleDateString('vi-VN')} đến ${new Date(finalTo).toLocaleDateString('vi-VN')}`;
+
+        currentFilter.from = finalFrom;
+        currentFilter.to = finalTo;
+
+        renderReport(allReports);
+        updateToggleSlider();
+        // BỔ SUNG: Điều khiển ghi chú cuối bảng sau khi render xong
+        toggleFooterNoteDisplay(); 
+        }
+    //
+    // enhance accessibility & keyboard navigation for 3-way toggle
+(function enhanceReportModeToggle() {
+  const container = document.getElementById('reportModeToggle');
+  if (!container) return;
+
+  const inputs = Array.from(container.querySelectorAll('input[type="radio"]'));
+  const labels = inputs.map(i => document.querySelector(`label[for="${i.id}"]`));
+  const slider = container.querySelector('a');
+
+  // init aria roles
+  container.setAttribute('role', 'tablist');
+  labels.forEach((lbl, idx) => {
+    if (!lbl) return;
+    lbl.setAttribute('role', 'tab');
+    lbl.setAttribute('tabindex', '0'); // make label focusable
+    lbl.dataset.index = String(idx);
+  });
+
+  // ensure slider position is correct on load
+  setTimeout(() => { updateToggleSlider(); }, 10);
+
+  // when radios change, move slider and re-render (keeps existing behavior)
+  inputs.forEach((inp, idx) => {
+    inp.addEventListener('change', () => {
+      // mark aria-selected on labels
+      labels.forEach(l => l && l.setAttribute('aria-selected', 'false'));
+      const lbl = labels[idx];
+      if (lbl) lbl.setAttribute('aria-selected', 'true');
+
+      // move slider (fallback to existing function)
+      try { updateToggleSlider(); } catch(e){ /* ignore */ }
+      // re-render
+      try { reRenderReport(); } catch(e){ console.warn(e); }
+    });
+  });
+
+  // keyboard navigation: Left/Right arrows to change selection
+    container.addEventListener('keydown', (ev) => {
+        if (!['ArrowLeft','ArrowRight','Home','End'].includes(ev.key)) return;
+        ev.preventDefault();
+        const curIndex = inputs.findIndex(i => i.checked);
+        let nextIndex = curIndex;
+        if (ev.key === 'ArrowLeft') nextIndex = Math.max(0, curIndex - 1);
+        if (ev.key === 'ArrowRight') nextIndex = Math.min(inputs.length - 1, curIndex + 1);
+        if (ev.key === 'Home') nextIndex = 0;
+        if (ev.key === 'End') nextIndex = inputs.length - 1;
+        if (nextIndex !== curIndex && inputs[nextIndex]) {
+        inputs[nextIndex].checked = true;
+        inputs[nextIndex].dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    });
+
+    // also allow Enter/Space on labels to toggle (for screen readers)
+    labels.forEach(lbl => {
+        if (!lbl) return;
+        lbl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const idx = Number(lbl.dataset.index || 0);
+            if (inputs[idx]) {
+            inputs[idx].checked = true;
+            inputs[idx].dispatchEvent(new Event('change', { bubbles: true }));
+            inputs[idx].focus();
+            }
+        }
+        });
+    });
+    })();
+
+    // MỚI: HÀM RENDER BẢNG CHI TIẾT NGÀY NGHỈ
+    function renderHolidayDetailTable(allData, companies) {
+        
+        holidayDetailTableBody.innerHTML = ''; // Clear previous content
+        
+        // 1. Render Headers
+        const tableHeaders = companies.map(c => `<th>${c}</th>`).join('');
+        holidayDetailTableHead.innerHTML = `<tr><th>Kỳ</th>${tableHeaders}</tr>`;
+        
+        // 2. Render Body
+        let bodyHtml = "";
+        
+        // Thứ tự hiển thị
+        const periodTypes = [
+            { key: 'week', label: 'TUẦN' }, 
+            { key: 'month', label: 'THÁNG' }, 
+            { key: 'billing', label: 'KỲ THU PHÍ' }, 
+            { key: 'year', label: 'NĂM' }
+        ];
+
+        periodTypes.forEach(type => {
+            const allPeriods = allData[type.key];
+            if (!allPeriods || allPeriods.length === 0) return;
+
+        // Xác định số lượng hàng hiển thị mặc định (đồng bộ với handler toggle)
+            let visibleCount;
+            if (type.key === 'month' || type.key === 'billing') {
+                visibleCount = 2; // Kỳ hiện tại + 1 quá khứ
+            } else if (type.key === 'year') {
+                visibleCount = 0; // ẩn hết
+            } else if (type.key === 'week') {
+                visibleCount = 5; // 1 kỳ hiện tại + 4 kỳ quá khứ (yêu cầu của bạn)
+            } else {
+                visibleCount = allPeriods.length;
+            }
+
+            let toggleId = `toggle-detail-${type.key}`;
+            let headerLabel;
+
+            // Hàng tiêu đề loại kỳ
+            bodyHtml += `<tr style="height: 5px;"><td colspan="${companies.length + 1}" style="border: none; padding: 0;"></td></tr>`;
+
+            headerLabel = `# CHI TIẾT NGÀY NGHỈ THEO ${type.label} `;
+
+            // Thêm nút toggle nếu có hàng cần ẩn
+            if (allPeriods.length > visibleCount) {
+                // Nếu có hàng bị ẩn mặc định -> icon là '▶' (đóng/gọn)
+                const iconText = (allPeriods.length > visibleCount) ? '▶' : '▼';
+                headerLabel = `# CHI TIẾT NGÀY NGHỈ THEO ${type.label} (${visibleCount}/${allPeriods.length}) <span class="toggle-btn" data-target-id="${toggleId}">${iconText}</span> `;
+            }
+
+            bodyHtml += `<tr style="background: #f0f0f0; font-weight: bold;" class="detail-period-header"><td colspan="${companies.length + 1}" style="text-align: left; background: #e0e0e0; font-size: 1.1em;">${headerLabel}</td></tr>`;
+
+            // Render tất cả các kỳ, nhưng set display dựa trên visibleCount
+            allPeriods.forEach((period, index) => {
+                // Xác định trạng thái hiển thị mặc định dựa trên visibleCount
+                const displayStyle = (index < visibleCount) ? "table-row" : "none";
+
+                let rowHtml = `<tr class="child-row-detail" data-parent-id="${toggleId}" style="display: ${displayStyle};"><td style="text-align: left;">${period.label}</td>`;
+                companies.forEach(company => {
+                    const detail = period.companyData[company] || 'Không có ngày nghỉ';
+                    rowHtml += `<td>${detail}</td>`;
+                });
+                rowHtml += '</tr>';
+                bodyHtml += rowHtml;
+            });
+
+        });
+
+        holidayDetailTableBody.innerHTML = bodyHtml;
+        holidayDetailReportDiv.style.display = 'block';
+
+        // Ẩn/hiện cột theo bộ lọc nhóm công ty
+        filterHolidayDetailTableByCompanyGroup(companies);
+    }
+
+
+    function renderReport(reports) {
+        const byCompany = {};
+        reports.forEach(r => {
+            if (!r.company || !r.ngay_ghi || r.chi_so == null) return;
+            const valStr = r.chi_so.toString().replace(/,/g, '.'); 
+            let finalVal = Number(valStr);
+            
+            if (valStr.includes('.') && valStr.split('.').length > 2) {
+                finalVal = Number(valStr.replace(/\./g, ''));
+            } else if (valStr.includes('.') && valStr.split('.')[1].length === 3) {
+                 finalVal = Number(valStr.replace(/\./g, ''));
+            } else {
+                 finalVal = Number(valStr);
+            }
+
+            const d = new Date(r.ngay_ghi);
+            if (isNaN(d) || isNaN(finalVal)) return;
+
+            if (!byCompany[r.company]) byCompany[r.company] = []; 
+            byCompany[r.company].push({ date: d, value: finalVal });
+        });
+
+        Object.keys(byCompany).forEach(c => {
+            byCompany[c].sort((a, b) => a.date - b.date);
+        });
+
+        const companiesFromReports = Object.keys(byCompany);
+        const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
+        
+        const allUniqueCompanies = new Set([
+            ...companiesFromReports, 
+            ...companiesFromMaster
+        ]);
+
+        const companies = Array.from(allUniqueCompanies).sort((a, b) => a.localeCompare(b));
+
+        const tableHeaders = companies.map(c => `<th>${c}</th>`).join('');
+        theadRow.innerHTML = `<th>Lưu lượng</th>${tableHeaders}`;
+        tbody.innerHTML = "";
+
+        const from = currentFilter.from ? new Date(currentFilter.from) : new Date(new Date().getFullYear(), 0, 1);
+        const to = currentFilter.to ? new Date(currentFilter.to) : new Date();
+        to.setHours(23, 59, 59, 999);
+
+        if(userRole === 'admin' && companies.length > 0) {
+            renderQuotaMultipliers(companies);
+        }
+        
+        // LẤY TRẠNG THÁI MỚI (0: Normal, 1: Count, 2: List)
+        const reportMode = getReportMode(); 
+        
+        // BƯỚC MỚI: Reset holiday details và ẩn bảng chi tiết ngày nghỉ
+        allHolidayDetails = { week: [], month: [], billing: [], year: [] };
+        holidayDetailReportDiv.style.display = 'none';
+
+        function renderPeriod(name, periodDataByCompany, prefix, reportMode) {
+          let html = "";
+          const latestDates = periodDataByCompany
+            .map(d => d?.data?.current?.latestDataDate)
+            .filter(date => date != null);
+
+          const uniqueDates = [...new Set(latestDates.map(d => d instanceof Date ? formatVNDate(d) : d))];
+
+          let endLabel;
+          if (uniqueDates.length === 1) {
+            endLabel = uniqueDates[0];   
+          } else if (uniqueDates.length > 1) {
+            endLabel = ">";       
+          } else {
+            endLabel = formatVNDate(new Date()); 
+          }
+
+          
+        const rawStartDate = periodDataByCompany[0]?.data?.current?.start;
+
+        let startLabel;
+        if (rawStartDate) {
+            startLabel = formatVNDate(rawStartDate);
+        } else {
+            startLabel = "N/A";
+        }
+
+        const currentLabel = `${name} hiện tại (${startLabel} - ${endLabel})`;
+        const toggleHtml = `<span class="toggle-btn">▶</span>`;
+
+
+        // Logic để xác định nội dung ô (Total)
+        function getDisplayContent(dataItem, isPast = false, idx = 0) {
+            const currentData = isPast ? dataItem?.data?.past[idx] : dataItem?.data?.current;
+            const totalFixed = currentData?.total || 'N/A';
+            const dayOffs = currentData?.dayOffsCount || 0;
+            const holidayDates = currentData?.holidayDates || [];
+            
+            let displayContent;
+            let tooltipAttr = '';
+            
+            // Mode 0 (Bình thường): Hiển thị Tổng lưu lượng
+            if (reportMode === 0) { 
+                displayContent = totalFixed;
+            } 
+            // Mode 1 (Ngày nghỉ) và Mode 2 (Chi tiết) hiển thị Tổng lưu lượng (Số ngày nghỉ)
+            else { 
+                displayContent = `${totalFixed} (${dayOffs})`;
+                const tooltipDates = formatHolidayDates(holidayDates);
+                tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+            }
+            
+            // Thu thập dữ liệu chi tiết ngày nghỉ nếu đang ở Mode 2
+            let holidayDetail = null;
+            if (reportMode === 2) {
+                 holidayDetail = {
+                    label: isPast ? currentData.label : currentLabel,
+                    company: dataItem.company,
+                    datesHtml: formatHolidayDatesInline(holidayDates)
+                };
+            }
+            
+            return { displayContent, tooltipAttr, holidayDetail };
+        }
+
+
+          // ===== render phần Tổng (total-current-row - Xanh Nhạt) =====
+          html += `<tr class="main-row current-row total-current-row" data-target="toggle-${prefix}-total">
+            <td>Tổng ${currentLabel}${toggleHtml}</td>
+            ${periodDataByCompany.map(d => {
+                const { displayContent, tooltipAttr } = getDisplayContent(d, false);
+                return `<td ${tooltipAttr}>${displayContent}</td>`;
+            }).join('')}
+          </tr>`;
+
+          // --- DATA COLLECTION CHO MODE 2 (Kỳ hiện tại) ---
+          if (reportMode === 2) {
+            const currentDataRow = { label: currentLabel, companyData: {} };
+            periodDataByCompany.forEach(d => {
+                const result = getDisplayContent(d, false);
+                currentDataRow.companyData[d.company] = result.holidayDetail.datesHtml;
+            });
+            allHolidayDetails[prefix].push(currentDataRow);
+          }
+
+
+          // child rows (past)
+          let pastItems = periodDataByCompany[0]?.data?.past || [];
+          if (prefix === "week" && isInitialLoad) {
+            pastItems = pastItems.slice(0, 4);
+          }
+          pastItems.forEach((p, idx) => {
+            html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-total">
+                <td>${p.label}</td>
+                ${periodDataByCompany.map(d => {
+                    const { displayContent, tooltipAttr } = getDisplayContent(d, true, idx);
+                    return `<td ${tooltipAttr}>${displayContent}</td>`;
+                }).join('')}
+            </tr>`;
+            
+            // --- DATA COLLECTION CHO MODE 2 (Các kỳ quá khứ) ---
+            if (reportMode === 2) {
+                const pastDataRow = { label: p.label, companyData: {} };
+                periodDataByCompany.forEach(d => {
+                    const result = getDisplayContent(d, true, idx);
+                    pastDataRow.companyData[d.company] = result.holidayDetail.datesHtml;
+                });
+                allHolidayDetails[prefix].push(pastDataRow);
+            }
+          });
+
+        
+          // ===== render phần Trung bình (detail-current-row - Trắng) =====
+          
+              html += `<tr class="main-row current-row detail-current-row" data-target="toggle-${prefix}-avg">
+                <td>Trung bình ${currentLabel} (m³/ngày)${toggleHtml}</td>
+                ${periodDataByCompany.map(d => `<td>${d?.data?.current?.avg || 'N/A'}</td>`).join('')}
+              </tr>`;
+
+              pastItems.forEach((p, idx) => {
+                html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-avg">
+                    <td>Trung bình: ${p.label}</td>
+                    ${periodDataByCompany.map(d => `<td>${d?.data?.past[idx]?.avg || 'N/A'}</td>`).join('')}
+                </tr>`;
+              });
+
+               // ===== render phần Khoán (chỉ cho billing) (detail-current-row - Trắng) =====
+              if (prefix === "billing") {
+                html += `<tr class="main-row current-row detail-current-row" data-target="toggle-${prefix}-quota">
+                    <td>Khối lượng khoán ${currentLabel}${toggleHtml}</td>
+                    ${periodDataByCompany.map(d => `<td>${d?.data?.current?.quota || 'N/A'}</td>`).join('')}
+                </tr>`;
+
+                pastItems.forEach((p, idx) => {
+                  html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-quota">
+                      <td>Khối lượng khoán: ${p.label.split(': ')[1] || p.label}</td>
+                      ${periodDataByCompany.map(d => `<td>${d?.data?.past[idx]?.quota || 'N/A'}</td>`).join('')}
+                  </tr>`;
+                });
+              }
+            // <--- (HẾT KHỐI XÓA ĐIỀU KIỆN)
+
+            // TẠO KHOẢNG TRẮNG CÁCH GIỮA CÁC LOẠI KỲ
+            html += `<tr style="height: 10px; background: white !important;"><td colspan="${companies.length + 1}" style="border: none; padding: 0;"></td></tr>`;
+
+            return html;
+        }
+
+
+        let reportHTML = '';
+        
+        // Truyền reportMode vào tất cả các hàm renderPeriod
+        const weekData = companies.map(c => ({ company: c, data: getPeriodsInFilter(byCompany[c] || [], from, to, "week", config, allProcessedHolidays, c) }));
+        reportHTML += renderPeriod("Tuần", weekData, "week", reportMode);
+
+        const monthData = companies.map(c => ({ company: c, data: getPeriodsInFilter(byCompany[c] || [], from, to, "month", config, allProcessedHolidays, c) }));
+        reportHTML += renderPeriod("Tháng", monthData, "month", reportMode);
+        
+        const billingData = companies.map(c => ({ company: c, data: getBillingPeriodsInFilter(byCompany[c] || [], from, to, config, allProcessedHolidays, c) }));
+        reportHTML += renderPeriod("Kỳ thu phí", billingData, "billing", reportMode);
+
+        const yearData = companies.map(c => ({ company: c, data: getPeriodsInFilter(byCompany[c] || [], from, to, "year", config, allProcessedHolidays, c) }));
+        reportHTML += renderPeriod("Năm", yearData, "year", reportMode);
+
+        tbody.innerHTML = reportHTML;
+        
+        // BƯỚC CUỐI: Nếu là Mode 2, render bảng chi tiết ngày nghỉ
+        if (reportMode === 2) {
+            renderHolidayDetailTable(allHolidayDetails, companies);
+        }
+
+        // Gọi filterReportByCompanyGroup() sau khi render
+        filterReportByCompanyGroup();
+    }
+
+    // === NEW HELPER: HÀM GHI BẢN GHI KHỞI TẠO ===
+    async function writeInitialReading(companyName) {
+    const initialDate = new Date("2025-01-01T00:00:00Z");
+
+    const newReading = {
+        company: companyName,
+        ngay_ghi: formatISODate(initialDate),
+        chi_so: 0,
+        createdBy: "admin@gmail.com",
+        ghi_chu: "Chi so khoi tao tu dong (Auto-Init)",
+        fileId: "",
+        fileUrl: "",
+        createdAt: new Date()
+    };
+
+    await addDoc(collection(db, "reports_1"), newReading);
+
+    console.log(`LOG: Đã thêm bản ghi khởi tạo cho công ty: ${companyName}`);
+}
+
+    // === END NEW HELPER ===
+
+    // === MASTER LIST MANAGER FUNCTIONS ===
+
+    function renderMasterListManager() {
+        if (allMasterCompanies.length === 0) {
+            currentMasterListDiv.textContent = "Danh sách hiện tại: (Trống)";
+        } else {
+            const companyNames = allMasterCompanies.map(c => c.company).join(', ');
+            currentMasterListDiv.innerHTML = `Danh sách hiện tại: <strong>${companyNames}</strong>`;
+        }
+    }
+
+    async function manageMasterCompany(companyName, action) {
+    const safeName = companyName.trim();
+    const docRef = doc(db, "companies_master", safeName);
+
+    if (action === 'add') {
+        await setDoc(docRef, { company: safeName, isActive: true });
+        await writeInitialReading(safeName);
+
+        console.log(`LOG: Đã thêm công ty ${safeName} vào Master List + bản ghi khởi tạo`);
+    } 
+    else if (action === 'remove') {
+        await deleteDoc(docRef);
+        await deleteInitialReading(safeName); 
+        console.log(`LOG: Đã xóa công ty ${safeName} khỏi Master List`);
+    }
+}
+
+    // === END MASTER LIST MANAGER FUNCTIONS ===
+    
+async function deleteInitialReading(companyName) {
+    const q = query(
+        collection(db, "reports_1"),
+        where("company", "==", companyName),
+        where("chi_so", "==", 0)
+    );
+    const snap = await getDocs(q);
+
+    snap.forEach(async (docSnap) => {
+        await deleteDoc(docSnap.ref);
+        console.log(`LOG: Đã xóa bản ghi khởi tạo cho công ty ${companyName}`);
+    });
+}
+//
+
+    // === CÁC HÀM XỬ LÝ LỌC ===
+    function resetYearSelectIfEditingDates() {
+      if (yearSelect && yearSelect.value !== "") yearSelect.value = "";
+    }
+    [fromInput, toInput].forEach(el => {
+      if (!el) return;
+      el.addEventListener("focus", resetYearSelectIfEditingDates);
+      el.addEventListener("input", resetYearSelectIfEditingDates);
+      el.addEventListener("change", resetYearSelectIfEditingDates);
+    });
+
+    const applyDateFilter = () => {
+      const fromVal = fromInput.value;
+      const toVal = toInput.value;
+      const yearVal = yearSelect.value;
+
+      const todayISO = formatISODate(new Date());
+      const currentYear = new Date().getFullYear();
+      const currentYearStart = currentYear + '-01-01';
+
+      if (yearVal) {
+        currentFilter.from = `${yearVal}-01-01`;
+        currentFilter.to = `${yearVal}-12-31`;
+        fromInput.value = "";
+        toInput.value = "";
+      } else if (fromVal && toVal) {
+        currentFilter.from = fromVal;
+        currentFilter.to = toVal;
+      } else if (toVal) {
+        currentFilter.from = currentYearStart;
+        currentFilter.to = toVal;
+      } else if (fromVal) {
+        currentFilter.from = fromVal;
+        currentFilter.to = todayISO;
+      } else {
+        currentFilter.from = null;
+        currentFilter.to = null;
+      }
+
+      reRenderReport();
+      filterReportByCompanyGroup();
+    };
+
+    if(applyFilterBtn) {
+        applyFilterBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            applyDateFilter();
+        });
+    }
+
+    if(yearSelect) {
+        yearSelect.addEventListener("change", (e) => {
+            const y = e.target.value;
+            if (y) {
+              currentFilter.from = `${y}-01-01`;
+              currentFilter.to = `${y}-12-31`;
+              fromInput.value = "";
+              toInput.value = "";
+            } else {
+              currentFilter.from = null;
+              currentFilter.to = null;
+              fromInput.value = "";
+              toInput.value = "";
+            }
+            reRenderReport();
+            filterReportByCompanyGroup();
+        });
+    }
+    
+    if (companyGroupFilter) {
+        companyGroupFilter.addEventListener('change', () => {
+             filterReportByCompanyGroup();
+        });
+    }
+    
+    // GÁN LISTENER CHO CÔNG TẮC 3 NẤC
+if (reportModeToggle) {
+        // Cập nhật vị trí slider ngay lập tức khi click (trước khi reRenderReport cập nhật dữ liệu)
+        reportModeToggle.addEventListener('click', (e) => {
+            // Dùng setTimeout 0ms để đảm bảo input radio kịp nhận giá trị checked mới
+            // trước khi ta gọi updateToggleSlider() và reRenderReport().
+            setTimeout(() => {
+                updateToggleSlider();
+                reRenderReport();
+            }, 0);
+        });
+    }
+    // === GÁN SỰ KIỆN QUẢN LÝ MASTER LIST ===
+    if (addCompanyBtn) {
+        addCompanyBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await manageMasterCompany(companyNameInput.value, 'add');
+        });
+    }
+
+    if (removeCompanyBtn) {
+        removeCompanyBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await manageMasterCompany(companyNameInput.value, 'remove');
+        });
+    }
+    // === KẾT THÚC GÁN SỰ KIỆN QUẢN LÝ MASTER LIST ===
+
+
+// ==== THAY THẾ: handler nút Xuất báo cáo ====
+document.getElementById("exportPDF").addEventListener("click", async (e) => {
+  e.preventDefault();
+  try {
+    // đảm bảo render mới nhất trước khi xuất
+    reRenderReport();
+
+    const fromDate = currentFilter.from || formatISODate(new Date(new Date().getFullYear(), 0, 1));
+    const toDate = currentFilter.to || formatISODate(new Date());
+
+    // clone container chứa nội dung PDF
+    const pdfReportEl = document.getElementById('pdfReport');
+    if (!pdfReportEl) {
+      console.error("EXPORT ERROR: #pdfReport element not found in DOM.");
+      showSwal("error", "Lỗi xuất PDF", "Không tìm thấy vùng báo cáo để xuất (pdfReport).");
+      return;
+    }
+
+    const combinedContent = document.createElement('div');
+    combinedContent.appendChild(pdfReportEl.cloneNode(true));
+
+    const currentMode = getReportMode();
+
+    // nếu mode = 2, thêm bảng chi tiết ngày nghỉ vào bản sao
+    if (currentMode === 2) {
+      if (holidayDetailReportDiv) {
+        const detailClone = holidayDetailReportDiv.cloneNode(true);
+        detailClone.style.display = 'block';
+        detailClone.querySelectorAll('.toggle-btn').forEach(btn => btn.textContent = '▼');
+        detailClone.querySelectorAll('.child-row-detail').forEach(row => row.style.display = 'table-row');
+        const target = combinedContent.querySelector('#pdfReport');
+        if (target) target.appendChild(detailClone);
+      }
+    }
+
+    const elToExport = combinedContent.querySelector('#pdfReport');
+    if (!elToExport) {
+      console.error("EXPORT ERROR: cloned #pdfReport not found inside combinedContent.");
+      showSwal("error", "Lỗi xuất PDF", "Không thể chuẩn bị nội dung để xuất.");
+      return;
+    }
+
+    // gọi hàm xuất (await để bắt lỗi)
+    await exportTableToPDF(elToExport, `bao_cao_thong_ke_${fromDate}_${toDate}.pdf`);
+
+  } catch (err) {
+    console.error("EXPORT ERROR (click handler):", err);
+    showSwal("error", "Lỗi xuất PDF", err && err.message ? err.message : String(err));
+  }
+});
+
+
+// ==== THAY THẾ: exportTableToPDF (an toàn, restore UI, logs) ====
+async function exportTableToPDF(element, filename) {
+  if (!element) {
+    console.error("exportTableToPDF: element is null");
+    throw new Error("No element provided to exportTableToPDF");
+  }
+
+  if (typeof window.html2pdf !== 'function' && typeof window.html2pdf === 'undefined') {
+    console.warn("html2pdf not detected on window. Attempting to continue, but export may fail.");
+  }
+
+  // Lưu trạng thái ban đầu để restore sau khi xuất
+  const childRows = Array.from(document.querySelectorAll('.child-row'));
+  const prevChildDisplay = childRows.map(r => r.style.display || '');
+  const pdfOnlyEls = Array.from(document.querySelectorAll('.pdf-only'));
+  const prevPdfOnlyDisplay = pdfOnlyEls.map(el => el.style.display || '');
+  const toggleEl = document.getElementById('reportModeToggle');
+  const prevToggleDisplay = toggleEl ? toggleEl.style.display : null;
+  const prevNote = note ? note.textContent : "";
+
+  try {
+    // 1) Hiện tất cả child-row & pdf-only trong UI (để clone lấy trạng thái hiển thị)
+    childRows.forEach(r => r.style.display = 'table-row');
+    pdfOnlyEls.forEach(el => el.style.display = 'block');
+
+    // 2) Ẩn control toggle gốc (nếu có)
+    if (toggleEl) toggleEl.style.display = 'none';
+
+    // 3) chỉnh note cho PDF
+    if (note) note.textContent = (note.textContent || "").replace('Đang xem dữ liệu', 'Báo cáo thống kê chi tiết');
+
+    // 4) đảm bảo hiển thị tất cả cột (muốn dùng chế độ export all companies)
+    if (companyGroupFilter) {
+      companyGroupFilter.value = 'all';
+      filterReportByCompanyGroup();
+    }
+
+    // 5) chuẩn bị options html2pdf
+    const options = {
+      margin: 10,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    // 6) Lấy bản sao element (an toàn) để truyền cho html2pdf
+    const content = element.cloneNode(true);
+
+    // 7) Loại bỏ các control không mong muốn trên bản sao
+    content.querySelectorAll('.toggle-btn').forEach(btn => btn.remove());
+    content.querySelector('#reportModeToggle')?.remove();
+
+    // 8) Mở tất cả hàng con trên bản sao (đảm bảo xuất đầy đủ)
+    content.querySelectorAll('.child-row').forEach(r => r.style.display = 'table-row');
+    content.querySelectorAll('.child-row-detail').forEach(r => r.style.display = 'table-row');
+
+    // 9) Kiểm tra html2pdf tồn tại trước khi chạy
+    if (typeof window.html2pdf !== 'function' && typeof window.html2pdf === 'undefined') {
+      // Thư viện không có theo tên window.html2pdf (một số build expose theo khác), thử fallback
+      if (typeof window.html2pdf !== 'function') {
+        console.error("exportTableToPDF: html2pdf is not available on window.");
+        throw new Error("Thư viện html2pdf chưa được tải. Vui lòng đảm bảo script html2pdf.js được nạp.");
+      }
+    }
+
+    // 10) Thực hiện xuất và chờ hoàn tất
+    await window.html2pdf(content, options);
+
+  } catch (err) {
+    console.error("exportTableToPDF error:", err);
+    throw err;
+  } finally {
+    // RESTORE trạng thái giao diện ban đầu dù thành công hay lỗi
+    // restore child rows
+    const curChildRows = Array.from(document.querySelectorAll('.child-row'));
+    curChildRows.forEach((r, i) => {
+      r.style.display = prevChildDisplay[i] || 'none';
+    });
+
+    // restore pdf-only
+    Array.from(document.querySelectorAll('.pdf-only')).forEach((el, i) => {
+      el.style.display = prevPdfOnlyDisplay[i] || 'none';
+    });
+
+    // restore toggle display
+    if (toggleEl) toggleEl.style.display = prevToggleDisplay || 'flex';
+
+    // restore note
+    if (note) note.textContent = prevNote;
+
+    // restore company group filter (bỏ về giá trị cũ nếu cần)
+    // (lưu ý: filterReportByCompanyGroup() sẽ được gọi bởi reRenderReport nếu cần)
+    if (companyGroupFilter) {
+      // không ép restore giá trị vì user có thể muốn giữ filter,
+      // nhưng nếu bạn muốn restore giá trị trước export, lưu value rồi set lại ở trên.
+      filterReportByCompanyGroup();
+    }
+  }
+}
+
+    // === KẾT THÚC CÁC HÀM XỬ LÝ LỌC ===
+
+
+    async function getReportConfig() {
+    const configRef = doc(db, "config", "reportConfig");
+    const configSnap = await getDoc(configRef);
+
+    console.log("🔥 configSnap.exists:", configSnap.exists());
+    const snapData = configSnap.exists() ? configSnap.data() : {};
+    console.log("🔥 raw snapData:", JSON.stringify(snapData));
+
+    const snapQuota = (snapData.quotaMultipliers && typeof snapData.quotaMultipliers === 'object') ? snapData.quotaMultipliers : {};
+
+    config = {
+        weekDayStart: (snapData.weekDayStart ?? config.weekDayStart),
+        monthDayStart: (snapData.monthDayStart ?? config.monthDayStart),
+        billingDayStart: (snapData.billingDayStart ?? config.billingDayStart),
+        yearDayStart: (snapData.yearDayStart ?? config.yearDayStart),
+        quotaMultipliers: { ...(config.quotaMultipliers || {}), ...snapQuota },
+    };
+
+    console.log("🔥 merged config:", JSON.stringify(config));
+
+    // --- XỬ LÝ DỮ LIỆU NGÀY NGHỈ TỪ reports_2 ---
+    allProcessedHolidays = {};
+    allHolidayRecords.forEach(r => {
+        if (!r.company) return;
+        const company = r.company;
+        const ngayNghi = r.ngay_nghi;
+        const ngayLamDB = r.ngay_lam_db;
+
+        if (!allProcessedHolidays[company]) {
+            allProcessedHolidays[company] = { dayOffs: new Set(), specialWorkdays: new Set() };
+        }
+
+        if (ngayNghi) {
+            const dateStr = formatISODate(new Date(ngayNghi));
+            if (dateStr) allProcessedHolidays[company].dayOffs.add(dateStr);
+        }
+        if (ngayLamDB) {
+            const dateStr = formatISODate(new Date(ngayLamDB));
+            if (dateStr) allProcessedHolidays[company].specialWorkdays.add(dateStr);
+        }
+    });
+
+    // Update UI selects
+    document.getElementById("weekDayStart").value = config.weekDayStart;
+    document.getElementById("monthDayStart").value = config.monthDayStart;
+    document.getElementById("billingDayStart").value = config.billingDayStart;
+    document.getElementById("yearDayStart").value = config.yearDayStart;
+}
+
+
+    document.getElementById("saveConfig").addEventListener("click", saveConfig);
+    async function saveConfig() {
+    
+    const isConfirmed = await showConfirmSwal(
+        "Xác nhận Lưu Cài Đặt",
+        "Việc này sẽ ảnh hưởng đến tất cả các báo cáo.<br>Bạn có muốn tiếp tục không?",
+        "Có, Lưu Cài Đặt", 
+        "Không, Hủy Bỏ",
+        "warning" 
+    );
+
+    if (!isConfirmed) {
+        return; 
+    }
+    
+    const newConfig = {
+        weekDayStart: Number(document.getElementById("weekDayStart").value),
+        monthDayStart: Number(document.getElementById("monthDayStart").value),
+        billingDayStart: Number(document.getElementById("billingDayStart").value),
+        yearDayStart: Number(document.getElementById("yearDayStart").value),
+        quotaMultipliers: config.quotaMultipliers,
+    };
+    
+    document.querySelectorAll('#quotaMultipliersSetting input[data-company]').forEach(input => {
+        const company = input.dataset.company;
+        const value = parseFloat(input.value);
+        newConfig.quotaMultipliers[company] = isNaN(value) ? 0 : value;
+    });
+
+    showLoading("Đang lưu cài đặt..."); 
+    try {
+        await setDoc(doc(db, "config", "reportConfig"), newConfig, { merge: true });
+        config = newConfig; 
+        showSwal("success", "Đã lưu cài đặt!", "Các báo cáo sẽ được cập nhật lại.");
+        reRenderReport(); 
+    } catch (e) {
+        showSwal("error", "Lỗi khi lưu cài đặt", e.message);
+        console.error("LOG: Lỗi khi lưu config:", e);
+    } finally {
+        hideLoading(); 
+    }
+}
+
+    function renderQuotaMultipliers(companies) {
+    let html = "<div class='quota-scroll'><table><thead><tr><th>STT</th><th>Công ty</th><th>Hệ số (m³/ngày)</th></tr></thead><tbody>";
+    companies.forEach((company, idx) => {
+      const currentMultiplier = config.quotaMultipliers?.[company] || 0;
+      html += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${company}</td>
+          <td><input type="number" step="1" value="${currentMultiplier}" data-company="${company}" style="width: 80px; text-align: center;"></td>
+        </tr>
+      `;
+    });
+    html += "</tbody></table></div>";
+    quotaMultipliersSettingDiv.innerHTML = html;
+    }
+
+
+    // kiểm tra trạng thái đăng nhập
+    onAuth(async (user) => {
+        if (user) {
+            console.log("LOG: Người dùng đã đăng nhập.");
+            notLogged.style.display = "none";
+            content.style.display = "block";
+
+            userRole = await getRole(user.email);
+            // BƯỚC MỚI: Hiển thị nút cấu hình và setup modal cho Admin
+            if (userRole === 'admin') {
+                document.getElementById("adminSettings").style.display = "block";
+                const configBtn = document.getElementById('openConfigModal');
+                if (configBtn) {
+                    configBtn.style.display = 'inline-block';
+                }
+            } else {
+                document.getElementById("adminSettings").style.display = "none";
+            }
+            // === Listener MỚI: companies_master (Master List) ===
+            listenCollection("companies_master", (masterDocs) => {
+                allMasterCompanies = masterDocs.filter(d => d && d.company);
+                renderMasterListManager();
+                reRenderReport();
+            });
+
+            // === KẾT THÚC Listener MỚI ===
+
+
+            // Listener 1: reports_1 (Chỉ số tiêu thụ)
+            listenReports("reports_1", async (reports) => {
+                allReports = reports;
+
+                // 1. Populate Year Select
+                const years = [...new Set(reports.map(r => {
+                    const dateString = r.ngay_ghi;
+                    if (dateString) return new Date(dateString).getFullYear();
+                    return null;
+                }).filter(y => y !== null))].sort((a,b)=>b-a);
+
+                const ys = document.getElementById("yearSelect");
+                if(ys) {
+                  ys.innerHTML = `<option value="">--Chọn năm--</option>`;
+                  years.forEach(y => ys.innerHTML += `<option value="${y}">${y}</option>`);
+                }
+                
+                // 2. Set default filter on initial load
+                if(isInitialLoad) {
+                    const currentYear = new Date().getFullYear();
+                    if (years.includes(currentYear) && ys) {
+                      const todayISO = formatISODate(new Date());
+                      const currentYearStart = currentYear + '-01-01';
+                      
+                      document.querySelector('input[name="report-mode"]').checked = true; // Set default mode 0
+                      ys.value = currentYear;
+                      currentFilter.from = currentYearStart;
+                      currentFilter.to = todayISO; 
+                    }
+                }
+
+                // 3. Get config (Đã bao gồm xử lý allHolidayRecords)
+                await getReportConfig(); 
+                
+                // 4. Render report
+                reRenderReport();
+                
+                // BƯỚC MỚI: Áp dụng bộ lọc nhóm công ty ngay sau khi render lần đầu
+                if (companyGroupFilter) {
+                    filterReportByCompanyGroup();
+                }
+                
+                isInitialLoad = false;
+            });
+            
+            // Listener 2: reports_2 (Ngày nghỉ/Ngày làm việc đặc biệt)
+            listenReports("reports_2", async (holidays) => {
+                allHolidayRecords = holidays;
+                
+                // Sau khi reports_2 được tải, cần chạy lại config để xử lý dữ liệu mới và render lại báo cáo
+                if (!isInitialLoad) {
+                    await getReportConfig();
+                    reRenderReport();
+                    // Đảm bảo lọc được áp dụng lại sau khi render
+                    filterReportByCompanyGroup();
+                }
+            });
+
+            
+        } else {
+            notLogged.style.display = "block";
+            content.style.display = "none";
+        }
+    });
+    setupConfigModal();
+  </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</body>
+</html>
