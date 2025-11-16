@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bảng dữ liệu</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -46,6 +47,84 @@
         display: flex;
         align-items: center;
     }
+    
+    /* RESPONSIVE MOBILE */
+    @media (max-width: 768px) {
+      .table-reports-2 {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      
+      .table-reports-2 table {
+        min-width: 410px !important;
+      }
+      
+      .table-reports-2 #dataTable th,
+      .table-reports-2 #dataTable td {
+        padding: 4px 2px !important;
+        font-size: 11px !important;
+      }
+      
+      /* STT */
+      .table-reports-2 #dataTable th:nth-child(1),
+      .table-reports-2 #dataTable td:nth-child(1) {
+        width: 30px !important;
+        min-width: 30px !important;
+        max-width: 30px !important;
+      }
+      
+      /* Công ty (cột 3 vì cột 2 là admin-only) */
+      .table-reports-2 #dataTable th:nth-child(3),
+      .table-reports-2 #dataTable td:nth-child(3) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+      }
+      
+      /* Ngày nghỉ (cột 4) */
+      .table-reports-2 #dataTable th:nth-child(4),
+      .table-reports-2 #dataTable td:nth-child(4) {
+        width: 75px !important;
+        min-width: 75px !important;
+        max-width: 75px !important;
+      }
+      
+      /* Ghi chú (cột 5) */
+      .table-reports-2 #dataTable th:nth-child(5),
+      .table-reports-2 #dataTable td:nth-child(5) {
+        width: 155px !important;
+        min-width: 155px !important;
+        max-width: 155px !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+      }
+      
+      /* File/Link (cột 6) */
+      .table-reports-2 #dataTable th:nth-child(6),
+      .table-reports-2 #dataTable td:nth-child(6) {
+        width: 40px !important;
+        min-width: 40px !important;
+        max-width: 40px !important;
+        font-size: 10px !important;
+        padding: 2px 1px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      
+      .controls-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+      }
+      
+      .left-controls,
+      .right-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
         
   </style>
 </head>
@@ -72,27 +151,28 @@
       </label>
       <button id="applyFilter" type="button">Áp dụng</button>
     </div>
-    <div class="note" id="filterNote" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
-
+    <div class="note" id="filterNote"></div>
       <form>
-    <div style="margin-bottom: 20px;">
-        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%; padding: 8px;">
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm...">
     </div>
+        <div class="table-container table-reports-2">
         <table id="dataTable">
           <thead>
             <tr>
               <th>STT</th>
               <th class="admin-only">Người gửi</th>
               <th>Công ty</th>
+              <th>Ngày nghỉ</th>
               <th>Ghi chú</th>
               <th>File</th>
-              <th>Ngày nghỉ</th>
               <th class="admin-only">Thời gian</th>
               <th class="admin-only">Hành động</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
+        </div>
       </form>
       
       <div class="controls-row">
@@ -261,9 +341,9 @@
                     <td>${sttCounter++}</td> 
                     <td class="admin-only">${r.createdBy || ""}</td>
                     <td>${r.company || ""}</td>
+                    <td>${displayDate}</td> 
                     <td>${combinedGhiChu}</td> 
                     <td>${fileLink}</td>
-                    <td>${displayDate}</td> 
                     <td class="admin-only">${formattedTime}</td>
                     <td class="admin-only"><button type="button" data-id="${r.id}" class="delBtn">Xóa</button></td>
                 </tr>`;
