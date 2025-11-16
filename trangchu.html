@@ -218,6 +218,67 @@
             transform: translateX(400px);
             opacity: 0;
         }
+
+        /* Responsive cho mobile */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: calc(100% - 20px);
+                right: 10px;
+                bottom: 70px;
+                max-height: 400px;
+            }
+            
+            .chat-messages {
+                height: 200px;
+                font-size: 14px;
+            }
+            
+            .message {
+                padding: 8px;
+                font-size: 14px;
+            }
+            
+            .home-login-box {
+                width: calc(100% - 20px);
+                max-width: 400px;
+                padding: 15px;
+                margin-top: 15px;
+            }
+            
+            .home-login-box h3 {
+                font-size: 1.2rem;
+            }
+            
+            .home-login-box input {
+                padding: 10px !important;
+                font-size: 16px !important;
+            }
+            
+            .home-login-box .submit-btn {
+                padding: 12px !important;
+                font-size: 16px !important;
+            }
+            
+            .welcome-text {
+                font-size: 1.3rem;
+                padding: 0 10px;
+            }
+            
+            .chat-toggle {
+                bottom: 85px;
+                right: 15px;
+                padding: 12px;
+            }
+            
+            .home-footer-bar {
+                font-size: 12px;
+                padding: 6px 8px;
+            }
+            
+            .home-footer-date {
+                font-size: 11px;
+            }
+        }
     </style>
 
 <body>
