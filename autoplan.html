@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lịch làm việc</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -45,7 +46,14 @@
   /* Ô nhập văn bản co giãn hợp lý */
   .rule-box input[type="text"] {
     flex: 1;
-    min-width: 250px;
+    min-width: 200px;
+  }
+  
+  @media (max-width: 768px) {
+    .rule-box input[type="text"] {
+      min-width: 0 !important;
+      width: 100% !important;
+    }
   }
 
   /* Phần tử còn lại: select, date, button */
@@ -204,33 +212,33 @@
   #scheduleTable td:nth-child(1) {
     width: 15%;
     min-width: 150px; 
-    /* (Đã xóa text-align: left;) */
   }
 
   #scheduleTable th:nth-child(2),
   #scheduleTable td:nth-child(2) {
     width: 20%;
     min-width: 150px;
-    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
-    /* padding-left: 10px; <-- ĐÃ XÓA (Đã gộp) */
-    /* line-height: 1.4em; <-- ĐÃ XÓA (Đã gộp) */
   }
 
   #scheduleTable th:nth-child(3),
   #scheduleTable td:nth-child(3) {
     width: 45%;
     min-width: 150px;
-    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
-    /* padding-left: 10px; <-- ĐÃ XÓA (Đã gộp) */
-    /* line-height: 1.4em; <-- ĐÃ XÓA (Đã gộp) */
   }
 
   #scheduleTable th:nth-child(4),
   #scheduleTable td:nth-child(4) {
     width: 20%;
     min-width: 150px;
-    /* text-align: left; <-- ĐÃ XÓA (Đã gộp) */
-    padding-left: 8px; /* Giữ padding riêng */
+    padding-left: 8px;
+  }
+  
+  /* Loại bỏ min-width trên mobile */
+  @media (max-width: 768px) {
+    #scheduleTable th,
+    #scheduleTable td {
+      min-width: 0 !important;
+    }
   }
 
   /* Dòng “hôm nay” tô sáng */
@@ -238,48 +246,59 @@
     background-color: #dff0ff !important;
     font-weight: 600;
   }
+  
+  /* Ngăn cuộn ngang - chỉ cho các container chính */
+  .table-responsive-wrapper,
+  #pageContent,
+  .card-body,
+  .rule-box {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+  
   /* ======= MODAL XEM LỊCH CÁ NHÂN ======= */
-.modal {
+#personalScheduleModal {
     display: none; 
     position: fixed; 
     z-index: 1000; 
     left: 0;
+    right: 0;
     top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     background-color: rgba(0,0,0,0.4); 
+    box-sizing: border-box;
+    padding: 0;
 }
 
-#personalScheduleModal .modal-content {
+#personalScheduleModal .personal-schedule-content {
     background-color: #fefefe;
-    margin: 4% auto;
+    margin: 120px auto 20px auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%;
-    max-width: 900px; 
+    width: 100%;
+    max-width: 96%; 
     border-radius: 10px;
-    position: relative;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-    animation-name: animatetop;
-    animation-duration: 0.4s
+    box-sizing: border-box;
+    position: relative;
 }
 
-@keyframes animatetop {
-    from {top: -300px; opacity: 0}
-    to {top: 0; opacity: 1}
-}
-
-.close {
+#personalScheduleModal .close {
     color: #aaa;
-    float: right;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    line-height: 20px;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    z-index: 1;
 }
 
-.close:hover,
-.close:focus {
+#personalScheduleModal .close:hover,
+#personalScheduleModal .close:focus {
     color: #000;
     text-decoration: none;
     cursor: pointer;
@@ -288,7 +307,114 @@
 #personalScheduleDetails {
     margin-top: 15px;
     text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
+
+/* === RESPONSIVE CHO MODAL === */
+@media (max-width: 768px) {
+  #personalScheduleModal .personal-schedule-content {
+    width: 90% !important;
+    max-width: 100% !important;
+    margin: 180px auto 20px auto !important;
+    padding: 35px 8px 12px 8px !important;
+    max-height: calc(100vh - 60px) !important;
+    border-radius: 8px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  
+  #personalScheduleModal h2 {
+    font-size: 1rem !important;
+    margin-bottom: 8px !important;
+    margin-top: 0 !important;
+    padding: 0 30px 0 6px !important;
+    word-wrap: break-word !important;
+    line-height: 1.4 !important;
+  }
+  
+  #personalScheduleModal hr {
+    margin: 6px 0 !important;
+  }
+  
+  #personalScheduleDetails {
+    font-size: 11px !important;
+    margin-top: 8px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  
+  #personalScheduleDetails > div {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  #personalScheduleDetails table {
+    font-size: 11px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: unset !important;
+    table-layout: fixed !important;
+    box-sizing: border-box !important;
+    border-collapse: collapse !important;
+  }
+  
+  #personalScheduleDetails th {
+    font-size: 10px !important;
+    padding: 4px 3px !important;
+    word-break: break-word !important;
+  }
+  
+  #personalScheduleDetails td {
+    font-size: 10px !important;
+    padding: 4px 3px !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    white-space: pre-wrap !important;
+    line-height: 1.4 !important;
+  }
+  
+  #personalScheduleDetails h3 {
+    font-size: 0.85rem !important;
+    margin-top: 6px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  #personalScheduleDetails p {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    margin: 4px 0 !important;
+    word-wrap: break-word !important;
+  }
+  
+  #closeModalBottom {
+    width: 100% !important;
+    padding: 8px !important;
+    font-size: 12px !important;
+    margin-top: 10px !important;
+    box-sizing: border-box !important;
+    border-radius: 4px !important;
+  }
+  
+  #personalScheduleModal .close {
+    font-size: 26px !important;
+    right: 5px !important;
+    top: 5px !important;
+    padding: 3px !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+  }
+}
+
 /* === CSS CHO DANH SÁCH ẨN/HIỆN === */
 .list-header {
     display: flex;
@@ -333,7 +459,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 1px;
     padding: 8px;
     background-color: #f9f9f9;
 }
@@ -389,6 +515,7 @@
   #scheduleTable {
     table-layout: auto !important;
     width: 100% !important;
+    min-width: unset !important;
   }
 
   #scheduleTable th,
@@ -429,6 +556,7 @@
     font-size: 14px;
     text-align: left;
     line-height: 1.5em;
+    white-space: normal;
   }
 
   #scheduleTable td::before {
@@ -482,6 +610,57 @@
   #scheduleTable td[data-label="Ghi chú"]::before {
     content: "📝 " attr(data-label);
   }
+  
+  /* CSS cho weekNavigator trên mobile */
+  #weekNavigator {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 5px !important;
+    padding: 6px 2px !important;
+    overflow: visible !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  #todayWeekBtn {
+    order: 0 !important;
+    font-size: 11px !important;
+    padding: 5px 10px !important;
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    margin: 0 4px !important;
+  }
+  
+  .week-nav-group {
+    display: contents !important;
+  }
+  
+  #firstWeekBtn {
+    order: -2 !important;
+  }
+  
+  #prevWeekBtn {
+    order: -1 !important;
+  }
+  
+  #nextWeekBtn {
+    order: 1 !important;
+  }
+  
+  #lastWeekBtn {
+    order: 2 !important;
+  }
+  
+  #weekNavigator button {
+    font-size: 11px !important;
+    padding: 5px 6px !important;
+    flex-shrink: 0 !important;
+    min-width: 28px !important;
+  }
+  
+  #weekNumberDisplay {
+    display: none !important;
+  }
 }
 </style>
 </head>
@@ -492,8 +671,8 @@
   <div id="notLogged" style="display:none;">
     ❌ Bạn cần đăng nhập để truy cập trang này.
   </div>
-<div id="personalScheduleModal" class="modal">
-    <div class="modal-content">
+<div id="personalScheduleModal">
+    <div class="personal-schedule-content">
         <span class="close" id="closeModal">&times;</span>
         <h2>Công việc Sắp tới của bạn</h2>
         <hr>
@@ -509,11 +688,11 @@
   </div>
 
   <div id="pageContent" style="display:none;">
-  <h2>📅 Lịch làm việc trong tuần</h2>
+  <h2 style="margin-bottom: 5px;">📅 Lịch làm việc trong tuần</h2>
 
-  <div class="card-body">
-  <div style="margin-bottom: 15px; margin-top: 10px;">
-      <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box;">
+  <div class="card-body" style="padding-top: 5px;">
+  <div style="margin-bottom: 8px; margin-top: 0;">
+      <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box; font-size: 14px;">
   </div>
 
   <div class="table-responsive-wrapper">
@@ -1566,9 +1745,20 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
     }
     
     // Logic modal
-    closeModalBtn.onclick = () => personalScheduleModal.style.display = "none";
-    window.onclick = (event) => { if (event.target == personalScheduleModal) personalScheduleModal.style.display = "none"; };
-    document.getElementById("closeModalBottom").onclick = () => personalScheduleModal.style.display = "none";
+    closeModalBtn.onclick = () => {
+        document.body.style.overflow = 'auto'; // Khôi phục scroll
+        personalScheduleModal.style.display = "none";
+    };
+    window.onclick = (event) => { 
+        if (event.target == personalScheduleModal) {
+            document.body.style.overflow = 'auto'; // Khôi phục scroll
+            personalScheduleModal.style.display = "none"; 
+        }
+    };
+    document.getElementById("closeModalBottom").onclick = () => {
+        document.body.style.overflow = 'auto'; // Khôi phục scroll
+        personalScheduleModal.style.display = "none";
+    };
 
     
 
@@ -1631,6 +1821,10 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
   // Hàm gọi modal lịch làm việc cá nhân (ĐÃ SỬA LẠI HOÀN TOÀN)
   async function showPersonalScheduleModal(email, currentUserRole) {
+      // Reset scroll về đầu trang và giữa màn hình
+      window.scrollTo(0, 0);
+      document.body.style.overflow = 'hidden'; // Chặn scroll khi modal mở
+      
       personalScheduleModal.style.display = "block";
       personalScheduleDetails.innerHTML = "<p>Đang tải lịch cá nhân...</p>";
 
@@ -1658,11 +1852,12 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       // CN(0) -> 0 (i=0)
       const daysToScan = (currentDayOfWeek === 0) ? 0 : (7 - currentDayOfWeek);
 
-      let html = `<table style="width:100%; border-collapse:collapse; border:1px solid #ccc; text-align:left;">
+      let html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+        <table style="width: 100%; max-width: 100%; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 9px; box-sizing: border-box;">
         <thead>
           <tr style="background:#f0f0f0;">
-            <th style="padding: 8px; border: 1px solid #ccc; text-align: center;">Ngày & Ca làm</th>
-            <th style="padding: 8px; border: 1px solid #ccc; text-align: center;">Công việc & Ghi chú</th>
+            <th style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; width: 35%;">Ngày & Ca</th>
+            <th style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; width: 65%;">Công việc</th>
           </tr>
         </thead>
         <tbody>`;
@@ -1728,10 +1923,10 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   const tasksArray = allTasks.map(task => {
                       const noteDisplay = (task.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
                       const noteString = noteDisplay && noteDisplay !== "" ? ` <i>— ${noteDisplay}</i>` : "";
-                      // Thêm gạch ngang "- "
-                      return `- ${task.job} ${task.time ? `(${task.time})` : ""}${noteString}`;
+                      // Thêm gạch ngang "- " và wrap trong div với CSS buộc xuống dòng
+                      return `<div style="margin-bottom: 3px; word-break: break-all; overflow-wrap: anywhere;">- ${task.job} ${task.time ? `(${task.time})` : ""}${noteString}</div>`;
                   });
-                  tasksHtml = tasksArray.join('<br>'); // Nối bằng <br>
+                  tasksHtml = tasksArray.join(''); // Nối trực tiếp
               } else {
                   // Bỏ padding-left
                   tasksHtml = "<i style='font-size: 0.9em;'>Không có công việc chung nào được gán.</i>";
@@ -1743,18 +1938,18 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
               const shiftContent = matchedShifts.join("<br>");
 
               html += `
-                <tr${isToday ? " style='background:#dff0ff;font-weight:bold;'" : ""}>
-                  <td style="padding: 8px; border: 1px solid #ccc; text-align: center;">
-                    ${thuDisplay}<br>${dateStr}
+                <tr${isToday ? " style='background:#dff0ff;'" : ""}>
+                  <td style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.3; max-width: 100%;">
+                    <strong style="font-size: 9px;">${thuDisplay}</strong><br><span style="font-size: 8px;">${dateStr}</span>
                     <br>
-                    <span style="font-size: 0.9em; color: #333;">${shiftContent}</span>
+                    <span style="font-size: 8px; color: #555;">${shiftContent}</span>
                   </td>
-                  <td style="padding: 8px; border: 1px solid #ccc; text-align: left;">${tasksHtml}</td>
+                  <td style="padding: 3px 2px; border: 1px solid #ccc; text-align: left; font-size: 9px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.4; max-width: 100%;">${tasksHtml}</td>
                 </tr>`;
           }
       } // Kết thúc vòng lặp
 
-      html += `</tbody></table>`;
+      html += `</tbody></table></div>`;
       
       if (!hasWorkDay) {
           html = `<p>Bạn không có lịch làm việc nào từ hôm nay đến cuối tuần.</p>`;
