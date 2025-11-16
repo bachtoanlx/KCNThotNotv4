@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nhật ký hệ thống</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -37,6 +38,19 @@
     #logsTable td {
       white-space: normal !important; /* Ghi đè các style khác để buộc xuống dòng */
       vertical-align: top; /* Căn nội dung lên trên cùng của ô cho dễ đọc */
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      #displayCount {
+        font-size: 11px !important;
+        padding: 4px !important;
+        height: 24px !important;
+      }
+      
+      label[for="displayCount"] {
+        font-size: 11px !important;
+      }
     }
     
   </style>
