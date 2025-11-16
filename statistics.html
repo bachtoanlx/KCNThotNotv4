@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Báo cáo thống kê</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -79,7 +80,7 @@
   display: flex;                /* Dùng flexbox */
   align-items: center;          /* Căn giữa dọc */
   justify-content: center;      /* Căn giữa ngang */
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   z-index: 3;
@@ -139,6 +140,247 @@
   }
 }
 
+/* ===== RESPONSIVE CHO MOBILE ===== */
+@media (max-width: 768px) {
+  h2 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    padding: 0 5px;
+  }
+  
+  .card-body {
+    padding: 8px;
+  }
+  
+  /* Filter box mobile - 1 hàng ngang cực gọn */
+  .filter-box {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1px;
+    margin-bottom: 8px;
+    flex-wrap: nowrap;
+  }
+  
+  .filter-box label {
+    font-size: 0;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 1;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .filter-box input[type="date"] {
+    width: 90px !important;
+    font-size: 11px !important;
+    padding: 4px 2px !important;
+    height: 27px !important;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 0 !important;
+  }
+  
+  .filter-box select {
+    display: none !important;
+  }
+  
+  .filter-box button {
+    flex: 0 !important;
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    font-size: 11px !important;
+    padding: 4px !important;
+    height: 27px !important;
+    white-space: nowrap !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Nút Xuất báo cáo rộng hơn giống thongke */
+  .filter-box button#exportPDF {
+    width: 74px !important;
+    min-width: 74px !important;
+    max-width: 74px !important;
+  }
+  
+  /* Đổi text nút Xuất báo cáo trên mobile */
+  .filter-box button#exportPDF::before {
+    content: 'Xuất báo cáo';
+  }
+  
+  .filter-box button#exportPDF {
+    font-size: 0 !important;
+  }
+  
+  .filter-box button#exportPDF::before {
+    font-size: 11px !important;
+  }
+  
+  /* Bảng responsive */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  #reportTable,
+  #holidayDetailTable {
+    min-width: 600px;
+    font-size: 11px;
+  }
+  
+  #reportTable th,
+  #reportTable td,
+  #holidayDetailTable th,
+  #holidayDetailTable td {
+    padding: 4px;
+    font-size: 11px;
+  }
+  
+  /* Toggle switch mobile - chuyển thành select */
+  #reportModeToggle {
+    display: none !important;
+  }
+  
+  .toggle-switch-container::before {
+    content: 'Chế độ: ';
+    font-size: 11px;
+    color: #034892;
+    font-weight: 500;
+    margin-right: 5px;
+  }
+  
+  .toggle-switch-container::after {
+    content: '';
+    display: block;
+    width: auto;
+  }
+  
+  /* Tạo select thay thế toggle */
+  .toggle-switch-container {
+    position: relative;
+  }
+  
+  #mobileReportModeSelect {
+    display: block !important;
+    width: auto !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    height: 23px !important;
+    border: 1px solid #2196F3 !important;
+    border-radius: 4px !important;
+    background: #e3f2fd !important;
+    color: #034892 !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+  }
+  
+  /* Report header controls - chuyển note xuống dưới filter box */
+  .report-header-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 5px;
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .report-header-controls .note {
+    text-align: left;
+    margin: 0 !important;
+    order: 1;
+  }
+  
+  .report-header-controls .toggle-switch-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    order: 2;
+  }
+  
+  /* Nhóm Chế độ (label + select) */
+  .toggle-switch-container::before {
+    content: 'Chế độ: ';
+    font-size: 11px;
+    color: #034892;
+    font-weight: 500;
+    margin-right: 5px;
+    order: 1;
+  }
+  
+  .toggle-switch-container #mobileReportModeSelect {
+    order: 2;
+  }
+  
+  /* Di chuyển select Nhóm công ty vào toggle-switch-container */
+  .toggle-switch-container select#companyGroupFilter {
+    order: 3;
+    display: block !important;
+    width: auto !important;
+    font-size: 11px !important;
+    padding: 4px 6px !important;
+    height: 27px !important;
+    border: 1px solid #2196F3 !important;
+    border-radius: 4px !important;
+    background: #e3f2fd !important;
+    color: #034892 !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    margin-left: auto !important;
+  }
+  
+  /* Note text */
+  .note {
+    font-size: 11px !important;
+  }
+  
+  /* Modal mobile */
+  #configModal .modal-content-config {
+    width: 95% !important;
+    margin: 2% auto !important;
+    max-height: 95vh !important;
+    padding: 10px !important;
+  }
+  
+  /* Ẩn admin settings trên mobile */
+  .admin-settings {
+    display: none !important;
+  }
+  
+  /* Tối ưu bảng chi tiết ngày nghỉ cho mobile */
+  #holidayDetailTable {
+    min-width: 500px !important;
+    font-size: 10px !important;
+  }
+  
+  #holidayDetailTable th {
+    padding: 6px 4px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+  }
+  
+  #holidayDetailTable td {
+    padding: 4px 2px !important;
+    font-size: 10px !important;
+    white-space: nowrap;
+  }
+  
+  /* Cột đầu tiên (Kỳ) rộng hơn một chút trên mobile */
+  #holidayDetailTable th:first-child,
+  #holidayDetailTable td:first-child {
+    min-width: 80px;
+    max-width: 80px;
+    padding: 4px 2px !important;
+  }
+  
+  /* Các cột công ty thu gọn */
+  #holidayDetailTable th:not(:first-child),
+  #holidayDetailTable td:not(:first-child) {
+    min-width: 35px;
+    max-width: 60px;
+  }
+}
+
     /* BẮT ĐẦU CSS MỚI: BẢNG CHI TIẾT NGÀY NGHỈ */
     #holidayDetailTable {
         margin-top: 10px;
@@ -158,6 +400,15 @@
         text-align: center;
         vertical-align: top;
     }
+    
+    /* Giảm kích thước cột Kỳ */
+    #holidayDetailTable th:first-child,
+    #holidayDetailTable td:first-child {
+        width: 200px;
+        max-width: 200px;
+        padding: 8px 4px;
+    }
+    
     #holidayDetailTable td {
         border: 1px solid #ccc;
         padding: 8px;
@@ -252,6 +503,11 @@
     <div class="report-header-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px !important; margin-top: 10px !important;">
         <div class="note" id="filterNote" style="margin-bottom: 0; margin-top: 0;"></div>
         <div class="toggle-switch-container">
+            <select id="mobileReportModeSelect" style="display: none;">
+                <option value="0">Chuẩn</option>
+                <option value="1">Ngày nghỉ</option>
+                <option value="2">Chi tiết</option>
+            </select>
             
             <div id="reportModeToggle" class="switch-toggle switch-3-n">
                 <input id="mode-normal" name="report-mode" type="radio" value="0" checked />
@@ -273,6 +529,7 @@
       <h2 style="text-align:left">📊 Báo cáo thống kê</h2>
     </div>
 
+    <div class="table-container">
     <table id="reportTable">
       <thead>
         <tr>
@@ -281,17 +538,20 @@
       </thead>
       <tbody></tbody>
     </table>
+    </div>
     <div id="reportFooterNote" style="margin-top: 10px; font-style: italic; color: #cc0000; display: none;">
     **Lưu ý:** Số liệu trong ngoặc đơn cạnh chỉ số khối lượng là ngày nghỉ tương ứng. Ví dụ: 5394 (3) là nghỉ 3 ngày trong kỳ.
     </div>
     <div id="holidayDetailReport" style="display: none;">
         <h3>Chi tiết Ngày nghỉ </h3>
+        <div class="table-container">
         <table id="holidayDetailTable">
             <thead>
                 </thead>
             <tbody>
                 </tbody>
         </table>
+        </div>
     </div>
 
   </div>
@@ -1857,6 +2117,50 @@ if (reportModeToggle) {
             }, 0);
         });
     }
+    
+    // GÁN LISTENER CHO SELECT MOBILE
+    const mobileSelect = document.getElementById('mobileReportModeSelect');
+    if (mobileSelect) {
+        mobileSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            // Đồng bộ với radio buttons
+            const radio = document.querySelector(`input[name="report-mode"][value="${value}"]`);
+            if (radio) {
+                radio.checked = true;
+                updateToggleSlider();
+                reRenderReport();
+            }
+        });
+        
+        // Đồng bộ ngược lại: khi radio thay đổi, cập nhật select
+        const radios = document.querySelectorAll('input[name="report-mode"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                mobileSelect.value = e.target.value;
+            });
+        });
+    }
+    
+    // Di chuyển select Nhóm công ty vào toggle-switch-container trên mobile
+    if (window.innerWidth <= 768) {
+        const companyGroupSelect = document.getElementById('companyGroupFilter');
+        const toggleContainer = document.querySelector('.toggle-switch-container');
+        if (companyGroupSelect && toggleContainer) {
+            // Clone select để giữ event listeners
+            const clonedSelect = companyGroupSelect.cloneNode(true);
+            // Thêm vào đầu toggle-switch-container
+            toggleContainer.insertBefore(clonedSelect, toggleContainer.firstChild);
+            // Ẩn select gốc
+            companyGroupSelect.style.display = 'none';
+            
+            // Đồng bộ giá trị giữa 2 select
+            clonedSelect.addEventListener('change', (e) => {
+                companyGroupSelect.value = e.target.value;
+                companyGroupSelect.dispatchEvent(new Event('change'));
+            });
+        }
+    }
+    
     // === GÁN SỰ KIỆN QUẢN LÝ MASTER LIST ===
     if (addCompanyBtn) {
         addCompanyBtn.addEventListener('click', async (e) => {
