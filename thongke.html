@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Thống Kê Báo Cáo Ca</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -134,18 +135,110 @@
 
      /* Responsive cho bảng (ví dụ đơn giản) */
      @media (max-width: 768px) {
+        h2 {
+          font-size: 1.2rem;
+          margin-bottom: 10px;
+        }
+        
+        .card-body {
+          padding: 10px;
+        }
+        
+        /* Filter box mobile - 1 hàng ngang cực gọn giống datatable */
+        .filter-box {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 4px;
+          margin-bottom: 8px;
+          flex-wrap: nowrap;
+        }
+        
+        .filter-box label {
+          font-size: 0;
+          line-height: 0;
+          display: inline-flex;
+          align-items: center;
+          flex-shrink: 1;
+        }
+        
+        .filter-box input[type="date"] {
+          width: 90px !important;
+          font-size: 11px !important;
+          padding: 4px 2px !important;
+          height: 27px !important;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+        
+        .filter-box select {
+          display: none !important;
+        }
+        
+        .filter-box button,
+        .filter-box button#applyFilter {
+          flex: 0 !important;
+          width: 68px !important;
+          min-width: 68px !important;
+          max-width: 68px !important;
+          font-size: 11px !important;
+          padding: 4px !important;
+          height: 27px !important;
+          white-space: nowrap !important;
+        }
+        
+        /* CSS riêng cho thongke-page - độ ưu tiên cao hơn */
+        .filter-box.thongke-page button,
+        .filter-box.thongke-page button#applyFilter {
+          width: 100px !important;
+          min-width: 100px !important;
+          max-width: 100px !important;
+        }
+        
+        /* Bảng responsive */
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        
+        #summaryTable {
+          min-width: 700px;
+        }
+        
         #summaryTable th:first-child,
         #summaryTable td:first-child {
-            width: 35%; /* Tăng độ rộng cột chỉ số trên mobile */
+            width: 18% !important; /* Giảm độ rộng cột chỉ số trên mobile */
         }
         #summaryTable th,
         #summaryTable td {
-            padding: 5px;
-            font-size: 12px;
+            padding: 4px;
+            font-size: 11px;
         }
-        .filter-box label, .filter-box select, .filter-box input, .filter-box button {
-             width: 100%;
-             margin-bottom: 5px;
+        
+        /* Modal mobile */
+        #analysisModal .modal-content-config {
+          width: 95% !important;
+          margin: 2% auto !important;
+          max-height: 95vh !important;
+          padding: 10px !important;
+        }
+        
+        #analysisTable {
+          font-size: 11px;
+        }
+        
+        #analysisTable th,
+        #analysisTable td {
+          padding: 4px;
+        }
+        
+        /* Font size cho cảnh báo và checkbox */
+        #accuracyWarning {
+          font-size: 11px !important;
+        }
+        
+        label:has(#viewDetailsCheckbox) {
+          font-size: 11px !important;
         }
      }
 
@@ -164,7 +257,7 @@
     <h2>📈 Thống Kê Báo Cáo Ca Trực</h2>
     <div class="card-body">
 
-    <div class="filter-box">
+    <div class="filter-box thongke-page">
       <label>Từ ngày: <input type="date" id="fromDate"></label>
       <label>Đến ngày: <input type="date" id="toDate"></label>
       <label>Năm nhanh:
@@ -177,9 +270,9 @@
     </div>
     <div class="note" id="filterNote" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px;">
         <div id="accuracyWarning" style="display:none; color: red; font-style: italic; padding: 5px; flex-grow: 1; margin-right: 15px;">
-            ⚠️ Dữ liệu có thể thiếu chính xác do thiếu báo cáo.
+            ⚠️ Dữ liệu có thể thiếu chính xác.
         </div>
         <label style="flex-shrink: 0;"> <input type="checkbox" id="viewDetailsCheckbox"> Xem chi tiết
         </label>
@@ -205,6 +298,7 @@
         </div>
       </div>
     </div>
+    <div class="table-container">
     <table id="summaryTable">
       <thead>
         <tr>
@@ -291,6 +385,7 @@
         </tbody>
       <tbody id="other-chemicals-body"></tbody>
     </table>
+    </div>
     <div id="detailsTableContainer" style="display: none; margin-top: 20px;">
             <h4>Chi tiết theo ngày:</h4>
             <div id="detailsScrollWrapper" style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; position: relative;">
