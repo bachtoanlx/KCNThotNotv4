@@ -653,7 +653,7 @@ tr:nth-child(even) {
   }
   
   .nav-links .dropbtn {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   /* Cấu hình cho nút hamburger */
@@ -687,7 +687,7 @@ tr:nth-child(even) {
   }
   
   #userEmail {
-    font-size: 11px;
+    font-size: 12px;
     max-width: 100px;
     display: block;
   }
