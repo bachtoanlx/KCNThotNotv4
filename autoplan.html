@@ -596,7 +596,7 @@
   }
 
   #scheduleTable td[data-label="Ngày"]::before {
-    content: "📅 " attr(data-label);
+    content: "📅 " attr(data-label) ":\00a0";
   }
 
   #scheduleTable td[data-label="Người làm"]::before {
@@ -885,7 +885,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module">
     import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail } from "./script.js";
-    import { collection, addDoc, deleteDoc, doc, getDocs, serverTimestamp, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, addDoc, deleteDoc, doc, getDocs, serverTimestamp, updateDoc, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
      // === HÀM CHUẨN HÓA KÝ TỰ ĐẦU TIÊN CỦA CHUỖI ===
@@ -996,8 +996,9 @@
     // (Hàm này thay thế cho cả 3 hàm load... cũ)
     function setupRealtimeListeners(email, role) {
         
-        // 1. Lắng nghe work_rules
-        onSnapshot(collection(db, "work_rules"), (snapshot) => {
+        // 1. Lắng nghe work_rules - ⭐️ GIỚI HẠN 100 BẢN GHI
+        const qRules = query(collection(db, "work_rules"), limit(100));
+        onSnapshot(qRules, (snapshot) => {
             console.log("Real-time: work_rules đã thay đổi.");
             allRulesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
             
@@ -1016,8 +1017,9 @@
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
         });
 
-        // 2. Lắng nghe manual_jobs
-        onSnapshot(collection(db, "manual_jobs"), (snapshot) => {
+        // 2. Lắng nghe manual_jobs - ⭐️ GIỚI HẠN 100 BẢN GHI
+        const qManual = query(collection(db, "manual_jobs"), limit(100));
+        onSnapshot(qManual, (snapshot) => {
             console.log("Real-time: manual_jobs đã thay đổi.");
             allManualJobsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
 
@@ -1036,8 +1038,9 @@
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
         });
 
-        // 3. Lắng nghe work_patterns
-        onSnapshot(collection(db, "work_patterns"), (snapshot) => {
+        // 3. Lắng nghe work_patterns - ⭐️ GIỚI HẠN 200 BẢN GHI
+        const qPatterns = query(collection(db, "work_patterns"), limit(200));
+        onSnapshot(qPatterns, (snapshot) => {
             console.log("Real-time: work_patterns đã thay đổi.");
             allPatternsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
 
