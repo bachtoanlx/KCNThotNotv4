@@ -118,6 +118,7 @@
       orderBy,
       where,
       onSnapshot,
+      getDocs
     } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
     // Load menu
@@ -446,7 +447,7 @@
           }
 
           // Refresh realtime listener safely
-          function refreshLogsListener() {
+          async function refreshLogsListener() {
             // validate date range
             if (startDateInput.value && endDateInput.value) {
               const s = new Date(startDateInput.value + 'T00:00:00');
@@ -463,15 +464,18 @@
             }
 
             const q = buildLogsQuery();
-            unsubscribeLogs = onSnapshot(q, (snapshot) => {
-              allLogs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id }));
-              populateFilterOptions(allLogs);
-              filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
-            });
+            // ⭐️ QUAN TRỌNG: Sử dụng getDocs() thay vì onSnapshot() cho logs
+            // Logs không cần real-time, chỉ cần load 1 lần khi người dùng click "Áp dụng"
+            const snapshot = await getDocs(q);
+            allLogs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id }));
+            populateFilterOptions(allLogs);
+            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
           }
 
-          // initial listener
-          refreshLogsListener();
+          // ⭐️ initial listener - Gọi async function đúng cách
+          (async () => {
+            await refreshLogsListener();
+          })();
 
           // Populate selects helper (unique actions and emails)
           function populateFilterOptions(logs) {
