@@ -48,6 +48,30 @@
         display: flex;
         align-items: center;
     }
+    
+    /* RESPONSIVE MOBILE */
+    @media (max-width: 768px) {
+      /* Cột Hành động (cột 9 - admin-only) */
+      #dataTable th:nth-child(9),
+      #dataTable td:nth-child(9) {
+        width: 65px !important;
+        min-width: 65px !important;
+        max-width: 65px !important;
+        padding: 2px !important;
+        overflow: hidden !important;
+      }
+      
+      /* Nút Xóa trong cột Hành động */
+      #dataTable td:nth-child(9) button {
+        font-size: 11px !important;
+        padding: 4px 6px !important;
+        width: 100% !important;
+        max-width: 51px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: clip !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -121,7 +145,7 @@
              getReportsByDate, db } from "./script.js";
              
     // Import các hàm GỐC (native) của Firebase SDK
-    import { collection, query, where, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, query, where, orderBy, getDocs, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     
     // Import menu
     import { initMenu } from "./menu.js";
@@ -155,6 +179,7 @@
     let initialLoad = true;
     let allSearchData = []; // Mảng này giờ sẽ lưu kết quả đã lọc
     let userRole = null;
+    let realtimeListener = null; // ⭐️ Listener để cleanup
 
     // === 4. CÁC HÀM TIỆN ÍCH (Giữ nguyên) ===
     function formatISODate(d) {
@@ -255,9 +280,8 @@
         });
         
         let finalData = filteredData;
-        if (lowerCaseQuery === "" && limit !== "all") {
-            finalData = filteredData.slice(0, parseInt(limit));
-        }
+        // ⭐️ BỎ LOGIC slice VÌ ĐÃ LIMIT Ở FIREBASE
+        // Hiển thị tất cả data đã được Firebase limit
 
         let html = "";
         let sttCounter = 1; 
@@ -290,7 +314,13 @@
 
     // === 6. HÀM TẢI DỮ LIỆU MỚI (Từ lần trước) ===
     async function fetchAndRenderData() {
-        // 1. Lấy ngày từ bộ lọc
+        // ⭐️ 1. HỦY LISTENER CŨ (nếu có)
+        if (realtimeListener) {
+            realtimeListener();
+            realtimeListener = null;
+        }
+
+        // 2. Lấy ngày từ bộ lọc
         const fromVal = fromInput.value;
         const toVal = toInput.value;
         const yearVal = yearSelect.value;
@@ -326,11 +356,32 @@
             endDate = currentFilter.to || todayISO;
         }
 
-        // 2. ⭐️ GỌI HÀM getReportsByDate ⭐️
-        allSearchData = await getReportsByDate("reports_1", "ngay_ghi", startDate, endDate);
+        // ⭐️ 2. TẢI DỮ LIỆU BẰNG getDocs (1 LẦN)
+        const selectedLimit = displayCountSelect.value;
+        allSearchData = await getReportsByDate("reports_1", "ngay_ghi", startDate, endDate, selectedLimit);
 
-        // 3. Render dữ liệu
-        filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+        // ⭐️ 3. BẬT REAL-TIME LISTENER (Chỉ lắng nghe data MỚI trong khoảng ngày)
+        let q = query(
+            collection(db, "reports_1"),
+            where("ngay_ghi", ">=", startDate),
+            where("ngay_ghi", "<=", endDate),
+            orderBy("ngay_ghi", "desc")
+        );
+        
+        if (selectedLimit && selectedLimit !== "all") {
+            q = query(q, limit(parseInt(selectedLimit)));
+        }
+        
+        realtimeListener = onSnapshot(q, (snapshot) => {
+            // Cập nhật allSearchData với data mới
+            allSearchData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Render lại bảng
+            filterAndRenderData(allSearchData, searchInput.value, "all");
+        });
+
+        // 4. Render dữ liệu ban đầu (KHÔNG CẦN nữa vì onSnapshot sẽ trigger)
+        // filterAndRenderData(allSearchData, searchInput.value, "all");
     }
     
     // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC (ĐÃ SỬA) ===
@@ -459,10 +510,11 @@
             
             // 6. Gắn listener (Giữ nguyên)
             searchInput.addEventListener("input", () => {
-                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+                filterAndRenderData(allSearchData, searchInput.value, "all");
             });
             displayCountSelect.addEventListener("change", () => {
-                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+                // ⭐️ KHI THAY ĐỔI LIMIT → TẢI LẠI DATA TỪ FIREBASE
+                fetchAndRenderData();
             });
 
         } else {
