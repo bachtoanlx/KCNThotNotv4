@@ -459,36 +459,40 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
     let skipped = 0;
     let errorList = []; // Khởi tạo danh sách lỗi
     
-    // Giả định `config` và `isDateADefaultHoliday` có sẵn trong phạm vi (scope) này
+    // ⭐️ TỐI ƯU HÓA: ĐỌC TẤT CẢ DỮ LIỆU 1 LẦN (Thay vì N lần)
+    const minDate = dates[0];
+    const maxDate = dates[dates.length - 1];
+    
+    const [allHolidaysSnap, allSpecialSnap] = await Promise.all([
+        getDocs(query(
+            collection(db, collectionName),
+            where("company", "==", baseData.company),
+            where("ngay_nghi", ">=", minDate),
+            where("ngay_nghi", "<=", maxDate)
+        )),
+        getDocs(query(
+            collection(db, collectionName),
+            where("company", "==", baseData.company),
+            where("ngay_lam_db", ">=", minDate),
+            where("ngay_lam_db", "<=", maxDate)
+        ))
+    ]);
+    
+    // Tạo Map để tra cứu nhanh O(1)
+    const holidayMap = new Map(
+        allHolidaysSnap.docs.map(doc => [doc.data().ngay_nghi, doc])
+    );
+    const specialMap = new Map(
+        allSpecialSnap.docs.map(doc => [doc.data().ngay_lam_db, doc])
+    );
 
     for (const singleDate of dates) {
-        // 2a) TÌM BẢN GHI TRÙNG
-        // Tìm Ngày nghỉ (holiday)
-        const qHoliday = query(
-            collection(db, collectionName),
-            where("company", "==", baseData.company),
-            where("ngay_nghi", "==", singleDate)
-        );
-        const snapHoliday = await getDocs(qHoliday);
-
-        // Tìm Ngày làm đặc biệt (special workday)
-        const qSpecial = query(
-            collection(db, collectionName),
-            where("company", "==", baseData.company),
-            where("ngay_lam_db", "==", singleDate)
-        );
-        const snapSpecial = await getDocs(qSpecial);
+        // 2a) TÌM BẢN GHI TRÙNG - ⭐️ TRA CỨU TRONG MAP (Không đọc Firebase)
+        const existingHoliday = holidayMap.get(singleDate);
+        const existingSpecial = specialMap.get(singleDate);
         
-        let existingDoc = null;
-        let existingData = null;
-
-        if (!snapHoliday.empty) {
-            existingDoc = snapHoliday.docs[0];
-            existingData = existingDoc.data();
-        } else if (!snapSpecial.empty) {
-            existingDoc = snapSpecial.docs[0];
-            existingData = existingDoc.data();
-        }
+        let existingDoc = existingHoliday || existingSpecial || null;
+        let existingData = existingDoc?.data() || null;
 
         // 2b) CHUẨN BỊ DỮ LIỆU MỚI
         const newRecordData = {
@@ -752,13 +756,18 @@ if (formId === "registrationForm_1") {
     const { company, ngay_ghi, chi_so } = data;
     const newChiSo = parseFloat(chi_so);
 
-// --- KIỂM TRA TRƯỜNG HỢP CHỈ SỐ GIẢM (đặc biệt) CÙNG NGÀY ---
+// --- ⭐️ TỐI ƯU: KẾT HỢP 2 QUERY THÀNH 1 ---
 const qSameDay = query(
   collection(db, collectionName),
   where("company", "==", company),
   where("ngay_ghi", "==", ngay_ghi)
 );
 const snapSameDay = await getDocs(qSameDay);
+
+// ⭐️ TÌM EXACT MATCH TRONG MEMORY (Không query thêm)
+const exactMatchDoc = snapSameDay.docs.find(
+  doc => parseFloat(doc.data().chi_so) === newChiSo
+);
 
 if (!snapSameDay.empty) {
   let existingDoc = snapSameDay.docs[0];
@@ -911,22 +920,13 @@ if (!snapSameDay.empty) {
   } // end if new<existing
 } // end if same-day exists
 
+    
     // ===============================================
-    // 1. KIỂM TRA TRÙNG LẶP HOÀN TOÀN (company + ngay_ghi + chi_so và so sánh File)
+    // 1. ⭐️ KIỂM TRA TRÙNG LẶP (SỬ DỤNG KẾT QUẢ ĐÃ TÌM TRƯỚC ĐÓ)
     // ===============================================
-  const qExact = query(
-  collection(db, collectionName),
-  where("company", "==", company),
-  where("ngay_ghi", "==", ngay_ghi),
-  where("chi_so", "==", newChiSo)
-);
-const snapExact = await getDocs(qExact);
-
-if (!snapExact.empty) {
-  const exactDoc = snapExact.docs[0];
-  const exactData = exactDoc.data();
-
-  // Trường hợp 1: Cũ KHÔNG có file
+if (exactMatchDoc) {
+  const exactDoc = exactMatchDoc;
+  const exactData = exactDoc.data();  // Trường hợp 1: Cũ KHÔNG có file
   if (!exactData.fileUrl) {
     if (!file) {
       // Bản mới cũng không có file → coi là trùng, bỏ qua
@@ -1118,16 +1118,9 @@ if (!snapExact.empty) {
     }
 
     // ===============================================
-    // 3. KIỂM TRA TRÙNG 2 TRƯỜNG (company + ngay_ghi)
+    // 3. ⭐️ KIỂM TRA TRÙNG 2 TRƯỜNG (SỬ DỤNG snapSameDay ĐÃ CÓ)
     // ===============================================
-    let qDateCompanyMatch = query(
-        collection(db, collectionName),
-        where("company", "==", company),
-        where("ngay_ghi", "==", ngay_ghi)
-    );
-    let snapDateCompanyMatch = await getDocs(qDateCompanyMatch);
-
-    if (!snapDateCompanyMatch.empty) {
+    if (snapSameDay.docs.length > 0) {
         hideLoading();
         // Trùng 2 thông tin -> Hiện Confirm Ghi thêm
         let isConfirmed = await showConfirmSwal(
@@ -1171,7 +1164,7 @@ if (!snapExact.empty) {
     
     // LƯU VÀO FIRESTORE (data đã có isMeterReset: true nếu chỉ số giảm)
     // Sẽ gọi addDoc_success trong addReportDoc
-    await addReportDoc(data, collectionName); 
+    const docRef = await addReportDoc(data, collectionName); 
 
     showSwal("success", "Thành công", "Báo cáo đã được gửi!");
     form.reset();
@@ -1193,7 +1186,12 @@ if (!snapExact.empty) {
 
 //
 export function listenReports(collectionName, callback) {
-  const q = query(collection(db, collectionName), orderBy("createdAt", "desc"));
+  // ⭐️ GIỚI HẠN CHỈ 50 BẢN GHI MỚI NHẤT để giảm chi phí đọc
+  const q = query(
+    collection(db, collectionName), 
+    orderBy("createdAt", "desc"),
+    limit(50) // ← Thêm giới hạn
+  );
   return onSnapshot(q, (snapshot) => {
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     callback(reports);
@@ -1209,7 +1207,7 @@ export function listenReports(collectionName, callback) {
  * @param {string} endDate - Ngày kết thúc (YYYY-MM-DD)
  * @returns {Promise<Array>} Mảng các báo cáo
  */
-export async function getReportsByDate(collectionName, dateField, startDate, endDate) {
+export async function getReportsByDate(collectionName, dateField, startDate, endDate, limitCount = null) {
   // Validate đầu vào
   if (!collectionName || !dateField || !startDate || !endDate) {
     showSwal("error", "Lỗi truy vấn", "Thiếu thông tin để tải dữ liệu.");
@@ -1218,12 +1216,17 @@ export async function getReportsByDate(collectionName, dateField, startDate, end
 
   showLoading("Đang tải dữ liệu theo ngày...");
   try {
-    const q = query(
+    // ⭐️ Thêm limit nếu có
+    let q = query(
       collection(db, collectionName),
       where(dateField, ">=", startDate),
       where(dateField, "<=", endDate),
       orderBy(dateField, "desc") // Sắp xếp theo ngày (mới nhất trước)
     );
+    
+    if (limitCount && limitCount !== "all") {
+      q = query(q, limit(parseInt(limitCount)));
+    }
     
     const snapshot = await getDocs(q);
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -1238,7 +1241,8 @@ export async function getReportsByDate(collectionName, dateField, startDate, end
         collection: collectionName, 
         error: err.message, 
         startDate, 
-        endDate 
+        endDate,
+        limit: limitCount 
     });
     hideLoading();
     showSwal("error", "Lỗi tải dữ liệu", err.message);
@@ -1246,9 +1250,9 @@ export async function getReportsByDate(collectionName, dateField, startDate, end
   }
 }
 //
-// Dùng riêng cho Master List (không orderBy createdAt)
+// Dùng riêng cho Master List (không orderBy createdAt) - ⭐️ GIỚI HẠN 50
 export function listenCollection(collectionName, callback) {
-  const q = query(collection(db, collectionName));
+  const q = query(collection(db, collectionName), limit(50));
   return onSnapshot(q, (snapshot) => {
     const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     callback(docs);
