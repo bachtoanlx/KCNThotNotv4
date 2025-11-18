@@ -113,6 +113,39 @@
         text-overflow: ellipsis !important;
       }
       
+      /* Thời gian (cột 7 - admin-only) */
+      .table-reports-2 #dataTable th:nth-child(7),
+      .table-reports-2 #dataTable td:nth-child(7) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+        font-size: 10px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      
+      /* Hành động (cột 8 - admin-only) */
+      .table-reports-2 #dataTable th:nth-child(8),
+      .table-reports-2 #dataTable td:nth-child(8) {
+        width: 65px !important;
+        min-width: 65px !important;
+        max-width: 65px !important;
+        padding: 2px !important;
+        overflow: hidden !important;
+      }
+      
+      /* Nút Xóa trong cột Hành động */
+      .table-reports-2 #dataTable td:nth-child(8) button {
+        font-size: 11px !important;
+        padding: 4px 6px !important;
+        width: 100% !important;
+        max-width: 51px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: clip !important;
+      }
+      
       .controls-row {
         flex-direction: column;
         gap: 10px;
@@ -197,7 +230,7 @@
     // === 1. IMPORT ===
     import { auth, onAuth, deleteReport, getRole, showLoading, hideLoading, showSwal, showConfirmSwal, 
              getReportsByDate, db } from "./script.js";
-    import { collection, query, where, orderBy, getDocs, limit, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, query, where, orderBy, getDocs, limit, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
     // === 2. TẢI GIAO DIỆN CHUNG ===
@@ -227,8 +260,9 @@
     
     let currentFilter = { from: null, to: null };
     let initialLoad = true;
-    let allSearchData = []; 
+    let allSearchData = [];
     let userRole = null;
+    let realtimeListener = null; // ⭐️ Listener để cleanup
 
     // === 4. CÁC HÀM TIỆN ÍCH ===
     function formatISODate(d) {
@@ -318,11 +352,8 @@
             return dateB - dateA; // Mới nhất lên đầu
         });
         
-        // Giới hạn
+        // ⭐️ BỎ LOGIC slice VÌ ĐÃ LIMIT Ở FIREBASE
         let finalData = filteredData;
-        if (lowerCaseQuery === "" && limit !== "all") {
-            finalData = filteredData.slice(0, parseInt(limit));
-        }
 
         // Render
         let html = "";
@@ -357,6 +388,12 @@
 
     // === 6. HÀM TẢI DỮ LIỆU MỚI ===
     async function fetchAndRenderData() {
+        // ⭐️ 0. HỦY LISTENER CŨ (nếu có)
+        if (realtimeListener) {
+            realtimeListener();
+            realtimeListener = null;
+        }
+
         // 1. Lấy ngày
         const fromVal = fromInput.value;
         const toVal = toInput.value;
@@ -397,17 +434,28 @@
         // 2. Bật loading
         showLoading("Đang tải dữ liệu...");
         try {
-            // 3. Chạy 2 truy vấn
-            const q1 = query(
+            // ⭐️ 3. Chạy 2 truy vấn VỚI LIMIT
+            const selectedLimit = displayCountSelect.value; // "7", "20", hoặc "all"
+            
+            let q1 = query(
                 collection(db, "reports_2"),
                 where("ngay_nghi", ">=", startDate),
-                where("ngay_nghi", "<=", endDate)
+                where("ngay_nghi", "<=", endDate),
+                orderBy("ngay_nghi", "desc")
             );
-            const q2 = query(
+            let q2 = query(
                 collection(db, "reports_2"),
                 where("ngay_lam_db", ">=", startDate),
-                where("ngay_lam_db", "<=", endDate)
+                where("ngay_lam_db", "<=", endDate),
+                orderBy("ngay_lam_db", "desc")
             );
+            
+            // Thêm limit nếu không phải "all"
+            if (selectedLimit && selectedLimit !== "all") {
+                const limitNum = parseInt(selectedLimit);
+                q1 = query(q1, limit(limitNum));
+                q2 = query(q2, limit(limitNum));
+            }
 
             const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
             
@@ -417,15 +465,63 @@
 
             allSearchData = Array.from(reportsMap.values());
             
+            // ⭐️ 4. BẬT REAL-TIME LISTENER (Lắng nghe cả 2 trường ngày)
+            // Tạo lại queries với listener
+            let q1Listener = query(
+                collection(db, "reports_2"),
+                where("ngay_nghi", ">=", startDate),
+                where("ngay_nghi", "<=", endDate),
+                orderBy("ngay_nghi", "desc")
+            );
+            let q2Listener = query(
+                collection(db, "reports_2"),
+                where("ngay_lam_db", ">=", startDate),
+                where("ngay_lam_db", "<=", endDate),
+                orderBy("ngay_lam_db", "desc")
+            );
+            
+            if (selectedLimit && selectedLimit !== "all") {
+                const limitNum = parseInt(selectedLimit);
+                q1Listener = query(q1Listener, limit(limitNum));
+                q2Listener = query(q2Listener, limit(limitNum));
+            }
+            
+            // Dùng onSnapshot để tự động cập nhật
+            let snap1Data = [];
+            let snap2Data = [];
+            
+            const unsubscribe1 = onSnapshot(q1Listener, (snapshot) => {
+                snap1Data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateCombinedData();
+            });
+            
+            const unsubscribe2 = onSnapshot(q2Listener, (snapshot) => {
+                snap2Data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateCombinedData();
+            });
+            
+            // Cleanup function
+            realtimeListener = () => {
+                unsubscribe1();
+                unsubscribe2();
+            };
+            
+            function updateCombinedData() {
+                const combinedMap = new Map();
+                snap1Data.forEach(item => combinedMap.set(item.id, item));
+                snap2Data.forEach(item => combinedMap.set(item.id, item));
+                allSearchData = Array.from(combinedMap.values());
+                filterAndRenderData(allSearchData, searchInput.value, "all");
+            }
+            
         } catch (err) {
              console.error("Lỗi khi tải reports_2:", err);
              showSwal("error", "Lỗi tải dữ liệu", err.message);
              allSearchData = [];
-        } 
-        // 4. KHÔNG tắt loading ở đây
-
-        // 5. Render (vẫn bị che)
-        filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+        }
+        
+        // 5. KHÔNG render ở đây nữa vì onSnapshot sẽ trigger
+        // filterAndRenderData(allSearchData, searchInput.value, "all");
     }
     
     // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC ===
@@ -580,7 +676,8 @@
                 filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
             });
             displayCountSelect.addEventListener("change", () => {
-                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+                // ⭐️ KHI THAY ĐỔI LIMIT → TẢI LẠI DATA TỪ FIREBASE
+                fetchAndRenderData();
             });
 
         } else {
