@@ -1215,12 +1215,20 @@
     // ===================================================================
     // HÀM MỚI: LẮNG NGHE, HIỂN THỊ, VÀ QUẢN LÝ CÁC CA BÁO CÁO (LOGIC V4)
     // ===================================================================
+    let shiftListener = null; // ⭐️ Biến lưu unsubscribe function
+    
     function setupShiftAdminListeners() {
         const shiftSelect = document.getElementById('shiftSelect');
         const shiftListBody = document.getElementById('shift-list-body');
 
-        // Lắng nghe collection 'report_shifts'
-        onSnapshot(collection(db, "report_shifts"), (snapshot) => {
+        // ⭐️ HỦY LISTENER CŨ (nếu có) trước khi tạo mới
+        if (shiftListener) {
+            shiftListener();
+            shiftListener = null;
+        }
+
+        // Lắng nghe collection 'report_shifts' - ⭐️ CHỈ LOAD 1 LẦN
+        shiftListener = onSnapshot(collection(db, "report_shifts"), (snapshot) => {
             allReportShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             // Sắp xếp các ca theo giờ bắt đầu
             allReportShifts.sort((a, b) => a.startTime.localeCompare(b.startTime));
