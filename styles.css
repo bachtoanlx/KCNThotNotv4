@@ -562,7 +562,7 @@ tr:nth-child(even) {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 15px;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .site-footer p {
@@ -649,7 +649,7 @@ tr:nth-child(even) {
   }
   
   .nav-links a {
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .nav-links .dropbtn {
@@ -687,16 +687,16 @@ tr:nth-child(even) {
   }
   
   #userEmail {
-    font-size: 12px;
-    max-width: 100px;
+    font-size: 14px;
+    max-width: 140px;
     display: block;
   }
   
   #loginBtn,
   #logoutBtn {
-    padding: 6px 10px;
-    font-size: 13px;
-    min-width: 80px;
+    padding: 8px 12px;
+    font-size: 14px;
+    min-width: 90px;
   }
 
   /* --- Cấu hình cho menu con "Tác vụ" (Accordion) --- */
