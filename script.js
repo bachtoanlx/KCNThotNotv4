@@ -1190,7 +1190,7 @@ export function listenReports(collectionName, callback) {
   const q = query(
     collection(db, collectionName), 
     orderBy("createdAt", "desc"),
-    limit(200) // ← Thêm giới hạn
+    limit(500) // ← Thêm giới hạn
   );
   return onSnapshot(q, (snapshot) => {
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
