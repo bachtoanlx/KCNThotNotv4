@@ -163,7 +163,14 @@
                 if (!snapshot.empty) {
                     const data = snapshot.docs[0].data();
                     const val = data.chi_so;
-                    oldIndexInput.value = (val !== undefined && val !== null) ? new Intl.NumberFormat("de-DE").format(val) : "0";
+                    const dateStr = data.ngay_ghi;
+                    let displayVal = (val !== undefined && val !== null) ? new Intl.NumberFormat("de-DE").format(val) : "0";
+                    
+                    if (dateStr) {
+                        const [y, m, d] = dateStr.split('-');
+                        if (y && m && d) displayVal += ` ngày ${d}/${m}/${y}`;
+                    }
+                    oldIndexInput.value = displayVal;
                 } else {
                     oldIndexInput.value = "Chưa có dữ liệu";
                 }
