@@ -874,6 +874,7 @@ if (!snapSameDay.empty) {
         hideLoading();
         showSwal("success", "Đã ghi đè bản ghi reset.");
         form.reset();
+        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
         return;
       } catch (e) {
         console.error("Lỗi khi ghi đè cùng ngày:", e);
@@ -907,6 +908,7 @@ if (!snapSameDay.empty) {
         hideLoading();
         showSwal("success", "Đã thêm bản ghi reset mới.");
         form.reset();
+        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
         return;
       } catch (e) {
         console.error("Lỗi khi thêm mới cùng ngày:", e);
@@ -951,6 +953,7 @@ if (exactMatchDoc) {
       hideLoading();
       showSwal("success", "Đã cập nhật file cho bản ghi.");
       form.reset();
+      if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
       return;
     }
   }
@@ -1010,6 +1013,7 @@ if (exactMatchDoc) {
         hideLoading();
         showSwal("success", "Đã thay thế file cho bản ghi.");
         form.reset();
+        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
         return;
       } else {
         hideLoading();
@@ -1109,6 +1113,7 @@ if (exactMatchDoc) {
                     // Người dùng nhấn Hủy Bỏ
                     showSwal("info", "Đã hủy gửi báo cáo. Vui lòng kiểm tra lại chỉ số.");
                     form.reset();
+                    if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
                     // ⭐️ BỔ SUNG LOG ⭐️
                     addLog("meter_reset_canceled", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo });
                     return; 
@@ -1134,6 +1139,7 @@ if (exactMatchDoc) {
         if (!isConfirmed) {
             showSwal("info", "Đã hủy gửi báo cáo.");
             form.reset();
+            if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
             // ⭐️ BỔ SUNG LOG ⭐️
             addLog("form_submit_canceled", { email: userEmail, formId, reason: "Duplicate date confirmation" });
             return; 
@@ -1168,6 +1174,7 @@ if (exactMatchDoc) {
 
     showSwal("success", "Thành công", "Báo cáo đã được gửi!");
     form.reset();
+    if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
 }
 
 // ... (các khối xử lý form khác và khối finally) ...
@@ -1650,6 +1657,30 @@ export function listenRulesRealtime(callback) {
 export function getCurrentUserEmail() {
   return auth.currentUser?.email || "unknown_user";
 }
-// Export thêm các hàm Firestore cần thiết cho chatbot
-export { query, orderBy, limit, where, getDocs, collection };
 
+// ===================================================================
+// 🟠 TÍNH NĂNG CACHING (LƯU KẾT QUẢ TÍNH TOÁN)
+// ===================================================================
+
+/**
+ * Hành động: Lưu kết quả lịch trực cụ thể của một ngày vào Firestore.
+ * Dùng hàm này khi Admin chốt lịch hoặc khi hệ thống Autoplan tính toán xong.
+ * Collection: 'daily_schedules' (ID document sẽ là chuỗi ngày YYYY-MM-DD)
+ */
+export async function saveDailyScheduleCache(dateStr, content) {
+  // dateStr: "2024-12-12", content: "Nguyễn Văn A"
+  try {
+    const docRef = doc(db, "daily_schedules", dateStr);
+    await setDoc(docRef, {
+      content: content,
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || "system"
+    });
+    console.log(`✅ Đã lưu cache lịch trực cho ngày ${dateStr}`);
+  } catch (error) {
+    console.error("❌ Lỗi lưu cache lịch trực:", error);
+  }
+}
+
+// Export thêm các hàm Firestore cần thiết cho chatbot
+export { query, orderBy, limit, where, getDocs, collection, doc, getDoc };
