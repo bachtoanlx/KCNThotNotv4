@@ -32,9 +32,16 @@
                         <option value="NTSF">NTSF</option>
                     </select>
                 </div>
-                <div class="form-group form-field">
-                    <label for="chi_so">Chỉ số:</label>
-                    <input type="text" class="form-control" placeholder="Chỉ số đồng hồ..." id="chi_so" name="chi_so" required>
+                <div style="display: flex; gap: 10px;">
+                        <div class="form-group form-field" style="flex: 1;">
+                        <label for="chi_so">Chỉ số mới:</label>
+                        <input type="text" class="form-control" placeholder="Chỉ số đồng hồ..." id="chi_so" name="chi_so" required>
+                    </div>
+                    <div class="form-group form-field" style="flex: 1;">
+                        <label for="chi_so_cu">Chỉ số cũ:</label>
+                        <input type="text" class="form-control" placeholder="Chỉ số cũ..." id="chi_so_cu" name="chi_so_cu" readonly style="background-color: #e9ecef; cursor: not-allowed;">
+                    </div>
+
                 </div>
                 <div class="form-group form-field">
                     <label for="ngay_ghi">Ngày ghi:</label>
@@ -62,8 +69,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module">
-    import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal } from "./script.js";
+    import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db } from "./script.js";
     import { initMenu } from "./menu.js";
+    import { collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
     // load menu
     fetch("menu.html").then(r => r.text()).then(h => {
@@ -130,6 +138,41 @@
             inputField.value = capitalizedValue;
         });
     });
+
+    // Logic hiển thị chỉ số cũ khi chọn công ty
+    const companySelect = document.getElementById('c_ty');
+    const oldIndexInput = document.getElementById('chi_so_cu');
+
+    if (companySelect && oldIndexInput) {
+        companySelect.addEventListener('change', async function() {
+            const companyName = this.value;
+            if (!companyName) return;
+
+            oldIndexInput.value = "Đang tải...";
+            
+            try {
+                const q = query(
+                    collection(db, "reports_1"),
+                    where("company", "==", companyName),
+                    where("ngay_ghi", "<=", getCurrentDate()),
+                    orderBy("ngay_ghi", "desc"),
+                    limit(1)
+                );
+                const snapshot = await getDocs(q);
+                
+                if (!snapshot.empty) {
+                    const data = snapshot.docs[0].data();
+                    const val = data.chi_so;
+                    oldIndexInput.value = (val !== undefined && val !== null) ? new Intl.NumberFormat("de-DE").format(val) : "0";
+                } else {
+                    oldIndexInput.value = "Chưa có dữ liệu";
+                }
+            } catch (error) {
+                console.error("Lỗi lấy chỉ số cũ:", error);
+                oldIndexInput.value = "Lỗi tải";
+            }
+        });
+    }
 
 // Dấu phân cách phần ngàn và kiểm tra dữ liệu 
     document.getElementById("chi_so").addEventListener("input", function (event) {
