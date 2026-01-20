@@ -141,6 +141,7 @@
   const userFilter = document.getElementById('userFilter');
   const toggleFilterBtn = document.getElementById('toggleFilterBtn');
 
+  let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
   let allLogs = []; 
   let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
 
@@ -430,15 +431,6 @@
               new Date(endVal + 'T23:59:59') : 
               new Date(new Date().setHours(23, 59, 59, 999)); // ngày hiện tại 23:59:59
             clauses.push(where('createdAt', '<=', endDate));
-            // Filter by action and user if selected (use server-side where when possible)
-            const actionVal = actionFilter ? actionFilter.value : '';
-            const userVal = userFilter ? userFilter.value : '';
-            if (actionVal) {
-              clauses.push(where('action', '==', actionVal));
-            }
-            if (userVal) {
-              clauses.push(where('email', '==', userVal));
-            }
             // Always order by createdAt desc
             if (clauses.length > 0) {
               return query(coll, ...clauses, orderBy('createdAt', 'desc'));
@@ -446,8 +438,8 @@
             return query(coll, orderBy('createdAt', 'desc'));
           }
 
-          // Refresh realtime listener safely
-          async function refreshLogsListener() {
+          // Hàm lấy dữ liệu từ Firestore dựa trên khoảng thời gian
+          async function fetchLogsByDate() {
             // validate date range
             if (startDateInput.value && endDateInput.value) {
               const s = new Date(startDateInput.value + 'T00:00:00');
@@ -458,23 +450,56 @@
               }
             }
 
-            if (typeof unsubscribeLogs === 'function') {
-              try { unsubscribeLogs(); } catch (err) { /* ignore */ }
-              unsubscribeLogs = null;
-            }
+            // Cập nhật text hiển thị khoảng thời gian
+            updateDateRangeText();
 
             const q = buildLogsQuery();
-            // ⭐️ QUAN TRỌNG: Sử dụng getDocs() thay vì onSnapshot() cho logs
-            // Logs không cần real-time, chỉ cần load 1 lần khi người dùng click "Áp dụng"
             const snapshot = await getDocs(q);
-            allLogs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id }));
-            populateFilterOptions(allLogs);
-            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+            rawLogs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id }));
+            
+            // Luôn cập nhật danh sách tùy chọn dựa trên dữ liệu của khoảng thời gian này
+            populateFilterOptions(rawLogs);
+            
+            // Sau khi có dữ liệu mới, áp dụng bộ lọc Action/User hiện tại
+            applyLocalFilters();
+          }
+
+          // Hàm lọc client-side (Action, User) và render
+          function applyLocalFilters() {
+            let filteredLogs = rawLogs;
+            const actionVal = actionFilter ? actionFilter.value : '';
+            const userVal = userFilter ? userFilter.value : '';
+            
+            const isManualFilter = actionVal !== '' || userVal !== '' || startDateInput.value !== '' || endDateInput.value !== '';
+
+            if (toggleFilterBtn) {
+                if (isManualFilter) {
+                    toggleFilterBtn.textContent = 'Bỏ lọc';
+                    toggleFilterBtn.style.background = '#6c757d'; // Grey
+                    // Tự động chuyển hiển thị sang "Toàn bộ" khi đang lọc
+                    displayCountSelect.value = 'all';
+                } else {
+                    toggleFilterBtn.textContent = 'Áp dụng';
+                    toggleFilterBtn.style.background = '#3498db'; // Blue
+                }
+            }
+
+            if (actionVal) {
+                filteredLogs = filteredLogs.filter(l => l.action === actionVal);
+            }
+            if (userVal) {
+                filteredLogs = filteredLogs.filter(l => l.email === userVal);
+            }
+            
+            allLogs = filteredLogs;
+            // Nếu đang lọc thủ công thì hiển thị tất cả (bỏ qua giới hạn dòng), ngược lại dùng giới hạn đã chọn
+            const limitToUse = isManualFilter ? 'all' : displayCountSelect.value;
+            filterAndRenderLogs(allLogs, searchInput.value, limitToUse);
           }
 
           // ⭐️ initial listener - Gọi async function đúng cách
           (async () => {
-            await refreshLogsListener();
+            await fetchLogsByDate();
           })();
 
           // Populate selects helper (unique actions and emails)
@@ -517,54 +542,44 @@
 
           // Cập nhật text khi trang load và khi giá trị thay đổi
           updateDateRangeText();
-          startDateInput.addEventListener('change', updateDateRangeText);
-          endDateInput.addEventListener('change', updateDateRangeText);
+          
+          // Sự kiện thay đổi ngày -> Fetch lại dữ liệu Firestore
+          startDateInput.addEventListener('change', fetchLogsByDate);
+          endDateInput.addEventListener('change', fetchLogsByDate);
 
-          // wire up toggle button (Áp dụng <-> Bỏ lọc)
-          // initial state: not active
-          if (toggleFilterBtn) toggleFilterBtn.dataset.active = 'false';
-
-          toggleFilterBtn.addEventListener('click', () => {
-            const isActive = toggleFilterBtn.dataset.active === 'true';
-            if (isActive) {
-              // Clear filters (behave like previous "Xóa")
-              startDateInput.value = '';
-              endDateInput.value = '';
-              if (actionFilter) actionFilter.value = '';
-              if (userFilter) userFilter.value = '';
-              toggleFilterBtn.dataset.active = 'false';
-              toggleFilterBtn.textContent = 'Áp dụng';
-              toggleFilterBtn.style.background = '#3498db';
-              // refresh to listener without filters
-              refreshLogsListener();
-            } else {
-              // Apply current filter values
-              // validate date range
-              if (startDateInput.value && endDateInput.value) {
-                const s = new Date(startDateInput.value + 'T00:00:00');
-                const e = new Date(endDateInput.value + 'T23:59:59');
-                if (s > e) {
-                  Swal.fire('Lỗi', 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.', 'error');
-                  return;
-                }
-              }
-              toggleFilterBtn.dataset.active = 'true';
-              toggleFilterBtn.textContent = 'Bỏ lọc';
-              // change color to indicate active filter (neutral)
-              toggleFilterBtn.style.background = '#777';
-              // refresh listener with current filters
-              refreshLogsListener();
-            }
-          });
+          // Sự kiện thay đổi bộ lọc -> Lọc local ngay lập tức
+          actionFilter.addEventListener('change', applyLocalFilters);
+          userFilter.addEventListener('change', applyLocalFilters);
+          
+          // Sự kiện nút Áp dụng / Bỏ lọc
+          if (toggleFilterBtn) {
+              toggleFilterBtn.addEventListener('click', () => {
+                  if (toggleFilterBtn.textContent === 'Bỏ lọc') {
+                      actionFilter.value = '';
+                      userFilter.value = '';
+                      startDateInput.value = '';
+                      endDateInput.value = '';
+                      // Reset về mặc định (7 dòng) khi bỏ lọc
+                      displayCountSelect.value = '7';
+                      fetchLogsByDate();
+                  } else {
+                      fetchLogsByDate();
+                  }
+              });
+          }
 
           // Note: selects (action/user) do NOT auto-apply; user must click Áp dụng to activate filters.
 
           searchInput.addEventListener("input", () => {
-            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+            const isManual = (actionFilter.value !== '' || userFilter.value !== '' || startDateInput.value !== '' || endDateInput.value !== '');
+            const limit = isManual ? 'all' : displayCountSelect.value;
+            filterAndRenderLogs(allLogs, searchInput.value, limit);
           });
 
           displayCountSelect.addEventListener("change", () => {
-            filterAndRenderLogs(allLogs, searchInput.value, displayCountSelect.value);
+            const isManual = (actionFilter.value !== '' || userFilter.value !== '' || startDateInput.value !== '' || endDateInput.value !== '');
+            const limit = isManual ? 'all' : displayCountSelect.value;
+            filterAndRenderLogs(allLogs, searchInput.value, limit);
           });
 
         } else {
