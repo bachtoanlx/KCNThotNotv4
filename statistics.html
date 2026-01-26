@@ -608,7 +608,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module">
 import { doc, getDoc, deleteDoc, addDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal} from "./script.js";
+import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate} from "./script.js";
 import { initMenu } from "./menu.js";
 
 
@@ -910,6 +910,7 @@ function setupConfigModal() {
     let config = { weekDayStart: 0, monthDayStart: 1, billingDayStart: 1, yearDayStart: 1, quotaMultipliers: {} }; 
     let isInitialLoad = true;
     
+    let unsubscribeReports1 = null; // Biến lưu listener để hủy khi cần
     // MỚI: Biến lưu trữ dữ liệu chi tiết ngày nghỉ (khi Mode 2 bật)
     let allHolidayDetails = { week: [], month: [], billing: [], year: [] }; 
 
@@ -2041,7 +2042,57 @@ async function deleteInitialReading(companyName) {
       el.addEventListener("change", resetYearSelectIfEditingDates);
     });
 
-    const applyDateFilter = () => {
+    // HÀM KHỞI TẠO REALTIME LISTENER (Mặc định)
+    function startRealtimeReports() {
+        if (unsubscribeReports1) return; // Đã chạy rồi thì thôi
+
+        unsubscribeReports1 = listenReports("reports_1", async (reports) => {
+            allReports = reports;
+
+            // 1. Populate Year Select
+            const years = [...new Set(reports.map(r => {
+                const dateString = r.ngay_ghi;
+                if (dateString) return new Date(dateString).getFullYear();
+                return null;
+            }).filter(y => y !== null))].sort((a,b)=>b-a);
+
+            const ys = document.getElementById("yearSelect");
+            if(ys) {
+                const currentVal = ys.value; // Giữ giá trị đang chọn
+                ys.innerHTML = `<option value="">--Chọn năm--</option>`;
+                years.forEach(y => ys.innerHTML += `<option value="${y}">${y}</option>`);
+                if (currentVal && years.includes(Number(currentVal))) ys.value = currentVal;
+            }
+            
+            // 2. Set default filter on initial load
+            if(isInitialLoad) {
+                const currentYear = new Date().getFullYear();
+                if (years.includes(currentYear) && ys) {
+                  const todayISO = formatISODate(new Date());
+                  const currentYearStart = currentYear + '-01-01';
+                  
+                  // document.querySelector('input[name="report-mode"]').checked = true; 
+                  ys.value = currentYear;
+                  currentFilter.from = currentYearStart;
+                  currentFilter.to = todayISO; 
+                }
+            }
+
+            // 3. Get config
+            await getReportConfig(); 
+            
+            // 4. Render report
+            reRenderReport();
+            
+            if (companyGroupFilter) {
+                filterReportByCompanyGroup();
+            }
+            
+            isInitialLoad = false;
+        });
+    }
+
+    const applyDateFilter = async () => {
       const fromVal = fromInput.value;
       const toVal = toInput.value;
       const yearVal = yearSelect.value;
@@ -2069,8 +2120,40 @@ async function deleteInitialReading(companyName) {
         currentFilter.to = null;
       }
 
-      reRenderReport();
-      filterReportByCompanyGroup();
+      // LOGIC MỚI: Tải dữ liệu theo nhu cầu (Bỏ qua giới hạn 6000)
+      if (currentFilter.from && currentFilter.to) {
+          // 1. Tắt Realtime Listener (để tránh xung đột dữ liệu và tiết kiệm)
+          if (unsubscribeReports1) {
+              unsubscribeReports1();
+              unsubscribeReports1 = null;
+              console.log("LOG: Đã tắt Realtime Listener để chuyển sang chế độ Lọc Lịch sử.");
+          }
+
+          // 2. Tải dữ liệu đầy đủ từ Server cho khoảng thời gian này
+          showLoading("Đang tải dữ liệu lịch sử...");
+          try {
+              // Gọi hàm getReportsByDate (đã có trong script.js) để lấy chính xác khoảng thời gian
+              allReports = await getReportsByDate("reports_1", "ngay_ghi", currentFilter.from, currentFilter.to);
+              
+              await getReportConfig(); // Cập nhật config
+              reRenderReport();
+              filterReportByCompanyGroup();
+              
+          } catch (e) {
+              console.error("Lỗi tải lịch sử:", e);
+              showSwal("error", "Lỗi tải dữ liệu", e.message);
+          } finally {
+              hideLoading();
+          }
+      } else {
+          // Nếu bỏ lọc -> Quay lại chế độ Realtime mặc định
+          if (!unsubscribeReports1) {
+              startRealtimeReports();
+          } else {
+              reRenderReport();
+              filterReportByCompanyGroup();
+          }
+      }
     };
 
     if(applyFilterBtn) {
@@ -2081,21 +2164,10 @@ async function deleteInitialReading(companyName) {
     }
 
     if(yearSelect) {
-        yearSelect.addEventListener("change", (e) => {
-            const y = e.target.value;
-            if (y) {
-              currentFilter.from = `${y}-01-01`;
-              currentFilter.to = `${y}-12-31`;
-              fromInput.value = "";
-              toInput.value = "";
-            } else {
-              currentFilter.from = null;
-              currentFilter.to = null;
-              fromInput.value = "";
-              toInput.value = "";
-            }
-            reRenderReport();
-            filterReportByCompanyGroup();
+        yearSelect.addEventListener("change", async (e) => {
+            // Gọi hàm applyDateFilter để xử lý logic tải dữ liệu lịch sử
+            // Hàm này đã bao gồm việc xóa input ngày tháng và thiết lập filter
+            await applyDateFilter();
         });
     }
     
@@ -2472,50 +2544,8 @@ async function exportTableToPDF(element, filename) {
             // === KẾT THÚC Listener MỚI ===
 
 
-            // Listener 1: reports_1 (Chỉ số tiêu thụ)
-            listenReports("reports_1", async (reports) => {
-                allReports = reports;
-
-                // 1. Populate Year Select
-                const years = [...new Set(reports.map(r => {
-                    const dateString = r.ngay_ghi;
-                    if (dateString) return new Date(dateString).getFullYear();
-                    return null;
-                }).filter(y => y !== null))].sort((a,b)=>b-a);
-
-                const ys = document.getElementById("yearSelect");
-                if(ys) {
-                  ys.innerHTML = `<option value="">--Chọn năm--</option>`;
-                  years.forEach(y => ys.innerHTML += `<option value="${y}">${y}</option>`);
-                }
-                
-                // 2. Set default filter on initial load
-                if(isInitialLoad) {
-                    const currentYear = new Date().getFullYear();
-                    if (years.includes(currentYear) && ys) {
-                      const todayISO = formatISODate(new Date());
-                      const currentYearStart = currentYear + '-01-01';
-                      
-                      document.querySelector('input[name="report-mode"]').checked = true; // Set default mode 0
-                      ys.value = currentYear;
-                      currentFilter.from = currentYearStart;
-                      currentFilter.to = todayISO; 
-                    }
-                }
-
-                // 3. Get config (Đã bao gồm xử lý allHolidayRecords)
-                await getReportConfig(); 
-                
-                // 4. Render report
-                reRenderReport();
-                
-                // BƯỚC MỚI: Áp dụng bộ lọc nhóm công ty ngay sau khi render lần đầu
-                if (companyGroupFilter) {
-                    filterReportByCompanyGroup();
-                }
-                
-                isInitialLoad = false;
-            });
+            // Listener 1: reports_1 (Chỉ số tiêu thụ) - Dùng hàm mới startRealtimeReports
+            startRealtimeReports();
             
             // Listener 2: reports_2 (Ngày nghỉ/Ngày làm việc đặc biệt)
             listenReports("reports_2", async (holidays) => {
