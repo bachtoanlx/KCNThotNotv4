@@ -6,6 +6,38 @@
   <title>Gửi báo cáo</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
+    html, body {
+        height: 100vh;
+        overflow: hidden;
+        padding: 0 !important; /* Ghi đè padding của styles.css */
+        margin: 0 !important;
+    }
+
+    #pageContent {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .form-style-1 {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .card-body {
+        flex: 1;
+        overflow-y: auto; /* Cho phép cuộn nội dung form nếu dài */
+        overflow-x: hidden; /* Ngăn cuộn ngang không mong muốn */
+        padding-bottom: 20px;
+    }
+  </style>
 </head>
 
 <body>
@@ -53,7 +85,11 @@
                 </div>
                 <div class="form-group form-field">
                     <label for="file">Chọn hình ảnh</label>
-                    <input type="file" id="file" class="form-control-file" accept="image/*">
+                    <input type="file" id="file" class="form-control-file" accept="image/*" style="display: none;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                        <button type="button" id="customFileBtn" style="padding: 6px 12px; border: 1px solid #ced4da; background: #e9ecef; border-radius: 0.25rem; cursor: pointer; font-size: 1rem; color: #495057;">Chọn tệp</button>
+                        <span id="customFileName" style="color: #666; font-style: italic; cursor: default;">Không có tệp nào được chọn</span>
+                    </div>
                 </div>
             </form>
                 <br>
@@ -94,7 +130,7 @@
     onAuth(user => {
       if (user) {
         notLogged.style.display = "none";
-        content.style.display = "block";
+        content.style.display = "flex";
       } else {
         notLogged.style.display = "block";
         content.style.display = "none";
@@ -179,6 +215,84 @@
                 oldIndexInput.value = "Lỗi tải";
             }
         });
+    }
+
+    // Logic xem trước hình ảnh
+    const fileInput = document.getElementById('file');
+    const customFileBtn = document.getElementById('customFileBtn');
+    const customFileName = document.getElementById('customFileName');
+    let currentImageBase64 = null;
+
+    if (fileInput && customFileBtn && customFileName) {
+        // Kích hoạt input file khi nhấn nút Chọn tệp
+        customFileBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImageBase64 = e.target.result;
+                    // Cập nhật giao diện khi có file
+                    customFileName.textContent = file.name;
+                    customFileName.style.color = "#007bff";
+                    customFileName.style.fontStyle = "normal";
+                    customFileName.style.fontWeight = "bold";
+                    customFileName.style.textDecoration = "underline";
+                    customFileName.style.cursor = "pointer";
+                    customFileName.title = "Nhấn để xem ảnh lớn";
+                }
+                reader.readAsDataURL(file);
+            } else {
+                // Reset về trạng thái ban đầu
+                currentImageBase64 = null;
+                customFileName.textContent = "Không có tệp nào được chọn";
+                customFileName.style.color = "#666";
+                customFileName.style.fontStyle = "italic";
+                customFileName.style.fontWeight = "normal";
+                customFileName.style.textDecoration = "none";
+                customFileName.style.cursor = "default";
+                customFileName.title = "";
+            }
+        });
+
+        // Sự kiện click vào tên file để xem ảnh
+        customFileName.addEventListener('click', function() {
+                if (currentImageBase64) {
+                    Swal.fire({
+                        imageUrl: currentImageBase64,
+                        imageAlt: 'Xem trước hình ảnh',
+                        showCloseButton: true,
+                        showConfirmButton: false,
+                        width: 'auto',
+                        padding: '10px',
+                        backdrop: `rgba(0,0,0,0.8)`
+                    });
+                }
+        });
+    }
+
+    // Tự động xóa preview sau khi gửi thành công (khi form được reset)
+    const originalSubmitForm = window.submitForm;
+    if (originalSubmitForm) {
+        window.submitForm = async function(e, formId, collectionName, folderId) {
+            await originalSubmitForm(e, formId, collectionName, folderId);
+            // Nếu form đã được reset (file input rỗng), xóa preview
+            if (fileInput && fileInput.files.length === 0) {
+                currentImageBase64 = null;
+                if (customFileName) {
+                    customFileName.textContent = "Không có tệp nào được chọn";
+                    customFileName.style.color = "#666";
+                    customFileName.style.fontStyle = "italic";
+                    customFileName.style.fontWeight = "normal";
+                    customFileName.style.textDecoration = "none";
+                    customFileName.style.cursor = "default";
+                    customFileName.title = "";
+                }
+            }
+        };
     }
 
 // Dấu phân cách phần ngàn và kiểm tra dữ liệu 
