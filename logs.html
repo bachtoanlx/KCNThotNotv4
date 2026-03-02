@@ -13,6 +13,44 @@
       table-layout: fixed;
       width: 100%;
       word-wrap: break-word; /* Đảm bảo từ dài nhất cũng sẽ được xuống dòng */
+      min-width: 800px; /* Đảm bảo bảng không bị co quá nhỏ trên mobile */
+    }
+
+    /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
+    html, body {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    #pageContent {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-bottom: 5px;
+    }
+
+    form {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    /* Tùy chỉnh container để cuộn dọc nội dung bảng */
+    .table-container {
+        flex: 1; /* Tự động chiếm không gian còn lại */
+        max-height: none; /* Bỏ giới hạn cứng */
+        overflow-y: auto; /* Hiện thanh cuộn dọc */
+        border: 1px solid #ddd;
     }
 
     /* Thiết lập độ rộng cụ thể cho từng cột và căn chỉnh */
@@ -26,6 +64,10 @@
       text-align: center;
       background-color: #e8ebf5;
       padding: 12px 8px;
+      position: sticky; /* Cố định tiêu đề */
+      top: 0;
+      z-index: 5;
+      box-shadow: 0 1px 0 #ccc;
     }
     
     #logsTable td {
@@ -36,10 +78,33 @@
 
     /* Đảm bảo nội dung trong các ô có thể xuống dòng */
     #logsTable td {
-      white-space: normal !important; /* Ghi đè các style khác để buộc xuống dòng */
-      vertical-align: top; /* Căn nội dung lên trên cùng của ô cho dễ đọc */
+      vertical-align: middle; /* Căn giữa theo chiều dọc cho đẹp */
+      white-space: nowrap; /* Bắt buộc hiển thị 1 dòng cho TOÀN BỘ các cột */
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
+    /* CSS cho nội dung chi tiết rút gọn */
+    .log-details-wrapper {
+        display: block;
+        white-space: nowrap; /* Bắt buộc hiển thị 1 dòng */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-radius: 4px;
+    }
+    .log-details-wrapper:hover {
+        background-color: #f0f8ff;
+        color: #0056b3;
+    }
+    .log-details-wrapper.expanded {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        background-color: #f0f8ff;
+    }
+
     /* Mobile responsive */
     @media (max-width: 768px) {
       #displayCount {
@@ -53,6 +118,19 @@
       }
     }
     
+    /* Animation highlight */
+    @keyframes highlightOutline {
+        0% { outline: 2px solid transparent; box-shadow: none; }
+        25% { outline: 3px solid #ff4444; box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        50% { outline: 2px solid transparent; box-shadow: none; }
+        75% { outline: 3px solid #ff4444; box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        100% { outline: 2px solid transparent; box-shadow: none; }
+    }
+    .highlight-area {
+        animation: highlightOutline 2s ease-in-out;
+        border-radius: 4px;
+        outline-offset: 6px;
+    }
   </style>
   </head>
 <body>
@@ -85,6 +163,7 @@
       <div style="margin-bottom: 12px;">
         <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm nhật ký..." style="width: 100%; padding: 8px;">
       </div>
+      <div class="table-container">
         <table id="logsTable">
           <thead>
             <tr>
@@ -96,12 +175,15 @@
           </thead>
           <tbody></tbody>
         </table>
+      </div>
     </form>
         <div style="text-align: right; margin-top: 10px;">
         <label for="displayCount">Hiển thị:</label>
         <select id="displayCount">
-            <option value="7">7 dòng</option>
+            <option value="6">6 dòng</option>
+            <option value="12">12 dòng</option>
             <option value="20">20 dòng</option>
+            <option value="50">50 dòng</option>
             <option value="all">Toàn bộ</option>
         </select>
     </div>
@@ -118,7 +200,8 @@
       orderBy,
       where,
       onSnapshot,
-      getDocs
+      getDocs,
+      limit
     } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
     // Load menu
@@ -144,6 +227,7 @@
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
   let allLogs = []; 
   let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
+  let highlightTimeout = null; // Biến debounce cho highlight
 
     const filterAndRenderLogs = (logs, query, limit) => {
         const lowerCaseQuery = query.toLowerCase().trim();
@@ -177,6 +261,41 @@
         }
 
           tbody.innerHTML = "";
+
+          // Xóa timeout cũ nếu có (debounce)
+          if (highlightTimeout) {
+              clearTimeout(highlightTimeout);
+              highlightTimeout = null;
+          }
+          // Xóa class highlight cũ nếu đang chạy dở
+          document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
+          
+          if (finalData.length === 0) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan="4" style="text-align: center; color: #cc0000; font-style: italic; padding: 20px;">
+                Dữ liệu đang tìm không có hoặc nằm ngoài vùng hiển thị, hãy điều chỉnh để có kết quả tìm chính xác hơn.
+            </td>`;
+            tbody.appendChild(tr);
+            
+            // Hiệu ứng nhắc nhở người dùng
+            highlightTimeout = setTimeout(() => {
+                const filterBox = document.querySelector('.filter-box');
+                if (filterBox) {
+                    filterBox.classList.add('highlight-area');
+                    setTimeout(() => {
+                        filterBox.classList.remove('highlight-area');
+                        const displayCountEl = document.getElementById('displayCount');
+                        const displayContainer = displayCountEl ? (displayCountEl.closest('.right-controls') || displayCountEl.parentElement) : null;
+                        if (displayContainer) {
+                            displayContainer.classList.add('highlight-area');
+                            setTimeout(() => displayContainer.classList.remove('highlight-area'), 2000);
+                        }
+                    }, 2000);
+                }
+            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
+            return;
+          }
+
           finalData.forEach(log => {
             const time = log.createdAt?.toDate
                 ? log.createdAt.toDate().toLocaleString('vi-VN')
@@ -393,13 +512,51 @@
                     break;
             }
 
+            // Tạo bản xem trước cho bảng (loại bỏ thẻ <br> để hiển thị 1 dòng)
+            const previewDetails = details.replace(/<br\s*\/?>/gi, " | ");
+            const displayPreview = previewDetails.trim() ? previewDetails : 'Không có chi tiết';
+            const displayFull = details.trim() ? details : 'Không có chi tiết';
+
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${time}</td>
-                <td>${log.email || ""}</td>
+                <td title="${log.email || ""}">${log.email || ""}</td>
                 <td title="${actionTooltips[log.action] || log.action || ""}">${log.action || ""}</td>
-                <td>${details.trim() ? details : 'Không có chi tiết'}</td>
+                <td><div class="log-details-wrapper" title="Nhấn để xem chi tiết">${displayPreview}</div></td>
             `;
+            
+            // Gắn sự kiện click để xem chi tiết (Accordion style)
+            const detailCell = tr.querySelector('.log-details-wrapper');
+            if (detailCell) {
+                detailCell._fullContent = displayFull;
+                detailCell._previewContent = displayPreview;
+
+                detailCell.addEventListener('click', function(e) {
+                    const currentDiv = e.currentTarget;
+                    const isExpanded = currentDiv.classList.contains('expanded');
+
+                    // 1. Thu gọn tất cả các dòng khác đang mở
+                    document.querySelectorAll('.log-details-wrapper.expanded').forEach(div => {
+                        if (div !== currentDiv) {
+                            div.classList.remove('expanded');
+                            div.innerHTML = div._previewContent;
+                            div.title = "Nhấn để xem chi tiết";
+                        }
+                    });
+
+                    // 2. Toggle dòng hiện tại
+                    if (isExpanded) {
+                        currentDiv.classList.remove('expanded');
+                        currentDiv.innerHTML = currentDiv._previewContent;
+                        currentDiv.title = "Nhấn để xem chi tiết";
+                    } else {
+                        currentDiv.classList.add('expanded');
+                        currentDiv.innerHTML = currentDiv._fullContent;
+                        currentDiv.title = "Nhấn để thu gọn";
+                    }
+                });
+            }
+            
             tbody.appendChild(tr);
         });
     };
@@ -410,8 +567,13 @@
         if (role === "admin") {
           notLogged.style.display = "none";
           noPermission.style.display = "none";
-          content.style.display = "block";
+          content.style.display = "flex"; /* Sử dụng flex để layout hoạt động đúng */
           
+          // Tự động chọn 12 dòng trên mobile
+          if (window.innerWidth <= 768 && displayCountSelect) {
+              displayCountSelect.value = "12";
+          }
+
           // helper: build query based on date inputs
           function buildLogsQuery() {
             const coll = collection(db, "logs");
@@ -431,11 +593,15 @@
               new Date(endVal + 'T23:59:59') : 
               new Date(new Date().setHours(23, 59, 59, 999)); // ngày hiện tại 23:59:59
             clauses.push(where('createdAt', '<=', endDate));
-            // Always order by createdAt desc
-            if (clauses.length > 0) {
-              return query(coll, ...clauses, orderBy('createdAt', 'desc'));
+            
+            // Thêm limit dựa trên displayCount
+            const limitVal = displayCountSelect.value;
+            let q = query(coll, ...clauses, orderBy('createdAt', 'desc'));
+            
+            if (limitVal !== 'all') {
+                q = query(q, limit(parseInt(limitVal)));
             }
-            return query(coll, orderBy('createdAt', 'desc'));
+            return q;
           }
 
           // Hàm lấy dữ liệu từ Firestore dựa trên khoảng thời gian
@@ -559,8 +725,8 @@
                       userFilter.value = '';
                       startDateInput.value = '';
                       endDateInput.value = '';
-                      // Reset về mặc định (7 dòng) khi bỏ lọc
-                      displayCountSelect.value = '7';
+                      // Reset về mặc định (6 dòng) khi bỏ lọc
+                      displayCountSelect.value = '6';
                       fetchLogsByDate();
                   } else {
                       fetchLogsByDate();
@@ -577,9 +743,7 @@
           });
 
           displayCountSelect.addEventListener("change", () => {
-            const isManual = (actionFilter.value !== '' || userFilter.value !== '' || startDateInput.value !== '' || endDateInput.value !== '');
-            const limit = isManual ? 'all' : displayCountSelect.value;
-            filterAndRenderLogs(allLogs, searchInput.value, limit);
+            fetchLogsByDate();
           });
 
         } else {
