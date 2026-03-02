@@ -20,6 +20,26 @@
         text-align: center;
         vertical-align: middle;
         padding: 8px;
+        /* Force single line */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+    }
+    
+    .clickable-cell {
+        cursor: pointer;
+        color: #0056b3;
+    }
+    .clickable-cell:hover {
+        text-decoration: underline;
+        background-color: #f0f8ff;
+    }
+    .clickable-cell.expanded {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        background-color: #f0f8ff;
     }
 
     .admin-only {
@@ -158,6 +178,67 @@
         justify-content: space-between;
       }
     }
+    
+    /* Animation highlight */
+    @keyframes highlightOutline {
+        0% { outline: 2px solid transparent; box-shadow: none; }
+        25% { outline: 3px solid #ff4444; box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        50% { outline: 2px solid transparent; box-shadow: none; }
+        75% { outline: 3px solid #ff4444; box-shadow: 0 0 20px rgba(255, 68, 68, 0.8); }
+        100% { outline: 2px solid transparent; box-shadow: none; }
+    }
+    .highlight-area {
+        animation: highlightOutline 2s ease-in-out;
+        border-radius: 4px;
+        outline-offset: 6px;
+    }
+
+    /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
+    html, body {
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    #pageContent {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-bottom: 5px;
+    }
+
+    form {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    /* Tùy chỉnh container để cuộn dọc nội dung bảng */
+    .table-container {
+        flex: 1; /* Tự động chiếm không gian còn lại */
+        max-height: none; /* Bỏ giới hạn cứng */
+        overflow: auto; /* Hiện thanh cuộn (cả dọc và ngang nếu cần) */
+        border: 1px solid #ddd;
+    }
+    
+    /* Cố định tiêu đề bảng */
+    #dataTable th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        box-shadow: 0 1px 0 #ccc;
+    }
         
   </style>
 </head>
@@ -215,8 +296,10 @@
         <div class="right-controls">
           <label for="displayCount">Hiển thị:</label>
           <select id="displayCount">
-              <option value="7">7 dòng</option>
+              <option value="5">5 dòng</option>
+              <option value="12">12 dòng</option>
               <option value="20">20 dòng</option>
+              <option value="50">50 dòng</option>
               <option value="all">Toàn bộ</option>
           </select>
         </div>
@@ -263,6 +346,7 @@
     let allSearchData = [];
     let userRole = null;
     let realtimeListener = null; // ⭐️ Listener để cleanup
+    let highlightTimeout = null; // Biến debounce cho highlight
 
     // === 4. CÁC HÀM TIỆN ÍCH ===
     function formatISODate(d) {
@@ -356,30 +440,105 @@
         let finalData = filteredData;
 
         // Render
+        tbody.innerHTML = ""; // ⭐️ Xóa nội dung cũ trước khi render
+
+        // Xóa timeout cũ nếu có (debounce)
+        if (highlightTimeout) {
+            clearTimeout(highlightTimeout);
+            highlightTimeout = null;
+        }
+        // Xóa class highlight cũ nếu đang chạy dở
+        document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
+        
+        if (finalData.length === 0) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td colspan="8" style="text-align: center; color: #cc0000; font-style: italic; padding: 20px;">
+                Dữ liệu đang tìm không có hoặc nằm ngoài vùng hiển thị, hãy điều chỉnh để có kết quả tìm chính xác hơn.
+            </td>`;
+            tbody.appendChild(tr);
+            
+            // Hiệu ứng nhắc nhở người dùng
+            highlightTimeout = setTimeout(() => {
+                const filterBox = document.querySelector('.filter-box');
+                if (filterBox) {
+                    filterBox.classList.add('highlight-area');
+                    setTimeout(() => {
+                        filterBox.classList.remove('highlight-area');
+                        const displayCountEl = document.getElementById('displayCount');
+                        const displayContainer = displayCountEl ? (displayCountEl.closest('.right-controls') || displayCountEl.parentElement) : null;
+                        if (displayContainer) {
+                            displayContainer.classList.add('highlight-area');
+                            setTimeout(() => displayContainer.classList.remove('highlight-area'), 2000);
+                        }
+                    }, 2000);
+                }
+            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
+            return;
+        }
+
         let html = "";
         let sttCounter = 1; 
         finalData.forEach(r => {
             const fileLink = r.fileUrl ? `<a href="${r.fileUrl}" target="_blank">Link</a>` : "";
             const formattedTime = formatTimestamp(r.updatedAt || r.createdAt);
             let combinedGhiChu = r.ghi_chu || "";
+            let displayGhiChu = combinedGhiChu;
+            
             if (r.ngay_lam_db) {
-                combinedGhiChu += `<br>(Ngày làm ĐB: ${r.ngay_lam_db})`; 
+                combinedGhiChu += `<br><b>(Ngày làm ĐB: ${r.ngay_lam_db})</b>`; 
+                displayGhiChu += ` (Ngày làm ĐB: ${r.ngay_lam_db})`;
             }
+            
+            // Xử lý loại bỏ thẻ <br> để hiển thị 1 dòng trên bảng
+            displayGhiChu = displayGhiChu.replace(/<br\s*\/?>/gi, " | ");
+
             const displayDate = r.ngay_nghi || ""; 
 
-            html += `
-                <tr>
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
                     <td>${sttCounter++}</td> 
                     <td class="admin-only">${r.createdBy || ""}</td>
                     <td>${r.company || ""}</td>
                     <td>${displayDate}</td> 
-                    <td>${combinedGhiChu}</td> 
+                    <td><div class="clickable-cell" title="Nhấn xem chi tiết">${displayGhiChu}</div></td> 
                     <td>${fileLink}</td>
                     <td class="admin-only">${formattedTime}</td>
-                    <td class="admin-only"><button type="button" data-id="${r.id}" class="delBtn">Xóa</button></td>
-                </tr>`;
+                    <td class="admin-only"><button type="button" data-id="${r.id}" class="delBtn">Xóa</button></td>`;
+            
+            const noteCell = tr.querySelector('.clickable-cell');
+            if (noteCell) {
+                noteCell._fullContent = combinedGhiChu || "Không có ghi chú";
+                noteCell._previewContent = displayGhiChu;
+
+                noteCell.addEventListener('click', function(e) {
+                    const currentDiv = e.currentTarget;
+                    const isExpanded = currentDiv.classList.contains('expanded');
+
+                    // 1. Thu gọn tất cả các dòng khác đang mở
+                    document.querySelectorAll('.clickable-cell.expanded').forEach(div => {
+                        if (div !== currentDiv) {
+                            div.classList.remove('expanded');
+                            div.innerHTML = div._previewContent;
+                            div.title = "Nhấn xem chi tiết";
+                        }
+                    });
+
+                    // 2. Toggle dòng hiện tại
+                    if (isExpanded) {
+                        currentDiv.classList.remove('expanded');
+                        currentDiv.innerHTML = currentDiv._previewContent;
+                        currentDiv.title = "Nhấn xem chi tiết";
+                    } else {
+                        currentDiv.classList.add('expanded');
+                        currentDiv.innerHTML = currentDiv._fullContent;
+                        currentDiv.title = "Nhấn để thu gọn";
+                    }
+                });
+            }
+            
+            tbody.appendChild(tr);
         });
-        tbody.innerHTML = html;
+        // tbody.innerHTML = html;
         attachDeleteEventListeners();
         document.querySelectorAll("#dataTable th.admin-only, #dataTable td.admin-only").forEach(el => {
             el.style.display = isAdmin ? "table-cell" : "none";
@@ -654,12 +813,17 @@
                     initialLoad = false;
                 }
 
+                // Tự động chọn 12 dòng trên mobile
+                if (window.innerWidth <= 768 && displayCountSelect) {
+                    displayCountSelect.value = "12";
+                }
+
                 // 4. Tải dữ liệu chính (Lần đầu)
                 // (Hàm này sẽ bật loading, nhưng không tắt nó)
                 await fetchAndRenderData(); 
                 
                 // 5. HIỂN THỊ NỘI DUNG VÀ FOOTER
-                content.style.display = "block"; 
+                content.style.display = "flex"; 
                 if (footer) footer.style.display = "block";
 
             } catch (err) {
