@@ -35,7 +35,9 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        padding-bottom: 5px;
+        padding-bottom: 2px;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
     }
 
     form {
@@ -54,16 +56,20 @@
     }
 
     /* Thiết lập độ rộng cụ thể cho từng cột và căn chỉnh */
-    #logsTable th:nth-child(1), #logsTable td:nth-child(1) { width: 15%; } /* Cột Thời gian */
-    #logsTable th:nth-child(2), #logsTable td:nth-child(2) { width: 15%; } /* Cột Người dùng */
-    #logsTable th:nth-child(3), #logsTable td:nth-child(3) { width: 20%; } /* Cột Hành động */
-    #logsTable th:nth-child(4), #logsTable td:nth-child(4) { width: 50%; } /* Cột Chi tiết */
+    /* Cột 1: Thời gian */
+    #logsTable th:nth-child(1), #logsTable td:nth-child(1) { width: 140px; min-width: 140px; max-width: 140px; } 
+    /* Cột 2: Người dùng */
+    #logsTable th:nth-child(2), #logsTable td:nth-child(2) { width: 170px; min-width: 170px; max-width: 170px; } 
+    /* Cột 3: Hành động */
+    #logsTable th:nth-child(3), #logsTable td:nth-child(3) { width: 180px; min-width: 180px; max-width: 180px; } 
+    /* Cột 4: Chi tiết (Tự động co giãn phần còn lại) */
+    #logsTable th:nth-child(4), #logsTable td:nth-child(4) { width: auto; } 
     
     /* Căn giữa tiêu đề và căn trái nội dung */
     #logsTable th {
       text-align: center;
       background-color: #e8ebf5;
-      padding: 12px 8px;
+      padding: 8px;
       position: sticky; /* Cố định tiêu đề */
       top: 0;
       z-index: 5;
@@ -72,7 +78,9 @@
     
     #logsTable td {
       text-align: left;
-      padding: 8px;
+      padding: 4px 5px; /* Giảm padding */
+      font-size: 14px;  /* Giảm cỡ chữ */
+      height: 35px;     /* Cố định chiều cao dòng */
     }
 
 
@@ -131,6 +139,28 @@
         border-radius: 4px;
         outline-offset: 6px;
     }
+
+    /* --- TỐI ƯU HÓA KHÔNG GIAN (COMPACT MODE) --- */
+    nav.navbar {
+        margin-bottom: 5px !important;
+    }
+
+    h2 {
+        margin: 2px 0 5px 0 !important;
+        font-size: 1.3rem !important;
+    }
+    
+    .filter-box {
+        margin: 0 0 5px 0 !important;
+        gap: 5px !important;
+    }
+    
+    .filter-box input, .filter-box select, .filter-box button {
+        height: 28px !important;
+        padding: 2px 8px !important;
+        font-size: 13px !important;
+    }
+    /* --------------------------------------------- */
   </style>
   </head>
 <body>
@@ -157,7 +187,6 @@
     <select id="userFilter"><option value="">--Tất cả--</option></select>
     <button id="toggleFilterBtn" type="button">Áp dụng</button>
   </div>
-  <div class="note" id="defaultDateRange" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
     
     <form>
       <div style="margin-bottom: 12px;">
@@ -180,8 +209,7 @@
         <div style="text-align: right; margin-top: 10px;">
         <label for="displayCount">Hiển thị:</label>
         <select id="displayCount">
-            <option value="6">6 dòng</option>
-            <option value="12">12 dòng</option>
+            <option value="10">10 dòng</option>
             <option value="20">20 dòng</option>
             <option value="50">50 dòng</option>
             <option value="all">Toàn bộ</option>
@@ -569,9 +597,9 @@
           noPermission.style.display = "none";
           content.style.display = "flex"; /* Sử dụng flex để layout hoạt động đúng */
           
-          // Tự động chọn 12 dòng trên mobile
+          // Tự động chọn 10 dòng trên mobile
           if (window.innerWidth <= 768 && displayCountSelect) {
-              displayCountSelect.value = "12";
+              displayCountSelect.value = "10";
           }
 
           // helper: build query based on date inputs
@@ -606,6 +634,19 @@
 
           // Hàm lấy dữ liệu từ Firestore dựa trên khoảng thời gian
           async function fetchLogsByDate() {
+            // Tự động điền ngày mặc định nếu trống
+            if (!startDateInput.value) {
+                const currentYear = new Date().getFullYear();
+                startDateInput.value = `${currentYear}-01-01`;
+            }
+            if (!endDateInput.value) {
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                endDateInput.value = `${y}-${m}-${d}`;
+            }
+
             // validate date range
             if (startDateInput.value && endDateInput.value) {
               const s = new Date(startDateInput.value + 'T00:00:00');
@@ -615,9 +656,6 @@
                 return;
               }
             }
-
-            // Cập nhật text hiển thị khoảng thời gian
-            updateDateRangeText();
 
             const q = buildLogsQuery();
             const snapshot = await getDocs(q);
@@ -643,7 +681,7 @@
                     toggleFilterBtn.textContent = 'Bỏ lọc';
                     toggleFilterBtn.style.background = '#6c757d'; // Grey
                     // Tự động chuyển hiển thị sang "Toàn bộ" khi đang lọc
-                    displayCountSelect.value = 'all';
+                    // displayCountSelect.value = 'all';
                 } else {
                     toggleFilterBtn.textContent = 'Áp dụng';
                     toggleFilterBtn.style.background = '#3498db'; // Blue
@@ -689,25 +727,6 @@
               if (Array.from(users).includes(prevU)) userFilter.value = prevU;
             }
           }
-          // Hàm cập nhật text hiển thị khoảng thời gian
-          function updateDateRangeText() {
-            const defaultSpan = document.getElementById('defaultDateRange');
-            const startVal = startDateInput.value;
-            const endVal = endDateInput.value;
-            const currentYear = new Date().getFullYear();
-            
-            let startText = startVal ? new Date(startVal).toLocaleDateString('vi-VN') : `1/1/${currentYear}`;
-            let endText = endVal ? new Date(endVal).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN');
-            
-            if (!startVal || !endVal) {
-              defaultSpan.textContent = `Đang xem dữ liệu từ ${startText} đến ${endText}`;
-            } else {
-              defaultSpan.textContent = `Đang xem dữ liệu từ ${startText} đến ${endText}`;
-            }
-          }
-
-          // Cập nhật text khi trang load và khi giá trị thay đổi
-          updateDateRangeText();
           
           // Sự kiện thay đổi ngày -> Fetch lại dữ liệu Firestore
           startDateInput.addEventListener('change', fetchLogsByDate);
@@ -725,8 +744,8 @@
                       userFilter.value = '';
                       startDateInput.value = '';
                       endDateInput.value = '';
-                      // Reset về mặc định (6 dòng) khi bỏ lọc
-                      displayCountSelect.value = '6';
+                      // Reset về mặc định (10 dòng) khi bỏ lọc
+                      displayCountSelect.value = '10';
                       fetchLogsByDate();
                   } else {
                       fetchLogsByDate();
