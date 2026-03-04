@@ -14,17 +14,54 @@
         min-width: 50px;
         max-width: 50px; 
     }
+
+    /* --- TÙY CHỈNH KÍCH THƯỚC CÁC CỘT (Thêm vào để chỉnh từng cột) --- */
+    /* Cột 2: Người gửi (Admin only) */
+    #dataTable th:nth-child(2), #dataTable td:nth-child(2) { width: 170px; min-width: 170px; max-width: 170px; }
+
+    /* Cột 3: Công ty */
+    #dataTable th:nth-child(3), #dataTable td:nth-child(3) { width: 140px; min-width: 140px; max-width: 140px; }
+    
+    /* Cột 4: Chỉ số */
+    #dataTable th:nth-child(4), #dataTable td:nth-child(4) { width: 100px; min-width: 100px; max-width: 100px; }
+    
+    /* Cột 5: Ngày ghi */
+    #dataTable th:nth-child(5), #dataTable td:nth-child(5) { width: 100px; min-width: 100px; max-width: 100px; }
+    
+    /* Cột 6: Ghi chú (Cho phép co giãn nhưng giới hạn max) */
+    #dataTable th:nth-child(6), #dataTable td:nth-child(6) { width: auto; max-width: 300px; }
+
+    /* Cột 7: File */
+    #dataTable th:nth-child(7), #dataTable td:nth-child(7) { width: 60px; min-width: 60px; max-width: 60px; }
+
+    /* Cột 8: Thời gian (Admin only) */
+    #dataTable th:nth-child(8), #dataTable td:nth-child(8) { width: 140px; min-width: 140px; max-width: 140px; }
+
+    /* Cột 9: Hành động (Admin only) */
+    #dataTable th:nth-child(9), #dataTable td:nth-child(9) { width: 70px; min-width: 70px; max-width: 70px; }
+    /* ---------------------------------------------------------------- */
     
     #dataTable th,
     #dataTable td {
         text-align: center;
         vertical-align: middle;
-        padding: 8px;
+        padding: 4px 5px; /* Giảm padding để tiết kiệm không gian dọc */
+        font-size: 14px;  /* Giảm cỡ chữ */
+        height: 35px;     /* Cố định chiều cao dòng */
         /* Force single line */
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 200px; /* Giới hạn chiều rộng để ellipsis hoạt động tốt hơn */
+    }
+    
+    /* Tối ưu nút xóa cho compact mode */
+    .delBtn {
+        padding: 2px 8px !important;
+        font-size: 12px !important;
+        height: 24px !important;
+        line-height: 1 !important;
+        min-height: 0 !important;
     }
     
     /* Class cho nội dung có thể click xem chi tiết */
@@ -55,8 +92,8 @@
         display: flex;
         justify-content: space-between; /* Đẩy các nhóm điều khiển ra hai phía */
         align-items: center; /* Căn chỉnh theo chiều dọc */
-        margin-top: 10px;
-        margin-bottom: 10px; /* Thêm khoảng cách với bảng bên dưới */
+        margin-top: 5px;
+        margin-bottom: 2px;
     }
 
     .left-controls {
@@ -108,6 +145,33 @@
         outline-offset: 6px;
     }
 
+    /* Giảm khoảng cách dưới menu */
+    nav.navbar {
+        margin-bottom: 5px !important;
+    }
+    
+    /* --- TỐI ƯU HÓA KHÔNG GIAN (COMPACT MODE) --- */
+    h2 {
+        margin: 2px 0 5px 0 !important;
+        font-size: 1.3rem !important;
+    }
+    
+    .filter-box {
+        margin: 0 0 5px 0 !important;
+        gap: 5px !important;
+    }
+    
+    .filter-box input, .filter-box select, .filter-box button {
+        height: 28px !important;
+        padding: 2px 8px !important;
+        font-size: 13px !important;
+    }
+    
+    .search-container {
+        margin-bottom: 5px !important;
+    }
+    /* --------------------------------------------- */
+
     /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
     html, body {
         height: 100vh;
@@ -127,7 +191,9 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        padding-bottom: 5px;
+        padding-bottom: 2px;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
     }
 
     form {
@@ -177,7 +243,6 @@
       </label>
       <button id="applyFilter" type="button">Áp dụng</button>
     </div>
-    <div class="note" id="filterNote"></div>
       <form>
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm...">
@@ -208,8 +273,7 @@
         <div class="right-controls">
           <label for="displayCount">Hiển thị:</label>
           <select id="displayCount">
-              <option value="5">5 dòng</option>
-              <option value="12">12 dòng</option>
+              <option value="10">10 dòng</option>
               <option value="20">20 dòng</option>
               <option value="50">50 dòng</option>
               <option value="all">Toàn bộ</option>
@@ -255,7 +319,6 @@
     const toInput = document.getElementById("toDate");
     const yearSelect = document.getElementById("yearSelect");
     const applyFilterBtn = document.getElementById("applyFilter");
-    const filterNote = document.getElementById("filterNote"); 
     const meterResetFilterInput = document.getElementById("meterResetFilter"); 
     
     let currentFilter = { from: null, to: null };
@@ -343,8 +406,6 @@
             // Việc lọc ngày đã được Firebase làm, nhưng kiểm tra này vẫn tốt
             return d >= fromDate && d <= toDate; 
         });
-        
-        filterNote.textContent = `Đang xem dữ liệu từ ${fromDate.toLocaleDateString('vi-VN')} đến ${toDate.toLocaleDateString('vi-VN')}`;
         
         const lowerCaseQuery = query.toLowerCase().trim();
         const isAdmin = userRole === "admin";
@@ -482,6 +543,18 @@
             realtimeListener = null;
         }
 
+        // Tự động điền ngày mặc định nếu trống và không chọn năm
+        if (!yearSelect.value) {
+            if (!fromInput.value) {
+                const currentYear = new Date().getFullYear();
+                fromInput.value = `${currentYear}-01-01`;
+            }
+            if (!toInput.value) {
+                const now = new Date();
+                toInput.value = formatISODate(now);
+            }
+        }
+
         // 2. Lấy ngày từ bộ lọc
         const fromVal = fromInput.value;
         const toVal = toInput.value;
@@ -493,10 +566,18 @@
 
         if (yearVal) {
             startDate = `${yearVal}-01-01`;
-            endDate = `${yearVal}-12-31`;
+            const currentYear = new Date().getFullYear();
+            if (parseInt(yearVal) === currentYear) {
+                endDate = todayISO;
+            } else {
+                endDate = `${yearVal}-12-31`;
+            }
             // Cập nhật biến global filter
             currentFilter.from = startDate;
             currentFilter.to = endDate;
+            // Cập nhật UI
+            fromInput.value = startDate;
+            toInput.value = endDate;
         } else if (fromVal && toVal) {
             startDate = fromVal;
             endDate = toVal;
@@ -646,20 +727,24 @@
                     if (years.includes(currentYear) && ys) {
                       const todayISO = formatISODate(new Date());
                       const currentYearStart = currentYear + '-01-01';
-                      ys.value = currentYear;
+                      fromInput.value = currentYearStart;
+                      toInput.value = todayISO;
                       currentFilter.from = currentYearStart;
                       currentFilter.to = todayISO; 
+                      ys.value = currentYear;
                     } else if (years.length > 0) {
-                        ys.value = years[0];
+                        fromInput.value = `${years[0]}-01-01`;
+                        toInput.value = `${years[0]}-12-31`;
                         currentFilter.from = `${years[0]}-01-01`;
                         currentFilter.to = `${years[0]}-12-31`;
+                        ys.value = years[0];
                     }
                     initialLoad = false;
                 }
 
-                // Tự động chọn 12 dòng trên mobile
+                // Tự động chọn 10 dòng trên mobile
                 if (window.innerWidth <= 768 && displayCountSelect) {
-                    displayCountSelect.value = "12";
+                    displayCountSelect.value = "10";
                 }
 
                 // 4. Tải dữ liệu chính (Lần đầu)
