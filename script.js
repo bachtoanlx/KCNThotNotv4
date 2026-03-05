@@ -290,7 +290,9 @@ export async function submitForm(e, formId, collectionName, folderId) {
   const userEmail = user?.email || "unknown";
 
 // --- KIỂM TRA KÍCH THƯỚC FILE ---
-  const fileInput = form.file?.files?.[0]; // Sử dụng optional chaining để tránh lỗi nếu không có form.file
+  // SỬA: Lấy file input bằng querySelector để đảm bảo tìm thấy dù không có name
+  const fileInputElement = form.querySelector('input[type="file"]');
+  const fileInput = fileInputElement?.files?.[0]; 
   const MAX_FILE_SIZE_BYTES = 5242880; // 5MB
 
   if (fileInput) {
@@ -323,7 +325,7 @@ export async function submitForm(e, formId, collectionName, folderId) {
         ngay_ghi: form.ngay_ghi.value.trim(),
         ghi_chu: form.ghi_chu.value.trim(),
       };
-      file = form.file?.files?.[0];
+      file = fileInput;
       break;
 
     case "registrationForm_2":  // Form kiểu khác
@@ -333,7 +335,7 @@ export async function submitForm(e, formId, collectionName, folderId) {
         ngay_lam_db: form.ngay_lam_db.value.trim(),
         ghi_chu: form.ghi_chu.value.trim(),
       };
-      file = form.file?.files?.[0];
+      file = fileInput;
       
       // ✅ KIỂM TRA DỮ LIỆU BẮT BUỘC CHO FORM 2
       if (!data.ngay_nghi && !data.ngay_lam_db) {
@@ -441,7 +443,8 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
     const submissionType = isSpecialWorkdaySubmission ? "Ngày làm Đặc biệt" : "Ngày nghỉ";
     
     // Tách chuỗi ngày thành mảng các ngày (YYYY-MM-DD)
-    const dates = dateStr.split(',').map(d => d.trim()).filter(d => d.length > 0);
+    // ⭐️ QUAN TRỌNG: Sắp xếp ngày tăng dần để minDate/maxDate luôn đúng cho query
+    const dates = dateStr.split(',').map(d => d.trim()).filter(d => d.length > 0).sort();
 
     const baseData = { ...data };
     delete baseData.ngay_nghi; 
@@ -458,6 +461,12 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
     let addedCount = 0;
     let skipped = 0;
     let errorList = []; // Khởi tạo danh sách lỗi
+
+    if (dates.length === 0) {
+        hideLoading();
+        showSwal("error", "Lỗi dữ liệu", "Không tìm thấy ngày hợp lệ nào.");
+        return;
+    }
     
     // ⭐️ TỐI ƯU HÓA: ĐỌC TẤT CẢ DỮ LIỆU 1 LẦN (Thay vì N lần)
     const minDate = dates[0];
@@ -1193,11 +1202,11 @@ if (exactMatchDoc) {
 
 //
 export function listenReports(collectionName, callback) {
-  // ⭐️ GIỚI HẠN CHỈ 50 BẢN GHI MỚI NHẤT để giảm chi phí đọc
+  // ⭐️ GIỚI HẠN BẢN GHI để giảm chi phí đọc (Tăng lên 6000 cho thống kê năm)
   const q = query(
     collection(db, collectionName), 
     orderBy("createdAt", "desc"),
-    limit(500) // ← Thêm giới hạn
+    limit(6000) // ← Đã tăng từ 500 lên 6000
   );
   return onSnapshot(q, (snapshot) => {
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
