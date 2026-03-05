@@ -756,6 +756,8 @@
              console.error("Lỗi khi tải reports_2:", err);
              showSwal("error", "Lỗi tải dữ liệu", err.message);
              allSearchData = [];
+        } finally {
+             hideLoading();
         }
         
         // 5. KHÔNG render ở đây nữa vì onSnapshot sẽ trigger
