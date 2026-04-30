@@ -1568,42 +1568,47 @@
             }
         }
         // 3. Xử lý Lịch Xoay Vòng (shift_rotation)
-        else if (userPattern.type === "shift_rotation" && refDate) {
-            // Lọc ra các quy tắc xoay ca CÒN HIỆU LỰC vào ngày checkDate
-            const membersToday = allShiftRules.filter(rule => {
-                const rStart = new Date(rule.patternStartDate + 'T00:00:00');
-                const rEnd = rule.patternEndDate ? new Date(rule.patternEndDate + 'T23:59:59') : null;
-                if (checkDate < rStart) return false;
-                if (rEnd && checkDate > rEnd) return false;
-                return true;
-            });
+        else if (userPattern.type === "shift_rotation") {
+            // Xác định nhóm ca của nhân viên này
+            const groupName = userPattern.shiftGroup || "Vận hành";
+            
+            // Lọc ra CÁC QUY TẮC CÙNG NHÓM
+            const groupRules = allShiftRules.filter(r => (r.shiftGroup || "Vận hành") === groupName).sort(sortShiftRules);
+            const groupRefDate = groupRules.length > 0 ? new Date(groupRules[0].patternStartDate + 'T00:00:00') : null;
 
-            if (membersToday.length > 0) {
-                // Sắp xếp lại danh sách CÒN HIỆU LỰC
-                membersToday.sort(sortShiftRules); // Cần hàm sortShiftRules
+            if (groupRefDate) {
+                // Lọc ra các quy tắc CÒN HIỆU LỰC vào ngày checkDate trong nhóm này
+                const membersToday = groupRules.filter(rule => {
+                    const rStart = new Date(rule.patternStartDate + 'T00:00:00');
+                    const rEnd = rule.patternEndDate ? new Date(rule.patternEndDate + 'T23:59:59') : null;
+                    if (checkDate < rStart) return false;
+                    if (rEnd && checkDate > rEnd) return false;
+                    return true;
+                });
 
-                const n_today = membersToday.length;
-                const daysSinceToday = getDaysDifference(checkDate, refDate); // Cần hàm getDaysDifference
-                const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
-                const workerToday = membersToday[workerIndexToday];
+                if (membersToday.length > 0) {
+                    // Sắp xếp lại danh sách CÒN HIỆU LỰC
+                    membersToday.sort(sortShiftRules);
 
-                if (workerToday && workerToday.displayName === userPattern.displayName) {
-                    isWorking = true;
-                    const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
-                    const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+                    const n_today = membersToday.length;
+                    const daysSinceToday = getDaysDifference(checkDate, groupRefDate); 
+                    const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                    const workerToday = membersToday[workerIndexToday];
 
-                    // === ĐOẠN MÃ MỚI (TỰ SUY LUẬN) ===
-                    shiftStart.setHours(startH, startM, 0, 0);
-                    shiftEnd.setHours(endH, endM, 0, 0);
+                    if (workerToday && workerToday.displayName === userPattern.displayName) {
+                        isWorking = true;
+                        const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+                        const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
 
-                    // Tự động phát hiện ca gối đầu NẾU giờ kết thúc < giờ bắt đầu
-                    // (ví dụ: 06:00 < 17:00)
-                    if ( (endH < startH) || (endH === startH && endM < startM) ) {
-                        shiftEnd.setDate(shiftEnd.getDate() + 1);
-                    }
-                    // Hoặc, TỰ ĐỘNG xử lý ca 24h (ví dụ: 07:30 -> 07:30)
-                    else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
-                        shiftEnd.setDate(shiftEnd.getDate() + 1);
+                        // === ĐOẠN MÃ MỚI (TỰ SUY LUẬN) ===
+                        shiftStart.setHours(startH, startM, 0, 0);
+                        shiftEnd.setHours(endH, endM, 0, 0);
+
+                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                            shiftEnd.setDate(shiftEnd.getDate() + 1);
+                        } else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+                            shiftEnd.setDate(shiftEnd.getDate() + 1);
+                        }
                     }
                 }
             }
