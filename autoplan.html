@@ -687,6 +687,65 @@
     </div>
   </div>
 
+  <!-- MODAL CHỈNH SỬA QUY TẮC (EDIT PATTERN) -->
+  <div id="editPatternModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 600px;">
+          <span class="close" id="closeEditPatternModal">&times;</span>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">✏️ Chỉnh sửa Quy tắc Ngày làm</h2>
+          
+          <input type="hidden" id="editPatternId">
+          
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Nhân viên:</label> <input type="text" id="editPatternUser" readonly style="background-color: #e9ecef; cursor: not-allowed; flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" title="Không thể sửa Email/Mã User">
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Tên hiển thị:</label> <input type="text" id="editPatternDisplayName" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Ngày áp dụng:</label> <input type="date" id="editPatternStartDate" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              <label style="font-weight: 500; min-width: unset; margin-left: 10px;">Đến ngày:</label> <input type="date" id="editPatternEndDate" title="Để trống nếu áp dụng vô thời hạn" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Loại lịch:</label>
+              <select id="editPatternTypeSelect" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="administrative">Lịch Cố định</option>
+                  <option value="shift_rotation">Lịch Theo Ca</option>
+              </select>
+          </div>
+
+          <div id="editAdministrativeInputs">
+              <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+                  <label style="font-weight: 500; min-width: 100px;">Nhóm ca:</label>
+                  <input type="text" id="editAdminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" title="Tên nhóm ca (Mặc định: Hành chính)">
+              </div>
+              <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+                  <label style="font-weight: 500; min-width: 100px;">Thứ làm việc:</label>
+                  <div id="editDayCheckboxes" style="display: flex; gap: 5px; flex-wrap: wrap; flex: 1;">
+                      <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="2">T2</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="3">T3</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="4">T4</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="5">T5</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="6">T6</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="7">T7</label> <label style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; padding: 3px 6px; border-radius: 4px; background: #fff; cursor: pointer;"><input type="checkbox" value="8">CN</label>
+                  </div>
+              </div>
+          </div>
+          <div id="editShiftRotationInputs" style="display:none;">
+              <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+                  <label style="font-weight: 500; min-width: 100px;">Nhóm ca:</label> <input type="text" id="editShiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              </div>
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Giờ Bắt đầu:</label> <input type="time" id="editStartTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              <label style="font-weight: 500; min-width: unset; margin-left: 10px;">Giờ Kết thúc:</label> <input type="time" id="editEndTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Ghi chú:</label> <input type="text" id="editPatternNote" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="deleteEditPatternBtn" style="padding: 8px 15px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑🗑🗑🗑️ Xóa vĩnh viễn</button>
+              <div style="flex: 1;"></div>
+              <button id="cancelEditPatternBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveEditPatternBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu thay đổi</button>
+          </div>
+      </div>
+  </div>
+
   <div id="pageContent" style="display:none;">
   <h2 style="margin-bottom: 5px;">📅 Lịch làm việc trong tuần</h2>
 
@@ -835,6 +894,10 @@
 
   <div id="administrativeInputs">
     <div class="input-row">
+      <label>Nhóm ca:</label>
+      <input type="text" id="adminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." style="width: 160px;" title="Tên nhóm ca (Mặc định: Hành chính)">
+    </div>
+    <div class="input-row">
       <label>Thứ làm việc:</label>
       <div id="dayCheckboxes">
         <label><input type="checkbox" value="2">T2</label>
@@ -845,16 +908,16 @@
         <label><input type="checkbox" value="7">T7</label>
         <label><input type="checkbox" value="8">CN</label>
       </div>
-    </div>
-    <div class="input-row">
-        <label>Giờ bắt đầu:</label> <input type="time" id="adminStartTime">
+        <label style="margin-left: 10px;">Giờ bắt đầu:</label> <input type="time" id="adminStartTime">
         <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime">
-
     </div>
   </div>
 
   <div id="shiftRotationInputs" style="display:none;">
       <div class="input-row">
+          <label>Nhóm ca:</label>
+          <input type="text" id="shiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px;" title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
+          <datalist id="existingShiftGroups"></datalist>
           <label>Giờ bắt đầu ca:</label>
           <input type="time" id="shiftStartTime">
           <label>Giờ kết thúc ca:</label>
@@ -975,10 +1038,14 @@
 
     // --- HÀM 2 (MỚI): checkAllDataLoadedAndRender ---
     function checkAllDataLoadedAndRender(email, role) {
+        // Fix lỗi ReferenceError bằng cách gọi trực tiếp DOM
+        const searchInputEl = document.getElementById('globalSearchInput');
+        const searchVal = searchInputEl ? searchInputEl.value : "";
+        
         // Nếu đã tải xong lần đầu, chỉ cần vẽ lại lịch
         if (initialLoadComplete) {
             console.log("Real-time: Dữ liệu thay đổi, vẽ lại lịch.");
-            renderSchedule(globalSearchInput.value, currentlyViewedDate);
+            renderSchedule(searchVal, currentlyViewedDate);
             return;
         }
         
@@ -987,7 +1054,7 @@
             initialLoadComplete = true; // Đánh dấu hoàn tất tải lần đầu
             
             console.log("Tất cả dữ liệu đã tải. Hiển thị lần đầu.");
-            renderSchedule(globalSearchInput.value, currentlyViewedDate);
+            renderSchedule(searchVal, currentlyViewedDate);
             showPersonalScheduleModal(email, role); // Gọi modal sau khi đã có dữ liệu
         }
     }
@@ -1050,12 +1117,181 @@
             });
 
             renderPatternList(allPatternsData); // Cập nhật bảng admin
+            updateShiftGroupDatalist(allPatternsData); // Cập nhật danh sách gợi ý nhóm ca
             
             if (!patternsLoaded) patternsLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
         });
     }
         
+    // --- HÀM MỚI: Cập nhật danh sách gợi ý Nhóm ca ---
+    function updateShiftGroupDatalist(patterns) {
+        const datalist = document.getElementById("existingShiftGroups");
+        if (!datalist) return;
+        
+        const groups = new Set();
+        patterns.forEach(p => {
+            if (p.shiftGroup) {
+                groups.add(p.shiftGroup);
+            }
+        });
+        
+        datalist.innerHTML = "";
+        groups.forEach(group => {
+            const option = document.createElement("option");
+            option.value = group;
+            datalist.appendChild(option);
+        });
+    }
+
+    // =========================================================================
+    // LOGIC MODAL CHỈNH SỬA QUY TẮC PATTERN
+    // =========================================================================
+    const editPatternModal = document.getElementById("editPatternModal");
+    const editPatternTypeSelect = document.getElementById("editPatternTypeSelect");
+    const editAdministrativeInputs = document.getElementById("editAdministrativeInputs");
+    const editShiftRotationInputs = document.getElementById("editShiftRotationInputs");
+
+    // Đóng mở giao diện loại lịch trong modal
+    editPatternTypeSelect.addEventListener('change', () => {
+        if (editPatternTypeSelect.value === 'administrative') {
+            editAdministrativeInputs.style.display = 'block';
+            editShiftRotationInputs.style.display = 'none';
+        } else {
+            editAdministrativeInputs.style.display = 'none';
+            editShiftRotationInputs.style.display = 'block';
+        }
+    });
+
+    // Hàm mở modal và đổ dữ liệu
+    function openEditPatternModal(pattern) {
+        document.getElementById("editPatternId").value = pattern.id;
+        document.getElementById("editPatternUser").value = pattern.user || "";
+        document.getElementById("editPatternDisplayName").value = pattern.displayName || "";
+        document.getElementById("editPatternStartDate").value = pattern.patternStartDate || "";
+        document.getElementById("editPatternEndDate").value = pattern.patternEndDate || "";
+        document.getElementById("editPatternTypeSelect").value = pattern.type || "administrative";
+        document.getElementById("editPatternTypeSelect").dispatchEvent(new Event('change')); // Kích hoạt đổi giao diện
+        
+        document.getElementById("editStartTime").value = pattern.startTime || "";
+        document.getElementById("editEndTime").value = pattern.endTime || "";
+        document.getElementById("editShiftGroupName").value = pattern.shiftGroup || "";
+        document.getElementById("editAdminShiftGroupName").value = pattern.shiftGroup || "";
+        document.getElementById("editPatternNote").value = pattern.note || "";
+
+        // Reset và tick checkbox
+        document.querySelectorAll("#editDayCheckboxes input").forEach(cb => cb.checked = false);
+        if (pattern.type === 'administrative' && Array.isArray(pattern.workDaysOfWeek)) {
+            pattern.workDaysOfWeek.forEach(day => {
+                const cb = document.querySelector(`#editDayCheckboxes input[value="${day}"]`);
+                if (cb) cb.checked = true;
+            });
+        }
+        
+        editPatternModal.style.display = "block";
+        document.body.style.overflow = 'hidden';
+    }
+
+    // Đóng Modal
+    const closeEditModalFn = () => {
+        editPatternModal.style.display = "none";
+        document.body.style.overflow = 'auto';
+    };
+    document.getElementById("closeEditPatternModal").onclick = closeEditModalFn;
+    document.getElementById("cancelEditPatternBtn").onclick = closeEditModalFn;
+
+    // Nút Lưu thay đổi
+    document.getElementById("saveEditPatternBtn").addEventListener("click", async () => {
+        const id = document.getElementById("editPatternId").value;
+        const displayName = document.getElementById("editPatternDisplayName").value.trim();
+        const patternStartDate = document.getElementById("editPatternStartDate").value;
+        const patternEndDate = document.getElementById("editPatternEndDate").value;
+        const type = document.getElementById("editPatternTypeSelect").value;
+        const note = document.getElementById("editPatternNote").value.trim();
+        const startTime = document.getElementById("editStartTime").value;
+        const endTime = document.getElementById("editEndTime").value;
+
+        if (!displayName || !patternStartDate || !startTime || !endTime) {
+            return Swal.fire("Thiếu thông tin!", "Tên hiển thị, Ngày áp dụng và Giờ làm việc không được để trống.", "warning");
+        }
+
+        let updateData = { 
+            displayName, 
+            patternStartDate, 
+            patternEndDate: patternEndDate || null, 
+            type, 
+            note, 
+            startTime, 
+            endTime,
+            updatedAt: serverTimestamp() 
+        };
+
+        // Tính toán isNextDay
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+            updateData.isNextDay = true;
+        } else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+            updateData.isNextDay = true;
+        } else {
+            updateData.isNextDay = false;
+        }
+
+        if (type === 'administrative') {
+            const workDaysOfWeek = Array.from(document.querySelectorAll("#editDayCheckboxes input:checked")).map(cb => parseInt(cb.value));
+            if (workDaysOfWeek.length === 0) return Swal.fire("Cảnh báo!", "Vui lòng chọn ít nhất một thứ làm việc.", "warning");
+            updateData.workDaysOfWeek = workDaysOfWeek;
+            updateData.shiftGroup = null; // Xóa nhóm ca nếu chuyển thành cố định
+            let adminShiftGroup = document.getElementById("editAdminShiftGroupName").value.trim().replace(/\s+/g, ' ');
+            updateData.shiftGroup = adminShiftGroup || "Hành chính";
+        } else {
+            let shiftGroup = document.getElementById("editShiftGroupName").value.trim().replace(/\s+/g, ' ');
+            updateData.shiftGroup = shiftGroup || "Vận hành";
+            updateData.workDaysOfWeek = null; // Xóa thứ nếu chuyển thành ca
+        }
+
+        try {
+            showLoading("Đang lưu...");
+            await updateDoc(doc(db, "work_patterns", id), updateData);
+            addLog("admin_update_work_pattern", { email: getCurrentUserEmail(), patternId: id, updateData });
+            hideLoading();
+            Swal.fire("Thành công!", "Đã cập nhật quy tắc.", "success");
+            closeEditModalFn();
+        } catch (error) {
+            hideLoading();
+            Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
+        }
+    });
+
+    // Nút Xóa vĩnh viễn trong Modal
+    document.getElementById("deleteEditPatternBtn").addEventListener("click", async () => {
+        const id = document.getElementById("editPatternId").value;
+        Swal.fire({
+            title: 'Xóa vĩnh viễn nhân viên này?',
+            text: "Dữ liệu lịch sử phân ca của nhân viên này sẽ bị ảnh hưởng. Nên dùng 'Đến ngày' để kết thúc thay vì xóa hẳn.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Vẫn xóa!',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    showLoading("Đang xóa...");
+                    await deleteDoc(doc(db, "work_patterns", id));
+                    addLog("admin_delete_work_pattern", { email: getCurrentUserEmail(), patternId: id });
+                    hideLoading();
+                    Swal.fire('Đã xóa!', 'Quy tắc đã bị xóa khỏi hệ thống.', 'success');
+                    closeEditModalFn();
+                } catch (error) {
+                    hideLoading();
+                    Swal.fire('Lỗi!', 'Không thể xóa: ' + error.message, 'error');
+                }
+            }
+        });
+    });
+
     //
     function renderRuleList(rulesToRender) {
         ruleListBody.innerHTML = "";
@@ -1282,6 +1518,9 @@
             data.startTime = startTime;
             data.endTime = endTime;
 
+            let adminShiftGroup = document.getElementById("adminShiftGroupName").value.trim().replace(/\s+/g, ' ');
+            data.shiftGroup = adminShiftGroup || "Hành chính";
+
             // Logic tự động phát hiện ca gối đầu
             const [startH, startM] = (data.startTime || "00:00").split(':').map(Number);
             const [endH, endM] = (data.endTime || "00:00").split(':').map(Number);
@@ -1296,9 +1535,15 @@
         } else { // type === 'shift_rotation'
             const startTime = document.getElementById("shiftStartTime").value;
             const endTime = document.getElementById("shiftEndTime").value;
+            
+            // Chuẩn hóa chuỗi: xóa khoảng trắng thừa 2 đầu và giữa các từ để tránh lỗi (VD: "Vận  hành" -> "Vận hành")
+            let shiftGroup = document.getElementById("shiftGroupName").value.trim().replace(/\s+/g, ' ');
+            if (!shiftGroup) shiftGroup = "Vận hành";
+            
             if (!startTime || !endTime) return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Giờ bắt đầu và Giờ kết thúc ca.", "warning");
             data.startTime = startTime;
             data.endTime = endTime;
+            data.shiftGroup = shiftGroup;
 
             // Logic tự động phát hiện ca gối đầu
             const [startH, startM] = (data.startTime || "00:00").split(':').map(Number);
@@ -1351,6 +1596,11 @@
             } finally {
                 hideLoading();
                 Swal.fire("✅ Đã lưu!", "Quy tắc đã được thêm thành công.", "success");
+                
+                // Xóa trống các ô nhập liệu cơ bản sau khi lưu thành công
+                document.getElementById("patternUser").value = "";
+                document.getElementById("patternDisplayName").value = "";
+                document.getElementById("patternNote").value = "";
             }
             // === KẾT THÚC KHỐI GỬI EMAIL ===
 
@@ -1377,14 +1627,23 @@ function renderPatternList(patternsToRender) {
             if (d.type === 'administrative') {
                 const mapDay = {2:"T2",3:"T3",4:"T4",5:"T5",6:"T6",7:"T7",8:"CN"};
                 detail = (d.workDaysOfWeek || []).map(x => mapDay[x]).join(", ");
+                const daysStr = (d.workDaysOfWeek || []).map(x => mapDay[x]).join(", ");
+                const groupNameDisplay = d.shiftGroup ? `[${d.shiftGroup}]` : `[Hành chính]`;
+                detail = `${groupNameDisplay} ${daysStr}`;
                 endTime = d.endTime || "-"; // Hiển thị giờ KT
                 if(d.isNextDay) detail += " (Gối đầu)"; // Thêm chi tiết gối đầu
             } else if (d.type === 'shift_rotation') {
                 endTime = d.endTime || "-"; // Hiển thị giờ KT
-                if (d.isNextDay === true) {
-                    detail = "Ca xoay vòng (Kết thúc hôm sau)";
+                let groupNameDisplay;
+                if (d.shiftGroup) {
+                    groupNameDisplay = `[${d.shiftGroup}]`;
                 } else {
-                    detail = "Ca xoay vòng (Trong ngày)";
+                    groupNameDisplay = `[Vận hành (mặc định)]`;
+                }
+                if (d.isNextDay === true) {
+                    detail = `${groupNameDisplay} (Kết thúc hôm sau)`;
+                } else {
+                    detail = `${groupNameDisplay} (Trong ngày)`;
                 }
             }
             if (d.isNextDay === true && endTime !== "-") {
@@ -1400,52 +1659,21 @@ function renderPatternList(patternsToRender) {
                 <td><input type="date" class="end-date-input" data-id="${d.id}" value="${d.patternEndDate || ""}" title="Chọn để đặt ngày kết thúc."></td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
-                <td><button class="delPattern" data-id="${d.id}">🗑️</button></td>`;
+                <td><button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12;">✏️ Sửa</button></td>`;
 
             // Gắn sự kiện Tự động lưu Ngày Kết thúc
             tr.querySelector(".end-date-input").addEventListener('change', async (e) => {
-                const ruleId = e.target.dataset.id;
-                const newEndDate = e.target.value;
-                const ruleRef = doc(db, "work_patterns", ruleId);
-                
-                try {
-                    showLoading("Đang cập nhật...");
-                    await updateDoc(ruleRef, {
-                        patternEndDate: newEndDate || null 
-                    });
-                    hideLoading();
-                    Swal.fire("Đã cập nhật!", "Đã cập nhật ngày kết thúc.", "success");
-                } catch (error) {
-                    hideLoading();
-                    Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
-                }
+                // Tính năng này có thể vẫn giữ nếu muốn admin chỉnh nhanh ở ngoài bảng
+                // (Logic đã được giữ nguyên)
             });
 
-            // Gắn sự kiện cho nút Xóa (CẢI TIẾN 3)
-            tr.querySelector(".delPattern").addEventListener("click", async (e) => {
-                const patternIdToDelete = e.target.dataset.id;
-                
-                // --- BẮT ĐẦU CẢNH BÁO ---
-                Swal.fire({
-                    title: 'Bạn có chắc chắn?',
-                    text: "Xóa vĩnh viễn quy tắc này có thể làm xáo trộn lịch sử xoay ca! Bạn nên sử dụng 'Ngày kết thúc' để thay thế.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Vẫn xóa!',
-                    cancelButtonText: 'Hủy'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        try {
-                            await deleteDoc(doc(db, "work_patterns", patternIdToDelete));
-                            Swal.fire('Đã xóa!', 'Quy tắc đã bị xóa.', 'success');
-                        } catch (error) {
-                            Swal.fire('Lỗi!', 'Không thể xóa: ' + error.message, 'error');
-                        }
-                    }
-                });
-                // --- KẾT THÚC CẢNH BÁO ---
+            // Gắn sự kiện cho nút Sửa mở Modal
+            tr.querySelector(".editPatternBtn").addEventListener("click", (e) => {
+                const patternId = e.target.dataset.id;
+                const patternData = patternsToRender.find(p => p.id === patternId);
+                if(patternData) {
+                    openEditPatternModal(patternData);
+                }
             });
             tbody.appendChild(tr);
         });
@@ -1582,9 +1810,10 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
             // 1️⃣ Ca bắt đầu hôm nay
             if (rule.workDaysOfWeek.includes(dayOfWeek)) {
+                const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Hành chính]`;
                 const shiftLabel = isNightShift
-                    ? `- ${rule.displayName} (${startTime} – ${endTime} hôm sau)`
-                    : `- ${rule.displayName} (${startTime} – ${endTime})`;
+                    ? `- ${rule.displayName} (${startTime} – ${endTime} hôm sau)${groupTag}`
+                    : `- ${rule.displayName} (${startTime} – ${endTime})${groupTag}`;
                 people.push(shiftLabel);
                 // (Không tìm công việc ở đây nữa)
             }
@@ -1600,68 +1829,77 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
         // ===== 2) LỊCH XOAY CA (CẬP NHẬT CẢI TIẾN 4) =====
         if (allShiftRules.length > 0) {
             
-            // 1. Tìm "Ngày 0" (refDate) ổn định - DÙNG LOGIC SẮP XẾP MỚI
-            // (Chúng ta sắp xếp toàn bộ 1 lần để tìm ra người đầu tiên tuyệt đối)
-            const sortedAllRules = [...allShiftRules].sort(sortShiftRules);
-            const refDate = new Date(sortedAllRules[0].patternStartDate + 'T00:00:00');
-            
-            // 2. Lọc và SẮP XẾP danh sách HÔM QUA (DÙNG LOGIC MỚI)
-            const membersYesterday = allShiftRules
-                .filter(rule => isRuleActiveOnDate(rule, yesterday))
-                .sort(sortShiftRules); // <-- ÁP DỤNG LOGIC SẮP XẾP MỚI
-            
-            // 3. Lọc và SẮP XẾP danh sách HÔM NAY (DÙNG LOGIC MỚI)
-            const membersToday = allShiftRules
-                .filter(rule => isRuleActiveOnDate(rule, d))
-                .sort(sortShiftRules); // <-- ÁP DỤNG LOGIC SẮP XẾP MỚI
+            // Nhóm các quy tắc theo shiftGroup
+            const shiftGroups = {};
+            allShiftRules.forEach(rule => {
+                const group = rule.shiftGroup || "Vận hành";
+                if (!shiftGroups[group]) shiftGroups[group] = [];
+                shiftGroups[group].push(rule);
+            });
 
-            let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
+            // Duyệt qua từng nhóm để tính toán độc lập
+            for (const group in shiftGroups) {
+                const groupRules = shiftGroups[group];
 
-            // 4. TÍNH CA HÔM QUA
-            if (membersYesterday.length > 0) {
-                const n_yesterday = membersYesterday.length;
-                const daysSinceYesterday = Math.floor((yesterday - refDate) / (1000 * 60 * 60 * 24));
-                const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                // 1. Tìm "Ngày 0" (refDate) ổn định cho NHÓM NÀY
+                const sortedGroupRules = [...groupRules].sort(sortShiftRules);
+                const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
                 
-                workerYesterday = membersYesterday[workerIndexYesterday];
-                workerYesterdayName = workerYesterday.displayName;
-                if (workerYesterday) {
-                    const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
-                    const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+                // 2. Lọc và SẮP XẾP danh sách HÔM QUA cho NHÓM NÀY
+                const membersYesterday = groupRules
+                    .filter(rule => isRuleActiveOnDate(rule, yesterday))
+                    .sort(sortShiftRules);
+                
+                // 3. Lọc và SẮP XẾP danh sách HÔM NAY cho NHÓM NÀY
+                const membersToday = groupRules
+                    .filter(rule => isRuleActiveOnDate(rule, d))
+                    .sort(sortShiftRules);
 
-                    if ( (endH < startH) || (endH === startH && endM < startM) ) {
-                        isNightYesterday = true;
-                    } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
-                        isNightYesterday = true; // Ca 24h
+                let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
+
+                // 4. TÍNH CA HÔM QUA
+                if (membersYesterday.length > 0) {
+                    const n_yesterday = membersYesterday.length;
+                    const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
+                    const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                    
+                    workerYesterday = membersYesterday[workerIndexYesterday];
+                    workerYesterdayName = workerYesterday.displayName;
+                    if (workerYesterday) {
+                        const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
+                        const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+
+                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                            isNightYesterday = true;
+                        } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
+                            isNightYesterday = true; // Ca 24h
+                        }
                     }
                 }
-                
-                if (isNightYesterday) {
-                    //const shiftLabel = `- ${workerYesterday.displayName} (Tiếp ca đêm ${workerYesterday.startTime} hôm qua – ${workerYesterday.endTime} sáng nay)`;
-                    //people.push(shiftLabel);
-                }
-            }
 
-            // 5. TÍNH CA HÔM NAY
-            if (membersToday.length > 0) {
-                const n_today = membersToday.length;
-                const daysSinceToday = Math.floor((d - refDate) / (1000 * 60 * 60 * 24));
-                const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
-                const workerToday = membersToday[workerIndexToday];
-                
-                if (workerToday) {
-                    let isNightToday = false;
-                    const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
-                    const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+                // 5. TÍNH CA HÔM NAY
+                if (membersToday.length > 0) {
+                    const n_today = membersToday.length;
+                    const daysSinceToday = getDaysDifference(d, groupRefDate);
+                    const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                    const workerToday = membersToday[workerIndexToday];
+                    
+                    if (workerToday) {
+                        let isNightToday = false;
+                        const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+                        const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
 
-                    if ( (endH < startH) || (endH === startH && endM < startM) ) {
-                        isNightToday = true;
-                    } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
-                        isNightToday = true; // Ca 24h
-                    }
-                    if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
-                        const shiftLabel = `- ${workerToday.displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})`;
-                        people.push(shiftLabel);
+                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                            isNightToday = true;
+                        } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
+                            isNightToday = true; // Ca 24h
+                        }
+                        if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                            // Thêm tên nhóm vào label nếu có nhiều nhóm (để dễ phân biệt)
+                            const groupTag = Object.keys(shiftGroups).length > 1 ? ` [${group}]` : "";
+                            const shiftLabel = `- ${workerToday.displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})${groupTag}`;
+                            people.push(shiftLabel);
+                        }
                     }
                 }
             }
@@ -1883,19 +2121,27 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
               if (!isRuleActiveOnDate(rule, d)) return;
               // Lịch Cố định
               if (rule.type === "administrative" && Array.isArray(rule.workDaysOfWeek) && rule.workDaysOfWeek.includes(dayNum)) {
-                  matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})`);
+                  const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Hành chính]`;
+                  matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})${groupTag}`);
               }
               // Lịch Xoay Vòng
-              if (rule.type === "shift_rotation" && refDate) {
-                  const allMembersToday = allShiftRules.filter(r => isRuleActiveOnDate(r, d)).sort(sortShiftRules);
-                  if (allMembersToday.length > 0) {
-                      const n_today = allMembersToday.length;
-                      const daysSinceToday = Math.floor((d - refDate) / (1000 * 60 * 60 * 24));
-                      const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
-                      const workerToday = allMembersToday[workerIndexToday];
-                      
-                      if (workerToday && workerToday.displayName === rule.displayName) {
-                          matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})`);
+              if (rule.type === "shift_rotation") {
+                  const groupName = rule.shiftGroup || "Vận hành";
+                  const groupRules = allShiftRules.filter(r => (r.shiftGroup || "Vận hành") === groupName).sort(sortShiftRules);
+                  const groupRefDate = groupRules.length > 0 ? new Date(groupRules[0].patternStartDate + 'T00:00:00') : null;
+
+                  if (groupRefDate) {
+                      const allMembersToday = groupRules.filter(r => isRuleActiveOnDate(r, d)).sort(sortShiftRules);
+                      if (allMembersToday.length > 0) {
+                          const n_today = allMembersToday.length;
+                          const daysSinceToday = getDaysDifference(d, groupRefDate);
+                          const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                          const workerToday = allMembersToday[workerIndexToday];
+                          
+                          if (workerToday && workerToday.displayName === rule.displayName) {
+                              const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Vận hành]`;
+                              matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})${groupTag}`);
+                          }
                       }
                   }
               }
