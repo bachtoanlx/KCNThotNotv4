@@ -277,7 +277,11 @@
                 log.user, 
                 log.deletedRule?.job,
                 log.deletedJob?.job,
-                log.deletedPattern?.displayName
+                log.deletedPattern?.displayName,
+                log.updateData?.job,
+                log.updateData?.displayName,
+                log.targetName,
+                log.changes ? Object.values(log.changes).map(c => `${c.label} ${c.old} ${c.new}`).join(" ") : ""
             ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
             
             return searchContent.includes(lowerCaseQuery);
@@ -338,10 +342,13 @@
 
                 // Quản lý quy tắc công việc
                 "admin_create_work_rule": "Admin tạo quy tắc công việc mới",
+                "admin_update_work_rule": "Admin cập nhật quy tắc công việc",
                 "admin_delete_work_rule": "Admin xóa quy tắc công việc",
                 "admin_create_manual_job": "Admin tạo công việc thủ công",
+                "admin_update_manual_job": "Admin cập nhật công việc thủ công",
                 "admin_delete_manual_job": "Admin xóa công việc thủ công",
                 "admin_create_work_pattern": "Admin tạo mẫu lịch làm việc",
+                "admin_update_work_pattern": "Admin cập nhật mẫu lịch làm việc",
                 "admin_delete_work_pattern": "Admin xóa mẫu lịch làm việc",
                 "apps_script_add_user_success": "Thêm người dùng qua Apps Script thành công",
 
@@ -407,6 +414,21 @@
                         <b>Ngày cụ thể:</b> ${log.date || "-"}<br>
                         <b>Ghi chú:</b> ${log.note || "-"}
                     `;
+                    break;
+                case "admin_update_work_rule":
+                case "admin_update_manual_job":
+                case "admin_update_work_pattern":
+                    const changesObj = log.changes || {};
+                    let changesHtml = Object.values(changesObj).map(c => {
+                        let oldV = c.old;
+                        let newV = c.new;
+                        if(Array.isArray(oldV)) oldV = oldV.join(", ");
+                        if(Array.isArray(newV)) newV = newV.join(", ");
+                        return `<b>${c.label}:</b> <s>${oldV || "<i>Trống</i>"}</s> &rarr; <span style="color: green;">${newV || "<i>Trống</i>"}</span>`;
+                    }).join("<br>");
+                    
+                    const targetName = log.targetName || log.updateData?.job || log.updateData?.displayName || "N/A";
+                    details = `<b>Cập nhật:</b> ${targetName}<br>${changesHtml || "<i>Không có thay đổi nào</i>"}`;
                     break;
                 case "admin_delete_work_rule":
                     details = `Đã xóa quy tắc: <b>${log.deletedRule?.job || "N/A"}</b>`;
