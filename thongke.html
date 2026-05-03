@@ -268,7 +268,6 @@
       <button id="applyFilter" type="button">📊 Xem Thống Kê</button>
       <button type="button" id="openAnalysisModal" class="admin-only" style="display:none; ">⚙️ Phân tích Báo cáo</button>
     </div>
-    <div class="note" id="filterNote" style="font-style: italic; margin-bottom: 10px; color: #444;"></div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px;">
         <div id="accuracyWarning" style="display:none; color: red; font-style: italic; padding: 5px; flex-grow: 1; margin-right: 15px;">
@@ -452,7 +451,6 @@
     const toInput = document.getElementById("toDate");
     const yearSelect = document.getElementById("yearSelect");
     const applyFilterBtn = document.getElementById("applyFilter");
-    const filterNote = document.getElementById("filterNote");
     const accuracyWarningDiv = document.getElementById("accuracyWarning");
     const otherChemicalsBody = document.getElementById("other-chemicals-body");
     const footerPlaceholder = document.getElementById("footer-placeholder");
@@ -475,7 +473,6 @@
     let initialLoad = true; // Cờ cho lần tải đầu tiên
     const standardChemicals = ['polymer anion', 'pac', 'chlorine', 'polymer cation']; // Chuẩn hóa tên
     let allRulesData = []; // Lưu trữ work_rules
-    let allManualJobsData = []; // Lưu trữ manual_jobs
 
     // --- HÀM HELPER ---
     function formatISODate(d) {
@@ -1138,8 +1135,6 @@
         renderDetailsTable(dailyDetails);
         // ⭐ KẾT THÚC PHẦN MỚI ⭐
 
-        // Cập nhật filterNote
-        filterNote.textContent = `Đang xem thống kê từ ${startDate.toLocaleDateString('vi-VN')} đến ${endDate.toLocaleDateString('vi-VN')}`;
         // ⭐ THÊM 4 DÒNG NÀY ĐỂ ẨN/HIỆN CỘT
         document.querySelectorAll('[id^="col-week"], [id*="-tong-tuan"], [id*="-tb-tuan"]').forEach(el => el.style.display = 'none');
         document.querySelectorAll('[id^="col-month"], [id*="-tong-thang"], [id*="-tb-thang"]').forEach(el => el.style.display = 'none');
@@ -1160,8 +1155,14 @@
 
         if (yearVal) {
             startDateStr = `${yearVal}-01-01`;
-            endDateStr = `${yearVal}-12-31`;
-            fromInput.value = ""; toInput.value = "";
+            const currentYear = new Date().getFullYear();
+            if (parseInt(yearVal) === currentYear) {
+                endDateStr = formatISODate(new Date());
+            } else {
+                endDateStr = `${yearVal}-12-31`;
+            }
+            fromInput.value = startDateStr; 
+            toInput.value = endDateStr;
         } else if (fromVal && toVal) {
             startDateStr = fromVal;
             endDateStr = toVal;
@@ -1202,7 +1203,9 @@
     }
     applyFilterBtn.addEventListener("click", applyDateFilter);
     yearSelect.addEventListener("change", () => {
-        if(yearSelect.value) { fromInput.value = ""; toInput.value = ""; }
+        if(yearSelect.value) { 
+            applyDateFilter(); // Tự động tải lại dữ liệu khi chọn năm
+        }
     });
     [fromInput, toInput].forEach(el => {
         el.addEventListener("change", () => { if(yearSelect.value) yearSelect.value = ""; });
@@ -1246,24 +1249,15 @@
                 dataPromises.push(Promise.resolve(null)); // Đẩy 1 promise rỗng để giữ vị trí
             }
 
-            if (allManualJobsData.length === 0) {
-                dataPromises.push(getDocs(collection(db, "manual_jobs")));
-            } else {
-                dataPromises.push(Promise.resolve(null)); // Đẩy 1 promise rỗng
-            }
-
-            const [rulesSnapshot, manualJobsSnapshot] = await Promise.all(dataPromises);
+            const [rulesSnapshot] = await Promise.all(dataPromises);
 
             if (rulesSnapshot) { // Chỉ gán nếu chúng ta thực sự đã tải
                 allRulesData = rulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             }
-            if (manualJobsSnapshot) { // Chỉ gán nếu chúng ta thực sự đã tải
-                allManualJobsData = manualJobsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
 
             // 4. Phân tích (Hàm analyzeReports cần được sửa đổi)
             // Truyền cả khoảng ngày để hàm phân tích biết ngày nào bị thiếu
-            const analysisResults = analyzeReportsByDate(reportsInPeriod, startDate, endDate, allRulesData, allManualJobsData);
+            const analysisResults = analyzeReportsByDate(reportsInPeriod, startDate, endDate, allRulesData);
 
             // 5. Hiển thị (Hàm renderAnalysisModal cũng cần sửa)
             renderAnalysisModal(analysisResults);
@@ -1300,6 +1294,12 @@
     // Giả sử hàm getWeekOfMonth(date) và ruleMatchesDate(rule, d) đã tồn tại
     // Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
     function ruleMatchesDate(rule, d) {
+        // NẾU CÓ NGÀY CỤ THỂ -> Chỉ xét duy nhất ngày đó
+        if (rule.exactDate && rule.exactDate !== "") {
+            const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            return rule.exactDate === isoDate;
+        }
+
         const dayNum = d.getDate();                    // ngày trong tháng (1..31)
         const monthNum = d.getMonth() + 1;             // tháng (1..12)
         const weekOfMonth = getWeekOfMonth(d);         // hàm bạn đã có
@@ -1333,7 +1333,7 @@
     }
 
     // --- HÀM PHÂN TÍCH THEO NGÀY (MỚI - Thay thế analyzeReports) ---
-    function analyzeReportsByDate(reportsInPeriod, startDate, endDate, rules, manualJobs) {
+    function analyzeReportsByDate(reportsInPeriod, startDate, endDate, rules) {
         const results = [];
         // Nhóm các báo cáo đã tải về theo ngày để truy cập nhanh
         const reportsByDate = {};
@@ -1354,8 +1354,6 @@
             let expectedJobsDetails = [];
             const matchedRules = rules.filter(rule => ruleMatchesDate(rule, currentDate));
             matchedRules.forEach(rule => expectedJobsDetails.push({ name: rule.job || "N/A", keywords: extractKeywords(rule.job) }));
-            const matchedManualJobs = manualJobs.filter(job => job.date === currentDateStr);
-            matchedManualJobs.forEach(job => expectedJobsDetails.push({ name: job.job || "N/A", keywords: extractKeywords(job.job) }));
             const expectedJobNames = expectedJobsDetails.map(j => j.name); // Lấy tên để hiển thị tooltip
 
             // 2. Tìm báo cáo thực tế cho ngày này
@@ -1600,7 +1598,6 @@
               if (initialLoad) {
                   const currentYear = new Date().getFullYear().toString();
                   if (years.includes(currentYear)) {
-                      yearSelect.value = currentYear;
                       initialStartDateStr = `${currentYear}-01-01`;
                       const now = new Date();
                       if (now.getFullYear().toString() === currentYear) {
@@ -1608,13 +1605,17 @@
                       } else {
                           initialEndDateStr = `${currentYear}-12-31`;
                       }
+                      fromInput.value = initialStartDateStr;
+                      toInput.value = initialEndDateStr;
+                      yearSelect.value = currentYear;
                   } else if (years.length > 0) { // Nếu không có năm hiện tại, lấy năm mới nhất
                       const latestYear = years[0];
-                      yearSelect.value = latestYear;
                       initialStartDateStr = `${latestYear}-01-01`;
                       initialEndDateStr = `${latestYear}-12-31`;
+                      fromInput.value = initialStartDateStr;
+                      toInput.value = initialEndDateStr;
+                      yearSelect.value = latestYear;
                   } else {
-                      filterNote.textContent = "Chưa có dữ liệu báo cáo nào.";
                       hideLoading();
                       return; // Dừng nếu không có năm nào
                   }
@@ -1685,7 +1686,6 @@
           } catch (error) {
               console.error("Lỗi khi khởi tạo hoặc gắn listener:", error);
               showSwal("error", "Lỗi khởi tạo", error.message);
-              filterNote.textContent = "Lỗi tải dữ liệu hoặc khởi tạo.";
               hideLoading();
           }
            // hideLoading() nên được gọi cuối cùng trong calculateAndRenderSummary hoặc fetchReportsForPeriod
