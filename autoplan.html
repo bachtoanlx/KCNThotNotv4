@@ -433,6 +433,7 @@
     display: block; /* Luôn hiển thị */
     max-height: 175px; /* Giới hạn chiều cao */
     overflow-y: auto; /* Bật thanh cuộn dọc */
+    overflow-x: auto; /* THÊM: Bật thanh cuộn ngang khi cần */
     margin-top: 10px;
     background: #fff;
     border: 1px solid #ccc;
@@ -746,6 +747,49 @@
       </div>
   </div>
 
+  <!-- MODAL CHỈNH SỬA QUY TẮC CÔNG VIỆC (MỤC 1) -->
+  <div id="editRuleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 600px;">
+          <span class="close" id="closeEditRuleModal">&times;</span>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">✏️ Chỉnh sửa Quy tắc công việc</h2>
+          <input type="hidden" id="editRuleId">
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <input type="text" id="editRuleJobName" placeholder="Tên công việc" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <input type="time" id="editRuleTime" title="Giờ hoàn thành" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #eaf3ff;">
+              <select id="editRuleDom" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">--Ngày--</option>
+                  <script>for(let i=1;i<=31;i++) document.write(`<option value="${i}">${i}</option>`);</script>
+              </select>
+              <select id="editRuleDay" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">--Thứ--</option>
+                  <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option>
+                  <option value="5">T5</option><option value="6">T6</option><option value="7">T7</option>
+                  <option value="8">CN</option><option value="all">Mọi ngày</option>
+              </select>
+              <select id="editRuleWeek" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">--Tuần--</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
+              </select>
+              <select id="editRuleMonth" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">--Tháng--</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                  <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
+              </select>
+          </div>
+          <div class="input-row" style="display: flex; margin-bottom: 15px;">
+              <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="cancelEditRuleBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveEditRuleBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu thay đổi</button>
+          </div>
+      </div>
+  </div>
+
   <div id="pageContent" style="display:none;">
   <h2 style="margin-bottom: 5px;">📅 Lịch làm việc trong tuần</h2>
 
@@ -787,6 +831,9 @@
     <input type="text" id="jobName" placeholder="Tên công việc">
     <label><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
     <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc">
+    
+    <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="background-color: #eaf3ff;">
+    <span style="font-weight: bold; font-size: 12px; color: #555;">HOẶC ĐỊNH KỲ:</span>
     <select id="domSelect">
       <option value="">--Ngày--</option>
       <script>
@@ -845,41 +892,15 @@
     <table id="ruleList">
     <thead>
       <tr>
-        <th>Công việc</th><th>Giờ</th><th>Ngày</th><th>Thứ</th><th>Tuần</th><th>Tháng</th><th>Ghi chú</th><th>Hành động</th>
+        <th>Công việc</th><th>Giờ</th><th>Ngày cụ thể (1 lần)</th><th>Định kỳ: Ngày/Thứ/Tuần/Tháng</th><th>Ghi chú</th><th>Hành động</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
-  </table>
-</div>
-
-<div id="manualJobConfig" class="rule-box admin-only">
-  <h3>📝 2.Thêm công việc thủ công (bất kỳ ngày nào)</h3>
-  <div class="input-row">
-    <input type="text" id="manualJobName" placeholder="Tên công việc">
-    <label><input type="checkbox" id="isAdminManualJobCheckbox"> #CV Admin</label>
-    <input type="time" id="manualJobTime" title="Chọn giờ phải hoàn thành công việc">
-    <input type="date" id="manualJobDate">
-    
-    <button id="saveManualJob">💾 Lưu</button>
-  </div>
-  <input type="text" id="manualJobNote" placeholder="Ghi chú (Tùy chọn)">
-  <div class="list-header">
-    <h4>Danh sách công việc thủ công</h4>
-  </div>
-  <div class="collapsible-content">
-    <table id="manualJobList">
-    <thead>
-      <tr><th>Công việc</th><th>Giờ</th><th>Ngày</th><th>Ghi chú</th><th>Hành động</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-  </table>
 </div>
 <div id="workPatternConfig" class="rule-box admin-only">
-  <h3>🧭 3.Cài đặt quy tắc ngày làm (Admin)</h3>
+  <h3>🧭 2.Cài đặt quy tắc ngày làm (Admin)</h3>
 
 <div class="input-row">
     <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
@@ -936,7 +957,7 @@
   <div class="collapsible-content">
     <table id="patternList">
     <thead>
-      <tr><th>Nhân viên</th><th>Tên hiển thị</th><th>Kiểu</th><th>Chi tiết</th><th>Ngày Bắt đầu</th><th>Ngày Kết thúc</th><th>Giờ BĐ</th><th>Giờ KT</th><th>Hành động</th></tr>
+      <tr><th>Nhân viên</th><th>Tên hiển thị</th><th>Kiểu</th><th>Chi tiết</th><th>Ngày Bắt đầu</th><th>Ngày Kết thúc</th><th>Giờ BĐ</th><th>Giờ KT</th><th>Ghi chú</th><th>Hành động</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -995,24 +1016,17 @@
     const domSelect = document.getElementById("domSelect");
     const saveBtn = document.getElementById("saveRule");
     const adminConfig = document.getElementById("adminConfig");
-    const manualJobInput = document.getElementById("manualJobName");
-    const manualJobDate = document.getElementById("manualJobDate");
-    const saveManualBtn = document.getElementById("saveManualJob");
-    const manualJobList = document.querySelector("#manualJobList tbody");
 
     let allRulesData = [];
-    let allManualJobsData = [];
     let allPatternsData = [];
 
     // --- DÒNG MỚI THÊM VÀO ---
     let rulesLoaded = false;
-    let manualJobsLoaded = false;
     let patternsLoaded = false;
     let initialLoadComplete = false; // Cờ chính
 
     const specificDate = document.getElementById("specificDate");
     const jobNoteInput = document.getElementById("jobNote");
-    const manualJobNoteInput = document.getElementById("manualJobNote");
     const personalScheduleModal = document.getElementById("personalScheduleModal");
     const closeModalBtn = document.getElementById("closeModal");
     const personalScheduleDetails = document.getElementById("personalScheduleDetails");
@@ -1030,7 +1044,9 @@
         userRole = await getRole(user.email);
         notLogged.style.display = "none";
         content.style.display = "block";
-        if (userRole === "admin") adminConfig.classList.add("admin-visible");
+        if (userRole === "admin") {
+            document.querySelectorAll(".admin-only").forEach(el => el.classList.add("admin-visible"));
+        }
 
         // Bắt đầu lắng nghe thời gian thực
         setupRealtimeListeners(user.email, userRole);
@@ -1049,8 +1065,8 @@
             return;
         }
         
-        // Kiểm tra xem cả 3 listener đã sẵn sàng chưa
-        if (rulesLoaded && manualJobsLoaded && patternsLoaded) {
+        // Kiểm tra xem cả 2 listener đã sẵn sàng chưa
+        if (rulesLoaded && patternsLoaded) {
             initialLoadComplete = true; // Đánh dấu hoàn tất tải lần đầu
             
             console.log("Tất cả dữ liệu đã tải. Hiển thị lần đầu.");
@@ -1081,27 +1097,6 @@
             renderRuleList(allRulesData); // Cập nhật bảng admin
             
             if (!rulesLoaded) rulesLoaded = true; // Đặt cờ
-            checkAllDataLoadedAndRender(email, role); // Kiểm tra
-        });
-
-        // 2. Lắng nghe manual_jobs - ⭐️ GIỚI HẠN 100 BẢN GHI
-        const qManual = query(collection(db, "manual_jobs"), limit(100));
-        onSnapshot(qManual, (snapshot) => {
-            console.log("Real-time: manual_jobs đã thay đổi.");
-            allManualJobsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-
-            // (Copy y hệt logic Sắp xếp từ hàm loadManualJobs cũ của bạn)
-            allManualJobsData.sort((a, b) => {
-                const groupA = getNormalizedFirstChar(a.job);
-                const groupB = getNormalizedFirstChar(b.job);
-                if (groupA !== groupB) return groupA.localeCompare(groupB);
-                if (b.createdAt && a.createdAt) return b.createdAt.toMillis() - a.createdAt.toMillis();
-                return 0;
-            });
-
-            renderManualJobList(allManualJobsData); // Cập nhật bảng admin
-            
-            if (!manualJobsLoaded) manualJobsLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
         });
 
@@ -1250,10 +1245,28 @@
             updateData.workDaysOfWeek = null; // Xóa thứ nếu chuyển thành ca
         }
 
+        const oldData = allPatternsData.find(p => p.id === id) || {};
+        const changes = {};
+        const fieldLabels = { displayName: "Tên hiển thị", patternStartDate: "Ngày BĐ", patternEndDate: "Ngày KT", type: "Loại lịch", note: "Ghi chú", startTime: "Giờ BĐ", endTime: "Giờ KT", shiftGroup: "Nhóm ca", workDaysOfWeek: "Thứ làm việc", user: "Tài khoản" };
+        
+        for (const key in updateData) {
+            if (key === "updatedAt" || key === "isNextDay") continue;
+            let oldVal = oldData[key];
+            let newVal = updateData[key];
+            if (key === "workDaysOfWeek") {
+                oldVal = JSON.stringify(oldVal || []);
+                newVal = JSON.stringify(newVal || []);
+            }
+            if (oldVal !== newVal) {
+                if ((oldVal === undefined || oldVal === null || oldVal === "[]" || oldVal === "") && (newVal === undefined || newVal === null || newVal === "[]" || newVal === "")) continue;
+                changes[key] = { old: oldData[key], new: updateData[key], label: fieldLabels[key] || key };
+            }
+        }
+
         try {
             showLoading("Đang lưu...");
             await updateDoc(doc(db, "work_patterns", id), updateData);
-            addLog("admin_update_work_pattern", { email: getCurrentUserEmail(), patternId: id, updateData });
+            addLog("admin_update_work_pattern", { email: getCurrentUserEmail(), patternId: id, targetName: displayName, changes, updateData });
             hideLoading();
             Swal.fire("Thành công!", "Đã cập nhật quy tắc.", "success");
             closeEditModalFn();
@@ -1292,6 +1305,79 @@
         });
     });
 
+    // =========================================================================
+    // LOGIC MODAL CHỈNH SỬA QUY TẮC CÔNG VIỆC (MỤC 1)
+    // =========================================================================
+    const editRuleModal = document.getElementById("editRuleModal");
+    
+    function openEditRuleModal(rule) {
+        document.getElementById("editRuleId").value = rule.id;
+        document.getElementById("editRuleJobName").value = rule.job || "";
+        document.getElementById("editRuleTime").value = rule.time || "";
+        document.getElementById("editRuleExactDate").value = rule.exactDate || "";
+        document.getElementById("editRuleDom").value = rule.dom || "";
+        document.getElementById("editRuleDay").value = rule.day || "";
+        document.getElementById("editRuleWeek").value = rule.week || "";
+        document.getElementById("editRuleMonth").value = rule.month || "";
+        
+        document.getElementById("editRuleIsAdminCheckbox").checked = rule.is_admin_job || false;
+        let rawNote = rule.note || "";
+        if (rawNote.startsWith("[CVAdmin]")) {
+            rawNote = rawNote.replace("[CVAdmin]", "").trim();
+        }
+        document.getElementById("editRuleNote").value = rawNote;
+        
+        editRuleModal.style.display = "block";
+        document.body.style.overflow = 'hidden';
+    }
+
+    const closeEditRuleModalFn = () => {
+        editRuleModal.style.display = "none";
+        document.body.style.overflow = 'auto';
+    };
+    document.getElementById("closeEditRuleModal").onclick = closeEditRuleModalFn;
+    document.getElementById("cancelEditRuleBtn").onclick = closeEditRuleModalFn;
+
+    document.getElementById("saveEditRuleBtn").addEventListener("click", async () => {
+        const id = document.getElementById("editRuleId").value;
+        const job = document.getElementById("editRuleJobName").value.trim();
+        const isAdmin = document.getElementById("editRuleIsAdminCheckbox").checked;
+        const time = document.getElementById("editRuleTime").value;
+        const exactDate = document.getElementById("editRuleExactDate").value;
+        const dom = document.getElementById("editRuleDom").value;
+        const day = document.getElementById("editRuleDay").value;
+        const week = document.getElementById("editRuleWeek").value;
+        const month = document.getElementById("editRuleMonth").value;
+        const rawNote = document.getElementById("editRuleNote").value.trim();
+
+        if (!job) return Swal.fire("Lỗi", "Vui lòng nhập tên công việc!", "warning");
+
+        const note = isAdmin ? `[CVAdmin] ${rawNote}`.trim() : rawNote;
+        const updateData = { job, is_admin_job: isAdmin, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
+
+        const oldData = allRulesData.find(r => r.id === id) || {};
+        const changes = {};
+        const fieldLabels = { job: "Công việc", is_admin_job: "CV Admin", time: "Giờ", exactDate: "Ngày cụ thể", dom: "Ngày", day: "Thứ", week: "Tuần", month: "Tháng", note: "Ghi chú" };
+        for (const key in updateData) {
+            if (key !== "updatedAt" && oldData[key] !== updateData[key]) {
+                if ((oldData[key] === undefined || oldData[key] === null || oldData[key] === "") && (updateData[key] === undefined || updateData[key] === null || updateData[key] === "")) continue;
+                changes[key] = { old: oldData[key], new: updateData[key], label: fieldLabels[key] || key };
+            }
+        }
+
+        try {
+            showLoading("Đang lưu...");
+            await updateDoc(doc(db, "work_rules", id), updateData);
+            addLog("admin_update_work_rule", { email: getCurrentUserEmail(), ruleId: id, targetName: job, changes, updateData });
+            hideLoading();
+            Swal.fire("Thành công!", "Đã cập nhật quy tắc.", "success");
+            closeEditRuleModalFn();
+        } catch (error) {
+            hideLoading();
+            Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
+        }
+    });
+
     //
     function renderRuleList(rulesToRender) {
         ruleListBody.innerHTML = "";
@@ -1315,87 +1401,61 @@
             tr.innerHTML = `
                 <td>${d.job}</td>
                 <td>${d.time || "-"}</td>
-                <td>${d.dom || "-"}</td>
-                <td>${d.day === "8" ? "CN" : (d.day === "all" ? "Mọi ngày" : (d.day ? "T" + d.day : "-"))}</td>
-                <td>${d.week === "all" ? "Mọi tuần" : (d.week || "-")}</td>
-                <td>${d.month === "all" ? "Mọi tháng" : (d.month || "-")}</td>
+                <td style="color: #d35400; font-weight:bold;">${d.exactDate ? d.exactDate.split('-').reverse().join('/') : "-"}</td>
+                <td style="font-size:0.9em; color:#555;">
+                    ${d.exactDate ? "<i>(Bỏ qua định kỳ)</i>" : `N:${d.dom || "-"} | ${d.day === "8" ? "CN" : (d.day === "all" ? "Mọi ngày" : (d.day ? "T" + d.day : "-"))} | T:${d.week === "all" ? "Mọi tuần" : (d.week || "-")} | Th:${d.month === "all" ? "Mọi tháng" : (d.month || "-")}`}
+                </td>
                 <td>${noteDisplay}</td>
-                <td><button data-id="${d.id}">🗑️</button></td>`;
+                <td style="white-space: nowrap;">
+                    <button class="editRuleBtn" data-id="${d.id}" style="background:#f39c12; margin-right: 4px;">✏️</button>
+                    <button class="deleteRuleBtn" data-id="${d.id}">🗑️</button>
+                </td>`;
 
-            tr.querySelector("button").addEventListener("click", async () => {
+            tr.querySelector(".editRuleBtn").addEventListener("click", () => {
+                const ruleData = allRulesData.find(r => r.id === d.id);
+                if (ruleData) openEditRuleModal(ruleData);
+            });
+
+            tr.querySelector(".deleteRuleBtn").addEventListener("click", () => {
                 const ruleIdToDelete = d.id;
                 const ruleData = allRulesData.find(r => r.id === ruleIdToDelete);
-                try {
-                    await deleteDoc(doc(db, "work_rules", ruleIdToDelete));
-                    addLog("admin_delete_work_rule", {
-                        email: getCurrentUserEmail(),
-                        deletedRuleId: ruleIdToDelete,
-                        deletedRule: ruleData || {}
-                    });
-                    showSwal("success", "Đã xóa quy tắc!");
-                } catch (error) {
-                    addLog("admin_delete_work_rule_error", {
-                        email: getCurrentUserEmail(),
-                        ruleId: ruleIdToDelete,
-                        error: error.message
-                    });
-                    showSwal("error", "Lỗi khi xóa quy tắc!");
-                }
+                Swal.fire({
+                    title: 'Bạn có chắc chắn muốn xóa?',
+                    text: `Quy tắc "${d.job}" sẽ bị xóa vĩnh viễn!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    cancelButtonColor: '#95a5a6',
+                    confirmButtonText: 'Vâng, xóa nó!',
+                    cancelButtonText: 'Hủy'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            showLoading("Đang xóa...");
+                            await deleteDoc(doc(db, "work_rules", ruleIdToDelete));
+                            addLog("admin_delete_work_rule", {
+                                email: getCurrentUserEmail(),
+                                deletedRuleId: ruleIdToDelete,
+                                deletedRule: ruleData || {}
+                            });
+                            hideLoading();
+                            showSwal("success", "Đã xóa quy tắc!");
+                        } catch (error) {
+                            hideLoading();
+                            addLog("admin_delete_work_rule_error", {
+                                email: getCurrentUserEmail(),
+                                ruleId: ruleIdToDelete,
+                                error: error.message
+                            });
+                            showSwal("error", "Lỗi khi xóa quy tắc!");
+                        }
+                    }
+                });
             });
             ruleListBody.appendChild(tr);
         });
     }
 
-    
-
-    function renderManualJobList(jobsToRender) {
-        manualJobList.innerHTML = "";
-        let lastGroupChar = null;
-        let useColorB = false; // Bắt đầu với màu A (false)
-
-        jobsToRender.forEach(d => {
-            const currentGroupChar = getNormalizedFirstChar(d.job);
-
-            if (currentGroupChar !== lastGroupChar) {
-                useColorB = !useColorB;
-                lastGroupChar = currentGroupChar;
-            }
-
-            const tr = document.createElement("tr");
-            tr.className = useColorB ? 'group-color-b' : 'group-color-a';
-
-            const noteDisplay = (d.note || "-").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
-
-            tr.innerHTML = `
-                <td>${d.job}</td>
-                <td>${d.time || "-"}</td>
-                <td>${d.date}</td>
-                <td>${noteDisplay}</td>
-                <td><button data-id="${d.id}">🗑️</button></td>`;
-
-            tr.querySelector("button").addEventListener("click", async () => {
-                const jobIdToDelete = d.id;
-                const jobData = allManualJobsData.find(j => j.id === jobIdToDelete);
-                try {
-                    await deleteDoc(doc(db, "manual_jobs", jobIdToDelete));
-                    addLog("admin_delete_manual_job", {
-                        email: getCurrentUserEmail(),
-                        deletedJobId: jobIdToDelete,
-                        deletedJob: jobData || {} 
-                    });
-                    showSwal("success", "Đã xóa công việc thủ công!");
-                } catch (error) {
-                    addLog("admin_delete_manual_job_error", {
-                        email: getCurrentUserEmail(),
-                        jobId: jobIdToDelete,
-                        error: error.message
-                    });
-                    showSwal("error", "Lỗi khi xóa công việc!");
-                }
-            });
-            manualJobList.appendChild(tr);
-        });
-    }
 
     saveBtn.addEventListener("click", async () => {
         const isAdmin = document.getElementById("isAdminJobRuleCheckbox").checked;
@@ -1404,6 +1464,7 @@
         const jobData = {
             job: jobInput.value.trim(),
             time: document.getElementById("jobTime").value,
+            exactDate: document.getElementById("exactDate").value,
             day: daySelect.value,
             week: weekSelect.value,
             month: monthSelect.value,
@@ -1424,7 +1485,7 @@
                 ...jobData
             });
             showSwal("success", "Đã lưu quy tắc!");
-            [jobInput, daySelect, weekSelect, monthSelect, domSelect, jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+            [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
         } catch (error) {
             addLog("admin_create_work_rule_error", {
                 email: getCurrentUserEmail(),
@@ -1432,40 +1493,6 @@
                 data: jobData
             });
             showSwal("error", "Lỗi!", "Không thể lưu quy tắc: " + error.message);
-        }
-    });
-
-    saveManualBtn.addEventListener("click", async () => {
-        const isAdmin = document.getElementById("isAdminManualJobCheckbox").checked;
-        const originalNote = manualJobNoteInput.value.trim();
-
-        const jobData = {
-            job: manualJobInput.value.trim(),
-            time: document.getElementById("manualJobTime").value,
-            date: manualJobDate.value,
-            // --- LOGIC MỚI CHO GHI CHÚ ---
-            note: isAdmin ? `[CVAdmin] ${originalNote}`.trim() : originalNote,
-            is_admin_job: isAdmin, // Vẫn lưu boolean
-            createdAt: serverTimestamp()
-        };
-        if (!jobData.job || !jobData.date) return showSwal("error", "Vui lòng nhập tên và chọn ngày!");
-
-        try {
-            const docRef = await addDoc(collection(db, "manual_jobs"), jobData);
-            addLog("admin_create_manual_job", {
-                email: getCurrentUserEmail(),
-                jobId: docRef.id,
-                ...jobData
-            });
-            showSwal("success", "Đã lưu công việc thủ công!");
-            [manualJobInput, manualJobDate, manualJobNoteInput, document.getElementById("manualJobTime")].forEach(el => el.value = "");
-        } catch (error) {
-            addLog("admin_create_manual_job_error", {
-                email: getCurrentUserEmail(),
-                error: error.message,
-                data: jobData
-            });
-            showSwal("error", "Lỗi!", "Không thể lưu công việc: " + error.message);
         }
     });
 
@@ -1659,7 +1686,11 @@ function renderPatternList(patternsToRender) {
                 <td><input type="date" class="end-date-input" data-id="${d.id}" value="${d.patternEndDate || ""}" title="Chọn để đặt ngày kết thúc."></td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
-                <td><button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12;">✏️ Sửa</button></td>`;
+                <td>${d.note || "-"}</td>
+                <td style="white-space: nowrap;">
+                    <button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12; margin-right: 4px;">✏️</button>
+                    <button class="deletePatternBtn" data-id="${d.id}">🗑️</button>
+                </td>`;
 
             // Gắn sự kiện Tự động lưu Ngày Kết thúc
             tr.querySelector(".end-date-input").addEventListener('change', async (e) => {
@@ -1675,6 +1706,33 @@ function renderPatternList(patternsToRender) {
                     openEditPatternModal(patternData);
                 }
             });
+
+            tr.querySelector(".deletePatternBtn").addEventListener("click", async () => {
+                const patternId = d.id;
+                Swal.fire({
+                    title: 'Xóa vĩnh viễn nhân viên này?',
+                    text: "Dữ liệu lịch sử phân ca của nhân viên này sẽ bị ảnh hưởng. Nên dùng 'Đến ngày' để kết thúc thay vì xóa hẳn.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    cancelButtonColor: '#95a5a6',
+                    confirmButtonText: 'Vẫn xóa!',
+                    cancelButtonText: 'Hủy'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            showLoading("Đang xóa...");
+                            await deleteDoc(doc(db, "work_patterns", patternId));
+                            addLog("admin_delete_work_pattern", { email: getCurrentUserEmail(), patternId: patternId });
+                            hideLoading();
+                            Swal.fire('Đã xóa!', 'Quy tắc đã bị xóa khỏi hệ thống.', 'success');
+                        } catch (error) {
+                            hideLoading();
+                            Swal.fire('Lỗi!', 'Không thể xóa: ' + error.message, 'error');
+                        }
+                    }
+                });
+            });
             tbody.appendChild(tr);
         });
     }
@@ -1683,6 +1741,12 @@ function renderPatternList(patternsToRender) {
 
 // Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
 function ruleMatchesDate(rule, d) {
+    // NẾU CÓ NGÀY CỤ THỂ -> Chỉ khớp duy nhất ngày đó
+    if (rule.exactDate && rule.exactDate !== "") {
+        const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return rule.exactDate === isoDate;
+    }
+
     const dayNum = d.getDate();                    // ngày trong tháng (1..31)
     const monthNum = d.getMonth() + 1;             // tháng (1..12)
     const weekOfMonth = getWeekOfMonth(d);         // hàm bạn đã có
@@ -1926,23 +1990,6 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             notesForDay.push(noteDisplay && noteDisplay !== "" ? noteDisplay : "");
         });
 
-        // 3.2) Lọc Công việc Thủ công (Mục 2)
-        const isoDate = d.toISOString().slice(0, 10);
-        const allManualJobs = allManualJobsData.filter(m => 
-            ( !m.is_admin_job || userRole === 'admin' ) &&
-            m.date === isoDate 
-        );
-        allManualJobs.forEach(mj => {
-            jobsForDay.push(`${mj.job}${mj.time ? " " + mj.time : ""}`);
-            
-            // Tạo ghi chú
-            const noteDisplay = (mj.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
-
-            // --- SỬA LOGIC ---
-            // Luôn push 1 giá trị để 2 mảng song hành
-            notesForDay.push(noteDisplay && noteDisplay !== "" ? noteDisplay : "");
-        });
-
         // ===== 4) HIỂN THỊ TRÊN BẢNG =====
         const thuDisplay = d.getDay() === 0 ? 'Chủ Nhật' : 'Thứ ' + (d.getDay() + 1);
         const dateStr = d.toLocaleDateString("vi-VN");
@@ -2015,7 +2062,6 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
         // Nếu không có query, hiển thị lại tất cả
         if (!query) {
             renderRuleList(allRulesData);
-            renderManualJobList(allManualJobsData);
             renderPatternList(allPatternsData);
             return;
         }
@@ -2027,15 +2073,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
         );
         renderRuleList(filteredRules);
 
-        // 2. Lọc Bảng 2: CV Thủ công (Tìm theo Tên CV, Ghi chú, Ngày)
-        const filteredManualJobs = allManualJobsData.filter(job => 
-            (job.job && job.job.toLowerCase().includes(query)) ||
-            (job.note && job.note.toLowerCase().includes(query)) ||
-            (job.date && job.date.includes(query))
-        );
-        renderManualJobList(filteredManualJobs);
-
-        // 3. Lọc Bảng 3: Quy tắc ngày làm (Tìm theo Email, Tên hiển thị)
+        // 2. Lọc Bảng 2: Quy tắc ngày làm (Quy tắc mẫu)
         const filteredPatterns = allPatternsData.filter(p => 
             (p.user && p.user.toLowerCase().includes(query)) ||
             (p.displayName && p.displayName.toLowerCase().includes(query))
@@ -2073,7 +2111,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       const todayForFilter = new Date();
       const userPatterns = allPatternsData.filter(p => p.user === email && isRuleActiveOnDate(p, todayForFilter));
 
-      if (userPatterns.length === 0) {
+      if (userPatterns.length === 0 && currentUserRole !== 'admin') {
           personalScheduleDetails.innerHTML = "<p>Không tìm thấy quy tắc làm việc nào đang hoạt động cho tài khoản này.</p>";
           return;
       }
@@ -2148,24 +2186,19 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
           });
           // --- KẾT THÚC TÌM CA LÀM ---
 
-          // Chỉ hiển thị ngày có làm việc
-          if (matchedShifts.length > 0) {
+          // --- TÌM CÔNG VIỆC CHUNG & CV ADMIN ---
+          const allRuleJobs = allRulesData.filter(rule => 
+              ( !rule.is_admin_job || currentUserRole === 'admin' ) && 
+              ruleMatchesDate(rule, d)
+          );
+          const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              
+          const allTasks = [...allRuleJobs];
+
+          // Chỉ hiển thị ngày nếu: (1) CÓ CA LÀM CÁ NHÂN, hoặc (2) LÀ ADMIN và NGÀY ĐÓ CÓ CÔNG VIỆC
+          if (matchedShifts.length > 0 || (currentUserRole === 'admin' && allTasks.length > 0)) {
               hasWorkDay = true;
               let tasksHtml = "";
-
-              // --- TÌM CÔNG VIỆC (SỬA LẠI LOGIC HIỂN THỊ) ---
-              // (Code lọc allRuleJobs và allManualJobs)
-              const allRuleJobs = allRulesData.filter(rule => 
-                  ( !rule.is_admin_job || currentUserRole === 'admin' ) && 
-                  ruleMatchesDate(rule, d)
-              );
-              const isoDate = d.toISOString().slice(0, 10);
-              const allManualJobs = allManualJobsData.filter(m => 
-                  ( !m.is_admin_job || currentUserRole === 'admin' ) &&
-                  m.date === isoDate
-              );
-              
-              const allTasks = [...allRuleJobs, ...allManualJobs];
 
               if (allTasks.length > 0) {
                   // Dùng logic map().join() giống hệt bảng chính
@@ -2180,11 +2213,9 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   // Bỏ padding-left
                   tasksHtml = "<i style='font-size: 0.9em;'>Không có công việc chung nào được gán.</i>";
               }
-              // --- KẾT THÚC TÌM CÔNG VIỆC ---
-              // --- KẾT THÚC TÌM CÔNG VIỆC ---
 
               // Gộp nội dung ca làm
-              const shiftContent = matchedShifts.join("<br>");
+              const shiftContent = matchedShifts.length > 0 ? matchedShifts.join("<br>") : "<i style='color:#888;'>Không có ca cá nhân</i>";
 
               html += `
                 <tr${isToday ? " style='background:#dff0ff;'" : ""}>
