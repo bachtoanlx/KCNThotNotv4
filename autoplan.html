@@ -756,6 +756,7 @@
           <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <input type="text" id="editRuleJobName" placeholder="Tên công việc" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
+              <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="editRuleIsCommonCheckbox"> #CV Chung</label>
           </div>
           <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <input type="time" id="editRuleTime" title="Giờ hoàn thành" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
@@ -830,6 +831,7 @@
   <div class="input-row">
     <input type="text" id="jobName" placeholder="Tên công việc">
     <label><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
+    <label><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
     <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc">
     
     <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="background-color: #eaf3ff;">
@@ -892,7 +894,7 @@
     <table id="ruleList">
     <thead>
       <tr>
-        <th>Công việc</th><th>Giờ</th><th>Ngày cụ thể (1 lần)</th><th>Định kỳ: Ngày/Thứ/Tuần/Tháng</th><th>Ghi chú</th><th>Hành động</th>
+        <th>Công việc</th><th>Giờ</th><th>Ngày cụ thể</th><th>Định kỳ: Ngày/Thứ/Tuần/Tháng</th><th>Ghi chú</th><th>Hành động</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -1016,6 +1018,20 @@
     const domSelect = document.getElementById("domSelect");
     const saveBtn = document.getElementById("saveRule");
     const adminConfig = document.getElementById("adminConfig");
+    
+    // Logic checkbox độc quyền
+    document.getElementById("isAdminJobRuleCheckbox").addEventListener("change", function() {
+        if (this.checked) document.getElementById("isCommonJobRuleCheckbox").checked = false;
+    });
+    document.getElementById("isCommonJobRuleCheckbox").addEventListener("change", function() {
+        if (this.checked) document.getElementById("isAdminJobRuleCheckbox").checked = false;
+    });
+    document.getElementById("editRuleIsAdminCheckbox").addEventListener("change", function() {
+        if (this.checked) document.getElementById("editRuleIsCommonCheckbox").checked = false;
+    });
+    document.getElementById("editRuleIsCommonCheckbox").addEventListener("change", function() {
+        if (this.checked) document.getElementById("editRuleIsAdminCheckbox").checked = false;
+    });
 
     let allRulesData = [];
     let allPatternsData = [];
@@ -1321,9 +1337,12 @@
         document.getElementById("editRuleMonth").value = rule.month || "";
         
         document.getElementById("editRuleIsAdminCheckbox").checked = rule.is_admin_job || false;
+        document.getElementById("editRuleIsCommonCheckbox").checked = rule.is_common_job || false;
         let rawNote = rule.note || "";
         if (rawNote.startsWith("[CVAdmin]")) {
             rawNote = rawNote.replace("[CVAdmin]", "").trim();
+        } else if (rawNote.startsWith("[CVChung]")) {
+            rawNote = rawNote.replace("[CVChung]", "").trim();
         }
         document.getElementById("editRuleNote").value = rawNote;
         
@@ -1342,6 +1361,7 @@
         const id = document.getElementById("editRuleId").value;
         const job = document.getElementById("editRuleJobName").value.trim();
         const isAdmin = document.getElementById("editRuleIsAdminCheckbox").checked;
+        const isCommon = document.getElementById("editRuleIsCommonCheckbox").checked;
         const time = document.getElementById("editRuleTime").value;
         const exactDate = document.getElementById("editRuleExactDate").value;
         const dom = document.getElementById("editRuleDom").value;
@@ -1352,12 +1372,15 @@
 
         if (!job) return Swal.fire("Lỗi", "Vui lòng nhập tên công việc!", "warning");
 
-        const note = isAdmin ? `[CVAdmin] ${rawNote}`.trim() : rawNote;
-        const updateData = { job, is_admin_job: isAdmin, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
+        let note = rawNote;
+        if (isAdmin) note = `[CVAdmin] ${rawNote}`.trim();
+        else if (isCommon) note = `[CVChung] ${rawNote}`.trim();
+        
+        const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
 
         const oldData = allRulesData.find(r => r.id === id) || {};
         const changes = {};
-        const fieldLabels = { job: "Công việc", is_admin_job: "CV Admin", time: "Giờ", exactDate: "Ngày cụ thể", dom: "Ngày", day: "Thứ", week: "Tuần", month: "Tháng", note: "Ghi chú" };
+        const fieldLabels = { job: "Công việc", is_admin_job: "CV Admin", is_common_job: "CV Chung", time: "Giờ", exactDate: "Ngày cụ thể", dom: "Ngày", day: "Thứ", week: "Tuần", month: "Tháng", note: "Ghi chú" };
         for (const key in updateData) {
             if (key !== "updatedAt" && oldData[key] !== updateData[key]) {
                 if ((oldData[key] === undefined || oldData[key] === null || oldData[key] === "") && (updateData[key] === undefined || updateData[key] === null || updateData[key] === "")) continue;
@@ -1396,7 +1419,7 @@
             const tr = document.createElement("tr");
             tr.className = useColorB ? 'group-color-b' : 'group-color-a';
 
-            const noteDisplay = (d.note || "-").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+            const noteDisplay = (d.note || "-").replace("[CVAdmin]", "<b>[CVAdmin]</b>").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
 
             tr.innerHTML = `
                 <td>${d.job}</td>
@@ -1459,7 +1482,12 @@
 
     saveBtn.addEventListener("click", async () => {
         const isAdmin = document.getElementById("isAdminJobRuleCheckbox").checked;
+        const isCommon = document.getElementById("isCommonJobRuleCheckbox").checked;
         const originalNote = jobNoteInput.value.trim();
+        
+        let noteStr = originalNote;
+        if (isAdmin) noteStr = `[CVAdmin] ${originalNote}`.trim();
+        else if (isCommon) noteStr = `[CVChung] ${originalNote}`.trim();
         
         const jobData = {
             job: jobInput.value.trim(),
@@ -1469,9 +1497,9 @@
             week: weekSelect.value,
             month: monthSelect.value,
             dom: domSelect.value,
-            // --- LOGIC MỚI CHO GHI CHÚ ---
-            note: isAdmin ? `[CVAdmin] ${originalNote}`.trim() : originalNote,
+            note: noteStr,
             is_admin_job: isAdmin, // Vẫn lưu boolean để ẩn/hiện trên lịch
+            is_common_job: isCommon,
             createdAt: serverTimestamp()
         };
         if (!jobData.job) return showSwal("error", "Vui lòng nhập tên công việc!");
@@ -1983,7 +2011,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             jobsForDay.push(`${r.job}${r.time ? " " + r.time : ""}`);
             
             // Tạo ghi chú
-            const noteDisplay = (r.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+            const noteDisplay = (r.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
             
             // --- SỬA LOGIC ---
             // Luôn push 1 giá trị để 2 mảng song hành
@@ -2194,16 +2222,17 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
           const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               
           const allTasks = [...allRuleJobs];
+          const hasAdminTasks = allTasks.some(t => t.is_admin_job);
 
-          // Chỉ hiển thị ngày nếu: (1) CÓ CA LÀM CÁ NHÂN, hoặc (2) LÀ ADMIN và NGÀY ĐÓ CÓ CÔNG VIỆC
-          if (matchedShifts.length > 0 || (currentUserRole === 'admin' && allTasks.length > 0)) {
+          // Chỉ hiển thị ngày nếu: (1) CÓ CA LÀM CÁ NHÂN, hoặc (2) LÀ ADMIN và NGÀY ĐÓ CÓ CÔNG VIỆC DÀNH CHO ADMIN
+          if (matchedShifts.length > 0 || (currentUserRole === 'admin' && hasAdminTasks)) {
               hasWorkDay = true;
               let tasksHtml = "";
 
               if (allTasks.length > 0) {
                   // Dùng logic map().join() giống hệt bảng chính
                   const tasksArray = allTasks.map(task => {
-                      const noteDisplay = (task.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>");
+                      const noteDisplay = (task.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
                       const noteString = noteDisplay && noteDisplay !== "" ? ` <i>— ${noteDisplay}</i>` : "";
                       // Thêm gạch ngang "- " và wrap trong div với CSS buộc xuống dòng
                       return `<div style="margin-bottom: 3px; word-break: break-all; overflow-wrap: anywhere;">- ${task.job} ${task.time ? `(${task.time})` : ""}${noteString}</div>`;
