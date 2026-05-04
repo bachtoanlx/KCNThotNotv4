@@ -278,7 +278,7 @@
     padding: 20px;
     border: 1px solid #888;
     width: 100%;
-    max-width: 96%; 
+    max-width: 800px; 
     border-radius: 10px;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     box-sizing: border-box;
@@ -431,7 +431,8 @@
 
 .collapsible-content {
     display: block; /* Luôn hiển thị */
-    max-height: 175px; /* Giới hạn chiều cao */
+    max-height: 350px; /* Giới hạn chiều cao để xem được nhiều dòng hơn */
+    min-height: 250px; /* THÊM: Ngăn khung bị co dãn chiều dọc khi tìm kiếm ít kết quả */
     overflow-y: auto; /* Bật thanh cuộn dọc */
     overflow-x: auto; /* THÊM: Bật thanh cuộn ngang khi cần */
     margin-top: 10px;
@@ -449,6 +450,34 @@
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
     
 }
+
+/* Cố định layout bảng admin để không bị co dãn ngang khi tìm kiếm */
+#ruleList {
+    table-layout: fixed;
+    min-width: 800px;
+}
+#ruleList th:nth-child(1) { width: 25%; }
+#ruleList th:nth-child(2) { width: 8%; }
+#ruleList th:nth-child(3) { width: 12%; }
+#ruleList th:nth-child(4) { width: 25%; }
+#ruleList th:nth-child(5) { width: 20%; }
+#ruleList th:nth-child(6) { width: 10%; }
+
+#patternList {
+    table-layout: fixed;
+    min-width: 1000px;
+}
+#patternList th:nth-child(1) { width: 12%; }
+#patternList th:nth-child(2) { width: 12%; }
+#patternList th:nth-child(3) { width: 8%; }
+#patternList th:nth-child(4) { width: 18%; }
+#patternList th:nth-child(5) { width: 10%; }
+#patternList th:nth-child(6) { width: 12%; }
+#patternList th:nth-child(7) { width: 6%; }
+#patternList th:nth-child(8) { width: 6%; }
+#patternList th:nth-child(9) { width: 10%; }
+#patternList th:nth-child(10) { width: 6%; }
+
 /* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
 #scheduleTable tr.highlight {
     background-color: #fff8c4 !important;
@@ -663,6 +692,50 @@
     display: none !important;
   }
 }
+
+/* === CSS CHO TABS ADMIN === */
+.admin-tabs {
+    display: flex;
+    border-bottom: 2px solid #273668;
+    gap: 5px;
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.admin-tab-btn {
+    background: #e9ecef;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 8px 8px 0 0;
+    color: #495057;
+    white-space: nowrap;
+    outline: none;
+}
+
+.admin-tab-btn:hover {
+    background: #dde2e6;
+}
+
+.admin-tab-btn.active {
+    background: #f7f7f7;
+    color: #273668;
+    border: 2px solid #273668;
+    border-bottom: 2px solid #f7f7f7;
+    margin-bottom: -2px;
+    z-index: 1;
+    position: relative;
+}
+
+.admin-tab-content {
+    display: none !important;
+}
+
+.admin-tab-content.active {
+    display: block !important;
+}
 </style>
 </head>
 <body>
@@ -791,6 +864,103 @@
       </div>
   </div>
 
+  <!-- MODAL THÊM QUY TẮC MỚI -->
+  <div id="addRuleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 600px;">
+          <span class="close" id="closeAddRuleModal">&times;</span>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">➕ Thêm Quy tắc Mới</h2>
+          
+          <div class="input-row" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+              <label style="font-weight: 500; min-width: 100px;">Loại quy tắc:</label>
+              <select id="addRuleTypeSelect" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="job">Quy tắc công việc (Dùng chung)</option>
+                  <option value="pattern">Quy tắc ngày làm (Cá nhân)</option>
+              </select>
+          </div>
+
+          <!-- CONTAINER CHO FORM CÔNG VIỆC -->
+          <div id="addJobFormContainer" class="rule-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
+            <div class="input-row">
+              <input type="text" id="jobName" placeholder="Tên công việc">
+              <label><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
+              <label><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
+              <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc">
+              
+              <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="background-color: #eaf3ff;">
+              <span style="font-weight: bold; font-size: 12px; color: #555;">HOẶC ĐỊNH KỲ:</span>
+              <select id="domSelect">
+                <option value="">--Ngày--</option>
+                <script>for (let i = 1; i <= 31; i++) { document.write(`<option value="${i}">${i}</option>`); }</script>
+              </select>
+              <select id="daySelect">
+                <option value="">--Thứ--</option>
+                <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option><option value="5">T5</option><option value="6">T6</option><option value="7">T7</option><option value="8">CN</option><option value="all">Mọi ngày</option>
+              </select>
+              <select id="weekSelect">
+                <option value="">--Tuần--</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
+              </select>
+              <select id="monthSelect">
+                <option value="">--Tháng--</option>
+                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
+              </select>
+            </div>
+            <div class="input-row">
+              <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)">
+            </div>
+          </div>
+
+          <!-- CONTAINER CHO FORM NGÀY LÀM -->
+          <div id="addPatternFormContainer" class="rule-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
+            <div class="input-row">
+              <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
+              <input type="text" id="patternDisplayName" placeholder="Tên hiển thị trên lịch">
+              <input type="date" id="patternStartDate" title="Ngày bắt đầu áp dụng quy tắc">
+              <select id="patternTypeSelect">
+                <option value="administrative">1.Lịch Cố định</option>
+                <option value="shift_rotation">2.Lịch Theo Ca</option>
+              </select>
+            </div>
+
+            <div id="administrativeInputs">
+              <div class="input-row">
+                <label>Nhóm ca:</label>
+                <input type="text" id="adminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." style="width: 160px;" title="Tên nhóm ca (Mặc định: Hành chính)">
+              </div>
+              <div class="input-row">
+                <label>Thứ làm việc:</label>
+                <div id="dayCheckboxes">
+                  <label><input type="checkbox" value="2">T2</label><label><input type="checkbox" value="3">T3</label><label><input type="checkbox" value="4">T4</label><label><input type="checkbox" value="5">T5</label><label><input type="checkbox" value="6">T6</label><label><input type="checkbox" value="7">T7</label><label><input type="checkbox" value="8">CN</label>
+                </div>
+                  <label style="margin-left: 10px;">Giờ bắt đầu:</label> <input type="time" id="adminStartTime">
+                  <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime">
+              </div>
+            </div>
+
+            <div id="shiftRotationInputs" style="display:none;">
+                <div class="input-row">
+                    <label>Nhóm ca:</label>
+                    <input type="text" id="shiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px;" title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
+                    <datalist id="existingShiftGroups"></datalist>
+                    <label>Giờ bắt đầu ca:</label>
+                    <input type="time" id="shiftStartTime">
+                    <label>Giờ kết thúc ca:</label>
+                    <input type="time" id="shiftEndTime">
+                </div>
+            </div>
+
+            <div class="input-row">
+                <input type="text" id="patternNote" placeholder="Ghi chú (Tùy chọn)">
+            </div>
+          </div>
+
+          <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="cancelAddRuleBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveNewRuleBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu quy tắc</button>
+          </div>
+      </div>
+  </div>
+
   <div id="pageContent" style="display:none;">
   <h2 style="margin-bottom: 5px;">📅 Lịch làm việc trong tuần</h2>
 
@@ -825,70 +995,18 @@
     </div>
   </div>
 
+  <!-- TABS CONTAINER CHO ADMIN -->
+  <div id="adminTabsContainer" class="admin-only" style="display: none;">
+      <div class="admin-tabs">
+          <button class="admin-tab-btn" id="btn-openAddModal" style="background: #273668; color: white;">➕ Thêm quy tắc</button>
+          <button class="admin-tab-btn active" id="tabBtn-adminConfig">📋 1. DS Công việc</button>
+          <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 2. DS Ngày làm</button>
+      </div>
 
-  <div id="adminConfig" class="rule-box admin-only">
-  <h3>⚙️ 1.Cài đặt quy tắc công việc (Admin)</h3>
-  <div class="input-row">
-    <input type="text" id="jobName" placeholder="Tên công việc">
-    <label><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
-    <label><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
-    <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc">
-    
-    <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="background-color: #eaf3ff;">
-    <span style="font-weight: bold; font-size: 12px; color: #555;">HOẶC ĐỊNH KỲ:</span>
-    <select id="domSelect">
-      <option value="">--Ngày--</option>
-      <script>
-        for (let i = 1; i <= 31; i++) {
-          document.write(`<option value="${i}">${i}</option>`);
-        }
-      </script>
-    </select>
-    <select id="daySelect">
-      <option value="">--Thứ--</option>
-      <option value="2">T2</option>
-      <option value="3">T3</option>
-      <option value="4">T4</option>
-      <option value="5">T5</option>
-      <option value="6">T6</option>
-      <option value="7">T7</option>
-      <option value="8">CN</option>
-      <option value="all">Mọi ngày</option>
-    </select>
-    <select id="weekSelect">
-      <option value="">--Tuần--</option>
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="all">Mọi tuần</option>
-    </select>
-    <select id="monthSelect">
-      <option value="">--Tháng--</option>
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="5">5</option>
-      <option value="6">6</option>
-      <option value="7">7</option>
-      <option value="8">8</option>
-      <option value="9">9</option>
-      <option value="10">10</option>
-      <option value="11">11</option>
-      <option value="12">12</option>
-      <option value="all">Mọi tháng</option>
-    </select>
-    
-    <button id="saveRule">💾 Lưu</button>
-  </div>
-
-  <div class="input-row">
-    <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)">
-  </div>
-
-  <div class="list-header">
-      <h4>Danh sách quy tắc đã thêm</h4>
+  <div id="adminConfig" class="rule-box admin-tab-content active" style="margin-top: 0; border-top-left-radius: 0;">
+  <h3 style="display: none;">⚙️ 1.Cài đặt quy tắc công việc (Admin)</h3>
+  <div class="list-header" style="margin-top: 0;">
+      <h4>Danh sách quy tắc công việc</h4>
   </div>
   <div class="collapsible-content">
     <table id="ruleList">
@@ -901,59 +1019,11 @@
   </table>
 </div>
 </div>
-<div id="workPatternConfig" class="rule-box admin-only">
-  <h3>🧭 2.Cài đặt quy tắc ngày làm (Admin)</h3>
 
-<div class="input-row">
-    <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
-    <input type="text" id="patternDisplayName" placeholder="Tên hiển thị trên lịch">
-    <input type="date" id="patternStartDate" title="Ngày bắt đầu áp dụng quy tắc">
-    <select id="patternTypeSelect">
-      <option value="administrative">1.Lịch Cố định</option>
-      <option value="shift_rotation">2.Lịch Theo Ca</option>
-    </select>
-    <button id="savePattern">💾 Lưu</button>
-  </div>
+<div id="workPatternConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
+  <h3 style="display: none;">🧭 2.Cài đặt quy tắc ngày làm (Admin)</h3>
 
-  <div id="administrativeInputs">
-    <div class="input-row">
-      <label>Nhóm ca:</label>
-      <input type="text" id="adminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." style="width: 160px;" title="Tên nhóm ca (Mặc định: Hành chính)">
-    </div>
-    <div class="input-row">
-      <label>Thứ làm việc:</label>
-      <div id="dayCheckboxes">
-        <label><input type="checkbox" value="2">T2</label>
-        <label><input type="checkbox" value="3">T3</label>
-        <label><input type="checkbox" value="4">T4</label>
-        <label><input type="checkbox" value="5">T5</label>
-        <label><input type="checkbox" value="6">T6</label>
-        <label><input type="checkbox" value="7">T7</label>
-        <label><input type="checkbox" value="8">CN</label>
-      </div>
-        <label style="margin-left: 10px;">Giờ bắt đầu:</label> <input type="time" id="adminStartTime">
-        <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime">
-    </div>
-  </div>
-
-  <div id="shiftRotationInputs" style="display:none;">
-      <div class="input-row">
-          <label>Nhóm ca:</label>
-          <input type="text" id="shiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px;" title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
-          <datalist id="existingShiftGroups"></datalist>
-          <label>Giờ bắt đầu ca:</label>
-          <input type="time" id="shiftStartTime">
-          <label>Giờ kết thúc ca:</label>
-          <input type="time" id="shiftEndTime">
-          
-      </div>
-  </div>
-
-  <div class="input-row">
-      <input type="text" id="patternNote" placeholder="Ghi chú (Tùy chọn)">
-  </div>
-
-  <div class="list-header">
+  <div class="list-header" style="margin-top: 0;">
       <h4>Danh sách quy tắc ngày làm</h4>      
   </div>
   <div class="collapsible-content">
@@ -965,6 +1035,7 @@
   </table>
 </div>
 </div>
+  </div> <!-- End Tabs Container -->
 </div>
 
 <div id="footer-placeholder"></div>
@@ -1016,7 +1087,6 @@
     const weekSelect = document.getElementById("weekSelect");
     const monthSelect = document.getElementById("monthSelect"); 
     const domSelect = document.getElementById("domSelect");
-    const saveBtn = document.getElementById("saveRule");
     const adminConfig = document.getElementById("adminConfig");
     
     // Logic checkbox độc quyền
@@ -1047,6 +1117,25 @@
     const closeModalBtn = document.getElementById("closeModal");
     const personalScheduleDetails = document.getElementById("personalScheduleDetails");
 
+    // --- LOGIC TABS ADMIN ---
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (e.target.id === 'btn-openAddModal') {
+                openAddRuleModal();
+                return;
+            }
+            document.getElementById('btn-openAddModal').classList.remove('active');
+            
+            document.querySelectorAll('.admin-tab-btn').forEach(b => {
+                if (b.id !== 'btn-openAddModal') b.classList.remove('active');
+            });
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+            
+            const targetId = e.target.id.replace('tabBtn-', '');
+            e.target.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
 
     let userRole = "user";
 
@@ -1062,11 +1151,35 @@
         content.style.display = "block";
         if (userRole === "admin") {
             document.querySelectorAll(".admin-only").forEach(el => el.classList.add("admin-visible"));
+            const adminTabs = document.getElementById("adminTabsContainer");
+            if (adminTabs) adminTabs.style.display = "block";
         }
 
         // Bắt đầu lắng nghe thời gian thực
         setupRealtimeListeners(user.email, userRole);
     });
+
+    // --- LOGIC MODAL THÊM QUY TẮC MỚI ---
+    const addRuleModal = document.getElementById("addRuleModal");
+    const addRuleTypeSelect = document.getElementById("addRuleTypeSelect");
+    const addJobFormContainer = document.getElementById("addJobFormContainer");
+    const addPatternFormContainer = document.getElementById("addPatternFormContainer");
+
+    function openAddRuleModal() {
+        addRuleModal.style.display = "block";
+        document.body.style.overflow = 'hidden';
+    }
+    const closeAddRuleModalFn = () => {
+        addRuleModal.style.display = "none";
+        document.body.style.overflow = 'auto';
+    };
+    document.getElementById("closeAddRuleModal").onclick = closeAddRuleModalFn;
+    document.getElementById("cancelAddRuleBtn").onclick = closeAddRuleModalFn;
+    addRuleTypeSelect.addEventListener('change', () => {
+        addJobFormContainer.style.display = addRuleTypeSelect.value === 'job' ? 'block' : 'none';
+        addPatternFormContainer.style.display = addRuleTypeSelect.value === 'pattern' ? 'block' : 'none';
+    });
+
 
     // --- HÀM 2 (MỚI): checkAllDataLoadedAndRender ---
     function checkAllDataLoadedAndRender(email, role) {
@@ -1404,6 +1517,12 @@
     //
     function renderRuleList(rulesToRender) {
         ruleListBody.innerHTML = "";
+        
+        if (rulesToRender.length === 0) {
+            ruleListBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; color: #888; font-style: italic;">Không tìm thấy quy tắc công việc nào phù hợp với từ khóa tìm kiếm.</td></tr>`;
+            return;
+        }
+        
         let lastGroupChar = null;
         let useColorB = false; // Bắt đầu với màu A (false)
 
@@ -1479,8 +1598,13 @@
         });
     }
 
-
-    saveBtn.addEventListener("click", async () => {
+    // =========================================================================
+    // LOGIC LƯU QUY TẮC CHUNG TỪ MODAL THÊM MỚI
+    // =========================================================================
+    document.getElementById("saveNewRuleBtn").addEventListener("click", async () => {
+      const ruleType = document.getElementById("addRuleTypeSelect").value;
+      
+      if (ruleType === 'job') {
         const isAdmin = document.getElementById("isAdminJobRuleCheckbox").checked;
         const isCommon = document.getElementById("isCommonJobRuleCheckbox").checked;
         const originalNote = jobNoteInput.value.trim();
@@ -1514,6 +1638,7 @@
             });
             showSwal("success", "Đã lưu quy tắc!");
             [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+            closeAddRuleModalFn();
         } catch (error) {
             addLog("admin_create_work_rule_error", {
                 email: getCurrentUserEmail(),
@@ -1522,30 +1647,7 @@
             });
             showSwal("error", "Lỗi!", "Không thể lưu quy tắc: " + error.message);
         }
-    });
-
-    function getWeekOfMonth(date) {
-        const day = date.getDate();
-        return Math.ceil(day / 7);
-    }
-
-// --- LOGIC MỚI: ĐIỀU KHIỂN GIAO DIỆN MỤC 3 ---
-    const patternTypeSelect = document.getElementById('patternTypeSelect');
-    const administrativeInputs = document.getElementById('administrativeInputs');
-    const shiftRotationInputs = document.getElementById('shiftRotationInputs');
-
-    patternTypeSelect.addEventListener('change', () => {
-        if (patternTypeSelect.value === 'administrative') {
-            administrativeInputs.style.display = 'block';
-            shiftRotationInputs.style.display = 'none';
-        } else {
-            administrativeInputs.style.display = 'none';
-            shiftRotationInputs.style.display = 'block';
-        }
-    });
-
-    //THAY THẾ HÀM savePattern CŨ
-    document.getElementById("savePattern").addEventListener("click", async () => {
+      } else if (ruleType === 'pattern') {
         // --- BƯỚC 1: LẤY DỮ LIỆU CHUNG ---
         const user = document.getElementById("patternUser").value.trim();
         const displayName = document.getElementById("patternDisplayName").value.trim();
@@ -1623,6 +1725,7 @@
             });
             hideLoading(); // Tắt loading "Đang lưu quy tắc"
             
+            closeAddRuleModalFn(); // Đóng modal thêm mới
 
             // === BẮT ĐẦU KHỐI GỬI EMAIL (ĐÃ SỬA LỖI LOADING) ===
             try {
@@ -1668,6 +1771,27 @@
                 data: data
             });
             Swal.fire("Lỗi!", "Không thể lưu quy tắc: " + error.message, "error");
+        }
+      }
+    });
+
+    function getWeekOfMonth(date) {
+        const day = date.getDate();
+        return Math.ceil(day / 7);
+    }
+
+// --- LOGIC MỚI: ĐIỀU KHIỂN GIAO DIỆN MỤC 3 ---
+    const patternTypeSelect = document.getElementById('patternTypeSelect');
+    const administrativeInputs = document.getElementById('administrativeInputs');
+    const shiftRotationInputs = document.getElementById('shiftRotationInputs');
+
+    patternTypeSelect.addEventListener('change', () => {
+        if (patternTypeSelect.value === 'administrative') {
+            administrativeInputs.style.display = 'block';
+            shiftRotationInputs.style.display = 'none';
+        } else {
+            administrativeInputs.style.display = 'none';
+            shiftRotationInputs.style.display = 'block';
         }
     });
 
@@ -2160,11 +2284,11 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       const daysToScan = (currentDayOfWeek === 0) ? 0 : (7 - currentDayOfWeek);
 
       let html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
-        <table style="width: 100%; max-width: 100%; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 9px; box-sizing: border-box;">
+        <table style="width: 100%; max-width: 100%; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box;">
         <thead>
           <tr style="background:#f0f0f0;">
-            <th style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; width: 35%;">Ngày & Ca</th>
-            <th style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; width: 65%;">Công việc</th>
+            <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 35%;">Ngày & Ca</th>
+            <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 65%;">Công việc</th>
           </tr>
         </thead>
         <tbody>`;
@@ -2248,12 +2372,12 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
               html += `
                 <tr${isToday ? " style='background:#dff0ff;'" : ""}>
-                  <td style="padding: 3px 2px; border: 1px solid #ccc; text-align: center; font-size: 9px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.3; max-width: 100%;">
-                    <strong style="font-size: 9px;">${thuDisplay}</strong><br><span style="font-size: 8px;">${dateStr}</span>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.4; max-width: 100%;">
+                    <strong style="font-size: 15px;">${thuDisplay}</strong><br><span style="font-size: 13px;">${dateStr}</span>
                     <br>
-                    <span style="font-size: 8px; color: #555;">${shiftContent}</span>
+                    <span style="font-size: 13px; color: #555;">${shiftContent}</span>
                   </td>
-                  <td style="padding: 3px 2px; border: 1px solid #ccc; text-align: left; font-size: 9px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.4; max-width: 100%;">${tasksHtml}</td>
+                  <td style="padding: 8px; border: 1px solid #ccc; text-align: left; font-size: 14px; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.5; max-width: 100%;">${tasksHtml}</td>
                 </tr>`;
           }
       } // Kết thúc vòng lặp
