@@ -339,6 +339,8 @@
                 "login_success": "Đăng nhập thành công",
                 "login_failure": "Đăng nhập thất bại",
                 "logout": "Đăng xuất khỏi hệ thống",
+                "logout_success": "Đăng xuất thành công",
+                "auto_logout_inactivity": "Tự động đăng xuất (Không hoạt động)",
 
                 // Quản lý quy tắc công việc
                 "admin_create_work_rule": "Admin tạo quy tắc công việc mới",
@@ -410,7 +412,18 @@
                     details = `Lỗi đăng nhập: ${log.error_code || "N/A"}. Thiết bị: ${log.userAgent || "N/A"}`;
                     break;
                 case "logout":
-                    details = `Đăng xuất thành công.`;
+                case "logout_success":
+                    details = `
+                        <b>Trạng thái:</b> Thành công<br>
+                        <b>Thiết bị:</b> ${log.userAgent || "N/A"}
+                    `;
+                    break;
+                case "auto_logout_inactivity":
+                    details = `
+                        <b>Lý do:</b> ${log.reason || "Không hoạt động"}<br>
+                        <b>Chi tiết:</b> ${log.details || "Hệ thống tự động đăng xuất do quá thời gian quy định"}<br>
+                        <b>Thiết bị:</b> ${log.userAgent || "N/A"}
+                    `;
                     break;
                 case "admin_create_work_rule":
                     details = `
@@ -572,6 +585,7 @@
 
                 default:
                     details = `
+                        ${log.details ? "<b>Chi tiết:</b> " + log.details + "<br>" : ""}
                         ${log.company ? "<b>Cty:</b> " + log.company + "<br>" : ""}
                         ${log.chi_so ? "<b>Chỉ số:</b> " + log.chi_so + "<br>" : ""}
                         ${log.ngay_ghi ? "<b>Ngày ghi:</b> " + log.ngay_ghi + "<br>" : ""}
