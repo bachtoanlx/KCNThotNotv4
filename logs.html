@@ -374,6 +374,10 @@
                 "admin_delete_shift_success": "Admin xóa ca làm việc thành công",
                 "admin_delete_shift_failure": "Lỗi khi Admin xóa ca làm việc",
 
+                // Quản lý hoán đổi ca
+                "admin_create_shift_swap": "Admin tạo hoán đổi ca",
+                "admin_delete_shift_swap": "Admin xóa hoán đổi ca",
+
                 // Quản lý dữ liệu chỉ số
                 "indicator_entry": "Nhập liệu chỉ số mới",
                 "indicator_edit": "Chỉnh sửa chỉ số",
@@ -547,6 +551,22 @@
                     <b>ShiftID:</b> ${log.shiftId || "N/A"}<br>    
                     <b>Tên ca:</b> ${log.shiftName || "N/A"}<br>   
                     <b style="color:red;">Lỗi:</b> ${log.error || "N/A"}
+                    `;
+                    break;
+
+                case "admin_create_shift_swap":
+                    details = `
+                        <b>Ngày đổi:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}<br>
+                        <b>Người xin nghỉ (A):</b> ${log.user1 || "N/A"}<br>
+                        <b>Người làm thay (B):</b> ${log.user2 || "N/A"}
+                    `;
+                    break;
+
+                case "admin_delete_shift_swap":
+                    details = `
+                        <b>Xóa hoán đổi ngày:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}<br>
+                        <b>Người xin nghỉ (A):</b> ${log.user1 || "N/A"}<br>
+                        <b>Người làm thay (B):</b> ${log.user2 || "N/A"}
                     `;
                     break;
 
