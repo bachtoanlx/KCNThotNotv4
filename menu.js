@@ -1,5 +1,5 @@
 // menu.js
-import { auth, db, onAuth, logout, addLog, showSwal, getRole } from "./script.js";
+import { auth, db, onAuth, logout, addLog, showSwal, getRole, initAutoLogout } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
@@ -56,6 +56,10 @@ export function initMenu() {
       userEmailEl.textContent = user.email;
       loginBtn.style.display = "none";
       logoutBtn.style.display = "inline-block";
+      
+      // Kích hoạt tự động đăng xuất nếu không hoạt động
+      // Truyền vào số ngày, ví dụ: 7 ngày (hoặc có thể truyền số thập phân như 0.5 cho nửa ngày)
+      initAutoLogout(7); 
 
       const role = await getRole(user.email);
       if (role === "admin") {
