@@ -61,6 +61,53 @@ export function logout() {
   return signOut(auth);
 }
 
+// ====== TỰ ĐỘNG ĐĂNG XUẤT NẾU KHÔNG HOẠT ĐỘNG ======
+export function initAutoLogout(timeoutInDays = 7) {
+  const INACTIVITY_LIMIT_MS = timeoutInDays * 24 * 60 * 60 * 1000; // Đổi ngày ra mili-giây
+  let isThrottled = false;
+  let checkInterval;
+
+  // Hàm cập nhật thời gian thao tác cuối cùng vào localStorage
+  function updateLastActivity() {
+    if (isThrottled) return; // Tối ưu hiệu suất (chỉ cập nhật 5s/lần dù chuột di chuyển liên tục)
+    isThrottled = true;
+    localStorage.setItem('lastActivityTime', Date.now().toString());
+    setTimeout(() => { isThrottled = false; }, 5000);
+  }
+
+  // Lắng nghe các thao tác của người dùng
+  window.addEventListener('mousemove', updateLastActivity);
+  window.addEventListener('keydown', updateLastActivity);
+  window.addEventListener('click', updateLastActivity);
+  window.addEventListener('scroll', updateLastActivity);
+
+  // Khởi tạo mốc thời gian lần đầu nếu chưa có
+  if (!localStorage.getItem('lastActivityTime')) {
+    localStorage.setItem('lastActivityTime', Date.now().toString());
+  }
+
+  // Hàm kiểm tra định kỳ (mỗi phút 1 lần)
+  checkInterval = setInterval(async () => {
+    const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || "0", 10);
+    const currentUser = auth.currentUser;
+
+    if (currentUser && lastActivity > 0 && (Date.now() - lastActivity > INACTIVITY_LIMIT_MS)) {
+      console.log("Đã quá thời gian không hoạt động. Đang tự động đăng xuất...");
+      clearInterval(checkInterval); // Dừng kiểm tra
+      // Ghi log trước khi ép đăng xuất
+      await addLog("auto_logout_inactivity", { 
+        email: currentUser.email, 
+        status: "success", 
+        reason: `Inactive for ${timeoutInDays} days`,
+        details: `Hệ thống tự động đăng xuất do tài khoản không có bất kỳ thao tác nào (chuột, phím, cuộn trang) vượt quá thời gian quy định (${timeoutInDays} ngày).`,
+        userAgent: navigator.userAgent
+      });
+      localStorage.removeItem('lastActivityTime'); // Xóa mốc thời gian
+      await signOut(auth); // Ép văng ra khỏi hệ thống
+    }
+  }, 60000); // 60000 ms = 1 phút
+}
+
 // ====== ROLE ======
 export async function getRole(email) {
   try {
