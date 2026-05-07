@@ -464,27 +464,37 @@
     table-layout: fixed;
     min-width: 800px;
 }
-#ruleList th:nth-child(1) { width: 25%; }
+#ruleList th:nth-child(1) { width: 31%; }
 #ruleList th:nth-child(2) { width: 8%; }
-#ruleList th:nth-child(3) { width: 12%; }
+#ruleList th:nth-child(3) { width: 8%; }
 #ruleList th:nth-child(4) { width: 25%; }
 #ruleList th:nth-child(5) { width: 20%; }
-#ruleList th:nth-child(6) { width: 10%; }
+#ruleList th:nth-child(6) { width: 8%; }
 
 #patternList {
     table-layout: fixed;
     min-width: 1000px;
 }
 #patternList th:nth-child(1) { width: 12%; }
-#patternList th:nth-child(2) { width: 12%; }
+#patternList th:nth-child(2) { width: 14%; }
 #patternList th:nth-child(3) { width: 8%; }
-#patternList th:nth-child(4) { width: 18%; }
+#patternList th:nth-child(4) { width: 16%; }
 #patternList th:nth-child(5) { width: 10%; }
-#patternList th:nth-child(6) { width: 12%; }
+#patternList th:nth-child(6) { width: 10%; }
 #patternList th:nth-child(7) { width: 6%; }
 #patternList th:nth-child(8) { width: 6%; }
 #patternList th:nth-child(9) { width: 10%; }
-#patternList th:nth-child(10) { width: 6%; }
+#patternList th:nth-child(10) { width: 8%; }
+
+#swapList {
+    table-layout: fixed;
+    min-width: 800px;
+}
+#swapList th:nth-child(1) { width: 15%; }
+#swapList th:nth-child(2) { width: 25%; }
+#swapList th:nth-child(3) { width: 25%; }
+#swapList th:nth-child(4) { width: 20%; }
+#swapList th:nth-child(5) { width: 15%; }
 
 /* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
 #scheduleTable tr.highlight {
@@ -1016,6 +1026,32 @@
       </div>
   </div>
 
+  <!-- MODAL HOÁN ĐỔI CA -->
+  <div id="swapModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 500px;">
+          <span class="close" id="closeSwapModal">&times;</span>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">🔄 Hoán đổi ca làm việc</h2>
+          
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
+              <input type="date" id="swapDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
+              <select id="swapUser1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
+          </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Người làm thay (B):</label>
+              <select id="swapUser2" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
+          </div>
+          
+          <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="cancelSwapBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveSwapBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu Hoán đổi</button>
+          </div>
+      </div>
+  </div>
+
   <div id="pageContent" style="display:none;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
       <h2 style="margin-bottom: 0;">📅 Lịch làm việc trong tuần</h2>
@@ -1057,8 +1093,10 @@
   <div id="adminTabsContainer" class="admin-only" style="display: none;">
       <div class="admin-tabs">
           <button class="admin-tab-btn" id="btn-openAddModal" style="background: #273668; color: white;">➕ Thêm quy tắc</button>
+          <button class="admin-tab-btn" id="btn-openSwapModal" style="background: #f39c12; color: white;">🔄 Hoán đổi ca</button>
           <button class="admin-tab-btn active" id="tabBtn-adminConfig">📋 1. DS Công việc</button>
           <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 2. DS Ngày làm</button>
+          <button class="admin-tab-btn" id="tabBtn-swapConfig">📋 3. DS Hoán đổi</button>
       </div>
 
   <div id="adminConfig" class="rule-box admin-tab-content active" style="margin-top: 0; border-top-left-radius: 0;">
@@ -1088,6 +1126,21 @@
     <table id="patternList">
     <thead>
       <tr><th>Nhân viên</th><th>Tên hiển thị</th><th>Kiểu</th><th>Chi tiết</th><th>Ngày Bắt đầu</th><th>Ngày Kết thúc</th><th>Giờ BĐ</th><th>Giờ KT</th><th>Ghi chú</th><th>Hành động</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+</div>
+
+<div id="swapConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
+  <h3 style="display: none;">🔄 3.DS Hoán đổi ca (Admin)</h3>
+  <div class="list-header" style="margin-top: 0;">
+      <h4>Danh sách Hoán đổi ca</h4>      
+  </div>
+  <div class="collapsible-content">
+    <table id="swapList">
+    <thead>
+      <tr><th>Ngày đổi</th><th>Người xin đổi (A)</th><th>Người làm thay (B)</th><th>Ngày tạo</th><th>Hành động</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -1163,10 +1216,12 @@
 
     let allRulesData = [];
     let allPatternsData = [];
+    let allSwapsData = []; // Khai báo biến để tránh lỗi ReferenceError
 
     // --- DÒNG MỚI THÊM VÀO ---
     let rulesLoaded = false;
     let patternsLoaded = false;
+    let swapsLoaded = false;
     let initialLoadComplete = false; // Cờ chính
 
     const specificDate = document.getElementById("specificDate");
@@ -1182,10 +1237,14 @@
                 openAddRuleModal();
                 return;
             }
+                if (e.target.id === 'btn-openSwapModal') {
+                    return; // Mở modal (đã xử lý ở dưới), bỏ qua logic chuyển tab để không bị ẩn bảng
+                }
             document.getElementById('btn-openAddModal').classList.remove('active');
+            document.getElementById('btn-openSwapModal').classList.remove('active');
             
             document.querySelectorAll('.admin-tab-btn').forEach(b => {
-                if (b.id !== 'btn-openAddModal') b.classList.remove('active');
+                if (b.id !== 'btn-openAddModal' && b.id !== 'btn-openSwapModal') b.classList.remove('active');
             });
             document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
             
@@ -1252,8 +1311,8 @@
             return;
         }
         
-        // Kiểm tra xem cả 2 listener đã sẵn sàng chưa
-        if (rulesLoaded && patternsLoaded) {
+        // Kiểm tra xem tất cả listener đã sẵn sàng chưa
+        if (rulesLoaded && patternsLoaded && swapsLoaded) {
             initialLoadComplete = true; // Đánh dấu hoàn tất tải lần đầu
             
             console.log("Tất cả dữ liệu đã tải. Hiển thị lần đầu.");
@@ -1285,6 +1344,10 @@
             
             if (!rulesLoaded) rulesLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
+        }, (error) => {
+            console.error("Lỗi lắng nghe work_rules:", error);
+            if (!rulesLoaded) rulesLoaded = true; 
+            checkAllDataLoadedAndRender(email, role); 
         });
 
         // 3. Lắng nghe work_patterns - ⭐️ GIỚI HẠN 200 BẢN GHI
@@ -1303,6 +1366,25 @@
             
             if (!patternsLoaded) patternsLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
+        }, (error) => {
+            console.error("Lỗi lắng nghe work_patterns:", error);
+            if (!patternsLoaded) patternsLoaded = true; 
+            checkAllDataLoadedAndRender(email, role); 
+        });
+
+        // 3. Lắng nghe shift_swaps
+        const qSwaps = query(collection(db, "shift_swaps"), limit(100));
+        onSnapshot(qSwaps, (snapshot) => {
+            console.log("Real-time: shift_swaps đã thay đổi.");
+            allSwapsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+            renderSwapList();
+            
+            if (!swapsLoaded) swapsLoaded = true;
+            checkAllDataLoadedAndRender(email, role);
+        }, (error) => {
+            console.error("Lỗi lắng nghe shift_swaps:", error);
+            if (!swapsLoaded) swapsLoaded = true;
+            checkAllDataLoadedAndRender(email, role);
         });
     }
         
@@ -1834,6 +1916,183 @@
       }
     });
 
+    // =========================================================================
+    // LOGIC HOÁN ĐỔI CA
+    // =========================================================================
+    const swapModal = document.getElementById("swapModal");
+    
+    document.getElementById("btn-openSwapModal").addEventListener("click", () => {
+        // Reset form khi mở modal
+        document.getElementById("swapDate").value = "";
+        document.getElementById("swapUser1").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+        document.getElementById("swapUser2").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+        
+        swapModal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    });
+
+    document.getElementById("swapDate").addEventListener("change", (e) => {
+        const dateStr = e.target.value;
+        if (!dateStr) {
+            document.getElementById("swapUser1").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+            document.getElementById("swapUser2").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+            return;
+        }
+
+        const d = new Date(dateStr + 'T00:00:00');
+        const checkDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+        // 1. Tính toán danh sách nhân viên CÓ CA trực chính trong ngày này (Người A)
+        const scheduledWorkers = new Set();
+        const dayOfWeek = checkDate.getDay() === 0 ? 8 : checkDate.getDay() + 1;
+
+        const adminRules = allPatternsData.filter(p => p.type === 'administrative');
+        const shiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+
+        // Kiểm tra lịch Cố định
+        adminRules.forEach(rule => {
+            if (isRuleActiveOnDate(rule, checkDate) && Array.isArray(rule.workDaysOfWeek) && rule.workDaysOfWeek.includes(dayOfWeek)) {
+                scheduledWorkers.add(rule.displayName);
+            }
+        });
+
+        // Kiểm tra lịch Xoay ca
+        if (shiftRules.length > 0) {
+            const shiftGroups = {};
+            shiftRules.forEach(rule => {
+                const group = rule.shiftGroup || "Vận hành";
+                if (!shiftGroups[group]) shiftGroups[group] = [];
+                shiftGroups[group].push(rule);
+            });
+
+            for (const group in shiftGroups) {
+                const groupRules = shiftGroups[group];
+                const sortedGroupRules = [...groupRules].sort(sortShiftRules);
+                const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
+
+                const membersToday = groupRules.filter(rule => isRuleActiveOnDate(rule, checkDate)).sort(sortShiftRules);
+
+                if (membersToday.length > 0) {
+                    const n_today = membersToday.length;
+                    const daysSinceToday = getDaysDifference(checkDate, groupRefDate);
+                    const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                    const workerToday = membersToday[workerIndexToday];
+                    if (workerToday) {
+                        scheduledWorkers.add(workerToday.displayName);
+                    }
+                }
+            }
+        }
+
+        // 2. Tính toán danh sách TẤT CẢ nhân viên ĐANG HOẠT ĐỘNG
+        const activeWorkers = new Set();
+        allPatternsData.forEach(rule => {
+            if (rule.displayName && isRuleActiveOnDate(rule, checkDate)) {
+                activeWorkers.add(rule.displayName);
+            }
+        });
+
+        // 3. Phân tách danh sách A và B
+        const listA = Array.from(scheduledWorkers).sort();
+        // Người B: Có trong nhóm Đang hoạt động, nhưng KHÔNG NẰM TRONG nhóm CÓ CA (A)
+        const listB = Array.from(activeWorkers).filter(name => !scheduledWorkers.has(name)).sort();
+
+        // 4. Đổ dữ liệu vào Select A (Người xin nghỉ)
+        let optionsA = '<option value="">-- Chọn người xin nghỉ --</option>';
+        if (listA.length === 0) {
+            optionsA = '<option value="">-- Không có ai trực ngày này --</option>';
+        } else {
+            listA.forEach(u => optionsA += `<option value="${u}">${u}</option>`);
+        }
+        document.getElementById("swapUser1").innerHTML = optionsA;
+
+        // 5. Đổ dữ liệu vào Select B (Người làm thay)
+        let optionsB = '<option value="">-- Chọn người làm thay --</option>';
+        if (listB.length === 0) {
+            optionsB = '<option value="">-- Không có người rảnh --</option>';
+        } else {
+            listB.forEach(u => optionsB += `<option value="${u}">${u}</option>`);
+        }
+        document.getElementById("swapUser2").innerHTML = optionsB;
+    });
+    
+    const closeSwapModalFn = () => {
+        swapModal.style.display = "none";
+        document.body.style.overflow = "auto";
+        document.getElementById("swapDate").value = "";
+    };
+    document.getElementById("closeSwapModal").onclick = closeSwapModalFn;
+    document.getElementById("cancelSwapBtn").onclick = closeSwapModalFn;
+
+    document.getElementById("saveSwapBtn").addEventListener("click", async () => {
+        const date = document.getElementById("swapDate").value;
+        const user1 = document.getElementById("swapUser1").value;
+        const user2 = document.getElementById("swapUser2").value;
+        
+        if (!date || !user1 || !user2) return showSwal("error", "Thiếu thông tin ngày và nhân viên!");
+        if (user1 === user2) return showSwal("error", "Không thể hoán đổi cho cùng 1 người!");
+        
+        try {
+            showLoading("Đang lưu...");
+            await addDoc(collection(db, "shift_swaps"), {
+                date, user1, user2, 
+                createdAt: serverTimestamp(),
+                createdBy: getCurrentUserEmail()
+            });
+            addLog("admin_create_shift_swap", { email: getCurrentUserEmail(), date, user1, user2 });
+            hideLoading();
+            showSwal("success", "Đã lưu hoán đổi!");
+            closeSwapModalFn();
+        } catch(e) {
+            hideLoading();
+            showSwal("error", "Lỗi: " + e.message);
+        }
+    });
+
+    function renderSwapList() {
+        const tbody = document.querySelector("#swapList tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        [...allSwapsData].sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0)).forEach(s => {
+            const tr = document.createElement("tr");
+            const createdAtStr = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleString('vi-VN') : "-";
+            const dateStr = s.date ? s.date.split('-').reverse().join('/') : "-";
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${s.user1 || "-"}</td>
+                <td>${s.user2 || "-"}</td>
+                <td>${createdAtStr}</td>
+                <td><button class="deleteSwapBtn" data-id="${s.id}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">🗑️ Xóa</button></td>
+            `;
+            tr.querySelector('.deleteSwapBtn').addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                Swal.fire({
+                    title: 'Xóa hoán đổi ca?',
+                    text: "Sẽ phục hồi lại ca trực ban đầu.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    confirmButtonText: 'Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            showLoading("Đang xóa...");
+                            await deleteDoc(doc(db, "shift_swaps", id));
+                            addLog("admin_delete_shift_swap", { email: getCurrentUserEmail(), date: s.date, user1: s.user1, user2: s.user2 });
+                            hideLoading();
+                            showSwal("success", "Đã xóa thành công!");
+                        } catch(err) {
+                            hideLoading();
+                            showSwal("error", "Lỗi: " + err.message);
+                        }
+                    }
+                });
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
     function getWeekOfMonth(date) {
         const day = date.getDate();
         return Math.ceil(day / 7);
@@ -1906,19 +2165,13 @@ function renderPatternList(patternsToRender) {
                 <td>${d.type === "administrative" ? "Cố định" : "Xoay Vòng"}</td>
                 <td>${detail}</td>
                 <td>${d.patternStartDate}</td>
-                <td><input type="date" class="end-date-input" data-id="${d.id}" value="${d.patternEndDate || ""}" title="Chọn để đặt ngày kết thúc."></td>
+                <td>${d.patternEndDate || "-"}</td>
                 <td>${startTime}</td>
                 <td>${endTime}</td>
                 <td>${d.note || "-"}</td>
                 <td style="white-space: nowrap; text-align: center;">
                     <button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12; padding: 4px 10px;">✏️ Sửa</button>
                 </td>`;
-
-            // Gắn sự kiện Tự động lưu Ngày Kết thúc
-            tr.querySelector(".end-date-input").addEventListener('change', async (e) => {
-                // Tính năng này có thể vẫn giữ nếu muốn admin chỉnh nhanh ở ngoài bảng
-                // (Logic đã được giữ nguyên)
-            });
 
             // Gắn sự kiện cho nút Sửa mở Modal
             tr.querySelector(".editPatternBtn").addEventListener("click", (e) => {
@@ -1990,11 +2243,14 @@ function findJobsForPersonOnDate(personDisplayName, d) {
 /**
      * Helper 1: Kiểm tra quy tắc còn hiệu lực
      */
-    const isRuleActiveOnDate = (rule, date) => {
+    const isRuleActiveOnDate = (rule, d) => {
+        // Đồng bộ logic với GAS: Cắt bỏ giờ phút giây, đưa về chuẩn 00:00:00
+        const checkDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
         const startDate = new Date(rule.patternStartDate + 'T00:00:00');
         const endDate = rule.patternEndDate ? new Date(rule.patternEndDate + 'T00:00:00') : null;
-        if (date < startDate) return false;
-        if (endDate && date > endDate) return false;
+        if (checkDate < startDate) return false;
+        // Dùng >= để đảm bảo quy tắc kết thúc ngay từ đầu ngày endDate
+        if (endDate && checkDate >= endDate) return false;
         return true;
     };
     
@@ -2040,6 +2296,9 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
         const yesterday = new Date(d);
         yesterday.setDate(d.getDate() - 1);
 
+        const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const swapsForDate = allSwapsData.filter(s => s.date === isoDate);
+
         let people = [];  // danh sách người làm (tên + ca/giờ)
 
         const dayOfWeek = d.getDay() === 0 ? 8 : d.getDay() + 1;
@@ -2069,10 +2328,19 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
             // 1️⃣ Ca bắt đầu hôm nay
             if (rule.workDaysOfWeek.includes(dayOfWeek)) {
+                let displayName = rule.displayName;
+                
+                // CHECK HOÁN ĐỔI CA
+                const swap = swapsForDate.find(s => s.user1 === displayName);
+                let swapText = "";
+                if (swap) {
+                    displayName = swap.user2;
+                    swapText = ` 🔄 (Thay ${swap.user1})`;
+                }
                 const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Hành chính]`;
                 const shiftLabel = isNightShift
-                    ? `- ${rule.displayName} (${startTime} – ${endTime} hôm sau)${groupTag}`
-                    : `- ${rule.displayName} (${startTime} – ${endTime})${groupTag}`;
+                    ? `- ${displayName} (${startTime} – ${endTime} hôm sau)${groupTag}${swapText}`
+                    : `- ${displayName} (${startTime} – ${endTime})${groupTag}${swapText}`;
                 people.push(shiftLabel);
                 // (Không tìm công việc ở đây nữa)
             }
@@ -2154,9 +2422,18 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                             isNightToday = true; // Ca 24h
                         }
                         if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                            let displayName = workerToday.displayName;
+                            
+                            // CHECK HOÁN ĐỔI CA
+                            const swap = swapsForDate.find(s => s.user1 === displayName);
+                            let swapText = "";
+                            if (swap) {
+                                displayName = swap.user2;
+                                swapText = ` 🔄 (Thay ${swap.user1})`;
+                            }
                             // Thêm tên nhóm vào label nếu có nhiều nhóm (để dễ phân biệt)
                             const groupTag = Object.keys(shiftGroups).length > 1 ? ` [${group}]` : "";
-                            const shiftLabel = `- ${workerToday.displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})${groupTag}`;
+                            const shiftLabel = `- ${displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})${groupTag}${swapText}`;
                             people.push(shiftLabel);
                         }
                     }
@@ -2307,17 +2584,17 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       personalScheduleModal.style.display = "block";
       personalScheduleDetails.innerHTML = "<p>Đang tải lịch cá nhân...</p>";
 
-      // 1. LẤY QUY TẮC CÁ NHÂN
-      const todayForFilter = new Date();
-      const userPatterns = allPatternsData.filter(p => p.user === email && isRuleActiveOnDate(p, todayForFilter));
-
-      if (userPatterns.length === 0 && currentUserRole !== 'admin') {
-          personalScheduleDetails.innerHTML = "<p>Không tìm thấy quy tắc làm việc nào đang hoạt động cho tài khoản này.</p>";
-          return;
+      // Lấy tên hiển thị của tài khoản đang đăng nhập
+      let myDisplayName = null;
+      const myPattern = allPatternsData.find(p => p.user === email);
+      if (myPattern) myDisplayName = myPattern.displayName;
+      if (!myDisplayName && currentUserRole !== 'admin') {
+          return personalScheduleDetails.innerHTML = "<p>Không tìm thấy tài khoản nhân viên.</p>";
       }
 
       // 2. LẤY THÔNG TIN ĐỂ TÍNH XOAY CA (NẾU CÓ)
       const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+      const adminRulesAll = allPatternsData.filter(p => p.type === 'administrative');
       const sortedAllRules = [...allShiftRules].sort(sortShiftRules);
       const refDate = (sortedAllRules.length > 0) ? new Date(sortedAllRules[0].patternStartDate + 'T00:00:00') : null;
 
@@ -2351,22 +2628,39 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
           const isToday = d.toDateString() === today.toDateString();
           const dateStr = d.toLocaleDateString("vi-VN");
           const thuDisplay = d.getDay() === 0 ? 'Chủ Nhật' : 'Thứ ' + (d.getDay() + 1);
+          const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const swapsForDate = allSwapsData.filter(s => s.date === isoDate);
 
           let matchedShifts = [];
 
           // --- TÌM CA LÀM CỦA CÁ NHÂN ---
-          userPatterns.forEach(rule => {
+          adminRulesAll.forEach(rule => {
               if (!isRuleActiveOnDate(rule, d)) return;
-              // Lịch Cố định
-              if (rule.type === "administrative" && Array.isArray(rule.workDaysOfWeek) && rule.workDaysOfWeek.includes(dayNum)) {
-                  const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Hành chính]`;
-                  matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})${groupTag}`);
+              if (Array.isArray(rule.workDaysOfWeek) && rule.workDaysOfWeek.includes(dayNum)) {
+                  let finalName = rule.displayName;
+                  const swap = swapsForDate.find(s => s.user1 === finalName);
+                  let swapText = "";
+                  if (swap) {
+                      finalName = swap.user2;
+                      swapText = ` 🔄 (Thay ${swap.user1})`;
+                  }
+                  if (finalName === myDisplayName) {
+                      const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Hành chính]`;
+                      matchedShifts.push(`👤 ${finalName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})${groupTag}${swapText}`);
+                  }
               }
-              // Lịch Xoay Vòng
-              if (rule.type === "shift_rotation") {
+          });
+          if (allShiftRules.length > 0) {
+              const shiftGroups = {};
+              allShiftRules.forEach(rule => {
                   const groupName = rule.shiftGroup || "Vận hành";
-                  const groupRules = allShiftRules.filter(r => (r.shiftGroup || "Vận hành") === groupName).sort(sortShiftRules);
-                  const groupRefDate = groupRules.length > 0 ? new Date(groupRules[0].patternStartDate + 'T00:00:00') : null;
+                  if (!shiftGroups[groupName]) shiftGroups[groupName] = [];
+                  shiftGroups[groupName].push(rule);
+              });
+              for (const group in shiftGroups) {
+                  const groupRules = shiftGroups[group];
+                  const sortedGroupRules = [...groupRules].sort(sortShiftRules);
+                  const groupRefDate = groupRules.length > 0 ? new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00') : null;
 
                   if (groupRefDate) {
                       const allMembersToday = groupRules.filter(r => isRuleActiveOnDate(r, d)).sort(sortShiftRules);
@@ -2376,14 +2670,23 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                           const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
                           const workerToday = allMembersToday[workerIndexToday];
                           
-                          if (workerToday && workerToday.displayName === rule.displayName) {
-                              const groupTag = rule.shiftGroup ? ` [${rule.shiftGroup}]` : ` [Vận hành]`;
-                              matchedShifts.push(`👤 ${rule.displayName} (${rule.startTime} – ${rule.endTime}${rule.isNextDay ? " (hôm sau)" : ""})${groupTag}`);
+                          if (workerToday) {
+                              let finalName = workerToday.displayName;
+                              const swap = swapsForDate.find(s => s.user1 === finalName);
+                              let swapText = "";
+                              if (swap) {
+                                  finalName = swap.user2;
+                                  swapText = ` 🔄 (Thay ${swap.user1})`;
+                              }
+                              if (finalName === myDisplayName) {
+                                  const groupTag = workerToday.shiftGroup ? ` [${workerToday.shiftGroup}]` : ` [Vận hành]`;
+                                  matchedShifts.push(`👤 ${finalName} (${workerToday.startTime} – ${workerToday.endTime}${workerToday.isNextDay ? " (hôm sau)" : ""})${groupTag}${swapText}`);
+                              }
                           }
                       }
                   }
               }
-          });
+          }
           // --- KẾT THÚC TÌM CA LÀM ---
 
           // --- TÌM CÔNG VIỆC CHUNG & CV ADMIN ---
@@ -2391,7 +2694,6 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
               ( !rule.is_admin_job || currentUserRole === 'admin' ) && 
               ruleMatchesDate(rule, d)
           );
-          const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               
           const allTasks = [...allRuleJobs];
           const hasAdminTasks = allTasks.some(t => t.is_admin_job);
