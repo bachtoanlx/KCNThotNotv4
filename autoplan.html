@@ -311,35 +311,145 @@
     overflow-wrap: break-word;
 }
 
-/* === RESPONSIVE CHO MODAL === */
+/* === RESPONSIVE CHO MODAL & TABS ADMIN === */
 @media (max-width: 768px) {
-  #personalScheduleModal .personal-schedule-content {
-    width: 90% !important;
+  /* Modals chung */
+  .personal-schedule-content {
+    width: 95% !important;
     max-width: 100% !important;
-    margin: 180px auto 20px auto !important;
-    padding: 35px 8px 12px 8px !important;
-    max-height: calc(100vh - 60px) !important;
-    border-radius: 8px !important;
+    margin: 20px auto !important;
+    padding: 20px 15px !important;
+    max-height: calc(100vh - 40px) !important;
+    border-radius: 12px !important;
     box-sizing: border-box !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
   
-  #personalScheduleModal h2 {
-    font-size: 1rem !important;
-    margin-bottom: 8px !important;
+  .personal-schedule-content h2 {
+    font-size: 1.3rem !important;
+    margin-bottom: 15px !important;
     margin-top: 0 !important;
-    padding: 0 30px 0 6px !important;
+    padding-right: 35px !important;
     word-wrap: break-word !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
   }
   
-  #personalScheduleModal hr {
-    margin: 6px 0 !important;
+  .personal-schedule-content hr {
+    margin: 8px 0 !important;
   }
   
+  .personal-schedule-content .close {
+    font-size: 32px !important;
+    right: 15px !important;
+    top: 15px !important;
+    padding: 0 !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+  }
+  
+  /* Form Inputs trong Modal - Chuyển sang Grid/Flex thông minh */
+  .personal-schedule-content .input-row {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 15px !important;
+  }
+
+  .personal-schedule-content .input-row > label {
+    flex: 1 1 100% !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    color: #444;
+  }
+
+  /* Ngoại lệ cho label chứa checkbox */
+  .personal-schedule-content .input-row > label:has(input[type="checkbox"]) {
+    flex: 1 1 auto !important;
+    display: inline-flex !important;
+    width: auto !important;
+    font-size: 14px !important;
+    padding: 6px 0 !important;
+  }
+
+  .personal-schedule-content .input-row > input[type="text"],
+  .personal-schedule-content .input-row > input[type="date"],
+  .personal-schedule-content .input-row > input[type="time"],
+  .personal-schedule-content .input-row > select {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    box-sizing: border-box !important;
+    height: 42px !important;
+    font-size: 14px !important;
+    border-radius: 6px !important;
+  }
+  
+  /* Tối ưu các dropdown/input thời gian thành lưới 2 cột */
+  #addJobFormContainer .input-row:nth-of-type(2) > select,
+  #addJobFormContainer .input-row:nth-of-type(2) > input[type="time"],
+  #editRuleModal .input-row:nth-of-type(2) > select,
+  #editRuleModal .input-row:nth-of-type(2) > input[type="time"] {
+    flex: 1 1 calc(50% - 5px) !important;
+    width: calc(50% - 5px) !important;
+  }
+  
+  /* Input date chiếm full dòng */
+  #exactDate, #editRuleExactDate {
+    flex: 1 1 100% !important;
+  }
+  
+  /* Nhóm checkbox (T2..CN) */
+  #dayCheckboxes, #editDayCheckboxes {
+    flex-direction: row !important;
+    width: 100% !important;
+    gap: 6px !important;
+  }
+  #dayCheckboxes label, #editDayCheckboxes label {
+    flex: 1 1 calc(25% - 6px) !important;
+    justify-content: center !important;
+    padding: 8px 4px !important;
+    font-size: 13px !important;
+  }
+
+  /* Nút Hành động trong Modal - Xếp dọc an toàn */
+  .action-buttons {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    margin-top: 25px !important;
+  }
+  .action-buttons > div {
+    display: none !important;
+  }
+  .action-buttons button {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 15px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+  }
+  .action-buttons button[id^="save"] { order: 1; }
+  .action-buttons button[id^="cancel"] { 
+      order: 2; 
+      background: #ecf0f1 !important; 
+      color: #333 !important; 
+  }
+  .action-buttons button[id^="delete"] { 
+      order: 3; 
+      margin-top: 15px !important; 
+      background: #fff !important; 
+      color: #e74c3c !important; 
+      border: 1px solid #e74c3c !important; 
+  }
+
+  /* Lịch cá nhân chi tiết (Modal) */
   #personalScheduleDetails {
-    font-size: 11px !important;
+    font-size: 13px !important;
     margin-top: 8px !important;
     overflow-x: hidden !important;
     width: 100% !important;
@@ -347,79 +457,63 @@
     padding: 0 !important;
   }
   
-  #personalScheduleDetails > div {
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  
   #personalScheduleDetails table {
-    font-size: 11px !important;
+    font-size: 13px !important;
     width: 100% !important;
-    max-width: 100% !important;
-    min-width: unset !important;
-    table-layout: fixed !important;
-    box-sizing: border-box !important;
-    border-collapse: collapse !important;
+    table-layout: auto !important;
   }
   
-  #personalScheduleDetails th {
-    font-size: 10px !important;
-    padding: 4px 3px !important;
-    word-break: break-word !important;
-  }
-  
-  #personalScheduleDetails td {
-    font-size: 10px !important;
-    padding: 4px 3px !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    white-space: normal !important;
-    line-height: 1.4 !important;
-  }
-  
-  #personalScheduleDetails td strong {
-    font-size: 11px !important;
-  }
-  
-  #personalScheduleDetails td span {
-    font-size: 10px !important;
-  }
-  
-  #personalScheduleDetails h3 {
-    font-size: 0.85rem !important;
-    margin-top: 6px !important;
-    margin-bottom: 4px !important;
-  }
-  
-  #personalScheduleDetails p {
-    font-size: 11px !important;
-    line-height: 1.3 !important;
-    margin: 4px 0 !important;
-    word-wrap: break-word !important;
+  #personalScheduleDetails th, #personalScheduleDetails td {
+    padding: 6px 4px !important;
   }
   
   #closeModalBottom {
     width: 100% !important;
-    padding: 8px !important;
-    font-size: 12px !important;
+    padding: 10px !important;
+    font-size: 14px !important;
     margin-top: 10px !important;
     box-sizing: border-box !important;
     border-radius: 4px !important;
   }
+
+  /* Tabs Admin */
+  .admin-tabs {
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+    border-bottom: none !important;
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+  }
+  .admin-tab-btn {
+    padding: 10px 5px !important;
+    font-size: 12px !important;
+    flex: 1 1 calc(33.33% - 8px) !important;
+    border-radius: 8px !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 0 !important;
+    text-align: center !important;
+    white-space: normal !important;
+    line-height: 1.2 !important;
+  }
+  .admin-tab-btn.active {
+    border: 2px solid #273668 !important;
+    background: #eef6ff !important;
+  }
   
-  #personalScheduleModal .close {
-    font-size: 26px !important;
-    right: 5px !important;
-    top: 5px !important;
-    padding: 3px !important;
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
+  /* Bảng Admin Config */
+  .collapsible-content {
+    max-height: 70vh;
+    -webkit-overflow-scrolling: touch;
+  }
+  #ruleList th, #ruleList td,
+  #patternList th, #patternList td,
+  #swapList th, #swapList td {
+    font-size: 13px !important;
+    padding: 8px 6px !important;
+  }
+  #ruleList button, #patternList button, #swapList button {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
   }
 }
 
@@ -488,13 +582,14 @@
 
 #swapList {
     table-layout: fixed;
-    min-width: 800px;
+    min-width: 900px;
 }
-#swapList th:nth-child(1) { width: 15%; }
-#swapList th:nth-child(2) { width: 25%; }
-#swapList th:nth-child(3) { width: 25%; }
-#swapList th:nth-child(4) { width: 20%; }
+#swapList th:nth-child(1) { width: 12%; }
+#swapList th:nth-child(2) { width: 18%; }
+#swapList th:nth-child(3) { width: 18%; }
+#swapList th:nth-child(4) { width: 29%; }
 #swapList th:nth-child(5) { width: 15%; }
+#swapList th:nth-child(6) { width: 8%; }
 
 /* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
 #scheduleTable tr.highlight {
@@ -594,6 +689,7 @@
     margin-bottom: 14px;
     padding: 10px 14px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-sizing: border-box !important;
   }
 
   #scheduleTable td {
@@ -1044,10 +1140,47 @@
               <label style="font-weight: 500; display: block; margin-bottom: 5px;">Người làm thay (B):</label>
               <select id="swapUser2" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
           </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
+              <input type="text" id="swapReason" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
+          </div>
           
           <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
               <button id="cancelSwapBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
               <button id="saveSwapBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu Hoán đổi</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- MODAL CHỈNH SỬA HOÁN ĐỔI CA -->
+  <div id="editSwapModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 500px;">
+          <span class="close" id="closeEditSwapModal">&times;</span>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">✏️ Chỉnh sửa hoán đổi ca</h2>
+          
+          <input type="hidden" id="editSwapId">
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
+              <input type="date" id="editSwapDate" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
+              <select id="editSwapUser1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
+          </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Người làm thay (B):</label>
+              <select id="editSwapUser2" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"></select>
+          </div>
+          <div class="input-row" style="margin-bottom: 15px;">
+              <label style="font-weight: 500; display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
+              <input type="text" id="editSwapReason" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
+          </div>
+          
+          <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="deleteEditSwapBtn" style="padding: 8px 15px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ Xóa vĩnh viễn</button>
+              <div style="flex: 1;"></div>
+              <button id="cancelEditSwapBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveEditSwapBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu thay đổi</button>
           </div>
       </div>
   </div>
@@ -1140,7 +1273,7 @@
   <div class="collapsible-content">
     <table id="swapList">
     <thead>
-      <tr><th>Ngày đổi</th><th>Người xin đổi (A)</th><th>Người làm thay (B)</th><th>Ngày tạo</th><th>Hành động</th></tr>
+      <tr><th>Ngày đổi</th><th>Người xin đổi (A)</th><th>Người làm thay (B)</th><th>Lý do</th><th>Ngày tạo</th><th>Hành động</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -1926,16 +2059,20 @@
         document.getElementById("swapDate").value = "";
         document.getElementById("swapUser1").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
         document.getElementById("swapUser2").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+        document.getElementById("swapReason").value = "";
         
         swapModal.style.display = "block";
         document.body.style.overflow = "hidden";
     });
 
-    document.getElementById("swapDate").addEventListener("change", (e) => {
-        const dateStr = e.target.value;
+    // Hàm dùng chung để tải danh sách nhân viên theo ngày vào Select box
+    function populateSwapUsersForDate(dateStr, select1Id, select2Id, defaultU1 = "", defaultU2 = "") {
+        const select1 = document.getElementById(select1Id);
+        const select2 = document.getElementById(select2Id);
+
         if (!dateStr) {
-            document.getElementById("swapUser1").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
-            document.getElementById("swapUser2").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+            select1.innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+            select2.innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
             return;
         }
 
@@ -2004,7 +2141,7 @@
         } else {
             listA.forEach(u => optionsA += `<option value="${u}">${u}</option>`);
         }
-        document.getElementById("swapUser1").innerHTML = optionsA;
+        select1.innerHTML = optionsA;
 
         // 5. Đổ dữ liệu vào Select B (Người làm thay)
         let optionsB = '<option value="">-- Chọn người làm thay --</option>';
@@ -2013,13 +2150,25 @@
         } else {
             listB.forEach(u => optionsB += `<option value="${u}">${u}</option>`);
         }
-        document.getElementById("swapUser2").innerHTML = optionsB;
+        select2.innerHTML = optionsB;
+
+        if (defaultU1) select1.value = defaultU1;
+        if (defaultU2) select2.value = defaultU2;
+    }
+
+    document.getElementById("swapDate").addEventListener("change", (e) => {
+        populateSwapUsersForDate(e.target.value, "swapUser1", "swapUser2");
+    });
+
+    document.getElementById("editSwapDate").addEventListener("change", (e) => {
+        populateSwapUsersForDate(e.target.value, "editSwapUser1", "editSwapUser2");
     });
     
     const closeSwapModalFn = () => {
         swapModal.style.display = "none";
         document.body.style.overflow = "auto";
         document.getElementById("swapDate").value = "";
+        document.getElementById("swapReason").value = "";
     };
     document.getElementById("closeSwapModal").onclick = closeSwapModalFn;
     document.getElementById("cancelSwapBtn").onclick = closeSwapModalFn;
@@ -2028,6 +2177,7 @@
         const date = document.getElementById("swapDate").value;
         const user1 = document.getElementById("swapUser1").value;
         const user2 = document.getElementById("swapUser2").value;
+        const reason = document.getElementById("swapReason").value.trim();
         
         if (!date || !user1 || !user2) return showSwal("error", "Thiếu thông tin ngày và nhân viên!");
         if (user1 === user2) return showSwal("error", "Không thể hoán đổi cho cùng 1 người!");
@@ -2035,11 +2185,11 @@
         try {
             showLoading("Đang lưu...");
             await addDoc(collection(db, "shift_swaps"), {
-                date, user1, user2, 
+                date, user1, user2, reason,
                 createdAt: serverTimestamp(),
                 createdBy: getCurrentUserEmail()
             });
-            addLog("admin_create_shift_swap", { email: getCurrentUserEmail(), date, user1, user2 });
+            addLog("admin_create_shift_swap", { email: getCurrentUserEmail(), date, user1, user2, reason });
             hideLoading();
             showSwal("success", "Đã lưu hoán đổi!");
             closeSwapModalFn();
@@ -2047,6 +2197,93 @@
             hideLoading();
             showSwal("error", "Lỗi: " + e.message);
         }
+    });
+
+    // =========================================================================
+    // LOGIC CHỈNH SỬA & XÓA HOÁN ĐỔI CA
+    // =========================================================================
+    const editSwapModal = document.getElementById("editSwapModal");
+
+    function openEditSwapModal(swapData) {
+        document.getElementById("editSwapId").value = swapData.id;
+        document.getElementById("editSwapDate").value = swapData.date || "";
+        document.getElementById("editSwapReason").value = swapData.reason || "";
+        
+        // Tự động tải danh sách User và set giá trị
+        populateSwapUsersForDate(swapData.date, "editSwapUser1", "editSwapUser2", swapData.user1, swapData.user2);
+        
+        editSwapModal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    const closeEditSwapModalFn = () => {
+        editSwapModal.style.display = "none";
+        document.body.style.overflow = "auto";
+    };
+    document.getElementById("closeEditSwapModal").onclick = closeEditSwapModalFn;
+    document.getElementById("cancelEditSwapBtn").onclick = closeEditSwapModalFn;
+
+    document.getElementById("saveEditSwapBtn").addEventListener("click", async () => {
+        const id = document.getElementById("editSwapId").value;
+        const date = document.getElementById("editSwapDate").value;
+        const user1 = document.getElementById("editSwapUser1").value;
+        const user2 = document.getElementById("editSwapUser2").value;
+        const reason = document.getElementById("editSwapReason").value.trim();
+
+        if (!date || !user1 || !user2) return showSwal("error", "Thiếu thông tin ngày và nhân viên!");
+        if (user1 === user2) return showSwal("error", "Không thể hoán đổi cho cùng 1 người!");
+
+        const updateData = { date, user1, user2, reason, updatedAt: serverTimestamp() };
+        const oldData = allSwapsData.find(s => s.id === id) || {};
+        const changes = {};
+        const fieldLabels = { date: "Ngày đổi", user1: "Người xin nghỉ (A)", user2: "Người làm thay (B)", reason: "Lý do" };
+
+        for (const key in updateData) {
+            if (key !== "updatedAt" && oldData[key] !== updateData[key]) {
+                changes[key] = { old: oldData[key], new: updateData[key], label: fieldLabels[key] || key };
+            }
+        }
+
+        try {
+            showLoading("Đang lưu...");
+            await updateDoc(doc(db, "shift_swaps", id), updateData);
+            addLog("admin_update_shift_swap", { email: getCurrentUserEmail(), targetName: `Hoán đổi ngày ${date.split('-').reverse().join('/')}`, changes, updateData });
+            hideLoading();
+            Swal.fire("Thành công!", "Đã cập nhật hoán đổi ca.", "success");
+            closeEditSwapModalFn();
+        } catch (error) {
+            hideLoading();
+            Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
+        }
+    });
+
+    document.getElementById("deleteEditSwapBtn").addEventListener("click", async () => {
+        const id = document.getElementById("editSwapId").value;
+        const swapData = allSwapsData.find(s => s.id === id);
+        Swal.fire({
+            title: 'Xóa hoán đổi ca?',
+            text: "Sẽ phục hồi lại ca trực ban đầu.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    showLoading("Đang xóa...");
+                    await deleteDoc(doc(db, "shift_swaps", id));
+                    addLog("admin_delete_shift_swap", { email: getCurrentUserEmail(), date: swapData.date, user1: swapData.user1, user2: swapData.user2 });
+                    hideLoading();
+                    showSwal("success", "Đã xóa thành công!");
+                    closeEditSwapModalFn();
+                } catch(err) {
+                    hideLoading();
+                    showSwal("error", "Lỗi: " + err.message);
+                }
+            }
+        });
     });
 
     function renderSwapList() {
@@ -2061,33 +2298,14 @@
                 <td>${dateStr}</td>
                 <td>${s.user1 || "-"}</td>
                 <td>${s.user2 || "-"}</td>
+                <td>${s.reason || "-"}</td>
                 <td>${createdAtStr}</td>
-                <td><button class="deleteSwapBtn" data-id="${s.id}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">🗑️ Xóa</button></td>
+                <td><button class="editSwapBtn" data-id="${s.id}" style="background:#f39c12; padding: 4px 10px; border:none; color:white; border-radius:4px; cursor:pointer;">✏️ Sửa</button></td>
             `;
-            tr.querySelector('.deleteSwapBtn').addEventListener('click', async (e) => {
+            tr.querySelector('.editSwapBtn').addEventListener('click', async (e) => {
                 const id = e.target.dataset.id;
-                Swal.fire({
-                    title: 'Xóa hoán đổi ca?',
-                    text: "Sẽ phục hồi lại ca trực ban đầu.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#e74c3c',
-                    confirmButtonText: 'Xóa',
-                    cancelButtonText: 'Hủy'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        try {
-                            showLoading("Đang xóa...");
-                            await deleteDoc(doc(db, "shift_swaps", id));
-                            addLog("admin_delete_shift_swap", { email: getCurrentUserEmail(), date: s.date, user1: s.user1, user2: s.user2 });
-                            hideLoading();
-                            showSwal("success", "Đã xóa thành công!");
-                        } catch(err) {
-                            hideLoading();
-                            showSwal("error", "Lỗi: " + err.message);
-                        }
-                    }
-                });
+                const swapData = allSwapsData.find(swap => swap.id === id);
+                if (swapData) openEditSwapModal(swapData);
             });
             tbody.appendChild(tr);
         });
