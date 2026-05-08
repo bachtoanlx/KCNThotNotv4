@@ -745,40 +745,53 @@
 
   #scheduleTable tr {
     background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    margin-bottom: 14px;
-    padding: 10px 14px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     box-sizing: border-box !important;
   }
 
-  #scheduleTable td {
+  #scheduleTable tbody td {
     display: flex;
     flex-direction: column;
-    border: none;
-    padding: 6px 0;
+    border: none !important;
+    border-bottom: 1px dashed #eaeaea !important;
+    padding: 10px 0 !important;
     font-size: 14px;
     text-align: left;
     line-height: 1.5em;
     white-space: normal;
   }
 
+  #scheduleTable tbody td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+  
+  #scheduleTable tbody td:first-child {
+    padding-top: 0 !important;
+  }
+
   #scheduleTable td::before {
     content: attr(data-label);
     font-weight: 600;
-    margin-bottom: 2px;
-    color: #444;
-    font-size: 13px;
+    margin-bottom: 4px;
+    color: #273668;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   #scheduleTable tr.today-row {
-    background-color: #eef6ff !important;
-    border-color: #99c4ff;
+    background-color: #f8fbff !important;
+    border-color: #bbd6fe;
+    box-shadow: 0 4px 12px rgba(39, 54, 104, 0.08);
   }
 
   #scheduleTable td + td {
-    margin-top: 2px;
+    margin-top: 0px;
   }
 
   #scheduleTable td[data-label="Ghi chú"] {
@@ -794,14 +807,24 @@
     flex-direction: row;
     align-items: baseline;
     flex-wrap: wrap;
+    font-size: 15px;
+    color: #e74c3c;
+    font-weight: bold;
   }
 
   #scheduleTable td[data-label="Ngày"] .week-label {
-    display: none;
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 12px;
+    color: #888;
+    font-weight: normal;
   }
 
   #scheduleTable td[data-label="Ngày"]::before {
-    content: "📅 " attr(data-label) ":\00a0";
+    content: "📅 \00a0";
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 0;
   }
 
   #scheduleTable td[data-label="Người làm"]::before {
