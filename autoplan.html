@@ -31,6 +31,8 @@
     flex-direction: column;
     gap: 10px;
     width: 100%;
+    max-width: 100%;
+    overflow-x: hidden; /* Chặn tuyệt đối bảng con tràn ngang làm vỡ layout */
     box-sizing: border-box;
   }
 
@@ -142,6 +144,23 @@
     padding-left: 10px;
   }
 
+  /* ======= MODAL FORM BOX (THAY THẾ RULE-BOX TRONG MODAL) ======= */
+  .modal-form-box .input-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .modal-form-box input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+  }
+  .modal-form-box select, .modal-form-box input[type="date"], .modal-form-box input[type="time"], .modal-form-box button {
+    height: 32px;
+    padding: 4px 8px;
+  }
+
   /* ======= PHẦN 3: CÀI ĐẶT QUY TẮC NGÀY LÀM ======= */
   #workPatternConfig #dayCheckboxes {
     display: flex;
@@ -250,10 +269,11 @@
   /* Ngăn cuộn ngang - chỉ cho các container chính */
   .table-responsive-wrapper,
   #pageContent,
-  .card-body,
-  .rule-box {
+  .card-body {
     overflow-x: hidden !important;
-    max-width: 100% !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
   }
   
   /* ======= MODAL XEM LỊCH CÁ NHÂN ======= */
@@ -313,6 +333,18 @@
 
 /* === RESPONSIVE CHO MODAL & TABS ADMIN === */
 @media (max-width: 768px) {
+  /* 1. DIỆT TRỪ TẬN GỐC LỖI BỊ ẨN TỪ STYLES.CSS */
+  /* styles.css dùng !important ẩn đi các thẻ Admin, ta phải dùng độ ưu tiên cao hơn để đè lại */
+  div#adminConfig.active,
+  div#workPatternConfig.active,
+  div#swapConfig.active,
+  div.rule-box.active {
+      display: block !important;
+  }
+  #adminTabsContainer {
+      display: block !important;
+  }
+
   /* Modals chung */
   .personal-schedule-content {
     width: 95% !important;
@@ -478,42 +510,68 @@
 
   /* Tabs Admin */
   .admin-tabs {
-    flex-wrap: wrap !important;
-    overflow-x: visible !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     border-bottom: none !important;
-    gap: 8px !important;
-    padding-bottom: 12px !important;
+    gap: 10px !important;
+    padding-bottom: 15px !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
-  .admin-tab-btn {
-    padding: 10px 5px !important;
-    font-size: 12px !important;
-    flex: 1 1 calc(33.33% - 8px) !important;
+  .admin-tabs button:nth-child(5) {
+    grid-column: 1 / -1 !important; /* Nút cuối cùng chiếm trọn 2 cột */
+  }
+.admin-tab-btn {
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+
+    min-height: 48px !important;
+    padding: 8px !important;
+    font-size: 13px !important;
     border-radius: 8px !important;
     border: 1px solid #ccc !important;
     margin-bottom: 0 !important;
+
     text-align: center !important;
+
     white-space: normal !important;
+    word-break: break-word !important;
+
     line-height: 1.2 !important;
-  }
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
   .admin-tab-btn.active {
     border: 2px solid #273668 !important;
     background: #eef6ff !important;
+    color: #273668 !important;
+    font-weight: bold !important;
+    box-shadow: 0 2px 5px rgba(39, 54, 104, 0.2);
   }
   
   /* Bảng Admin Config */
+  .rule-box {
+    padding: 10px 0px !important; /* Xóa padding 2 bên để không đội kích thước */
+    margin-top: 10px !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
   .collapsible-content {
-    max-height: 70vh;
-    -webkit-overflow-scrolling: touch;
+    max-height: 60vh !important;
+    width: 100% !important;
+    overflow-x: auto !important; /* Kích hoạt thanh cuộn ngang */
+    -webkit-overflow-scrolling: touch !important;
   }
-  #ruleList th, #ruleList td,
-  #patternList th, #patternList td,
-  #swapList th, #swapList td {
-    font-size: 13px !important;
-    padding: 8px 6px !important;
-  }
-  #ruleList button, #patternList button, #swapList button {
-    font-size: 12px !important;
-    padding: 6px 8px !important;
+  #ruleList, #patternList, #swapList {
+    width: max-content !important; /* Giãn tự do theo nội dung */
+    min-width: 800px !important;
+    table-layout: auto !important; /* Không gò ép chiều rộng cột */
   }
 }
 
@@ -540,6 +598,9 @@
     margin-top: 10px;
     background: #fff;
     border: 1px solid #ccc;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 /* --- MỚI: Ghim cố định tiêu đề bảng khi cuộn --- */
 .collapsible-content thead th {
@@ -1040,7 +1101,7 @@
           </div>
 
           <!-- CONTAINER CHO FORM CÔNG VIỆC -->
-          <div id="addJobFormContainer" class="rule-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
+          <div id="addJobFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
             <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <input type="text" id="jobName" placeholder="Tên công việc" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
@@ -1072,7 +1133,7 @@
           </div>
 
           <!-- CONTAINER CHO FORM NGÀY LÀM -->
-          <div id="addPatternFormContainer" class="rule-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
+          <div id="addPatternFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
             <div class="input-row">
               <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
               <input type="text" id="patternDisplayName" placeholder="Tên hiển thị trên lịch">
@@ -1416,6 +1477,8 @@
     const addPatternFormContainer = document.getElementById("addPatternFormContainer");
 
     function openAddRuleModal() {
+        // Khắc phục lỗi trống form: Ép kích hoạt sự kiện hiển thị khối dữ liệu theo tùy chọn mặc định
+        addRuleTypeSelect.dispatchEvent(new Event('change'));
         addRuleModal.style.display = "block";
         document.body.style.overflow = 'hidden';
     }
