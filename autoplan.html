@@ -324,6 +324,10 @@
     overflow-wrap: break-word;
 }
 
+#personalScheduleDetails table {
+    min-width: 0 !important; /* Ghi đè thuộc tính min-width: 800px từ styles.css */
+}
+
 /* === RESPONSIVE CHO MODAL & TABS ADMIN === */
 @media (max-width: 768px) {
   /* 1. DIỆT TRỪ TẬN GỐC LỖI BỊ ẨN TỪ STYLES.CSS */
@@ -334,7 +338,7 @@
   div.rule-box.active {
       display: block !important;
   }
-  #adminTabsContainer {
+  #adminTabsContainer.admin-visible {
       display: block !important;
   }
 
@@ -584,10 +588,22 @@
   #ruleList th:last-child, #ruleList td:last-child,
   #patternList th:last-child, #patternList td:last-child,
   #swapList th:last-child, #swapList td:last-child {
-    width: 85px !important;
+    width: 65px !important;
   }
   #adminTaskList th:last-child, #adminTaskList td:last-child {
-    width: 145px !important; /* Rộng hơn vì có 2 nút, padding 2 bên đầy đủ */
+    width: 75px !important; /* Thu hẹp lại để nhường không gian cho cột nội dung */
+  }
+  
+  /* Xếp dọc 2 nút trong cột Hành động của DS CV Admin để tiết kiệm chiều ngang */
+  #adminTaskList td:last-child > div {
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+  
+  /* Tối ưu kích thước nút trong các bảng admin trên mobile cho cân đối với chữ */
+  .collapsible-content table button {
+    font-size: 11px !important;
+    padding: 4px 6px !important;
   }
 }
 
@@ -3414,11 +3430,11 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
           if (uniqueTasks.length > 0) {
               html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
-                  <table style="width: 100%; max-width: 100%; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: auto; font-size: 14px; box-sizing: border-box;">
+                  <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                   <thead>
                     <tr style="background:#f0f0f0;">
                       <th style="padding: 8px; border: 1px solid #ccc; text-align: left; font-size: 14px;">Công việc</th>
-                      <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 200px;">Hạn / Trạng thái</th>
+                      <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 180px;">Hạn / Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody>`;
@@ -3543,7 +3559,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   const shiftContent = matchedShifts.join("<br>");
 
                   foundDayHtml = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
-                    <table style="width: 100%; max-width: 100%; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box;">
+                    <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                     <thead>
                       <tr style="background:#f0f0f0;">
                         <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 40%;">Ngày & Ca</th>
