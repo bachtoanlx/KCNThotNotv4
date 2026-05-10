@@ -379,6 +379,7 @@
     align-items: center !important;
     justify-content: center !important;
     line-height: 1 !important;
+    position: absolute !important;
   }
   
   /* Form Inputs trong Modal - Chuyển sang Grid/Flex thông minh */
@@ -495,6 +496,7 @@
   
   #personalScheduleDetails th, #personalScheduleDetails td {
     padding: 6px 4px !important;
+    white-space: normal !important;
   }
   
   #closeModalBottom {
@@ -971,6 +973,101 @@
     display: block !important;
 }
 
+/* ======= LỊCH THÁNG ======= */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #ccc;
+  border: 1px solid #ccc;
+}
+.calendar-header {
+  background-color: #273668;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+.calendar-day {
+  background-color: #fff;
+  min-height: 80px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.calendar-day.empty {
+  background-color: #f9f9f9;
+}
+.calendar-date {
+  font-weight: bold;
+  text-align: right;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #555;
+}
+.calendar-day.today .calendar-date {
+  color: #fff;
+  background-color: #e74c3c;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+}
+.calendar-workers {
+  font-size: 13px;
+  color: #034892;
+  flex: 1;
+  overflow-y: auto;
+  font-weight: bold;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  word-break: break-word;
+}
+
+/* --- TỐI ƯU MOBILE CHO LỊCH THÁNG --- */
+@media (max-width: 768px) {
+  #monthScheduleModal .personal-schedule-content {
+    margin: 15px auto !important;
+    padding: 10px !important;
+    width: 96% !important;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+  #monthScheduleTitle {
+    font-size: 1.1rem !important;
+    flex: 1;
+    text-align: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+  }
+  #prevMonthBtn, #nextMonthBtn {
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+    margin: 0 !important;
+  }
+  .calendar-day {
+    min-height: 55px;
+    padding: 2px;
+  }
+  .calendar-workers {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  .calendar-header {
+    font-size: 12px;
+    padding: 4px 2px;
+  }
+}
+
 /* === CSS IN ẤN === */
 @media print {
   nav.navbar, #footer-placeholder, #adminTabsContainer, #globalSearchInput, #printScheduleBtn {
@@ -1332,7 +1429,25 @@
   <div id="pageContent" style="display:none;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
       <h2 style="margin-bottom: 0;">📅 Lịch làm việc trong tuần</h2>
-      <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 30px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
+      <div style="display: flex; gap: 5px; align-items: center;">
+          <button id="monthViewBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 5px; margin: 0; color: #333;" title="Xem lịch tháng">📆</button>
+          <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
+      </div>
+  </div>
+
+  <!-- MODAL XEM LỊCH THÁNG -->
+  <div id="monthScheduleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 900px; width: 95%;">
+          <span class="close" id="closeMonthScheduleModal">&times;</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+              <button id="prevMonthBtn" style="padding: 5px 15px; cursor: pointer; background: #273668; color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-left: 30px;">&lt; Tháng trước</button>
+              <h2 id="monthScheduleTitle" style="color: #273668; margin: 0; font-size: 1.5rem;">Lịch Tháng</h2>
+              <button id="nextMonthBtn" style="padding: 5px 15px; cursor: pointer; background: #273668; color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-right: 30px;">Tháng sau &gt;</button>
+          </div>
+          <div id="monthCalendarContainer">
+              <!-- Lưới lịch tháng sẽ được vẽ vào đây -->
+          </div>
+      </div>
   </div>
 
   <div class="card-body" style="padding-top: 5px;">
@@ -1520,6 +1635,51 @@
         }
     });
 
+    // --- LOGIC VÔ HIỆU HÓA NGÀY CỤ THỂ HOẶC ĐỊNH KỲ ---
+    const exactDateInput = document.getElementById("exactDate");
+    function updateAddRuleState() {
+        if (exactDateInput.value) {
+            domSelect.disabled = true;
+            daySelect.disabled = true;
+            weekSelect.disabled = true;
+            monthSelect.disabled = true;
+        } else if (domSelect.value || daySelect.value || weekSelect.value || monthSelect.value) {
+            exactDateInput.disabled = true;
+        } else {
+            exactDateInput.disabled = false;
+            domSelect.disabled = false;
+            daySelect.disabled = false;
+            weekSelect.disabled = false;
+            monthSelect.disabled = false;
+        }
+    }
+
+    [exactDateInput, domSelect, daySelect, weekSelect, monthSelect].forEach(el => {
+        if (el) {
+            el.addEventListener('change', updateAddRuleState);
+            el.addEventListener('input', updateAddRuleState);
+        }
+    });
+
+    const editRuleExactDate = document.getElementById("editRuleExactDate");
+    const editRuleDom = document.getElementById("editRuleDom");
+    const editRuleDay = document.getElementById("editRuleDay");
+    const editRuleWeek = document.getElementById("editRuleWeek");
+    const editRuleMonth = document.getElementById("editRuleMonth");
+    
+    function updateEditRuleState() {
+        if (editRuleExactDate.value) {
+            editRuleDom.disabled = true; editRuleDay.disabled = true; editRuleWeek.disabled = true; editRuleMonth.disabled = true;
+        } else if (editRuleDom.value || editRuleDay.value || editRuleWeek.value || editRuleMonth.value) {
+            editRuleExactDate.disabled = true;
+        } else {
+            editRuleExactDate.disabled = false; editRuleDom.disabled = false; editRuleDay.disabled = false; editRuleWeek.disabled = false; editRuleMonth.disabled = false;
+        }
+    }
+    [editRuleExactDate, editRuleDom, editRuleDay, editRuleWeek, editRuleMonth].forEach(el => {
+        if (el) { el.addEventListener('change', updateEditRuleState); el.addEventListener('input', updateEditRuleState); }
+    });
+
     let allRulesData = [];
     let allPatternsData = [];
     let allSwapsData = []; // Khai báo biến để tránh lỗi ReferenceError
@@ -1596,6 +1756,7 @@
         addRuleTypeSelect.dispatchEvent(new Event('change'));
         addRuleModal.style.display = "block";
         document.body.style.overflow = 'hidden';
+        updateAddRuleState();
     }
     const closeAddRuleModalFn = () => {
         addRuleModal.style.display = "none";
@@ -1946,6 +2107,7 @@
             completionFields.style.display = rule.is_admin_job ? "block" : "none";
         }
 
+        updateEditRuleState();
         editRuleModal.style.display = "block";
         document.body.style.overflow = 'hidden';
     }
@@ -2433,6 +2595,7 @@
             });
             showSwal("success", "Đã lưu quy tắc!");
             [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+            updateAddRuleState();
             closeAddRuleModalFn();
         } catch (error) {
             addLog("admin_create_work_rule_error", {
@@ -3247,6 +3410,9 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             document.body.style.overflow = 'auto'; // Khôi phục scroll
             personalScheduleModal.style.display = "none"; 
         }
+        if (event.target == document.getElementById("monthScheduleModal")) {
+            closeMonthScheduleModal();
+        }
     };
     document.getElementById("closeModalBottom").onclick = () => {
         document.body.style.overflow = 'auto'; // Khôi phục scroll
@@ -3588,6 +3754,166 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       personalScheduleDetails.innerHTML = html;
   }
 
+  // --- LOGIC LỊCH THÁNG ---
+  let currentMonthView = new Date();
+
+  function openMonthScheduleModal() {
+      currentMonthView = new Date(currentlyViewedDate); // Lấy tháng đang hiển thị trên lưới tuần
+      renderMonthCalendar(currentMonthView.getFullYear(), currentMonthView.getMonth());
+      document.getElementById("monthScheduleModal").style.display = "block";
+      document.body.style.overflow = "hidden";
+  }
+
+  function closeMonthScheduleModal() {
+      document.getElementById("monthScheduleModal").style.display = "none";
+      document.body.style.overflow = "auto";
+  }
+
+  document.getElementById("monthViewBtn").addEventListener("click", openMonthScheduleModal);
+  document.getElementById("closeMonthScheduleModal").addEventListener("click", closeMonthScheduleModal);
+
+  document.getElementById("prevMonthBtn").addEventListener("click", () => {
+      currentMonthView.setMonth(currentMonthView.getMonth() - 1);
+      renderMonthCalendar(currentMonthView.getFullYear(), currentMonthView.getMonth());
+  });
+
+  document.getElementById("nextMonthBtn").addEventListener("click", () => {
+      currentMonthView.setMonth(currentMonthView.getMonth() + 1);
+      renderMonthCalendar(currentMonthView.getFullYear(), currentMonthView.getMonth());
+  });
+
+  function getWorkersForDateMonth(d) {
+      const adminRules = allPatternsData.filter(p => p.type === 'administrative');
+      const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+      let workers = [];
+      
+      const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const swapsForDate = allSwapsData.filter(s => s.date === isoDate);
+      const yesterday = new Date(d);
+      yesterday.setDate(d.getDate() - 1);
+      const dayOfWeek = d.getDay() === 0 ? 8 : d.getDay() + 1;
+
+      // Nhân sự cố định
+      adminRules.forEach(rule => {
+          if (!isRuleActiveOnDate(rule, d) || !Array.isArray(rule.workDaysOfWeek)) return;
+          if (rule.workDaysOfWeek.includes(dayOfWeek)) {
+              let displayName = rule.displayName;
+              const swap = swapsForDate.find(s => s.user1 === displayName);
+              if (swap) displayName = swap.user2;
+              if (!workers.includes(displayName)) workers.push(displayName);
+          }
+      });
+
+      // Nhân sự ca
+      if (allShiftRules.length > 0) {
+          const shiftGroups = {};
+          allShiftRules.forEach(rule => {
+              const group = rule.shiftGroup || "Vận hành";
+              if (!shiftGroups[group]) shiftGroups[group] = [];
+              shiftGroups[group].push(rule);
+          });
+
+          for (const group in shiftGroups) {
+              const groupRules = shiftGroups[group];
+              const sortedGroupRules = [...groupRules].sort(sortShiftRules);
+              const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
+              
+              const membersYesterday = groupRules.filter(rule => isRuleActiveOnDate(rule, yesterday)).sort(sortShiftRules);
+              const membersToday = groupRules.filter(rule => isRuleActiveOnDate(rule, d)).sort(sortShiftRules);
+              
+              let workerYesterdayName = null;
+              let isNightYesterday = false;
+              
+              if (membersYesterday.length > 0) {
+                  const n_yesterday = membersYesterday.length;
+                  const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
+                  const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                  const workerYesterday = membersYesterday[workerIndexYesterday];
+                  if (workerYesterday) {
+                      workerYesterdayName = workerYesterday.displayName;
+                      const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
+                      const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+                      if ( (endH < startH) || (endH === startH && endM < startM) ) isNightYesterday = true;
+                      else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) isNightYesterday = true;
+                  }
+              }
+
+              if (membersToday.length > 0) {
+                  const n_today = membersToday.length;
+                  const daysSinceToday = getDaysDifference(d, groupRefDate);
+                  const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                  const workerToday = membersToday[workerIndexToday];
+                  
+                  if (workerToday) {
+                      if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                          let displayName = workerToday.displayName;
+                          const swap = swapsForDate.find(s => s.user1 === displayName);
+                          if (swap) displayName = swap.user2;
+                          if (!workers.includes(displayName)) workers.push(displayName);
+                      }
+                  }
+              }
+          }
+      }
+      return workers;
+  }
+
+  function renderMonthCalendar(year, month) {
+      const title = document.getElementById("monthScheduleTitle");
+      title.textContent = `Lịch Tháng ${month + 1} / ${year}`;
+      
+      const container = document.getElementById("monthCalendarContainer");
+      
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      
+      let startDayOfWeek = firstDay.getDay() - 1;
+      if (startDayOfWeek === -1) startDayOfWeek = 6;
+      
+      const daysInMonth = lastDay.getDate();
+      
+      let html = `<div class="calendar-grid">`;
+      const dayNames = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+      
+      dayNames.forEach(d => {
+          html += `<div class="calendar-header">${d}</div>`;
+      });
+      
+      for (let i = 0; i < startDayOfWeek; i++) {
+          html += `<div class="calendar-day empty"></div>`;
+      }
+      
+      const today = new Date();
+      
+      for (let day = 1; day <= daysInMonth; day++) {
+          const d = new Date(year, month, day);
+          const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+          
+          const workers = getWorkersForDateMonth(d);
+          
+          // Lấy chữ cuối cùng của tên (vd: Nguyễn Văn A -> A)
+          const shortNames = workers.map(name => {
+              const parts = name.trim().split(/\s+/);
+              return `<div>${parts[parts.length - 1]}</div>`; 
+          }).join(""); 
+          
+          html += `
+              <div class="calendar-day ${isToday ? 'today' : ''}">
+                  <div class="calendar-date">${day}</div>
+                  <div class="calendar-workers">${shortNames}</div>
+              </div>
+          `;
+      }
+      
+      let totalCells = startDayOfWeek + daysInMonth;
+      let remainingCells = (7 - (totalCells % 7)) % 7;
+      for (let i = 0; i < remainingCells; i++) {
+           html += `<div class="calendar-day empty"></div>`;
+      }
+      
+      html += `</div>`;
+      container.innerHTML = html;
+  }
   </script>
 
 </body>
