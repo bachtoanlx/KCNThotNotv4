@@ -600,17 +600,29 @@
   /* Ẩn tất cả các cột ở giữa, chỉ giữ lại cột đầu tiên và cột cuối cùng */
   #ruleList th:not(:first-child):not(:last-child), #ruleList td:not(:first-child):not(:last-child),
   #patternList th:not(:first-child):not(:last-child), #patternList td:not(:first-child):not(:last-child),
-  #swapList th:not(:first-child):not(:last-child), #swapList td:not(:first-child):not(:last-child),
   #adminTaskList th:not(:first-child):not(:last-child), #adminTaskList td:not(:first-child):not(:last-child) {
+    display: none !important;
+  }
+  
+  /* Đối với DS Hoán đổi: giữ lại cột 1, 2 và cuối cùng */
+  #swapList th:not(:first-child):not(:nth-child(2)):not(:last-child),
+  #swapList td:not(:first-child):not(:nth-child(2)):not(:last-child) {
     display: none !important;
   }
   
   /* Ép cột đầu tiên chiếm toàn bộ không gian còn lại (đẩy cột hành động về đúng kích thước chuẩn) */
   #ruleList th:first-child, #ruleList td:first-child,
   #patternList th:first-child, #patternList td:first-child,
-  #swapList th:first-child, #swapList td:first-child,
   #adminTaskList th:first-child, #adminTaskList td:first-child {
     width: 100% !important;
+  }
+  
+  /* Chia tỷ lệ cho cột 1 và 2 của DS Hoán đổi */
+  #swapList th:first-child, #swapList td:first-child {
+    width: 35% !important;
+  }
+  #swapList th:nth-child(2), #swapList td:nth-child(2) {
+    width: 65% !important;
   }
   
   /* Thiết lập độ rộng cố định cho cột hành động (cột cuối), cột đầu tiên sẽ tự động co giãn */
@@ -620,7 +632,7 @@
     width: 65px !important;
   }
   #adminTaskList th:last-child, #adminTaskList td:last-child {
-    width: 75px !important; /* Thu hẹp lại để nhường không gian cho cột nội dung */
+    width: 95px !important; /* Nới rộng để chữ Cập nhật không bị tràn */
   }
   
   /* Xếp dọc 2 nút trong cột Hành động của DS CV Admin để tiết kiệm chiều ngang */
