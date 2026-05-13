@@ -287,7 +287,7 @@
 
 #personalScheduleModal .personal-schedule-content {
     background-color: #fefefe;
-    margin: 120px auto 20px auto;
+    margin: 5vh auto;
     padding: 20px;
     border: 1px solid #888;
     width: 100%;
@@ -296,6 +296,9 @@
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     box-sizing: border-box;
     position: relative;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
 }
 
 #personalScheduleModal .close {
@@ -322,10 +325,33 @@
     text-align: left;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+#personalScheduleDetails::-webkit-scrollbar {
+    width: 6px;
+}
+#personalScheduleDetails::-webkit-scrollbar-track {
+    background: #f1f1f1; 
+}
+#personalScheduleDetails::-webkit-scrollbar-thumb {
+    background: #ccc; 
+    border-radius: 4px;
 }
 
 #personalScheduleDetails table {
     min-width: 0 !important; /* Ghi đè thuộc tính min-width: 800px từ styles.css */
+}
+
+#personalScheduleDetails table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f0f0f0;
+    text-align: center !important;
+    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.2);
 }
 
 /* === RESPONSIVE CHO MODAL & TABS ADMIN === */
@@ -664,11 +690,11 @@
     table-layout: fixed;
     min-width: 900px;
 }
-#adminTaskList th:nth-child(1) { width: 37%; }
-#adminTaskList th:nth-child(2) { width: 17%; }
+#adminTaskList th:nth-child(1) { width: 33%; }
+#adminTaskList th:nth-child(2) { width: 14%; }
 #adminTaskList th:nth-child(3) { width: 14%; }
-#adminTaskList th:nth-child(4) { width: 18%; }
-#adminTaskList th:nth-child(5) { width: 14%; }
+#adminTaskList th:nth-child(4) { width: 21%; }
+#adminTaskList th:nth-child(5) { width: 18%; }
 
 #patternList {
     table-layout: fixed;
@@ -1112,6 +1138,16 @@
     color: #000 !important;
   }
 }
+
+/* === HIỆU ỨNG NHẤP NHÁY DÒNG CÔNG VIỆC ADMIN === */
+@keyframes blinkTaskRow {
+    0% { background-color: #fff8b0; outline: 2px solid #f39c12; }
+    50% { background-color: transparent; outline: 2px solid transparent; }
+    100% { background-color: #fff8b0; outline: 2px solid #f39c12; }
+}
+.highlight-task-row {
+    animation: blinkTaskRow 1s ease-in-out 3;
+}
 </style>
 </head>
 <body>
@@ -1270,7 +1306,7 @@
   <div id="addRuleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
       <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 820px;">
           <span class="close" id="closeAddRuleModal">&times;</span>
-          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">➕ Thêm Quy tắc Mới</h2>
+          <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">➕ Thêm, Sửa quy tắc công việc</h2>
           
           <div class="input-row" style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
               <label style="font-weight: 500; min-width: 100px;">Loại quy tắc:</label>
@@ -1282,8 +1318,10 @@
 
           <!-- CONTAINER CHO FORM CÔNG VIỆC -->
           <div id="addJobFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
+            <input type="hidden" id="addJobRuleEditId">
             <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
-              <input type="text" id="jobName" placeholder="Tên công việc" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+              <input type="text" id="jobName" list="existingJobsList" placeholder="Tên công việc" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" autocomplete="off">
+              <datalist id="existingJobsList"></datalist>
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
             </div>
@@ -1357,6 +1395,8 @@
           </div>
 
           <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button id="deleteAddRuleBtn" style="padding: 8px 15px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">🗑️ Xóa vĩnh viễn</button>
+              <div id="addRuleSpacer" style="flex: 1; display: none;"></div>
               <button id="cancelAddRuleBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
               <button id="saveNewRuleBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu quy tắc</button>
           </div>
@@ -1428,9 +1468,11 @@
 
   <div id="pageContent" style="display:none;">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-      <h2 style="margin-bottom: 0;">📅 Lịch làm việc trong tuần</h2>
+      <h2 style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+          <button id="monthViewBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; line-height: 1;" title="Xem lịch tháng">📆</button>
+          Lịch làm việc trong tuần
+      </h2>
       <div style="display: flex; gap: 5px; align-items: center;">
-          <button id="monthViewBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 5px; margin: 0; color: #333;" title="Xem lịch tháng">📆</button>
           <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
       </div>
   </div>
@@ -1483,7 +1525,7 @@
   <!-- TABS CONTAINER CHO ADMIN -->
   <div id="adminTabsContainer" class="admin-only" style="display: none;">
       <div class="admin-tabs">
-          <button class="admin-tab-btn" id="btn-openAddModal" style="background: #273668; color: white;">➕ Thêm quy tắc</button>
+          <button class="admin-tab-btn" id="btn-openAddModal" style="background: #273668; color: white;">➕ Thêm, Sửa quy tắc</button>
           <button class="admin-tab-btn" id="btn-openSwapModal" style="background: #f39c12; color: white;">🔄 Hoán đổi ca</button>
           <button class="admin-tab-btn active" id="tabBtn-adminConfig">📋 1. DS CV Chung</button>
           <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 2. DS Ngày làm</button>
@@ -1751,7 +1793,18 @@
     const addJobFormContainer = document.getElementById("addJobFormContainer");
     const addPatternFormContainer = document.getElementById("addPatternFormContainer");
 
+    // Hàm reset form Thêm Quy tắc về chế độ mặc định (ẩn chức năng Sửa/Xóa)
+    function resetAddJobFormMode() {
+        document.getElementById("addJobRuleEditId").value = "";
+        document.getElementById("deleteAddRuleBtn").style.display = "none";
+        document.getElementById("addRuleSpacer").style.display = "none";
+        const saveBtn = document.getElementById("saveNewRuleBtn");
+        saveBtn.innerHTML = "💾 Lưu quy tắc";
+        saveBtn.style.background = "#2ecc71"; // Màu xanh lá
+    }
+
     function openAddRuleModal() {
+        resetAddJobFormMode(); // Trả về giao diện chuẩn khi vừa mở modal
         // Khắc phục lỗi trống form: Ép kích hoạt sự kiện hiển thị khối dữ liệu theo tùy chọn mặc định
         addRuleTypeSelect.dispatchEvent(new Event('change'));
         addRuleModal.style.display = "block";
@@ -1767,6 +1820,95 @@
     addRuleTypeSelect.addEventListener('change', () => {
         addJobFormContainer.style.display = addRuleTypeSelect.value === 'job' ? 'block' : 'none';
         addPatternFormContainer.style.display = addRuleTypeSelect.value === 'pattern' ? 'block' : 'none';
+    });
+
+    // --- LOGIC BIẾN FORM THÊM THÀNH FORM SỬA KHI TÌM NHANH ---
+    jobInput.addEventListener("change", function() {
+        const val = this.value.trim().toLowerCase();
+        if (!val) {
+            resetAddJobFormMode();
+            return;
+        }
+
+        const normalizedVal = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        
+        // Tìm xem có công việc cũ trùng tên 100% không
+        const exactMatchRule = allRulesData.find(r => {
+             if (!r.job) return false;
+             const normalizedJob = r.job.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+             return normalizedJob === normalizedVal;
+        });
+
+        if (exactMatchRule) {
+            // Tự động tải dữ liệu cũ lên form
+            document.getElementById("jobTime").value = exactMatchRule.time || "";
+            document.getElementById("exactDate").value = exactMatchRule.exactDate || "";
+            domSelect.value = exactMatchRule.dom || "";
+            daySelect.value = exactMatchRule.day || "";
+            weekSelect.value = exactMatchRule.week || "";
+            monthSelect.value = exactMatchRule.month || "";
+            
+            document.getElementById("isAdminJobRuleCheckbox").checked = exactMatchRule.is_admin_job || false;
+            document.getElementById("isCommonJobRuleCheckbox").checked = exactMatchRule.is_common_job || false;
+            
+            let rawNote = exactMatchRule.note || "";
+            if (rawNote.startsWith("[CVAdmin]")) rawNote = rawNote.replace("[CVAdmin]", "").trim();
+            else if (rawNote.startsWith("[CVChung]")) rawNote = rawNote.replace("[CVChung]", "").trim();
+            jobNoteInput.value = rawNote;
+            
+            updateAddRuleState(); // Khóa các trường định kỳ nếu có ngày cụ thể
+            
+            // Biến UI thành chế độ Edit
+            document.getElementById("addJobRuleEditId").value = exactMatchRule.id;
+            document.getElementById("deleteAddRuleBtn").style.display = "block";
+            document.getElementById("addRuleSpacer").style.display = "block";
+            
+            const saveBtn = document.getElementById("saveNewRuleBtn");
+            saveBtn.innerHTML = "💾 Lưu thay đổi";
+            saveBtn.style.background = "#f39c12"; // Màu cam như Sửa
+            
+            showSwal("info", "Đã tải dữ liệu công việc cũ", "Bạn có thể chỉnh sửa và nhấn Lưu thay đổi, hoặc Xóa vĩnh viễn.");
+        } else {
+            // Tên mới hoàn toàn -> Trả lại giao diện Thêm mới
+            resetAddJobFormMode();
+        }
+    });
+
+    // Chức năng Xóa cho nút "Xóa vĩnh viễn" tích hợp thẳng trên Modal Thêm
+    document.getElementById("deleteAddRuleBtn").addEventListener("click", async () => {
+        const ruleIdToDelete = document.getElementById("addJobRuleEditId").value;
+        if (!ruleIdToDelete) return;
+        const ruleData = allRulesData.find(r => r.id === ruleIdToDelete);
+        
+        Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa?',
+            text: `Quy tắc "${ruleData ? ruleData.job : ""}" sẽ bị xóa vĩnh viễn!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Vâng, xóa nó!',
+            cancelButtonText: 'Hủy'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    showLoading("Đang xóa...");
+                    await deleteDoc(doc(db, "work_rules", ruleIdToDelete));
+                    addLog("admin_delete_work_rule", { email: getCurrentUserEmail(), deletedRuleId: ruleIdToDelete, deletedRule: ruleData || {} });
+                    hideLoading();
+                    showSwal("success", "Đã xóa quy tắc!");
+                    
+                    // Reset form và đóng modal
+                    [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = "");
+                    resetAddJobFormMode();
+                    updateAddRuleState();
+                    closeAddRuleModalFn();
+                } catch (error) {
+                    hideLoading();
+                    showSwal("error", "Lỗi khi xóa quy tắc!");
+                }
+            }
+        });
     });
 
 
@@ -1814,6 +1956,7 @@
 
             renderRuleList(allRulesData); // Cập nhật bảng admin
             renderAdminTaskList(allRulesData); // Cập nhật bảng admin tasks
+            updateJobNameDatalist(allRulesData); // Cập nhật datalist cho input tên công việc
             
             if (!rulesLoaded) rulesLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
@@ -1877,6 +2020,24 @@
         groups.forEach(group => {
             const option = document.createElement("option");
             option.value = group;
+            datalist.appendChild(option);
+        });
+    }
+
+    // --- HÀM MỚI: Cập nhật danh sách gợi ý Công việc ---
+    function updateJobNameDatalist(rules) {
+        const datalist = document.getElementById("existingJobsList");
+        if (!datalist) return;
+        
+        const jobs = new Set();
+        rules.forEach(r => {
+            if (r.job) jobs.add(r.job.trim());
+        });
+        
+        datalist.innerHTML = "";
+        jobs.forEach(job => {
+            const option = document.createElement("option");
+            option.value = job;
             datalist.appendChild(option);
         });
     }
@@ -2131,7 +2292,7 @@
         const week = document.getElementById("editRuleWeek").value;
         const month = document.getElementById("editRuleMonth").value;
         const rawNote = document.getElementById("editRuleNote").value.trim();
-        const lastCompletedDate = document.getElementById("editRuleLastCompletedDate").value;
+        let lastCompletedDate = document.getElementById("editRuleLastCompletedDate").value;
         const actualCompletedDateInput = document.getElementById("editRuleActualCompletedDate").value;
         
         let completedNote = document.getElementById("editRuleCompletedNoteSelect").value;
@@ -2143,6 +2304,53 @@
 
         if (!job) return Swal.fire("Lỗi", "Vui lòng nhập tên công việc!", "warning");
 
+        if (!exactDate && !dom && !day && !week && !month) {
+            return Swal.fire("Lỗi", "Vui lòng chọn Ngày cụ thể hoặc ít nhất một thời gian định kỳ (Ngày/Thứ/Tuần/Tháng)!", "warning");
+        }
+
+        // --- KIỂM TRA TRÙNG LẶP / TƯƠNG TỰ KHI SỬA ---
+        const normalizedVal = job.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const otherRules = allRulesData.filter(r => r.id !== id);
+        const uniqueJobs = Array.from(new Set(otherRules.map(r => r.job).filter(Boolean)));
+        
+        const exactMatch = uniqueJobs.find(j => {
+             const normalizedJob = j.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+             return normalizedJob === normalizedVal;
+        });
+
+        const similarJobs = uniqueJobs.filter(j => {
+            const normalizedJob = j.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            return normalizedJob.includes(normalizedVal) && normalizedJob !== normalizedVal;
+        });
+
+        if (exactMatch) {
+            const isConfirmed = await Swal.fire({
+                title: 'Công việc đã tồn tại!',
+                html: `Công việc "<b>${exactMatch}</b>" đã có sẵn trong hệ thống.<br>Bạn có chắc chắn muốn lưu với tên này không?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Vẫn lưu',
+                cancelButtonText: 'Hủy'
+            });
+            if (!isConfirmed.isConfirmed) return;
+        } else if (similarJobs.length > 0) {
+            const suggestions = similarJobs.slice(0, 4).map(j => `"${j}"`).join(", ");
+            const isConfirmed = await Swal.fire({
+                title: 'Công việc tương tự đã tồn tại!',
+                html: `Các công việc có thể giống với nội dung bạn nhập:<br><b>${suggestions}</b><br><br>Bạn có chắc chắn muốn tiếp tục lưu không?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#f39c12',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Vẫn lưu',
+                cancelButtonText: 'Hủy'
+            });
+            if (!isConfirmed.isConfirmed) return;
+        }
+        // --- KẾT THÚC KIỂM TRA ---
+
         let note = rawNote;
         if (isAdmin) note = `[CVAdmin] ${rawNote}`.trim();
         else if (isCommon) note = `[CVChung] ${rawNote}`.trim();
@@ -2152,12 +2360,19 @@
             actualCompletedDate = new Date(actualCompletedDateInput).toISOString();
         }
 
+        // --- LOGIC MỚI: TỰ ĐỘNG XÓA HOÀN THÀNH KHI LÝ DO TRỐNG ---
+        // Chỉ xóa lúc lưu để tránh admin lỡ tay thay đổi dropdown mà mất ngày đã nhập trên UI
+        if (completedNote === "") {
+            lastCompletedDate = null;
+            actualCompletedDate = null;
+        }
+
         const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
         
         if (isAdmin) {
-            updateData.lastCompletedDate = lastCompletedDate || "";
-            updateData.actualCompletedDate = actualCompletedDate || "";
-            updateData.completedNote = completedNote || "";
+            updateData.lastCompletedDate = lastCompletedDate || null;
+            updateData.actualCompletedDate = actualCompletedDate || null;
+            updateData.completedNote = completedNote || null;
         }
 
         const oldData = allRulesData.find(r => r.id === id) || {};
@@ -2288,7 +2503,14 @@
                 
                 if (d.lastCompletedDate === matchDateStr) {
                     isCompleted = true;
-                    if (d.actualCompletedDate) {
+                    
+                    // Hiển thị ngày hoàn thành dựa trên lịch sử mới (nếu có) hoặc cách cũ
+                    if (d.progressHistory && d.progressHistory[matchDateStr]) {
+                        const historyArray = d.progressHistory[matchDateStr];
+                        const lastUpdate = historyArray[historyArray.length - 1];
+                        const acDate = new Date(lastUpdate.time);
+                        actualCompletedStr = `${String(acDate.getDate()).padStart(2,'0')}/${String(acDate.getMonth()+1).padStart(2,'0')}/${acDate.getFullYear()} ${String(acDate.getHours()).padStart(2,'0')}:${String(acDate.getMinutes()).padStart(2,'0')}`;
+                    } else if (d.actualCompletedDate) {
                         const acDate = new Date(d.actualCompletedDate);
                         actualCompletedStr = `${String(acDate.getDate()).padStart(2,'0')}/${String(acDate.getMonth()+1).padStart(2,'0')}/${acDate.getFullYear()} ${String(acDate.getHours()).padStart(2,'0')}:${String(acDate.getMinutes()).padStart(2,'0')}`;
                     }
@@ -2298,39 +2520,50 @@
                 dueDateTime.setHours(h, m, 0, 0);
                 const dueMidnight = new Date(targetDate); 
                 dueMidnight.setHours(0, 0, 0, 0);
+
+                // Kiểm tra xem chu kỳ này đã có tiến độ (Đang làm) chưa
+                const currentHistory = (d.progressHistory && d.progressHistory[matchDateStr]) ? d.progressHistory[matchDateStr] : [];
+                const isInProgress = !isCompleted && currentHistory.length > 0;
                 
+                let doneBtnHtml = "";
+
                 if (isCompleted) {
                     category = 3;
                     statusText = '✅ Đã hoàn thành';
                     statusColor = '#2ecc71';
-                    showDoneBtn = false;
+                    doneBtnHtml = `<button class="doneAdminTaskBtn" data-id="${d.id}" data-date="${matchDateStr}" style="flex: 1; background:#95a5a6; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">🔍 Lịch sử</button>`;
                 } else {
                     if (!isFuture) {
                         if (currentNow > dueDateTime) {
                             category = 2; // Quá hạn
                             const daysOverdue = Math.floor((todayMidnight - dueMidnight) / (1000 * 60 * 60 * 24));
-                            statusText = daysOverdue > 0 ? `⚠️ Quá hạn (${daysOverdue} ngày)` : '⚠️ Quá hạn';
-                            statusColor = '#e74c3c';
+                            if (isInProgress) {
+                                statusText = daysOverdue > 0 ? `🏃 Đang làm (Quá hạn ${daysOverdue} ngày)` : '🏃 Đang làm (Quá hạn)';
+                                statusColor = '#d35400'; // Cam đậm cho việc đang làm nhưng trễ
+                            } else {
+                                statusText = daysOverdue > 0 ? `⚠️ Quá hạn (${daysOverdue} ngày)` : '⚠️ Quá hạn';
+                                statusColor = '#e74c3c';
+                            }
                         } else {
                             category = 1; // Sắp đến hạn (hôm nay)
-                            statusText = '⏳ Đến hạn hôm nay';
-                            statusColor = '#f39c12';
+                            statusText = isInProgress ? '🏃 Đang làm (Hạn hôm nay)' : '⏳ Đến hạn hôm nay';
+                            statusColor = isInProgress ? '#2980b9' : '#f39c12';
                             diffDays = 0;
                         }
-                        showDoneBtn = true;
+                        doneBtnHtml = `<button class="doneAdminTaskBtn" data-id="${d.id}" data-date="${matchDateStr}" style="flex: 1; background:#2980b9; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">📝 Cập nhật</button>`;
                     } else {
                         const daysUntil = Math.ceil((dueMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
                         diffDays = daysUntil;
                         if (daysUntil <= 7) {
                             category = 1; // Sắp đến hạn
-                            statusText = `🔔 Sắp đến hạn (${daysUntil} ngày)`;
-                            statusColor = '#3498db';
-                            showDoneBtn = true;
+                            statusText = isInProgress ? `🏃 Đang làm (Còn ${daysUntil} ngày)` : `🔔 Sắp đến hạn (${daysUntil} ngày)`;
+                            statusColor = isInProgress ? '#2980b9' : '#3498db';
+                            doneBtnHtml = `<button class="doneAdminTaskBtn" data-id="${d.id}" data-date="${matchDateStr}" style="flex: 1; background:#2980b9; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">📝 Cập nhật</button>`;
                         } else {
                             category = 4; // Tương lai xa
                             statusText = `Chưa đến hạn (${daysUntil} ngày)`;
                             statusColor = '#7f8c8d';
-                            showDoneBtn = false;
+                            doneBtnHtml = "";
                         }
                     }
                 }
@@ -2346,7 +2579,8 @@
                     matchDateStr: matchDateStr,
                     statusText: statusText,
                     statusColor: statusColor,
-                    showDoneBtn: showDoneBtn,
+                    doneBtnHtml: doneBtnHtml,
+                    currentHistory: currentHistory,
                     actualCompletedStr: actualCompletedStr,
                     actualCompletedDate: isCompleted && d.actualCompletedDate ? new Date(d.actualCompletedDate) : new Date(0),
                     completedNote: isCompleted ? (d.completedNote || "") : ""
@@ -2377,7 +2611,7 @@
                     matchDateStr: "",
                     statusText: "Không có lịch",
                     statusColor: "#333",
-                    showDoneBtn: false,
+                    doneBtnHtml: "",
                     actualCompletedStr: "-",
                     actualCompletedDate: new Date(0),
                     completedNote: ""
@@ -2409,6 +2643,10 @@
             let statusHtml = `<span style="color: ${task.statusColor}; font-weight:bold;">${task.statusText}</span>`;
             if (task.completedNote && task.category === 3) {
                 statusHtml += `<br><span style="font-size: 0.85em; color: #555; font-style: italic;">↳ ${task.completedNote}</span>`;
+            } else if (task.currentHistory && task.currentHistory.length > 0 && task.category !== 3) {
+                // Hiển thị tiến độ mới nhất nếu đang làm
+                const lastUpdate = task.currentHistory[task.currentHistory.length - 1];
+                statusHtml += `<br><span style="font-size: 0.85em; color: #2980b9; font-style: italic;">↳ Tiến độ: ${lastUpdate.note}</span>`;
             }
 
             let actualDateHtml = task.actualCompletedStr;
@@ -2423,7 +2661,7 @@
                 <td>${statusHtml}</td>
                 <td style="text-align: center; vertical-align: middle;">
                     <div style="display: flex; gap: 5px; width: 100%;">
-                        ${task.showDoneBtn ? `<button class="doneAdminTaskBtn" data-id="${task.id}" data-date="${task.matchDateStr}" style="flex: 1; background:#2ecc71; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">✅ Xong</button>` : ""}
+                        ${task.doneBtnHtml}
                         <button class="editRuleBtn" data-id="${task.id}" style="flex: 1; background:#f39c12; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">✏️ Sửa</button>
                     </div>
                 </td>`;
@@ -2431,67 +2669,285 @@
             const doneBtn = tr.querySelector(".doneAdminTaskBtn");
             if (doneBtn) {
                 doneBtn.addEventListener("click", async () => {
+                    
+                    // Lấy thời gian hiện tại để làm giá trị mặc định cho ô chọn giờ
+                    const now = new Date();
+                    const tzOffset = now.getTimezoneOffset() * 60000;
+                    const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+
+                    const isTaskCompleted = task.category === 3;
+
+                    // Lấy dữ liệu quy tắc gốc để truy cập toàn bộ lịch sử
+                    const ruleData = allRulesData.find(r => r.id === task.id);
+                    const allHistoryObj = ruleData ? (ruleData.progressHistory || {}) : {};
+                    const pastDateKeys = Object.keys(allHistoryObj).filter(k => k !== task.matchDateStr).sort((a,b) => new Date(b) - new Date(a));
+
+                    let pastHistoryOptions = '';
+                    if (pastDateKeys.length > 0) {
+                        pastHistoryOptions = pastDateKeys.map(k => {
+                             const [y, m, d] = k.split('-');
+                             return `<option value="${k}">Kỳ: ${d}/${m}/${y}</option>`;
+                        }).join('');
+                    }
+
+                    let pastHistoryHtml = '';
+                    if (pastDateKeys.length > 0) {
+                         pastHistoryHtml = `
+                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #ccc; text-align: left;">
+                             <label style="font-weight: bold; display: block; margin-bottom: 5px;">Xem lịch sử tiến độ kỳ quá khứ:</label>
+                             <select id="swal-past-history-select" class="swal2-select" style="display: flex; width: 100%; margin: 0 0 10px 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
+                                 <option value="">-- Chọn kỳ quá khứ --</option>
+                                 ${pastHistoryOptions}
+                             </select>
+                             <div id="swal-past-history-content" style="max-height: 150px; overflow-y: auto; background: #f0f0f0; border: 1px solid #ddd; padding: 10px; border-radius: 6px; font-size: 13px; display: none;">
+                             </div>
+                         </div>
+                         `;
+                    }
+
+                    // Build HTML lịch sử tiến độ
+                    let historyHtml = '';
+                    if (task.currentHistory && task.currentHistory.length > 0) {
+                        historyHtml = `<div style="max-height: 150px; overflow-y: auto; background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; text-align: left;">
+                            <strong style="color:#273668;">Lịch sử tiến độ kỳ này:</strong><br>`;
+                        task.currentHistory.forEach((h, index) => {
+                            const t = new Date(h.time);
+                            const timeStr = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                            historyHtml += `<div style="margin-top: 6px; padding-bottom: 6px; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div><span style="color:#888;">[${timeStr}]</span> ${h.status === 'Hoàn thành' ? '✅' : '🏃'} <b>${h.note}</b></div>
+                                <button type="button" class="delete-history-btn" data-index="${index}" style="background: none; border: none; color: #e74c3c; cursor: pointer; padding: 0 5px; font-size: 14px;" title="Xóa tiến độ này">❌</button>
+                            </div>`;
+                        });
+                        historyHtml += `</div>`;
+                    }
+
                     const { value: noteText } = await Swal.fire({
-                        title: 'Xác nhận hoàn thành',
+                        title: isTaskCompleted ? 'Lịch sử tiến độ' : 'Cập nhật tiến độ',
                         html: `
-                            <div style="margin-bottom: 10px; text-align: left;">
-                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Chọn nội dung xác nhận:</label>
-                                <select id="swal-select-reason" class="swal2-select" style="display: flex; width: 100%; margin: 0; padding: 10px; font-size: 16px;">
+                            ${historyHtml}
+                            ${!isTaskCompleted ? `
+                            <div style="text-align: left; margin-top: 10px;">
+                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Trạng thái cập nhật:</label>
+                                <select id="swal-select-status" class="swal2-select" style="display: flex; width: 100%; margin: 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
+                                    <option value="Đang làm">🏃 Đang tiến hành (Lưu lịch sử)</option>
+                                    <option value="Hoàn thành">✅ Đã hoàn thành</option>
+                                </select>
+                            </div>
+                            <div style="text-align: left; margin-top: 15px;">
+                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Thời gian thực hiện:</label>
+                                <input id="swal-input-time" type="datetime-local" class="swal2-input" value="${localISOTime}" style="display: flex; width: 100%; margin: 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
+                            </div>
+                            <div id="in-progress-note-container" style="text-align: left; margin-top: 15px;">
+                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nội dung thực hiện:</label>
+                                <input id="swal-input-reason" class="swal2-input" placeholder="VD: Đã xin báo giá..." style="display: flex; width: 100%; margin: 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
+                            </div>
+                            <div id="completed-note-container" style="display: none; text-align: left; margin-top: 15px;">
+                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nội dung/Lý do hoàn thành:</label>
+                                <select id="swal-select-reason" class="swal2-select" style="display: flex; width: 100%; margin: 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
                                     <option value="Đã hoàn thành">Đã hoàn thành</option>
                                     <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
                                     <option value="Không thể hoàn thành">Không thể hoàn thành</option>
                                     <option value="Loại bỏ">Loại bỏ</option>
                                     <option value="Khác">Khác...</option>
                                 </select>
+                                <div id="swal-custom-reason-container" style="display: none; margin-top: 10px;">
+                                    <input id="swal-input-custom-reason" class="swal2-input" placeholder="Nhập lý do tùy ý..." style="display: flex; width: 100%; margin: 0; padding: 8px 10px; font-size: 14px; box-sizing: border-box; height: auto;">
+                                </div>
                             </div>
-                            <div id="swal-custom-reason-container" style="display: none; text-align: left; margin-top: 15px;">
-                                <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nhập lý do tùy ý:</label>
-                                <input id="swal-input-reason" class="swal2-input" placeholder="Nhập lý do..." style="display: flex; width: 100%; margin: 0;">
+                            ` : `
+                            <div style="margin-top: 15px; padding: 10px; background: #e8f8f5; border: 1px solid #1abc9c; border-radius: 6px; color: #16a085; font-size: 13px; text-align: left;">
+                                <i>ℹ️ Công việc này đã hoàn thành. Nếu thay đổi vui lòng nhấn nút <b>❌</b> ở dòng "Hoàn thành" phía trên để mở lại.</i>
                             </div>
+                            `}
+                            ${pastHistoryHtml}
                         `,
-                        showCancelButton: true,
-                        confirmButtonText: '✅ Lưu & Đánh dấu Xong',
+                        showCancelButton: !isTaskCompleted,
+                        confirmButtonText: isTaskCompleted ? 'Đóng' : '💾 Lưu tiến độ',
                         cancelButtonText: 'Hủy',
                         didOpen: () => {
-                            const select = document.getElementById('swal-select-reason');
-                            const customContainer = document.getElementById('swal-custom-reason-container');
-                            const input = document.getElementById('swal-input-reason');
-                            
-                            select.addEventListener('change', () => {
-                                if (select.value === 'Khác') {
-                                    customContainer.style.display = 'block';
-                                    input.focus();
-                                } else {
-                                    customContainer.style.display = 'none';
-                                }
+                            const popup = Swal.getPopup();
+                            const deleteBtns = popup.querySelectorAll('.delete-history-btn');
+
+                            // --- LOGIC MỚI: CHUYỂN ĐỔI GIỮA INPUT VÀ SELECT ---
+                            if (!isTaskCompleted) {
+                                const statusSelect = document.getElementById('swal-select-status');
+                                const inProgressContainer = document.getElementById('in-progress-note-container');
+                                const completedContainer = document.getElementById('completed-note-container');
+                                const reasonSelect = document.getElementById('swal-select-reason');
+                                const customReasonContainer = document.getElementById('swal-custom-reason-container');
+
+                                const toggleNoteInputs = () => {
+                                    if (statusSelect.value === 'Hoàn thành') {
+                                        inProgressContainer.style.display = 'none';
+                                        completedContainer.style.display = 'block';
+                                    } else {
+                                        inProgressContainer.style.display = 'block';
+                                        completedContainer.style.display = 'none';
+                                    }
+                                };
+                                toggleNoteInputs(); // Chạy lần đầu
+                                statusSelect.addEventListener('change', toggleNoteInputs);
+
+                                reasonSelect.addEventListener('change', () => {
+                                    if (reasonSelect.value === 'Khác') {
+                                        customReasonContainer.style.display = 'block';
+                                        document.getElementById('swal-input-custom-reason').focus();
+                                    } else {
+                                        customReasonContainer.style.display = 'none';
+                                    }
+                                });
+                            }
+                            // --- KẾT THÚC LOGIC MỚI ---
+
+                            // --- LOGIC XEM LỊCH SỬ QUÁ KHỨ ---
+                            const pastSelect = document.getElementById('swal-past-history-select');
+                            const pastContent = document.getElementById('swal-past-history-content');
+                            if (pastSelect && pastContent) {
+                                pastSelect.addEventListener('change', () => {
+                                    const selectedKey = pastSelect.value;
+                                    if (!selectedKey) {
+                                        pastContent.style.display = 'none';
+                                        return;
+                                    }
+                                    const historyArr = allHistoryObj[selectedKey] || [];
+                                    if (historyArr.length === 0) {
+                                        pastContent.innerHTML = '<i>Không có dữ liệu tiến độ.</i>';
+                                    } else {
+                                        let hHtml = '';
+                                        historyArr.forEach((h) => {
+                                            const t = new Date(h.time);
+                                            const timeStr = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                                            hHtml += `<div style="margin-top: 6px; padding-bottom: 6px; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between; align-items: flex-start;">
+                                                <div><span style="color:#888;">[${timeStr}]</span> ${h.status === 'Hoàn thành' ? '✅' : '🏃'} <b>${h.note}</b></div>
+                                            </div>`;
+                                        });
+                                        pastContent.innerHTML = hHtml;
+                                    }
+                                    pastContent.style.display = 'block';
+                                });
+                            }
+                            // --- KẾT THÚC LOGIC XEM LỊCH SỬ QUÁ KHỨ ---
+
+                            deleteBtns.forEach(btn => {
+                                btn.addEventListener('click', async (e) => {
+                                    const indexToDelete = parseInt(e.currentTarget.getAttribute('data-index'));
+                                    
+                                    Swal.close(); // Đóng popup hiện tại để mở popup xác nhận
+                                    
+                                    const confirmResult = await Swal.fire({
+                                        title: 'Xóa tiến độ?',
+                                        text: 'Bạn có chắc chắn muốn xóa dòng nhật ký tiến độ này?',
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#e74c3c',
+                                        cancelButtonColor: '#95a5a6',
+                                        confirmButtonText: 'Có, xóa',
+                                        cancelButtonText: 'Hủy'
+                                    });
+
+                                    if (confirmResult.isConfirmed) {
+                                        try {
+                                            showLoading("Đang xóa...");
+                                            
+                                            const updatedHistory = [...task.currentHistory];
+                                            const deletedLog = updatedHistory.splice(indexToDelete, 1)[0];
+                                            
+                                            let updatePayload = {
+                                                [`progressHistory.${task.matchDateStr}`]: updatedHistory
+                                            };
+                                            
+                                            // Nếu xóa trúng log "Hoàn thành", ta tự động "mở lại" công việc
+                                            if (deletedLog.status === 'Hoàn thành') {
+                                                updatePayload.lastCompletedDate = null;
+                                                updatePayload.actualCompletedDate = null;
+                                                updatePayload.completedNote = null;
+                                            }
+
+                                            await updateDoc(doc(db, "work_rules", task.id), updatePayload);
+                                            hideLoading();
+                                            showSwal("success", "Đã xóa dòng tiến độ!");
+                                        } catch (err) {
+                                            hideLoading();
+                                            showSwal("error", "Lỗi", err.message);
+                                        }
+                                    }
+                                });
                             });
                         },
                         preConfirm: () => {
-                            const select = document.getElementById('swal-select-reason');
-                            const input = document.getElementById('swal-input-reason');
-                            let reason = select.value;
-                            
-                            if (reason === 'Khác') {
-                                reason = input.value.trim();
-                                if (!reason) {
-                                    Swal.showValidationMessage('Vui lòng nhập lý do tùy ý!');
+                            if (isTaskCompleted) return null; // Không trả về data nếu chỉ xem
+
+                            const status = document.getElementById('swal-select-status').value;
+                            const timeInput = document.getElementById('swal-input-time');
+                            const timeValue = timeInput.value;
+                            let note = '';
+
+                            if (status === 'Hoàn thành') {
+                                const reasonSelect = document.getElementById('swal-select-reason');
+                                note = reasonSelect.value;
+                                if (note === 'Khác') {
+                                    note = document.getElementById('swal-input-custom-reason').value.trim();
+                                    if (!note) {
+                                        Swal.showValidationMessage('Vui lòng nhập lý do tùy ý!');
+                                        return false;
+                                    }
+                                }
+                            } else { // 'Đang làm'
+                                const input = document.getElementById('swal-input-reason');
+                                note = input.value.trim();
+                                if (!note) {
+                                    Swal.showValidationMessage('Vui lòng nhập nội dung thực hiện!');
                                     return false;
                                 }
                             }
-                            return reason;
+                            
+                            if (!timeValue) {
+                                Swal.showValidationMessage('Vui lòng chọn thời gian thực hiện!');
+                                return false;
+                            }
+                            
+                            return { status, note, time: new Date(timeValue).toISOString() };
                         }
                     });
 
                     if (noteText) {
                         try {
                             showLoading("Đang cập nhật...");
-                            await updateDoc(doc(db, "work_rules", task.id), { 
-                                lastCompletedDate: task.matchDateStr,
-                                actualCompletedDate: new Date().toISOString(),
-                                completedNote: noteText
-                            });
+                            
+                            // Lấy user email
+                            const currentUserEmail = getCurrentUserEmail();
+                            
+                            // Tạo object log mới
+                            const newLog = {
+                                time: noteText.time,
+                                note: noteText.note,
+                                status: noteText.status,
+                                user: currentUserEmail
+                            };
+                            
+                            // Nối vào mảng lịch sử hiện tại
+                            const updatedHistory = [...(task.currentHistory || []), newLog];
+                            
+                            // Dữ liệu sẽ update vào Firestore
+                            let updatePayload = {
+                                [`progressHistory.${task.matchDateStr}`]: updatedHistory
+                            };
+                            
+                            // Nếu trạng thái là Hoàn thành, chốt luôn công việc
+                            if (noteText.status === 'Hoàn thành') {
+                                updatePayload.lastCompletedDate = task.matchDateStr;
+                                updatePayload.actualCompletedDate = noteText.time;
+                                updatePayload.completedNote = noteText.note; // Ghi đè note cũ để tương thích hàm sửa
+                            }
+                            
+                            await updateDoc(doc(db, "work_rules", task.id), updatePayload);
                             hideLoading();
-                            showSwal("success", "Đã đánh dấu hoàn thành!");
+                            
+                            if (noteText.status === 'Hoàn thành') {
+                                showSwal("success", "Đã đánh dấu hoàn thành!");
+                            } else {
+                                showSwal("success", "Đã lưu nhật ký tiến độ!");
+                            }
                         } catch (e) {
                             hideLoading();
                             showSwal("error", "Lỗi", e.message);
@@ -2562,16 +3018,133 @@
       const ruleType = document.getElementById("addRuleTypeSelect").value;
       
       if (ruleType === 'job') {
+        const editId = document.getElementById("addJobRuleEditId").value;
         const isAdmin = document.getElementById("isAdminJobRuleCheckbox").checked;
         const isCommon = document.getElementById("isCommonJobRuleCheckbox").checked;
         const originalNote = jobNoteInput.value.trim();
+        const jobNameVal = jobInput.value.trim();
+
+        if (!jobNameVal) return showSwal("error", "Vui lòng nhập tên công việc!");
+
+        const exactDateVal = document.getElementById("exactDate").value;
+        if (!exactDateVal && !domSelect.value && !daySelect.value && !weekSelect.value && !monthSelect.value) {
+            return showSwal("error", "Vui lòng chọn Ngày cụ thể hoặc ít nhất một thời gian định kỳ (Ngày/Thứ/Tuần/Tháng)!");
+        }
+
+        const normalizedVal = jobNameVal.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         
         let noteStr = originalNote;
         if (isAdmin) noteStr = `[CVAdmin] ${originalNote}`.trim();
         else if (isCommon) noteStr = `[CVChung] ${originalNote}`.trim();
+
+        // --- NẾU ĐANG Ở CHẾ ĐỘ SỬA (Do tìm nhanh) ---
+        if (editId) {
+            const otherRules = allRulesData.filter(r => r.id !== editId);
+            const uniqueJobs = Array.from(new Set(otherRules.map(r => r.job).filter(Boolean)));
+            
+            const exactMatch = uniqueJobs.find(job => {
+                 const normalizedJob = job.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                 return normalizedJob === normalizedVal;
+            });
+            const similarJobs = uniqueJobs.filter(job => {
+                const normalizedJob = job.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return normalizedJob.includes(normalizedVal) && normalizedJob !== normalizedVal;
+            });
+
+            if (exactMatch) {
+                const isConfirmed = await Swal.fire({
+                    title: 'Công việc đã tồn tại!',
+                    html: `Công việc "<b>${exactMatch}</b>" đã có sẵn.<br>Bạn chắc chắn muốn lưu với tên này?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74c3c',
+                    cancelButtonColor: '#95a5a6',
+                    confirmButtonText: 'Vẫn lưu',
+                    cancelButtonText: 'Hủy'
+                });
+                if (!isConfirmed.isConfirmed) return;
+            } else if (similarJobs.length > 0) {
+                const suggestions = similarJobs.slice(0, 4).map(j => `"${j}"`).join(", ");
+                const isConfirmed = await Swal.fire({
+                    title: 'Công việc tương tự đã tồn tại!',
+                    html: `Các công việc có thể giống với nội dung bạn nhập:<br><b>${suggestions}</b><br><br>Bạn có chắc chắn muốn tiếp tục lưu không?`,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f39c12',
+                    cancelButtonColor: '#95a5a6',
+                    confirmButtonText: 'Vẫn lưu',
+                    cancelButtonText: 'Hủy'
+                });
+                if (!isConfirmed.isConfirmed) return;
+            }
+            
+            const updateData = {
+                job: jobNameVal, time: document.getElementById("jobTime").value, exactDate: exactDateVal,
+                day: daySelect.value, week: weekSelect.value, month: monthSelect.value, dom: domSelect.value,
+                note: noteStr, is_admin_job: isAdmin, is_common_job: isCommon, updatedAt: serverTimestamp()
+            };
+            
+            try {
+                showLoading("Đang cập nhật...");
+                await updateDoc(doc(db, "work_rules", editId), updateData);
+                addLog("admin_update_work_rule", { email: getCurrentUserEmail(), ruleId: editId, targetName: jobNameVal, updateData });
+                hideLoading();
+                showSwal("success", "Đã cập nhật quy tắc!");
+                
+                [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = "");
+                resetAddJobFormMode();
+                updateAddRuleState();
+                closeAddRuleModalFn();
+            } catch (error) {
+                hideLoading();
+                Swal.fire("Lỗi!", "Không thể cập nhật: " + error.message, "error");
+            }
+            return; // Dừng tại đây, không chạy nhánh Add phía dưới
+        }
+
+        // --- KIỂM TRA TRÙNG LẶP / TƯƠNG TỰ KHI THÊM ---
+        const uniqueJobs = Array.from(new Set(allRulesData.map(r => r.job).filter(Boolean)));
+        
+        const exactMatch = uniqueJobs.find(job => {
+             const normalizedJob = job.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+             return normalizedJob === normalizedVal;
+        });
+
+        const similarJobs = uniqueJobs.filter(job => {
+            const normalizedJob = job.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            return normalizedJob.includes(normalizedVal) && normalizedJob !== normalizedVal;
+        });
+
+        if (exactMatch) {
+            const isConfirmed = await Swal.fire({
+                title: 'Công việc đã tồn tại!',
+                html: `Công việc "<b>${exactMatch}</b>" đã có trong hệ thống.<br>Bạn có chắc chắn muốn thêm một quy tắc mới với cùng tên này không?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e74c3c',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Vẫn thêm',
+                cancelButtonText: 'Hủy'
+            });
+            if (!isConfirmed.isConfirmed) return;
+        } else if (similarJobs.length > 0) {
+            const suggestions = similarJobs.slice(0, 4).map(j => `"${j}"`).join(", ");
+            const isConfirmed = await Swal.fire({
+                title: 'Công việc tương tự đã tồn tại!',
+                html: `Các công việc có thể giống với nội dung bạn nhập:<br><b>${suggestions}</b><br><br>Bạn có chắc chắn muốn thêm mới không?`,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#f39c12',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Vẫn thêm',
+                cancelButtonText: 'Hủy'
+            });
+            if (!isConfirmed.isConfirmed) return;
+        }
+        // --- KẾT THÚC KIỂM TRA ---
         
         const jobData = {
-            job: jobInput.value.trim(),
+            job: jobNameVal,
             time: document.getElementById("jobTime").value,
             exactDate: document.getElementById("exactDate").value,
             day: daySelect.value,
@@ -2583,7 +3156,6 @@
             is_common_job: isCommon,
             createdAt: serverTimestamp()
         };
-        if (!jobData.job) return showSwal("error", "Vui lòng nhập tên công việc!");
         // (logic validation của bạn ở đây)
 
         try {
@@ -2595,6 +3167,7 @@
             });
             showSwal("success", "Đã lưu quy tắc!");
             [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+            resetAddJobFormMode();
             updateAddRuleState();
             closeAddRuleModalFn();
         } catch (error) {
@@ -3527,6 +4100,9 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   const dueMidnight = new Date(targetDate); 
                   dueMidnight.setHours(0, 0, 0, 0);
 
+                  const currentHistory = (d.progressHistory && d.progressHistory[matchDateStr]) ? d.progressHistory[matchDateStr] : [];
+                  const isInProgress = currentHistory.length > 0;
+
                   let category = 5;
                   let diffDays = 999;
                   let statusText = "";
@@ -3536,12 +4112,17 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                       if (currentNow > dueDateTime) {
                           category = 2; // Quá hạn
                           const daysOverdue = Math.floor((todayMidnight - dueMidnight) / (1000 * 60 * 60 * 24));
-                          statusText = daysOverdue > 0 ? `⚠️ Quá hạn (${daysOverdue} ngày)` : '⚠️ Quá hạn';
-                          statusColor = '#e74c3c';
+                          if (isInProgress) {
+                              statusText = daysOverdue > 0 ? `🏃 Đang làm (Quá hạn ${daysOverdue} ngày)` : '🏃 Đang làm (Quá hạn)';
+                              statusColor = '#d35400';
+                          } else {
+                              statusText = daysOverdue > 0 ? `⚠️ Quá hạn (${daysOverdue} ngày)` : '⚠️ Quá hạn';
+                              statusColor = '#e74c3c';
+                          }
                       } else {
                           category = 1; // Sắp đến hạn (hôm nay)
-                          statusText = '⏳ Đến hạn hôm nay';
-                          statusColor = '#f39c12';
+                          statusText = isInProgress ? '🏃 Đang làm (Hạn hôm nay)' : '⏳ Đến hạn hôm nay';
+                          statusColor = isInProgress ? '#2980b9' : '#f39c12';
                           diffDays = 0;
                       }
                   } else {
@@ -3549,8 +4130,8 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                       diffDays = daysUntil;
                       if (daysUntil <= 7) {
                           category = 1; // Sắp đến hạn
-                          statusText = `🔔 Sắp đến hạn (${daysUntil} ngày)`;
-                          statusColor = '#3498db';
+                          statusText = isInProgress ? `🏃 Đang làm (Còn ${daysUntil} ngày)` : `🔔 Sắp đến hạn (${daysUntil} ngày)`;
+                          statusColor = isInProgress ? '#2980b9' : '#3498db';
                       } else {
                           // Bỏ qua tương lai xa > 7 ngày
                           return null;
@@ -3558,6 +4139,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   }
 
                   return {
+                      id: d.id,
                       job: d.job,
                       time: d.time || "23:59",
                       category: category,
@@ -3565,7 +4147,8 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                       diffDays: diffDays,
                       statusText: statusText,
                       statusColor: statusColor,
-                      note: d.note ? d.note.replace("[CVAdmin]", "").trim() : ""
+                      note: d.note ? d.note.replace("[CVAdmin]", "").trim() : "",
+                      currentHistory: currentHistory
                   };
               };
 
@@ -3596,11 +4179,11 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
           });
 
           if (uniqueTasks.length > 0) {
-              html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+              html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: visible;">
                   <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                   <thead>
                     <tr style="background:#f0f0f0;">
-                      <th style="padding: 8px; border: 1px solid #ccc; text-align: left; font-size: 14px;">Công việc</th>
+                      <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px;">Công việc</th>
                       <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 180px;">Hạn / Trạng thái</th>
                     </tr>
                   </thead>
@@ -3612,15 +4195,21 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   if (task.category === 1) bg = "#ebf5fb";
                   else if (task.category === 2) bg = "#fdedec";
 
+                  let statusHtml = `<span style="color: ${task.statusColor}; font-weight:bold; font-size: 0.9em;">${task.statusText}</span>`;
+                  if (task.currentHistory && task.currentHistory.length > 0) {
+                      const lastUpdate = task.currentHistory[task.currentHistory.length - 1];
+                      statusHtml += `<br><span style="font-size: 0.85em; color: #2980b9; font-style: italic;">↳ Tiến độ: ${lastUpdate.note}</span>`;
+                  }
+
                   html += `
-                  <tr style="background:${bg};">
+                  <tr class="admin-task-row" data-task-id="${task.id}" style="background:${bg}; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1" title="Nhấn để chuyển đến xử lý công việc này">
                       <td style="padding: 8px; border: 1px solid #ccc; text-align: left; font-size: 14px; word-break: break-word;">
                           <b>${task.job}</b>
                           ${task.note ? `<br><span style="font-size: 0.85em; color: #7f8c8d;">${task.note}</span>` : ""}
                       </td>
                       <td style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; word-break: break-word;">
                           ${displayDate} ${task.time}<br>
-                          <span style="color: ${task.statusColor}; font-weight:bold; font-size: 0.9em;">${task.statusText}</span>
+                          ${statusHtml}
                       </td>
                   </tr>`;
               });
@@ -3725,7 +4314,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
                   const shiftContent = matchedShifts.join("<br>");
 
-                  foundDayHtml = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+                  foundDayHtml = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: visible;">
                     <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                     <thead>
                       <tr style="background:#f0f0f0;">
@@ -3752,6 +4341,39 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       }
       
       personalScheduleDetails.innerHTML = html;
+
+      // --- LOGIC MỚI: CLICK VÀO CÔNG VIỆC ADMIN ĐỂ CHUYỂN ĐẾN BẢNG XỬ LÝ ---
+      if (currentUserRole === 'admin') {
+          document.querySelectorAll('.admin-task-row').forEach(row => {
+              row.addEventListener('click', () => {
+                  const taskId = row.getAttribute('data-task-id');
+                  
+                  // 1. Đóng modal
+                  document.getElementById("closeModal").click();
+                  
+                  // 2. Chuyển sang Tab 4 (DS CV Admin)
+                  const tabBtn = document.getElementById('tabBtn-adminTasks');
+                  if (tabBtn) {
+                      tabBtn.click();
+                      
+                      // 3. Tìm dòng trong bảng và cuộn đến/nhấp nháy
+                      setTimeout(() => {
+                          const actionBtn = document.querySelector(`#adminTaskList button[data-id="${taskId}"]`);
+                          if (actionBtn) {
+                              const taskRow = actionBtn.closest('tr');
+                              if (taskRow) {
+                                  taskRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  taskRow.classList.add('highlight-task-row');
+                                  setTimeout(() => {
+                                      taskRow.classList.remove('highlight-task-row');
+                                  }, 3000); // Gỡ bỏ hiệu ứng sau 3 giây
+                              }
+                          }
+                      }, 300); // Chờ giao diện tab chuyển đổi xong mới thực hiện cuộn
+                  }
+              });
+          });
+      }
   }
 
   // --- LOGIC LỊCH THÁNG ---
