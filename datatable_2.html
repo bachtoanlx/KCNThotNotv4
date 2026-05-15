@@ -823,49 +823,10 @@
 
                 // --- 2. TẢI DANH SÁCH NĂM TỰ ĐỘNG (CÁCH ĐƠN GIẢN HƠN) ---
                 let years = [];
-                try {
-                    // Lấy TẤT CẢ documents (không orderBy để tránh lỗi index)
-                    const allDocsSnap = await getDocs(collection(db, "reports_2"));
-                    
-                    const yearsSet = new Set();
-                    allDocsSnap.docs.forEach(doc => {
-                        const data = doc.data();
-                        // Lấy năm từ ngay_nghi
-                        if (data.ngay_nghi) {
-                            try {
-                                const year = new Date(data.ngay_nghi).getFullYear();
-                                if (!isNaN(year) && year > 2000 && year < 2100) {
-                                    yearsSet.add(year);
-                                }
-                            } catch (e) {
-                                console.warn('Invalid ngay_nghi:', data.ngay_nghi);
-                            }
-                        }
-                        // Lấy năm từ ngay_lam_db
-                        if (data.ngay_lam_db) {
-                            try {
-                                const year = new Date(data.ngay_lam_db).getFullYear();
-                                if (!isNaN(year) && year > 2000 && year < 2100) {
-                                    yearsSet.add(year);
-                                }
-                            } catch (e) {
-                                console.warn('Invalid ngay_lam_db:', data.ngay_lam_db);
-                            }
-                        }
-                    });
-                    
-                    // Chuyển Set thành Array và sắp xếp giảm dần
-                    years = Array.from(yearsSet).sort((a, b) => b - a).map(y => y.toString());
-                    
-                    // Nếu không có năm nào, dùng năm hiện tại
-                    if (years.length === 0) {
-                        years = [new Date().getFullYear().toString()];
-                    }
-                } catch (error) {
-                    console.error('Lỗi tải danh sách năm:', error);
-                    // Fallback: Dùng 3 năm gần đây
-                    const currentYear = new Date().getFullYear();
-                    years = [currentYear, currentYear - 1, currentYear - 2].map(y => y.toString());
+                // ⭐️ TỐI ƯU HÓA: Tạo danh sách năm tự động từ 2024 đến năm hiện tại (0 Lượt đọc)
+                const currentYear = new Date().getFullYear();
+                for (let y = currentYear; y >= 2024; y--) {
+                    years.push(y.toString());
                 }
                 
                 const ys = document.getElementById("yearSelect");
