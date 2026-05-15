@@ -649,38 +649,53 @@
   </div>
   </form>
 
-  <div id="adminSettings" class="admin-settings">
-    <h3>⚙️ Cài đặt ngày mốc </h3>
-    <label>Ngày đầu tuần:
-      <select id="weekDayStart">
-        <option value="0">Chủ nhật</option>
-        <option value="1">Thứ 2</option>
-        <option value="2">Thứ 3</option>
-        <option value="3">Thứ 4</option>
-        <option value="4">Thứ 5</option>
-        <option value="5">Thứ 6</option>
-        <option value="6">Thứ 7</option>
-      </select>
-    </label>
-    <label>Ngày đầu tháng:
-      <select id="monthDayStart"></select>
-    </label>
-    <label>Ngày đầu năm:
-      <select id="yearDayStart"></select>
-    </label>
-    <button id="saveConfig"> Lưu </button>
+  <div id="adminSettings" class="admin-settings" style="border: none; padding: 0; background: transparent;">
+    
+    <div style="padding: 15px; background: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px; margin-bottom: 20px;">
+      <h3 style="margin-top: 0; color: #0056b3;">⚙️ Cài đặt ngày mốc</h3>
+      <p style="font-size: 13px; margin-bottom: 15px; color: #555;">Định cấu hình các mốc thời gian bắt đầu để tính toán báo cáo thống kê.</p>
+      
+      <div class="cs-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; gap: 15px;">
+        <div class="cs-form-group">
+          <label>Ngày đầu tuần:</label>
+          <select id="weekDayStart">
+            <option value="0">Chủ nhật</option>
+            <option value="1">Thứ 2</option>
+            <option value="2">Thứ 3</option>
+            <option value="3">Thứ 4</option>
+            <option value="4">Thứ 5</option>
+            <option value="5">Thứ 6</option>
+            <option value="6">Thứ 7</option>
+          </select>
+        </div>
+        <div class="cs-form-group">
+          <label>Ngày đầu tháng:</label>
+          <select id="monthDayStart"></select>
+        </div>
+        <div class="cs-form-group">
+          <label>Ngày đầu năm:</label>
+          <select id="yearDayStart"></select>
+        </div>
+        <div class="cs-form-group">
+          <button id="saveConfig" style="background: #273668; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; height: 33px; width: 100%;">💾 Lưu Cài Đặt</button>
+        </div>
+      </div>
+    </div>
 
-    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+    <div style="padding: 15px; background: #fff3cd; border: 1px solid #ffeeba; border-left: 4px solid #ffc107; border-radius: 8px;">
         <h3 style="margin-top: 0; color: #856404;">⚙️ Cài đặt cấu hình Doanh nghiệp</h3>
-        <p style="font-size: 13px; margin-bottom: 10px;">Cho phép cài đặt Hệ số khoán, Nhóm và Ngày nghỉ theo mốc thời gian.</p>
-        <button id="btnOpenCompanySettingsModal" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Mở Bảng Cài đặt Chi tiết</button>
+        <p style="font-size: 13px; margin-bottom: 15px;">Cho phép cài đặt Hệ số khoán, Nhóm và Ngày nghỉ theo mốc thời gian.</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="btnOpenCompanySettingsModal" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">Mở Bảng Cài đặt Chi tiết</button>
+            <button id="btnSyncAutoInit" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;" title="Tự động sửa lỗi sai ngày của các bản ghi khởi tạo cũ">🔄 Đồng bộ Ngày Khởi tạo</button>
+        </div>
     </div>
   </div>
 
 <div id="configModal" class="modal">
   <div class="modal-content-config">
     <span class="close-btn">&times;</span>
-    <h2>Thông tin Cấu hình và Dữ liệu Đặc biệt</h2>
+    <h2>Thông tin cấu hình</h2>
     <div id="configModalContent">
       <p>Đang tải dữ liệu...</p>
     </div>
@@ -764,7 +779,7 @@
 <div id="footer-placeholder"></div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module">
-import { doc, getDoc, deleteDoc, addDoc, setDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { doc, getDoc, deleteDoc, addDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate, auth, addLog} from "./script.js";
 import { initMenu } from "./menu.js";
 
@@ -845,16 +860,21 @@ async function fetchReportConfigData() {
         const startDaySettings = {
             weekDayStart: configData.weekDayStart !== undefined ? configData.weekDayStart : 'Chưa cài đặt',
             monthDayStart: configData.monthDayStart !== undefined ? configData.monthDayStart : 'Chưa cài đặt',
-            yearDayStart: configData.yearDayStart !== undefined ? configData.yearDayStart : 'Chưa cài đặt',
-            billingDayStart: configData.billingDayStart !== undefined ? configData.billingDayStart : 'Chưa cài đặt',
+            yearDayStart: configData.yearDayStart !== undefined ? configData.yearDayStart : 'Chưa cài đặt'
         };
         
+        // 3c. Lấy dữ liệu cấu hình doanh nghiệp mới từ collection company_configs
+        const qCompanyConfigs = query(collection(db, "company_configs"));
+        const snapCompanyConfigs = await getDocs(qCompanyConfigs);
+        const companyConfigs = snapCompanyConfigs.docs.map(d => d.data());
+
         return {
             specialIndexes,
             specialWorkdays,
             defaultHolidays, 
             startDaySettings, 
-            quotaMultipliers 
+            quotaMultipliers,
+            companyConfigs
         };
 
     } catch (error) {
@@ -881,16 +901,16 @@ function renderConfigModal(data) {
     // 1. Chỉ số đặc biệt (Đã cập nhật tiêu đề mô tả logic OR)
     // =======================================================
     html += '<div class="modal-section">';
-    html += '<h4>1. Chỉ số Đặc biệt (reports_1: isMeterReset=true **HOẶC chi_so=0 HOẶC ghi_chu="Auto-Init"**)</h4>';
+    html += '<h4>1. Chỉ số Đặc biệt (Reset Đồng hồ; Chỉ số =0; Giá trị khởi tạo ban đầu =0)</h4>';
     if (data.specialIndexes.length > 0) {
-        html += '<table><thead><tr><th>Tên Công ty</th><th>Chỉ số</th><th>Ngày ghi (Báo cáo)</th><th>Ngày tạo (Hệ thống)</th><th>Ghi chú</th></tr></thead><tbody>';
+        html += '<table><thead><tr><th style="text-align: center;">Tên Công ty</th><th style="text-align: center;">Chỉ số</th><th style="text-align: center;">Ngày ghi</th><th style="text-align: center;">Ngày tạo</th><th style="text-align: center;">Ghi chú</th></tr></thead><tbody>';
         data.specialIndexes.forEach(item => {
             html += `<tr>
-                        <td>${item.company || item.c_ty || 'N/A'}</td>
-                        <td>${item.chi_so !== undefined ? item.chi_so.toLocaleString('vi-VN') : 'N/A'}</td>
-                        <td>${item.ngay_ghi || 'N/A'}</td>
-                        <td>${item.date}</td>
-                        <td>${item.ghi_chu || item.note || ''}</td>
+                        <td style="text-align: center;">${item.company || item.c_ty || 'N/A'}</td>
+                        <td style="text-align: center;">${item.chi_so !== undefined ? item.chi_so.toLocaleString('vi-VN') : 'N/A'}</td>
+                        <td style="text-align: center;">${item.ngay_ghi || 'N/A'}</td>
+                        <td style="text-align: center;">${item.date}</td>
+                        <td style="text-align: center;">${item.ghi_chu || item.note || ''}</td>
                     </tr>`;
         });
         html += '</tbody></table>';
@@ -903,7 +923,7 @@ function renderConfigModal(data) {
     // 2. Ngày làm việc đặc biệt (reports_2: isSpecialWorkday=true)
     // =======================================================
     html += '<div class="modal-section">';
-    html += '<h4>2. Ngày làm việc Đặc biệt (reports_2: isSpecialWorkday=true)</h4>';
+    html += '<h4>2. Ngày làm việc Đặc biệt (Ngày nghỉ mặc định nhưng công ty vẫn làm)</h4>';
     if (data.specialWorkdays.length > 0) {
         html += '<table><thead><tr><th>Tên Công ty</th><th>Ngày làm việc đặc biệt (Báo cáo)</th><th>Ngày tạo (Hệ thống)</th><th>Ghi chú</th></tr></thead><tbody>';
         data.specialWorkdays.forEach(item => {
@@ -930,56 +950,55 @@ function renderConfigModal(data) {
     html += `<tr><th>Ngày Đầu Tuần (weekDayStart)</th><td>${dayNames[data.startDaySettings.weekDayStart] || data.startDaySettings.weekDayStart}</td></tr>`;
     html += `<tr><th>Ngày Đầu Tháng (monthDayStart)</th><td>Ngày ${data.startDaySettings.monthDayStart}</td></tr>`;
     html += `<tr><th>Ngày Đầu Năm (yearDayStart)</th><td>Ngày ${data.startDaySettings.yearDayStart}</td></tr>`;
-    html += `<tr><th>Ngày Cuối Kỳ Thu Phí (billingDayStart)</th><td>Ngày ${data.startDaySettings.billingDayStart}</td></tr>`;
     html += '</tbody></table>';
     html += '</div>';
     
     // =======================================================
-    // 4. Ngày nghỉ Mặc định & Hệ số Khoán (Hợp nhất từ 2 nguồn)
+    // 4. Cấu hình Doanh nghiệp Hiện tại (Hệ thống mới)
     // =======================================================
     html += '<div class="modal-section">';
-    html += '<h4>4. Ngày nghỉ Mặc định & Hệ số Khoán theo Công ty</h4>';
+    html += '<h4>4. Cấu hình Doanh nghiệp đang áp dụng</h4>';
 
-    const holidayMap = {
-        'none': ' ',
-        'sun': 'Chủ nhật',
-        'sat': 'Thứ 7',
-        'sat-sun': 'Thứ 7 & CN',
-        'N/A': 'Chưa cài đặt' 
-    };
-
-    // Lấy danh sách tất cả các công ty từ cả hai đối tượng
-    const allCompanies = new Set([
-        ...Object.keys(data.defaultHolidays),
-        ...Object.keys(data.quotaMultipliers)
-    ]);
+    const dayMap = {0:"CN", 1:"T2", 2:"T3", 3:"T4", 4:"T5", 5:"T6", 6:"T7"};
     
-    // Sắp xếp danh sách công ty
-    const sortedCompanies = Array.from(allCompanies).sort();
+    // Lấy config mới nhất cho mỗi công ty dựa trên thời gian
+    const latestConfigs = {};
+    if (data.companyConfigs && data.companyConfigs.length > 0) {
+        // Sắp xếp tăng dần theo effectiveDate để cái sau cùng đè lên cái trước
+        data.companyConfigs.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+        data.companyConfigs.forEach(c => {
+            latestConfigs[c.company] = c;
+        });
+    }
 
-    const configList = sortedCompanies.map(company => {
-        // Xử lý Ngày nghỉ Mặc định (từ settings/reportConfig)
-        const holidayCode = data.defaultHolidays[company] || 'N/A';
-        const holidayDisplay = holidayMap[holidayCode] || 'Mã không hợp lệ';
+    const sortedCompanies = Object.keys(latestConfigs).sort();
 
-        // Xử lý Hệ số Khoán (từ config/reportConfig)
-        const quotaValue = data.quotaMultipliers[company] !== undefined 
-                             ? data.quotaMultipliers[company] 
-                             : 'Chưa cài đặt';
+    const configList = sortedCompanies.map((company, index) => {
+        const c = latestConfigs[company];
+        const daysStr = (c.defaultHolidays || []).map(d => dayMap[d]).join(", ") || "Không nghỉ";
+        let groupStr = "Nhóm 1 (ĐH)";
+        if (c.group === "group2") groupStr = "Nhóm 2 (HĐ)";
+        else if (c.group === "group3") groupStr = "Nhóm 3 (Khoán)";
+        
+        const quota = c.quotaMultiplier || 0;
+        const billingDay = c.billingDay || '-';
 
         return `<tr>
+                    <td style="text-align: center;">${index + 1}</td>
                     <td>${company}</td>
-                    <td>${holidayDisplay}</td>
-                    <td>${quotaValue}</td>
+                    <td>${groupStr}</td>
+                    <td>${quota}</td>
+                    <td>Ngày ${billingDay}</td>
+                    <td>${daysStr}</td>
                 </tr>`;
     }).join('');
 
     if (configList) {
-        html += '<table><thead><tr><th>Tên Công ty</th><th>Ngày nghỉ Mặc định</th><th>Hệ số Khoán (m3/ngày.đêm)</th></tr></thead><tbody>';
+        html += '<table><thead><tr><th style="text-align: center; width: 40px;">STT</th><th style="text-align: center;">Công ty</th><th style="text-align: center;">Nhóm</th><th style="text-align: center;">Hệ số Khoán</th><th style="text-align: center;">Kỳ phí</th><th style="text-align: center;">Ngày nghỉ</th></tr></thead><tbody>';
         html += configList;
         html += '</tbody></table>';
     } else {
-        html += '<p>Chưa cài đặt cấu hình ngày nghỉ hoặc hệ số khoán cho công ty nào.</p>';
+        html += '<p>Chưa có cấu hình doanh nghiệp nào được thiết lập trong hệ thống mới.</p>';
     }
     html += '</div>';
     
@@ -1034,9 +1053,17 @@ let currentCompanyConfigs = [];
 
 function populateModalCompanyDropdown() {
     const currentVal = csCompanySelect.value;
-    const companiesFromReports = Object.keys(allProcessedHolidays || {});
+    
+    // Lấy thêm danh sách công ty từ reports_1 (Báo cáo chỉ số)
+    const companiesFromReports1 = [...new Set(allReports.map(r => r.company).filter(Boolean))];
+    // Lấy từ reports_2 (Ngày nghỉ)
+    const companiesFromReports2 = Object.keys(allProcessedHolidays || {});
     const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
-    const allUniqueCompanies = Array.from(new Set([...companiesFromReports, ...companiesFromMaster])).sort();
+    const companiesFromConfigs = allCompanyConfigs.map(c => c.company).filter(Boolean);
+    
+    const allUniqueCompanies = Array.from(new Set([
+        ...companiesFromReports1, ...companiesFromReports2, ...companiesFromMaster, ...companiesFromConfigs
+    ])).sort();
     
     const datalist = document.getElementById("csCompanyList");
     if (!datalist) return;
@@ -1102,9 +1129,13 @@ csCompanySelect.addEventListener("change", async (e) => {
     }
 
     // Kiểm tra xem công ty đã có trong hệ thống chưa
-    const companiesFromReports = Object.keys(allProcessedHolidays || {});
+    const companiesFromReports1 = [...new Set(allReports.map(r => r.company).filter(Boolean))];
+    const companiesFromReports2 = Object.keys(allProcessedHolidays || {});
     const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
-    const allUniqueCompanies = Array.from(new Set([...companiesFromReports, ...companiesFromMaster]));
+    const companiesFromConfigs = allCompanyConfigs.map(c => c.company).filter(Boolean);
+    const allUniqueCompanies = Array.from(new Set([
+        ...companiesFromReports1, ...companiesFromReports2, ...companiesFromMaster, ...companiesFromConfigs
+    ]));
     
     if (!allUniqueCompanies.includes(company)) {
         if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'none';
@@ -1118,7 +1149,8 @@ csCompanySelect.addEventListener("change", async (e) => {
         
         if (isConfirmed) {
             showLoading("Đang thêm...");
-            await manageMasterCompany(company, 'add');
+            const dateInputVal = document.getElementById("csEffectiveDate").value; // Lấy ngày từ ô input
+            await manageMasterCompany(company, 'add', dateInputVal);
             hideLoading();
             showSwal("success", "Thành công", `Đã thêm công ty ${company}`);
             if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'block';
@@ -1296,6 +1328,23 @@ document.getElementById("csSaveBtn").addEventListener("click", async () => {
             // Thêm quy tắc ngày mới
             await addDoc(collection(db, "company_configs"), payload);
         }
+
+        // === ĐỒNG BỘ LẠI NGÀY AUTO-INIT THEO CẤU HÌNH CŨ NHẤT ===
+        const qCfg = query(collection(db, "company_configs"), where("company", "==", company));
+        const snapCfg = await getDocs(qCfg);
+        const dates = snapCfg.docs.map(d => d.data().effectiveDate).filter(Boolean).sort();
+        if (dates.length > 0) {
+            const targetDate = dates[0]; // Ngày cấu hình cũ nhất
+            const qInit = query(collection(db, "reports_1"), where("company", "==", company), where("ghi_chu", "==", "Chi so khoi tao tu dong (Auto-Init)"));
+            const snapInit = await getDocs(qInit);
+            for (const initDoc of snapInit.docs) {
+                if (initDoc.data().ngay_ghi !== targetDate) {
+                    await updateDoc(doc(db, "reports_1", initDoc.id), { ngay_ghi: targetDate });
+                }
+            }
+        }
+        // ========================================================
+
         hideLoading();
         showSwal("success", "Thành công", "Đã lưu quy tắc cấu hình.");
         loadCompanyConfigHistory(company); // Reload bảng
@@ -1304,6 +1353,65 @@ document.getElementById("csSaveBtn").addEventListener("click", async () => {
         showSwal("error", "Lỗi lưu", e.message);
     }
 });
+
+// ====== NÚT ĐỒNG BỘ NGÀY KHỞI TẠO HÀNG LOẠT ======
+const btnSyncAutoInit = document.getElementById("btnSyncAutoInit");
+if (btnSyncAutoInit) {
+    btnSyncAutoInit.addEventListener("click", async () => {
+        const isConfirmed = await showConfirmSwal(
+            "Đồng bộ Ngày Khởi Tạo",
+            "Hệ thống sẽ tự động quét toàn bộ các bản ghi Khởi tạo (Auto-Init) đang bị sai ngày (vd: 2025-01-01) và sửa chúng thành <b>ngày bắt đầu cấu hình cũ nhất</b> của từng công ty.<br><br>Bạn có muốn thực hiện không?",
+            "Tiến hành", "Hủy bỏ", "question"
+        );
+
+        if (!isConfirmed) return;
+
+        try {
+            showLoading("Đang quét và đồng bộ...");
+            let updatedCount = 0;
+
+            const qMaster = query(collection(db, "companies_master"));
+            const snapMaster = await getDocs(qMaster);
+            const masterComps = snapMaster.docs.map(d => d.data().company).filter(Boolean);
+            
+            const qConfig = query(collection(db, "company_configs"));
+            const snapConfig = await getDocs(qConfig);
+            const configComps = snapConfig.docs.map(d => d.data().company).filter(Boolean);
+
+            const companies = Array.from(new Set([...masterComps, ...configComps]));
+
+            for (const comp of companies) {
+                const qCfg = query(collection(db, "company_configs"), where("company", "==", comp));
+                const snapCfg = await getDocs(qCfg);
+                const dates = snapCfg.docs.map(d => d.data().effectiveDate).filter(Boolean).sort();
+                
+                // Nếu chưa có lịch sử cấu hình nào, mặc định dùng 2023-01-01
+                const targetDate = dates.length > 0 ? dates[0] : "2023-01-01";
+
+                const qInit = query(collection(db, "reports_1"), where("company", "==", comp), where("ghi_chu", "==", "Chi so khoi tao tu dong (Auto-Init)"));
+                const snapInit = await getDocs(qInit);
+
+                for (const initDoc of snapInit.docs) {
+                    if (initDoc.data().ngay_ghi !== targetDate) {
+                        await updateDoc(doc(db, "reports_1", initDoc.id), { ngay_ghi: targetDate });
+                        updatedCount++;
+                    }
+                }
+            }
+
+            hideLoading();
+            showSwal("success", "Hoàn tất", `Đã đồng bộ thành công ${updatedCount} bản ghi Khởi tạo.`);
+            
+            // Tải lại báo cáo để cập nhật số liệu mới nhất
+            await loadStatisticsData(currentFilter.from, currentFilter.to);
+
+        } catch (err) {
+            hideLoading();
+            showSwal("error", "Lỗi đồng bộ", err.message);
+        }
+    });
+}
+// ================================================
 
 // load menu
     fetch("menu.html").then(r => r.text()).then(h => {
@@ -1349,7 +1457,7 @@ document.getElementById("csSaveBtn").addEventListener("click", async () => {
     let allHolidayRecords = []; 
     let allProcessedHolidays = {}; 
     let currentFilter = { from: null, to: null };
-    let config = { weekDayStart: 0, monthDayStart: 1, billingDayStart: 1, yearDayStart: 1, quotaMultipliers: {} }; 
+    let config = { weekDayStart: 0, monthDayStart: 1, yearDayStart: 1, quotaMultipliers: {} }; 
     let isInitialLoad = true;
     
     // MỚI: Biến lưu trữ dữ liệu chi tiết ngày nghỉ (khi Mode 2 bật)
@@ -1570,10 +1678,10 @@ document.getElementById("csSaveBtn").addEventListener("click", async () => {
       return `${dd}/${mm}`;
     }
 
-    function safeFixed(val, digits = 1) { 
+    function safeFixed(val, digits = 1, forceDecimals = false) { 
       if (typeof val !== "number" || isNaN(val)) return "N/A";
       return new Intl.NumberFormat('vi-VN', {
-          minimumFractionDigits: 0,
+          minimumFractionDigits: forceDecimals ? digits : 0,
           maximumFractionDigits: digits
       }).format(val);
     }
@@ -1840,20 +1948,20 @@ function calculateWorkingDays(startDate, endDate, companyName, config, processed
             numericTotal = diff; 
         } 
         
-        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg,1) : "N/A";
+        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg, 1, true) : "N/A";
 
 
         if (isCurrent) {
-          result.current = { label, total: safeFixed(numericTotal,1), avg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }; 
+          result.current = { label, total: safeFixed(numericTotal,1), avg, startValue, endValue, workingDaysForAvg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }; 
         } else {
-          result.past.push({ label, total: safeFixed(numericTotal,1), avg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }); 
+          result.past.push({ label, total: safeFixed(numericTotal,1), avg, startValue, endValue, workingDaysForAvg, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates }); 
         }
       }
 
       if (!result.current) {
         result.current = {
           label: type==="week"?"Tổng tuần hiện tại":type==="month"?"Tổng tháng hiện tại":"Năm hiện tại",
-          total:"N/A", avg:"N/A", dayOffsCount: 0, holidayDates: [] 
+          total:"N/A", avg:"N/A", startValue: null, endValue: null, workingDaysForAvg: 0, dayOffsCount: 0, holidayDates: [] 
         };
       }
       return result;
@@ -1874,7 +1982,7 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
     // 2. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ HIỆN TẠI (Đã cập nhật logic kiểm tra cài đặt công ty cá nhân)
     const getStartFn = d => {
         const currentConfig = getCompanyConfigAtDate(companyName, formatISODate(d));
-        const endDay = currentConfig && currentConfig.billingDay ? Number(currentConfig.billingDay) : (Number(config.billingDayStart) || 15); 
+        const endDay = currentConfig && currentConfig.billingDay ? Number(currentConfig.billingDay) : 15; // Mặc định là 15 nếu công ty chưa được cấu hình
         
         // A. Xác định ngày kết thúc kỳ (end): Là ngày 15 của tháng hiện tại (d)
         let end = new Date(d.getFullYear(), d.getMonth(), endDay, 0, 0, 0, 0);
@@ -1992,6 +2100,11 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             workingDaysForAvg = pastResult.workingDays;
             dayOffsCount = pastResult.dayOffsCount;
             dayOffDates = pastResult.dayOffDates;
+            
+            // Khắc phục lỗi trừ kép: Bù lại 1 ngày do calculateWorkingDays tự động trừ
+            if (workingDaysForAvg > 0) {
+                workingDaysForAvg += 1;
+            }
         }
 
         // Lấy Hệ số nhân khoán từ bảng Lịch sử (Tính tại thời điểm cuối kỳ)
@@ -2005,22 +2118,22 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         const quotaValue = workingDaysForAvg * QUOTA_MULTIPLIER;
 
         // --- 3. TÍNH TRUNG BÌNH (AVG) ---
-        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg,1) : "N/A";
+        const avg = (typeof numericTotal === "number" && workingDaysForAvg > 0) ? safeFixed(numericTotal/workingDaysForAvg, 1, true) : "N/A";
         const totalFixed = safeFixed(numericTotal, 1);
         const quotaFixed = safeFixed(quotaValue, 0);
 
         if (isCurrent) {
-            result.current = { label, total: totalFixed, avg, quota: quotaFixed, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates };
+            result.current = { label, total: totalFixed, avg, quota: quotaFixed, startValue, endValue, workingDaysForAvg, quotaMultiplier: QUOTA_MULTIPLIER, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates };
         } else {
             // Khác với tuần/tháng/năm, billing chỉ giữ tối đa 12 kỳ quá khứ
             if (result.past.length < 12) {
-                result.past.push({ label, total: totalFixed, avg, quota: quotaFixed, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates });
+                result.past.push({ label, total: totalFixed, avg, quota: quotaFixed, startValue, endValue, workingDaysForAvg, quotaMultiplier: QUOTA_MULTIPLIER, start: p.start, end: p.end, latestDataDate, dayOffsCount, holidayDates: dayOffDates });
             }
         }
     }
 
     if (!result.current) {
-        result.current = { label: "Tổng Kỳ thu phí hiện tại", total:"N/A", avg:"N/A", quota:"N/A", dayOffsCount: 0, holidayDates: [] };
+        result.current = { label: "Tổng Kỳ thu phí hiện tại", total:"N/A", avg:"N/A", quota:"N/A", startValue: null, endValue: null, workingDaysForAvg: 0, quotaMultiplier: 0, dayOffsCount: 0, holidayDates: [] };
     }
     return result;
 }
@@ -2256,10 +2369,12 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
 
         const companiesFromReports = Object.keys(byCompany);
         const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
+        const companiesFromConfigs = allCompanyConfigs.map(c => c.company).filter(Boolean);
         
         const allUniqueCompanies = new Set([
             ...companiesFromReports, 
-            ...companiesFromMaster
+            ...companiesFromMaster,
+            ...companiesFromConfigs
         ]);
 
         const companies = Array.from(allUniqueCompanies).sort((a, b) => a.localeCompare(b));
@@ -2306,7 +2421,10 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             startLabel = "N/A";
         }
 
-        const currentLabel = `${name} hiện tại (${startLabel} - ${endLabel})`;
+        let currentLabel = `${name} hiện tại (${startLabel} - ${endLabel})`;
+        if (prefix === "billing") {
+            currentLabel = "Kỳ thu phí hiện tại";
+        }
         const toggleHtml = `<span class="toggle-btn">▶</span>`;
 
 
@@ -2318,7 +2436,28 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             const holidayDates = currentData?.holidayDates || [];
             
             let displayContent;
-            let tooltipAttr = '';
+            let tooltips = [];
+            
+            if (prefix === "billing" && currentData && currentData.start) {
+                const startStr = formatVNDate(currentData.start);
+                let endStr = '';
+                if (!isPast) {
+                    endStr = "Hôm nay";
+                } else {
+                    const endMark = new Date(currentData.end.getTime() - 86400000);
+                    endStr = formatVNDate(endMark);
+                }
+                tooltips.push(`Dữ liệu tính từ: ${startStr} đến ${endStr}`);
+            }
+            
+            // Thêm tooltip giải thích phép tính (áp dụng cho cả khi có số và khi N/A)
+            if (currentData) {
+                let sVal = currentData.startValue != null ? currentData.startValue.toLocaleString('vi-VN') : "N/A";
+                let eVal = currentData.endValue != null ? currentData.endValue.toLocaleString('vi-VN') : "N/A";
+                tooltips.push(`Phép tính: ${eVal} - ${sVal}`);
+            } else {
+                tooltips.push(`Phép tính: N/A - N/A`);
+            }
             
             // Mode 0 (Bình thường): Hiển thị Tổng lưu lượng
             if (reportMode === 0) { 
@@ -2328,14 +2467,23 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             else { 
                 displayContent = `${totalFixed} (${dayOffs})`;
                 const tooltipDates = formatHolidayDates(holidayDates);
-                tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+                if (tooltipDates) tooltips.push(tooltipDates);
             }
             
+            let tooltipAttr = '';
+            if (tooltips.length > 0) {
+                tooltipAttr = `title="${tooltips.join('&#10;---&#10;')}"`;
+            }
+
             // Thu thập dữ liệu chi tiết ngày nghỉ nếu đang ở Mode 2
             let holidayDetail = null;
             if (reportMode === 2) {
+                 let detailLabel = isPast ? currentData.label : currentLabel;
+                 if (prefix === "billing") {
+                     detailLabel = isPast ? `Kỳ trước ${idx + 1}` : currentLabel;
+                 }
                  holidayDetail = {
-                    label: isPast ? currentData.label : currentLabel,
+                    label: detailLabel,
                     company: dataItem.company,
                     datesHtml: formatHolidayDatesInline(holidayDates)
                 };
@@ -2347,7 +2495,7 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
 
           // ===== render phần Tổng (total-current-row - Xanh Nhạt) =====
           html += `<tr class="main-row current-row total-current-row" data-target="toggle-${prefix}-total">
-            <td>Tổng ${currentLabel}${toggleHtml}</td>
+            <td>Tổng ${currentLabel} (m³)${toggleHtml}</td>
             ${periodDataByCompany.map(d => {
                 const { displayContent, tooltipAttr } = getDisplayContent(d, false);
                 return `<td ${tooltipAttr}>${displayContent}</td>`;
@@ -2371,8 +2519,12 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             pastItems = pastItems.slice(0, 4);
           }
           pastItems.forEach((p, idx) => {
+            let rowLabel = p.label;
+            if (prefix === "billing") {
+                rowLabel = `Kỳ trước ${idx + 1}`;
+            }
             html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-total">
-                <td>${p.label}</td>
+                <td>${rowLabel}</td>
                 ${periodDataByCompany.map(d => {
                     const { displayContent, tooltipAttr } = getDisplayContent(d, true, idx);
                     return `<td ${tooltipAttr}>${displayContent}</td>`;
@@ -2381,7 +2533,9 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             
             // --- DATA COLLECTION CHO MODE 2 (Các kỳ quá khứ) ---
             if (reportMode === 2) {
-                const pastDataRow = { label: p.label, companyData: {} };
+                let detailLabel = p.label;
+                if (prefix === "billing") detailLabel = `Kỳ trước ${idx + 1}`;
+                const pastDataRow = { label: detailLabel, companyData: {} };
                 periodDataByCompany.forEach(d => {
                     const result = getDisplayContent(d, true, idx);
                     pastDataRow.companyData[d.company] = result.holidayDetail.datesHtml;
@@ -2395,27 +2549,102 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
           
               html += `<tr class="main-row current-row detail-current-row" data-target="toggle-${prefix}-avg">
                 <td>Trung bình ${currentLabel} (m³/ngày)${toggleHtml}</td>
-                ${periodDataByCompany.map(d => `<td>${d?.data?.current?.avg || 'N/A'}</td>`).join('')}
+                ${periodDataByCompany.map(d => {
+                    const currentData = d?.data?.current;
+                    let tooltips = [];
+                    if (prefix === "billing" && currentData && currentData.start) {
+                        const startStr = formatVNDate(currentData.start);
+                        tooltips.push(`Dữ liệu tính từ: ${startStr} đến Hôm nay`);
+                    }
+                    if (currentData) {
+                        let sVal = currentData.startValue != null ? currentData.startValue.toLocaleString('vi-VN') : "N/A";
+                        let eVal = currentData.endValue != null ? currentData.endValue.toLocaleString('vi-VN') : "N/A";
+                        let wDays = currentData.workingDaysForAvg != null ? currentData.workingDaysForAvg : "N/A";
+                        tooltips.push(`Phép tính: (${eVal} - ${sVal}) / ${wDays} ngày`);
+                    } else {
+                        tooltips.push(`Phép tính: (N/A - N/A) / N/A`);
+                    }
+                    let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
+                    return `<td ${titleAttr}>${currentData?.avg || 'N/A'}</td>`;
+                }).join('')}
               </tr>`;
 
               pastItems.forEach((p, idx) => {
+                let rowLabel = p.label;
+                if (prefix === "billing") {
+                    rowLabel = `Kỳ trước ${idx + 1}`;
+                } else {
+                    rowLabel = p.label.replace(/Tuần: |Tháng: |Năm: /, '');
+                }
                 html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-avg">
-                    <td>Trung bình: ${p.label}</td>
-                    ${periodDataByCompany.map(d => `<td>${d?.data?.past[idx]?.avg || 'N/A'}</td>`).join('')}
+                    <td>Trung bình: ${rowLabel}</td>
+                    ${periodDataByCompany.map(d => {
+                        const currentData = d?.data?.past[idx];
+                        let tooltips = [];
+                        if (prefix === "billing" && currentData && currentData.start) {
+                            const startStr = formatVNDate(currentData.start);
+                            const endMark = new Date(currentData.end.getTime() - 86400000);
+                            tooltips.push(`Dữ liệu tính từ: ${startStr} đến ${formatVNDate(endMark)}`);
+                        }
+                        if (currentData) {
+                            let sVal = currentData.startValue != null ? currentData.startValue.toLocaleString('vi-VN') : "N/A";
+                            let eVal = currentData.endValue != null ? currentData.endValue.toLocaleString('vi-VN') : "N/A";
+                            let wDays = currentData.workingDaysForAvg != null ? currentData.workingDaysForAvg : "N/A";
+                            tooltips.push(`Phép tính: (${eVal} - ${sVal}) / ${wDays} ngày`);
+                        } else {
+                            tooltips.push(`Phép tính: (N/A - N/A) / N/A`);
+                        }
+                        let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
+                        return `<td ${titleAttr}>${currentData?.avg || 'N/A'}</td>`;
+                    }).join('')}
                 </tr>`;
               });
 
                // ===== render phần Khoán (chỉ cho billing) (detail-current-row - Trắng) =====
               if (prefix === "billing") {
                 html += `<tr class="main-row current-row detail-current-row" data-target="toggle-${prefix}-quota">
-                    <td>Khối lượng khoán ${currentLabel}${toggleHtml}</td>
-                    ${periodDataByCompany.map(d => `<td>${d?.data?.current?.quota || 'N/A'}</td>`).join('')}
+                    <td>Khối lượng khoán ${currentLabel} (m³)${toggleHtml}</td>
+                    ${periodDataByCompany.map(d => {
+                        const currentData = d?.data?.current;
+                        let tooltips = [];
+                        if (currentData && currentData.start) {
+                            const startStr = formatVNDate(currentData.start);
+                            tooltips.push(`Dữ liệu tính từ: ${startStr} đến Hôm nay`);
+                        }
+                        if (currentData) {
+                            let wDays = currentData.workingDaysForAvg != null ? currentData.workingDaysForAvg : "N/A";
+                            let qMult = currentData.quotaMultiplier != null ? currentData.quotaMultiplier : "N/A";
+                            tooltips.push(`Phép tính: ${wDays} ngày * ${qMult}`);
+                        } else {
+                            tooltips.push(`Phép tính: N/A * N/A`);
+                        }
+                        let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
+                        return `<td ${titleAttr}>${currentData?.quota || 'N/A'}</td>`;
+                    }).join('')}
                 </tr>`;
 
                 pastItems.forEach((p, idx) => {
+                  let rowLabel = `Kỳ trước ${idx + 1}`;
                   html += `<tr class="child-row past-row" data-parent="toggle-${prefix}-quota">
-                      <td>Khối lượng khoán: ${p.label.split(': ')[1] || p.label}</td>
-                      ${periodDataByCompany.map(d => `<td>${d?.data?.past[idx]?.quota || 'N/A'}</td>`).join('')}
+                      <td>Khối lượng khoán: ${rowLabel}</td>
+                      ${periodDataByCompany.map(d => {
+                          const currentData = d?.data?.past[idx];
+                          let tooltips = [];
+                          if (currentData && currentData.start) {
+                              const startStr = formatVNDate(currentData.start);
+                              const endMark = new Date(currentData.end.getTime() - 86400000);
+                              tooltips.push(`Dữ liệu tính từ: ${startStr} đến ${formatVNDate(endMark)}`);
+                          }
+                          if (currentData) {
+                              let wDays = currentData.workingDaysForAvg != null ? currentData.workingDaysForAvg : "N/A";
+                              let qMult = currentData.quotaMultiplier != null ? currentData.quotaMultiplier : "N/A";
+                              tooltips.push(`Phép tính: ${wDays} ngày * ${qMult}`);
+                          } else {
+                              tooltips.push(`Phép tính: N/A * N/A`);
+                          }
+                          let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
+                          return `<td ${titleAttr}>${currentData?.quota || 'N/A'}</td>`;
+                      }).join('')}
                   </tr>`;
                 });
               }
@@ -2455,14 +2684,15 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
     }
 
     // === NEW HELPER: HÀM GHI BẢN GHI KHỞI TẠO ===
-    async function writeInitialReading(companyName) {
-    const initialDate = new Date("2025-01-01T00:00:00Z");
+    async function writeInitialReading(companyName, effectiveDateStr) {
+    // Dùng ngày do user chọn, nếu không có thì fallback về 2025-01-01
+    const initialDateStr = effectiveDateStr || "2025-01-01";
 
     const newReading = {
         company: companyName,
-        ngay_ghi: formatISODate(initialDate),
+        ngay_ghi: initialDateStr,
         chi_so: 0,
-        createdBy: "admin@gmail.com",
+        createdBy: "admin@system",
         ghi_chu: "Chi so khoi tao tu dong (Auto-Init)",
         fileId: "",
         fileUrl: "",
@@ -2471,20 +2701,20 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
 
     await addDoc(collection(db, "reports_1"), newReading);
 
-    console.log(`LOG: Đã thêm bản ghi khởi tạo cho công ty: ${companyName}`);
+    console.log(`LOG: Đã thêm bản ghi khởi tạo cho công ty: ${companyName} ngày ${initialDateStr}`);
 }
 
     // === END NEW HELPER ===
 
     // === MASTER LIST MANAGER FUNCTIONS ===
 
-    async function manageMasterCompany(companyName, action) {
+    async function manageMasterCompany(companyName, action, effectiveDateStr) {
     const safeName = companyName.trim();
     const docRef = doc(db, "companies_master", safeName);
 
     if (action === 'add') {
         await setDoc(docRef, { company: safeName, isActive: true });
-        await writeInitialReading(safeName);
+        await writeInitialReading(safeName, effectiveDateStr);
 
         console.log(`LOG: Đã thêm công ty ${safeName} vào Master List + bản ghi khởi tạo`);
     } 
@@ -2841,7 +3071,6 @@ async function exportTableToPDF(element, filename) {
     config = {
         weekDayStart: (snapData.weekDayStart ?? config.weekDayStart),
         monthDayStart: (snapData.monthDayStart ?? config.monthDayStart),
-        billingDayStart: (snapData.billingDayStart ?? config.billingDayStart),
         yearDayStart: (snapData.yearDayStart ?? config.yearDayStart),
         quotaMultipliers: { ...(config.quotaMultipliers || {}), ...snapQuota },
         defaultHolidays: defaultHolidays // ⭐️ Lưu vào biến toàn cục config để tự tính toán
@@ -2896,7 +3125,6 @@ async function exportTableToPDF(element, filename) {
     const newConfig = {
         weekDayStart: Number(document.getElementById("weekDayStart").value),
         monthDayStart: Number(document.getElementById("monthDayStart").value),
-        billingDayStart: config.billingDayStart, // Giữ lại cấu hình cũ nếu có
         yearDayStart: Number(document.getElementById("yearDayStart").value),
         quotaMultipliers: config.quotaMultipliers,
     };
