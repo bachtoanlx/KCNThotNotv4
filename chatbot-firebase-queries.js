@@ -5,7 +5,7 @@
  */
 
 // Import db từ script.js (đã export)
-import { db } from "./script.js";
+import { db, auth } from "./script.js";
 
 // Import Firestore functions trực tiếp từ Firebase
 import {
@@ -16,7 +16,11 @@ import {
     limit,
     getDocs,
     getDoc,
-    doc
+    doc,
+    getAggregateFromServer,
+    sum,
+    average,
+    count
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // ============================================
@@ -325,25 +329,22 @@ export async function getWeeklyStatistics() {
             where("ngay_ghi", ">=", startDate),
             where("ngay_ghi", "<=", endDate)
         );
-        const snapshot = await getDocs(q);
         
-        let totalConsumption = 0;
-        let recordCount = 0;
-        const companies = new Set();
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            totalConsumption += (data.chi_so || 0);
-            recordCount++;
-            if (data.company) companies.add(data.company);
+        // ⭐️ TỐI ƯU: Sử dụng Aggregation Queries (Tính toán trên Server)
+        // Không tải documents về, chỉ tải kết quả số -> Cực nhanh
+        const snapshot = await getAggregateFromServer(q, {
+            totalConsumption: sum('chi_so'),
+            recordCount: count()
         });
         
+        const data = snapshot.data();
+
         return {
             period: `${startDate} đến ${endDate}`,
-            totalConsumption,
-            averageConsumption: recordCount > 0 ? totalConsumption / recordCount : 0,
-            recordCount,
-            companyCount: companies.size
+            totalConsumption: data.totalConsumption,
+            averageConsumption: data.recordCount > 0 ? data.totalConsumption / data.recordCount : 0,
+            recordCount: data.recordCount,
+            companyCount: "N/A" // Aggregation chưa hỗ trợ count distinct, chấp nhận bỏ qua để đổi lấy tốc độ
         };
     } catch (error) {
         console.error('Error fetching weekly statistics:', error);
@@ -367,25 +368,21 @@ export async function getMonthlyStatistics() {
             where("ngay_ghi", ">=", startDate),
             where("ngay_ghi", "<=", endDate)
         );
-        const snapshot = await getDocs(q);
-        
-        let totalConsumption = 0;
-        let recordCount = 0;
-        const companies = new Set();
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            totalConsumption += (data.chi_so || 0);
-            recordCount++;
-            if (data.company) companies.add(data.company);
+
+        // ⭐️ TỐI ƯU: Sử dụng Aggregation Queries
+        const snapshot = await getAggregateFromServer(q, {
+            totalConsumption: sum('chi_so'),
+            recordCount: count()
         });
         
+        const data = snapshot.data();
+
         return {
             period: `Tháng ${month}/${year}`,
-            totalConsumption,
-            averageConsumption: recordCount > 0 ? totalConsumption / recordCount : 0,
-            recordCount,
-            companyCount: companies.size
+            totalConsumption: data.totalConsumption,
+            averageConsumption: data.recordCount > 0 ? data.totalConsumption / data.recordCount : 0,
+            recordCount: data.recordCount,
+            companyCount: "N/A"
         };
     } catch (error) {
         console.error('Error fetching monthly statistics:', error);
@@ -408,6 +405,130 @@ export async function getTopConsumers(limit = 5) {
         return comparison.slice(0, limit);
     } catch (error) {
         console.error('Error fetching top consumers:', error);
+        return [];
+    }
+}
+
+// ============================================
+// 6. HÀM TÍNH TOÁN & CACHE AUTOPLAN (Client-side Logic)
+// ============================================
+
+/**
+ * Hàm này thực hiện tính toán logic Autoplan bằng JS (thay vì AI)
+ * và lưu kết quả vào Firestore để dùng lại.
+ */
+export async function calculateAndCacheSchedule(dateStr) {
+    try {
+        // 1. Lấy quy tắc
+        const rules = await getAutoplanRules();
+        if (rules.length === 0) return "Chưa có quy tắc trực.";
+
+        // 2. Phân tích ngày
+        const date = new Date(dateStr);
+        const dayOfWeek = date.getDay(); // 0-6
+        const dayOfMonth = date.getDate(); // 1-31
+
+        // 3. Logic so khớp (JS thuần, cực nhanh)
+        let matchedContent = [];
+        
+        rules.forEach(rule => {
+            // So khớp thứ
+            if (rule.dayOfWeek !== null && rule.dayOfWeek === dayOfWeek) {
+                matchedContent.push(rule.content);
+            }
+            // So khớp ngày
+            if (rule.dayOfMonth !== null && rule.dayOfMonth === dayOfMonth) {
+                matchedContent.push(rule.content);
+            }
+        });
+
+        // Loại bỏ trùng lặp
+        const uniqueContent = [...new Set(matchedContent)];
+        const resultString = uniqueContent.length > 0 ? uniqueContent.join(", ") : "Không có lịch trực";
+
+        // 4. LƯU CACHE (Quan trọng: Để lần sau không phải tính lại)
+        // Import hàm save từ script.js hoặc dùng trực tiếp setDoc
+        const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js");
+        
+        await setDoc(doc(db, "daily_schedules", dateStr), {
+            content: resultString,
+            updatedAt: serverTimestamp(),
+            source: "auto_calculation_js"
+        });
+
+        console.log(`✅ Đã tính toán và cache lịch cho ngày ${dateStr}: ${resultString}`);
+        return resultString;
+
+    } catch (error) {
+        console.error("Lỗi tính toán lịch:", error);
+        return null;
+    }
+}
+
+/**
+ * Lấy lịch trực đã được tính toán sẵn (Cache) của một ngày cụ thể
+ */
+export async function getCachedSchedule(dateStr) {
+    // dateStr format: YYYY-MM-DD
+    try {
+        const docRef = doc(db, "daily_schedules", dateStr);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            return { date: dateStr, content: docSnap.data().content, source: 'cache' };
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error fetching cached schedule for ${dateStr}:`, error);
+        return null;
+    }
+}
+
+// ============================================
+// 5. QUERIES CHO AUTOPLAN (JOB)
+// ============================================
+
+/**
+ * Lấy danh sách các quy tắc Autoplan
+ */
+export async function getAutoplanRules() {
+    try {
+        // Tự động dò tìm collection chứa quy tắc
+        // Ưu tiên 'autoplan', nếu không có thì tìm 'job'
+        let collectionName = 'autoplan';
+        let q = query(collection(db, collectionName));
+        let snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            console.log("ℹ️ Collection 'autoplan' trống hoặc không tồn tại. Đang chuyển sang tìm trong 'job'...");
+            collectionName = 'job';
+            q = query(collection(db, collectionName));
+            snapshot = await getDocs(q);
+        }
+        
+        console.log(`✅ [Autoplan] Đã tải ${snapshot.size} quy tắc từ collection '${collectionName}'.`);
+        
+        const rules = snapshot.docs.map(doc => {
+            const d = doc.data();
+            return {
+                content: d.content,
+                // Ép kiểu số để AI so sánh chính xác
+                dayOfWeek: (d.dayOfWeek !== null && d.dayOfWeek !== undefined) ? Number(d.dayOfWeek) : null,
+                dayOfMonth: (d.dayOfMonth !== null && d.dayOfMonth !== undefined) ? Number(d.dayOfMonth) : null,
+                createdAt: d.createdAt
+            };
+        });
+
+        // Sắp xếp mảng trong Javascript (Mới nhất lên đầu)
+        return rules.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
+    } catch (error) {
+        console.error('❌ Lỗi lấy autoplan rules:', error);
+        console.warn('👤 Trạng thái đăng nhập:', auth.currentUser ? auth.currentUser.email : 'Chưa đăng nhập');
         return [];
     }
 }
