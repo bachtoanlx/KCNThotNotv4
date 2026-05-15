@@ -453,16 +453,108 @@
   }
 
     /* 🔥 GHI ĐÈ CSS CHO MODAL CẤU HÌNH (TĂNG RỘNG, GIẢM CAO) 🔥 */
-    #configModal .modal-content-config {
+    #configModal .modal-content-config, #companySettingsModal .modal-content-config {
         /* 1. TĂNG BỀ RỘNG VÀ XÓA GIỚI HẠN MAX-WIDTH */
-        width: 85% !important;        /* Tăng bề rộng lên 85% màn hình */
-        max-width: 1200px !important;  /* Tăng giới hạn tối đa lên 1200px (hoặc xóa hẳn bằng none) */
+        width: 90% !important;        /* Tăng bề rộng lên 90% màn hình */
+        max-width: 1000px !important;  /* Tăng giới hạn tối đa lên 1000px */
         
         /* 2. GIẢM CHIỀU CAO TỐI ĐA */
-        max-height: 80vh !important;  /* Giảm chiều cao tối đa xuống 80% chiều cao màn hình */
+        max-height: 90vh !important;  /* Tăng nhẹ chiều cao hiển thị tổng */
         
         /* 3. ĐẨY LÊN CAO HƠN (Tùy chọn) */
-        margin: 12vh auto !important;   /* Giảm khoảng cách từ đỉnh xuống (12% chiều cao viewport) */
+        margin: 5vh auto !important;   /* Đẩy modal lên sát viền trên hơn */
+        padding: 15px 20px !important; /* Thu gọn đệm trong */
+    }
+
+    /* ================= CSS CHO MODAL CẤU HÌNH CÔNG TY ================= */
+    .cs-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .cs-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .cs-form-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 12px;
+    }
+    
+    .cs-form-group input[type="text"],
+    .cs-form-group input[type="number"],
+    .cs-form-group input[type="date"],
+    .cs-form-group select {
+        padding: 6px 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 13px;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .cs-form-group input:focus,
+    .cs-form-group select:focus {
+        border-color: #034892;
+        box-shadow: 0 0 0 3px rgba(3, 72, 146, 0.15);
+        outline: none;
+    }
+    
+    /* Nhóm checkbox ngày nghỉ */
+    .cs-checkbox-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 5px 0;
+    }
+    
+    .cs-checkbox-group label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #f1f3f5;
+        border: 1px solid #dee2e6;
+        padding: 4px 10px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        color: #495057;
+        transition: all 0.2s ease;
+        user-select: none;
+    }
+    
+    .cs-checkbox-group label:hover {
+        background: #e9ecef;
+        border-color: #ced4da;
+    }
+    
+    .cs-checkbox-group input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: #034892;
+        cursor: pointer;
+    }
+    
+    #csHistoryTable th, #csHistoryTable td {
+        padding: 4px 6px;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* Responsive cho mobile */
+    @media (max-width: 600px) {
+        .cs-form-grid {
+            grid-template-columns: 1fr; /* Gộp về 1 cột trên điện thoại */
+            gap: 10px;
+        }
     }
   </style>
 </head>
@@ -489,9 +581,10 @@
       </label>
       <label>Nhóm công ty: 
         <select id="companyGroupFilter">
-            <option value="group1">Nhóm 1 (đồng hồ)</option>
-            <option value="group2">Nhóm 2 (khoán)</option>
-            <option value="all">Tất cả 2 nhóm</option>
+            <option value="group1">Nhóm 1 (Đồng hồ)</option>
+            <option value="group2">Nhóm 2 (Hóa đơn)</option>
+            <option value="group3">Nhóm 3 (Khoán)</option>
+            <option value="all">Tất cả 3 nhóm</option>
         </select>
       </label>
       
@@ -501,7 +594,6 @@
     </div>
     
     <div class="report-header-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px !important; margin-top: 10px !important;">
-        <div class="note" id="filterNote" style="margin-bottom: 0; margin-top: 0;"></div>
         <div class="toggle-switch-container">
             <select id="mobileReportModeSelect" style="display: none;">
                 <option value="0">Chuẩn</option>
@@ -573,26 +665,16 @@
     <label>Ngày đầu tháng:
       <select id="monthDayStart"></select>
     </label>
-    <label>Ngày cuối kỳ phí:
-      <select id="billingDayStart"></select>
-    </label>
     <label>Ngày đầu năm:
       <select id="yearDayStart"></select>
     </label>
     <button id="saveConfig"> Lưu </button>
 
-    <h3>⚙️ Danh sách thêm công ty thủ công</h3>
-    <div id="masterListManager">
-      <input type="text" id="companyNameInput" placeholder="Nhập tên công ty (ví dụ: Nanoco)" style="width: 250px; margin-right: 5px;">
-      <button id="addCompanyBtn">+</button>
-      <button id="removeCompanyBtn">-</button>
-      <div id="currentMasterList" style="margin-top: 10px; font-size: 0.9em;">
-        Danh sách hiện tại: Đang tải...
-      </div>
-      <p>(Master List dùng để hiển thị công ty chưa có chỉ số. Thêm/Xóa bằng cách nhập tên công ty +/-).</p>
+    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <h3 style="margin-top: 0; color: #856404;">⚙️ Cài đặt cấu hình Doanh nghiệp</h3>
+        <p style="font-size: 13px; margin-bottom: 10px;">Cho phép cài đặt Hệ số khoán, Nhóm và Ngày nghỉ theo mốc thời gian.</p>
+        <button id="btnOpenCompanySettingsModal" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Mở Bảng Cài đặt Chi tiết</button>
     </div>
-    <h3>⚙️ Cài đặt Hệ số nhân khoán (Mặc định: 0)</h3>
-    <div id="quotaMultipliersSetting"></div>  
   </div>
 
 <div id="configModal" class="modal">
@@ -604,11 +686,86 @@
     </div>
   </div>
 </div>
+
+<!-- MODAL CÀI ĐẶT CÔNG TY NÂNG CAO -->
+<div id="companySettingsModal" class="modal" style="display: none;">
+    <div class="modal-content-config">
+        <span class="close-btn" id="closeCompanySettingsModal">&times;</span>
+        <h2 style="margin-top: 0; margin-bottom: 10px; color: #273668; border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 1.2rem;">⚙️ Quản lý Cấu hình Doanh nghiệp</h2>
+        
+        <div class="cs-form-grid">
+            <div class="cs-form-group">
+                <label>Chọn hoặc Nhập Công ty:</label>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="csCompanySelect" list="csCompanyList" placeholder="Chọn hoặc nhập tên công ty..." autocomplete="off" style="flex: 1;">
+                    <button id="csDeleteCompanyBtn" style="display: none; background: #e74c3c; color: white; border: none; border-radius: 6px; padding: 0 12px; cursor: pointer; font-size: 14px;" title="Xóa công ty khỏi hệ thống">🗑️</button>
+                </div>
+                <datalist id="csCompanyList"></datalist>
+            </div>
+            <div class="cs-form-group">
+                <label>Ngày bắt đầu áp dụng:</label>
+                <input type="date" id="csEffectiveDate" title="Cấu hình này sẽ có hiệu lực từ ngày này trở đi">
+            </div>
+            
+            <div class="cs-form-group">
+                <label>Nhóm Công ty:</label>
+                <select id="csGroupSelect">
+                    <option value="group1">Nhóm 1 (Đồng hồ)</option>
+                    <option value="group2">Nhóm 2 (Hóa đơn)</option>
+                    <option value="group3">Nhóm 3 (Khoán)</option>
+                </select>
+            </div>
+            <div class="cs-form-group">
+                <label>Hệ số Khoán (m³/ngày):</label>
+                <input type="number" id="csQuota" step="0.1" placeholder="Nhập hệ số khoán... (nếu có)">
+            </div>
+            <div class="cs-form-group">
+                <label>Ngày cuối kỳ phí (Bắt buộc):</label>
+                <input type="number" id="csBillingDay" min="1" max="31" placeholder="Nhập ngày trong khoảng từ 1-31" required>
+            </div>
+
+            <div class="cs-form-group" style="grid-column: 1 / -1;">
+                <label>Ngày nghỉ mặc định trong tuần:</label>
+                <div class="cs-checkbox-group" id="csHolidays">
+                    <label><input type="checkbox" value="1"> T2</label>
+                    <label><input type="checkbox" value="2"> T3</label>
+                    <label><input type="checkbox" value="3"> T4</label>
+                    <label><input type="checkbox" value="4"> T5</label>
+                    <label><input type="checkbox" value="5"> T6</label>
+                    <label><input type="checkbox" value="6"> T7</label>
+                    <label><input type="checkbox" value="0"> CN</label>
+                </div>
+            </div>
+            
+            <div class="cs-form-group" style="grid-column: 1 / -1;">
+                <label>Ghi chú:</label>
+                <div style="display: flex; gap: 10px; align-items: stretch;">
+                    <input type="text" id="csNote" placeholder="Nhập ghi chú (nếu có)..." style="flex: 1;">
+                    <button id="csSaveBtn" style="background: #273668; color: white; padding: 6px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; white-space: nowrap;">💾 Lưu Quy Tắc</button>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="color: #034892; margin-top: 10px; margin-bottom: 8px; font-size: 1rem;">📜 Lịch sử Quy tắc</h3>
+        <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px;">
+            <table id="csHistoryTable" style="margin-top: 0; width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr><th>Ngày áp dụng</th><th>Nhóm</th><th>Hệ số Khoán</th><th>Kỳ phí</th><th>Ngày nghỉ</th><th>Ghi chú</th><th>Hành động</th></tr>
+                </thead>
+                <tbody id="csHistoryBody">
+                    <tr><td colspan="7" style="text-align:center; padding: 10px;">Vui lòng chọn công ty để xem lịch sử.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div> <!-- Đóng #pageContent bị thiếu -->
+
 <div id="footer-placeholder"></div>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="module">
-import { doc, getDoc, deleteDoc, addDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate} from "./script.js";
+import { doc, getDoc, deleteDoc, addDoc, setDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate, auth, addLog} from "./script.js";
 import { initMenu } from "./menu.js";
 
 
@@ -860,6 +1017,293 @@ function setupConfigModal() {
 }
 //
 
+// =========================================================================
+// 🔥 LOGIC MODAL CÀI ĐẶT CÔNG TY (LỊCH SỬ CHUỖI THỜI GIAN)
+// =========================================================================
+const csModal = document.getElementById("companySettingsModal");
+const csCompanySelect = document.getElementById("csCompanySelect");
+const csEffectiveDate = document.getElementById("csEffectiveDate");
+const csGroupSelect = document.getElementById("csGroupSelect");
+const csQuota = document.getElementById("csQuota");
+const csBillingDay = document.getElementById("csBillingDay");
+const csHistoryBody = document.getElementById("csHistoryBody");
+const csNote = document.getElementById("csNote");
+const csDeleteCompanyBtn = document.getElementById("csDeleteCompanyBtn");
+
+let currentCompanyConfigs = [];
+
+function populateModalCompanyDropdown() {
+    const currentVal = csCompanySelect.value;
+    const companiesFromReports = Object.keys(allProcessedHolidays || {});
+    const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
+    const allUniqueCompanies = Array.from(new Set([...companiesFromReports, ...companiesFromMaster])).sort();
+    
+    const datalist = document.getElementById("csCompanyList");
+    if (!datalist) return;
+    datalist.innerHTML = '';
+    allUniqueCompanies.forEach(c => {
+        datalist.innerHTML += `<option value="${c}"></option>`;
+    });
+    if (currentVal) csCompanySelect.value = currentVal;
+}
+
+// Mở Modal
+document.getElementById("btnOpenCompanySettingsModal").addEventListener("click", () => {
+    populateModalCompanyDropdown();
+
+    // Set ngày mặc định là hôm nay
+    csEffectiveDate.value = formatISODate(new Date());
+    
+    csModal.style.display = "block";
+    document.body.style.overflow = "hidden";
+});
+
+// Đóng Modal
+document.getElementById("closeCompanySettingsModal").addEventListener("click", () => {
+    csModal.style.display = "none";
+    document.body.style.overflow = "auto";
+});
+
+// Đóng Modal khi click ra ngoài
+window.addEventListener('click', (event) => {
+    if (event.target == csModal) {
+        csModal.style.display = "none";
+        document.body.style.overflow = "auto";
+    }
+});
+
+// Tự động xóa nội dung khi click vào để hiện toàn bộ danh sách, giúp chọn công ty khác dễ dàng hơn
+let previousCsCompanyValue = "";
+csCompanySelect.addEventListener("focus", function() {
+    previousCsCompanyValue = this.value;
+    this.value = ""; // Xóa tạm thời để datalist xổ ra toàn bộ
+});
+csCompanySelect.addEventListener("blur", function() {
+    if (this.value.trim() === "") {
+        this.value = previousCsCompanyValue; // Phục hồi nếu click ra ngoài mà không gõ/chọn gì
+    }
+});
+
+// Khi chọn công ty -> Tải lịch sử
+csCompanySelect.addEventListener("change", async (e) => {
+    // Nhả focus ngay sau khi chọn để lần click tiếp theo sẽ kích hoạt sự kiện focus và hiển thị lại toàn bộ danh sách
+    csCompanySelect.blur();
+
+    const company = e.target.value.trim();
+    
+    if (!company) {
+        csHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 10px;">Vui lòng chọn công ty để xem lịch sử.</td></tr>';
+        csQuota.value = "";
+        csBillingDay.value = "";
+        csNote.value = "";
+        document.querySelectorAll('#csHolidays input').forEach(cb => cb.checked = false);
+        if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'none';
+        return;
+    }
+
+    // Kiểm tra xem công ty đã có trong hệ thống chưa
+    const companiesFromReports = Object.keys(allProcessedHolidays || {});
+    const companiesFromMaster = allMasterCompanies.map(c => c.company).filter(Boolean);
+    const allUniqueCompanies = Array.from(new Set([...companiesFromReports, ...companiesFromMaster]));
+    
+    if (!allUniqueCompanies.includes(company)) {
+        if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'none';
+        const isConfirmed = await showConfirmSwal(
+            "Công ty mới",
+            `Công ty "<b>${company}</b>" chưa có trong hệ thống. Bạn có muốn thêm mới không?`,
+            "Thêm mới",
+            "Hủy bỏ",
+            "question"
+        );
+        
+        if (isConfirmed) {
+            showLoading("Đang thêm...");
+            await manageMasterCompany(company, 'add');
+            hideLoading();
+            showSwal("success", "Thành công", `Đã thêm công ty ${company}`);
+            if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'block';
+        } else {
+            // Hủy -> Xóa form
+            csCompanySelect.value = "";
+            csHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 10px;">Vui lòng chọn công ty để xem lịch sử.</td></tr>';
+            csQuota.value = "";
+            csBillingDay.value = "";
+            csNote.value = "";
+            document.querySelectorAll('#csHolidays input').forEach(cb => cb.checked = false);
+            return;
+        }
+    } else {
+        if (csDeleteCompanyBtn) csDeleteCompanyBtn.style.display = 'block';
+    }
+
+    await loadCompanyConfigHistory(company);
+});
+
+if (csDeleteCompanyBtn) {
+    csDeleteCompanyBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const company = csCompanySelect.value.trim();
+        if (!company) return;
+
+        const isConfirmed = await showConfirmSwal(
+            "Xác nhận Xóa Công ty",
+            `Bạn có chắc chắn muốn xóa "<b>${company}</b>" khỏi hệ thống không?<br><br><small style="color:#e74c3c;">Lưu ý: Tác vụ này sẽ xóa công ty khỏi Master List và xóa các cấu hình đã cài đặt của nó. Dữ liệu báo cáo thực tế đã nhập sẽ không bị ảnh hưởng.</small>`,
+            "Có, Xóa",
+            "Hủy bỏ",
+            "error"
+        );
+
+        if (isConfirmed) {
+            showLoading("Đang xóa...");
+            try {
+                await manageMasterCompany(company, 'remove');
+                
+                const configsToDelete = allCompanyConfigs.filter(c => c.company === company);
+                for (const cfg of configsToDelete) {
+                    await deleteDoc(doc(db, "company_configs", cfg.id));
+                }
+                
+                hideLoading();
+                showSwal("success", "Thành công", `Đã xóa công ty ${company}`);
+                
+                csCompanySelect.value = "";
+                csCompanySelect.dispatchEvent(new Event("change"));
+                populateModalCompanyDropdown();
+            } catch (err) {
+                hideLoading();
+                showSwal("error", "Lỗi", err.message);
+            }
+        }
+    });
+}
+
+// Hàm tải lịch sử
+async function loadCompanyConfigHistory(company) {
+    csHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Đang tải dữ liệu...</td></tr>';
+    try {
+        const q = query(
+            collection(db, "company_configs"),
+            where("company", "==", company),
+        );
+        const snap = await getDocs(q);
+        currentCompanyConfigs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Sắp xếp trên client để tránh lỗi thiếu Composite Index của Firestore
+        currentCompanyConfigs.sort((a, b) => (b.effectiveDate || "").localeCompare(a.effectiveDate || ""));
+
+        if (currentCompanyConfigs.length === 0) {
+            csHistoryBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Chưa có quy tắc nào được thiết lập.</td></tr>';
+            // Xóa form
+            csQuota.value = "";
+            csBillingDay.value = "";
+            csNote.value = "";
+            document.querySelectorAll('#csHolidays input').forEach(cb => cb.checked = false);
+            return;
+        }
+
+        // Tự động điền Form bằng quy tắc mới nhất để tiện sửa đổi
+        const latest = currentCompanyConfigs[0];
+        csGroupSelect.value = latest.group || "group1";
+        csQuota.value = latest.quotaMultiplier || 0;
+        csBillingDay.value = latest.billingDay || "";
+        csNote.value = latest.note || "";
+        document.querySelectorAll('#csHolidays input').forEach(cb => {
+            cb.checked = (latest.defaultHolidays && latest.defaultHolidays.includes(Number(cb.value)));
+        });
+
+        // Render bảng lịch sử
+        const dayMap = {0:"CN", 1:"T2", 2:"T3", 3:"T4", 4:"T5", 5:"T6", 6:"T7"};
+        csHistoryBody.innerHTML = currentCompanyConfigs.map(c => {
+            const daysStr = (c.defaultHolidays || []).map(d => dayMap[d]).join(", ") || "Không nghỉ";
+            let groupStr = "Nhóm 1 (Đồng hồ)";
+            if (c.group === "group2") groupStr = "Nhóm 2 (Hóa đơn)";
+            else if (c.group === "group3") groupStr = "Nhóm 3 (Khoán)";
+            const effectiveDate = c.effectiveDate || formatISODate(new Date());
+            const dateParts = effectiveDate.split('-');
+            const displayDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            
+            return `<tr>
+                <td style="font-weight:bold; color:#034892;">${displayDate}</td>
+                <td>${groupStr}</td>
+                <td>${c.quotaMultiplier || 0}</td>
+                <td>${c.billingDay ? `Ngày ${c.billingDay}` : '-'}</td>
+                <td>${daysStr}</td>
+                <td>${c.note || ""}</td>
+                <td><button class="del-config-btn" data-id="${c.id}" style="background:#e74c3c; color:white; border:none; padding:2px 6px; border-radius:4px; cursor:pointer; font-size: 11px;">Xóa</button></td>
+            </tr>`;
+        }).join('');
+
+        // Gắn sự kiện xóa
+        document.querySelectorAll('.del-config-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                if(await showConfirmSwal("Xác nhận", "Bạn có chắc chắn muốn xóa quy tắc này?", "Xóa", "Hủy")) {
+                    await deleteDoc(doc(db, "company_configs", id));
+                    loadCompanyConfigHistory(company); // Reload
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Lỗi tải lịch sử công ty:", error);
+        csHistoryBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Lỗi: ${error.message}</td></tr>`;
+    }
+}
+
+// Nút Lưu quy tắc mới
+document.getElementById("csSaveBtn").addEventListener("click", async () => {
+    const company = csCompanySelect.value.trim();
+    const effectiveDate = csEffectiveDate.value;
+    const group = csGroupSelect.value;
+    const quotaMultiplier = parseFloat(csQuota.value) || 0;
+    const billingDayVal = parseInt(csBillingDay.value);
+    const billingDay = isNaN(billingDayVal) ? null : billingDayVal;
+    const note = csNote.value.trim();
+    
+    // Lấy các thứ được đánh dấu nghỉ (Mảng số nguyên 0-6)
+    const defaultHolidays = Array.from(document.querySelectorAll('#csHolidays input:checked'))
+                                 .map(cb => Number(cb.value));
+
+    if (!company || !effectiveDate) {
+        return showSwal("error", "Lỗi", "Vui lòng chọn công ty và ngày áp dụng.");
+    }
+    
+    if (isNaN(billingDayVal) || billingDayVal < 1 || billingDayVal > 31) {
+        return showSwal("error", "Lỗi", "Vui lòng nhập Ngày cuối kỳ phí hợp lệ (1-31).");
+    }
+
+    // Kiểm tra xem ngày này đã có quy tắc chưa
+    const existingRule = currentCompanyConfigs.find(c => c.effectiveDate === effectiveDate);
+    
+    const payload = {
+        company,
+        effectiveDate,
+        group,
+        quotaMultiplier,
+        billingDay,
+        defaultHolidays,
+        note,
+        updatedAt: new Date(),
+        updatedBy: auth.currentUser?.email || "admin"
+    };
+
+    try {
+        showLoading("Đang lưu...");
+        if (existingRule) {
+            // Ghi đè quy tắc của ngày đó
+            await setDoc(doc(db, "company_configs", existingRule.id), payload);
+        } else {
+            // Thêm quy tắc ngày mới
+            await addDoc(collection(db, "company_configs"), payload);
+        }
+        hideLoading();
+        showSwal("success", "Thành công", "Đã lưu quy tắc cấu hình.");
+        loadCompanyConfigHistory(company); // Reload bảng
+    } catch (e) {
+        hideLoading();
+        showSwal("error", "Lỗi lưu", e.message);
+    }
+});
 
 // load menu
     fetch("menu.html").then(r => r.text()).then(h => {
@@ -878,7 +1322,6 @@ function setupConfigModal() {
     const notLogged = document.getElementById("notLogged");
     const content   = document.getElementById("pageContent");
     const tbody     = document.querySelector("#reportTable tbody");
-    const quotaMultipliersSettingDiv = document.getElementById("quotaMultipliersSetting");
     
     // MỚI: DOM ref cho bảng chi tiết ngày nghỉ
     const holidayDetailReportDiv = document.getElementById('holidayDetailReport');
@@ -889,7 +1332,6 @@ function setupConfigModal() {
 
     // DOM refs
     const theadRow = document.querySelector("#reportTable thead tr");
-    const note = document.getElementById("filterNote");
 
     // DOM refs cho bộ lọc
     const fromInput = document.getElementById("fromDate");
@@ -910,25 +1352,35 @@ function setupConfigModal() {
     let config = { weekDayStart: 0, monthDayStart: 1, billingDayStart: 1, yearDayStart: 1, quotaMultipliers: {} }; 
     let isInitialLoad = true;
     
-    let unsubscribeReports1 = null; // Biến lưu listener để hủy khi cần
     // MỚI: Biến lưu trữ dữ liệu chi tiết ngày nghỉ (khi Mode 2 bật)
     let allHolidayDetails = { week: [], month: [], billing: [], year: [] }; 
 
     
     // === MASTER LIST NEW VARIABLES ===
     let allMasterCompanies = [];
-    const companyNameInput = document.getElementById("companyNameInput");
-    const addCompanyBtn = document.getElementById("addCompanyBtn");
-    const removeCompanyBtn = document.getElementById("removeCompanyBtn");
-    const currentMasterListDiv = document.getElementById("currentMasterList");
     // === END MASTER LIST NEW VARIABLES ===
     
+    let allCompanyConfigs = []; // MỚI: Lưu trữ lịch sử cấu hình công ty
+
+    // MỚI: Hàm lấy cấu hình công ty tại một thời điểm cụ thể (Dò theo Lịch sử)
+    function getCompanyConfigAtDate(company, dateStr) {
+        const configs = allCompanyConfigs.filter(c => c.company === company);
+        if (configs.length === 0) return null;
+        configs.sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate));
+        const validConfig = configs.find(c => c.effectiveDate <= dateStr);
+        return validConfig || configs[configs.length - 1];
+    }
+
+    // MỚI: Hàm lấy nhóm công ty tự động dựa trên thời điểm hiện tại của bộ lọc
+    function getCompanyGroup(company) {
+        const targetDate = currentFilter.to || formatISODate(new Date());
+        const c = getCompanyConfigAtDate(company, targetDate);
+        if (c && c.group) return c.group;
+        if (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(company)) return 'group1';
+        return 'group3';
+    }
+    
     // === START: LOGIC LỌC THEO NHÓM CÔNG TY (Lọc theo CỘT) ===
-    const COMPANY_GROUPS = {
-        'group1': ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam' ], 
-        'group2': ['VNPT', 'Hiệp Phú', 'Honoroad', 'Trường Hải', 'Petec', 'Tân Cảng'], 
-        'all': ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Cá Việt Nam', 'Amicogen', 'VNPT', 'Hiệp Phú', 'Honoroad', 'Trường Hải', 'Petec', 'Tân Cảng'] 
-    };
     
     /**
      * Lọc các cột của bảng chi tiết ngày nghỉ #holidayDetailTable
@@ -944,9 +1396,6 @@ function setupConfigModal() {
         }
 
         const selectedGroup = filterSelect.value;
-        const allowedCompanies = COMPANY_GROUPS[selectedGroup] 
-            ? COMPANY_GROUPS[selectedGroup].map(c => c.toUpperCase()) 
-            : [];
 
         const theadRow = detailTable.querySelector("thead tr");
         if (!theadRow) return; // thêm check an toàn
@@ -955,9 +1404,9 @@ function setupConfigModal() {
         const companyHeaders = Array.from(theadRow.querySelectorAll('th'));
         const columnVisibility = [true]; // Cột đầu tiên (Kỳ) luôn hiện
 
-        companyHeaders.slice(1).map(th => th.textContent.trim().toUpperCase())
+        companyHeaders.slice(1).map(th => th.textContent.trim())
             .forEach(name => {
-                const isAllowed = allowedCompanies.includes(name);
+                const isAllowed = selectedGroup === 'all' || getCompanyGroup(name) === selectedGroup;
                 columnVisibility.push(isAllowed);
             });
 
@@ -992,7 +1441,6 @@ function setupConfigModal() {
         if (!filterSelect || !reportTable) return;
         
         const selectedGroup = filterSelect.value;
-        const allowedCompanies = COMPANY_GROUPS[selectedGroup] ? COMPANY_GROUPS[selectedGroup].map(c => c.toUpperCase()) : [];
 
         const theadRow = document.querySelector("#reportTable thead tr");
         const tbodyRows = document.querySelectorAll("#reportTable tbody tr");
@@ -1001,9 +1449,9 @@ function setupConfigModal() {
         const companyHeaders = Array.from(theadRow.querySelectorAll('th'));
         const columnVisibility = [true]; // Cột đầu tiên (Lưu lượng) luôn hiện
 
-        const companies = companyHeaders.slice(1).map(th => th.textContent.trim().toUpperCase());
+        const companies = companyHeaders.slice(1).map(th => th.textContent.trim());
         companies.forEach(name => {
-            const isAllowed = allowedCompanies.includes(name);
+            const isAllowed = selectedGroup === 'all' || getCompanyGroup(name) === selectedGroup;
             columnVisibility.push(isAllowed);
         });
 
@@ -1038,9 +1486,6 @@ function setupConfigModal() {
     // populate month/year/billing selects
     const monthSel = document.getElementById("monthDayStart");
     for (let i=1;i<=28;i++) monthSel.innerHTML += `<option value="${i}">${i}</option>`;
-
-    const billingSel = document.getElementById("billingDayStart"); 
-    for (let i=1;i<=31;i++) billingSel.innerHTML += `<option value="${i}">${i}</option>`;
 
     const yearSel = document.getElementById("yearDayStart");
     for (let i=1;i<=31;i++) yearSel.innerHTML += `<option value="${i}">${i}</option>`;
@@ -1124,8 +1569,13 @@ function setupConfigModal() {
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       return `${dd}/${mm}`;
     }
+
     function safeFixed(val, digits = 1) { 
-      return (typeof val === "number" && !isNaN(val)) ? val.toFixed(digits) : "N/A";
+      if (typeof val !== "number" || isNaN(val)) return "N/A";
+      return new Intl.NumberFormat('vi-VN', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: digits
+      }).format(val);
     }
     
     // HÀM 1: FORMAT NGÀY NGHỈ CHO TOOLTIP (sử dụng &#10;)
@@ -1217,30 +1667,62 @@ function calculateWorkingDays(startDate, endDate, companyName, config, processed
                                 : { dayOffs: new Set(), specialWorkdays: new Set() };
 
     let totalDaysInPeriod = 0;
-    let specialDayOffs = 0; 
-    const dayOffDates = []; 
+    const dayOffsSet = new Set(); // ⭐️ Dùng Set để tránh trùng lặp ngày nghỉ
 
     const endRange = new Date(endDate);
     endRange.setHours(23, 59, 59, 999);
 
     let currentDay = new Date(startDate);
     currentDay.setHours(0,0,0,0);
-
+    
     while (currentDay <= endRange) {
         const currentDayStr = (function(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; })(currentDay);
 
         totalDaysInPeriod++;
 
-        // nếu reports_2 ghi ngày nghỉ thì luôn tính là nghỉ
+        // ⭐️ 1. Kiểm tra ngày nghỉ mặc định (Cuối tuần) kết hợp Lịch sử cấu hình
+        const dayOfWeek = currentDay.getDay(); // 0 = CN, 6 = T7
+        let isDefaultHoliday = false;
+        const currentConfig = getCompanyConfigAtDate(safeCompany, currentDayStr);
+
+        if (currentConfig && currentConfig.defaultHolidays) {
+            isDefaultHoliday = currentConfig.defaultHolidays.includes(dayOfWeek);
+        } else {
+            const defaultHolidaySetting = config.defaultHolidays ? config.defaultHolidays[safeCompany] : undefined;
+            if (defaultHolidaySetting === 'sat-sun' || defaultHolidaySetting === 'sat_sun') {
+                isDefaultHoliday = (dayOfWeek === 0 || dayOfWeek === 6);
+            } else if (defaultHolidaySetting === 'sun' || defaultHolidaySetting === 'sun_only') {
+                isDefaultHoliday = (dayOfWeek === 0);
+            } else if (defaultHolidaySetting === 'sat') {
+                isDefaultHoliday = (dayOfWeek === 6);
+            }
+        }
+
+        let isOff = false;
+
+        // ⭐️ 2. Kết hợp với dữ liệu từ reports_2 (Nghỉ đột xuất / Làm bù)
         if (companyHolidays.dayOffs && companyHolidays.dayOffs.has(currentDayStr)) {
-            specialDayOffs++;
-            dayOffDates.push(currentDayStr);
+            isOff = true; // Báo cáo nghỉ từ form 2 -> Chắc chắn nghỉ
+        } else if (isDefaultHoliday) {
+            // Là ngày nghỉ mặc định, nhưng kiểm tra xem có bị ghi đè bởi "Ngày làm đặc biệt" không
+            if (companyHolidays.specialWorkdays && companyHolidays.specialWorkdays.has(currentDayStr)) {
+                isOff = false; // Bị ghi đè -> Đi làm
+            } else {
+                isOff = true; // Không bị ghi đè -> Vẫn nghỉ
+            }
+        }
+
+        if (isOff) {
+            dayOffsSet.add(currentDayStr);
         }
 
         currentDay.setDate(currentDay.getDate() + 1);
     }
+    
+    const specialDayOffs = dayOffsSet.size;
+    const dayOffDates = Array.from(dayOffsSet);
 
-    // tính net = tổng - nghỉ đặc biệt (Mặc định mọi ngày là ngày làm việc)
+    // tính net = tổng - nghỉ
     let netWorkingDays = totalDaysInPeriod - specialDayOffs;
 
     // logic trừ 1 để đếm khoảng (giữ nguyên logic cũ)
@@ -1317,12 +1799,13 @@ function calculateWorkingDays(startDate, endDate, companyName, config, processed
             if (latestDataDate) {
                 const avgResult = calculateWorkingDays(p.start, latestDataDate, companyName, config, processedHolidayData);
                 workingDaysForAvg = avgResult.workingDays; 
+                dayOffsCount = avgResult.dayOffsCount; 
+                dayOffDates = avgResult.dayOffDates; // ⭐️ Tooltip và Bảng chi tiết cũng chỉ lấy đến ngày có số liệu
+            } else {
+                workingDaysForAvg = 0;
+                dayOffsCount = 0;
+                dayOffDates = [];
             }
-
-            // 2. TÍNH DAY OFF LUÔN ĐẾN HÔM NAY (Dùng để hiển thị)
-            const dayOffsResult = calculateWorkingDays(p.start, today, companyName, config, processedHolidayData);
-            dayOffsCount = dayOffsResult.dayOffsCount; 
-            dayOffDates = dayOffsResult.dayOffDates;   
 
         } else {
             // 2B. END VALUE: Kỳ QUÁ KHỨ
@@ -1381,9 +1864,6 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
     const today = new Date();
     today.setHours(23, 59, 59, 999);
     
-    // Lấy Hệ số nhân khoán
-    const QUOTA_MULTIPLIER = config.quotaMultipliers[companyName] !== undefined ? Number(config.quotaMultipliers[companyName]) : 0;
-
     // 1. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ TIẾP THEO (Revert về logic ban đầu: 16/09 -> 16/10)
     const stepFn = start => { 
         const end = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
@@ -1391,9 +1871,10 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         return end;
     };
 
-    // 2. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ HIỆN TẠI (Đã sửa đổi để 15 là ngày cuối kỳ)
+    // 2. HÀM XÁC ĐỊNH NGÀY BẮT ĐẦU KỲ HIỆN TẠI (Đã cập nhật logic kiểm tra cài đặt công ty cá nhân)
     const getStartFn = d => {
-        const endDay = config.billingDayStart; // Ví dụ: 15
+        const currentConfig = getCompanyConfigAtDate(companyName, formatISODate(d));
+        const endDay = currentConfig && currentConfig.billingDay ? Number(currentConfig.billingDay) : (Number(config.billingDayStart) || 15); 
         
         // A. Xác định ngày kết thúc kỳ (end): Là ngày 15 của tháng hiện tại (d)
         let end = new Date(d.getFullYear(), d.getMonth(), endDay, 0, 0, 0, 0);
@@ -1480,32 +1961,47 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         }
 
         // --- 2. TÍNH SỐ NGÀY LÀM VIỆC RÒNG (Dùng chung cho Trung bình và Khoán) ---
-        let endDayForCounting = null;
+        let workingDaysForAvg = 0;
+        let dayOffsCount = 0;
+        let dayOffDates = [];
+
         if (isCurrent) {
-            // Kỳ Hiện Tại: Đếm ngày từ p.start (16/09) đến Ngày hôm nay
-            endDayForCounting = today; 
+            // Dành cho tính Trung bình, Khoán và hiển thị Chi tiết: Chỉ đếm đến ngày có dữ liệu (latestDataDate)
+            if (latestDataDate) {
+                const avgResult = calculateWorkingDays(p.start, latestDataDate, companyName, config, processedHolidayData);
+                workingDaysForAvg = avgResult.workingDays;
+                dayOffsCount = avgResult.dayOffsCount; 
+                dayOffDates = avgResult.dayOffDates; // ⭐️ Đồng bộ, không lấy đến today nữa
+                
+                // Khắc phục lỗi thiếu 1 ngày cho kỳ hiện tại (bù lại logic đếm khoảng)
+                if (workingDaysForAvg > 0) {
+                    workingDaysForAvg += 1; 
+                }
+            } else {
+                workingDaysForAvg = 0;
+                dayOffsCount = 0;
+                dayOffDates = [];
+            }
+
         } else {
             // Kỳ Quá Khứ: Đếm ngày từ p.start (16/08) đến 15/09
-            endDayForCounting = new Date(p.end.getTime());
+            const endDayForCounting = new Date(p.end.getTime());
             endDayForCounting.setDate(endDayForCounting.getDate() - 1); // Lùi 1 ngày (16/09 -> 15/09)
+            
+            const pastResult = calculateWorkingDays(p.start, endDayForCounting, companyName, config, processedHolidayData);
+            workingDaysForAvg = pastResult.workingDays;
+            dayOffsCount = pastResult.dayOffsCount;
+            dayOffDates = pastResult.dayOffDates;
         }
 
-        if (endDayForCounting) {
-            workingDaysResult = calculateWorkingDays(p.start, endDayForCounting, companyName, config, processedHolidayData);
-        }
-        
-        // *** KHẮC PHỤC LỖI THIẾU 1 NGÀY CHO KỲ HIỆN TẠI ***
-        let workingDaysForAvg = workingDaysResult.workingDays;
-        if (isCurrent && workingDaysForAvg > 0) {
-            // Nếu hàm calculateWorkingDays tự động trừ 1 ngày, ta phải cộng lại 1 ngày cho kỳ hiện tại 
-            // để bao gồm cả hôm nay trong tính toán khoán.
-            workingDaysForAvg += 1; 
-        }
-        
-        const dayOffsCount = workingDaysResult.dayOffsCount;
-        const dayOffDates = workingDaysResult.dayOffDates;
+        // Lấy Hệ số nhân khoán từ bảng Lịch sử (Tính tại thời điểm cuối kỳ)
+        const periodEndStr = formatISODate(p.end);
+        const currentConfig = getCompanyConfigAtDate(companyName, periodEndStr);
+        const QUOTA_MULTIPLIER = currentConfig 
+            ? (Number(currentConfig.quotaMultiplier) || 0) 
+            : (config.quotaMultipliers[companyName] !== undefined ? Number(config.quotaMultipliers[companyName]) : 0);
 
-        // Khối lượng khoán (Quota)
+        // Khối lượng khoán (Quota) - Đã áp dụng hệ số lịch sử
         const quotaValue = workingDaysForAvg * QUOTA_MULTIPLIER;
 
         // --- 3. TÍNH TRUNG BÌNH (AVG) ---
@@ -1577,8 +2073,6 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         if (!finalFrom) finalFrom = currentYearStart;
         if (!finalTo) finalTo = todayISO;
         
-        note.textContent = `Đang xem dữ liệu từ ${new Date(finalFrom).toLocaleDateString('vi-VN')} đến ${new Date(finalTo).toLocaleDateString('vi-VN')}`;
-
         currentFilter.from = finalFrom;
         currentFilter.to = finalTo;
 
@@ -1777,10 +2271,6 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         const from = currentFilter.from ? new Date(currentFilter.from) : new Date(new Date().getFullYear(), 0, 1);
         const to = currentFilter.to ? new Date(currentFilter.to) : new Date();
         to.setHours(23, 59, 59, 999);
-
-        if(userRole === 'admin' && companies.length > 0) {
-            renderQuotaMultipliers(companies);
-        }
         
         // LẤY TRẠNG THÁI MỚI (0: Normal, 1: Count, 2: List)
         const reportMode = getReportMode(); 
@@ -1988,15 +2478,6 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
 
     // === MASTER LIST MANAGER FUNCTIONS ===
 
-    function renderMasterListManager() {
-        if (allMasterCompanies.length === 0) {
-            currentMasterListDiv.textContent = "Danh sách hiện tại: (Trống)";
-        } else {
-            const companyNames = allMasterCompanies.map(c => c.company).join(', ');
-            currentMasterListDiv.innerHTML = `Danh sách hiện tại: <strong>${companyNames}</strong>`;
-        }
-    }
-
     async function manageMasterCompany(companyName, action) {
     const safeName = companyName.trim();
     const docRef = doc(db, "companies_master", safeName);
@@ -2042,70 +2523,59 @@ async function deleteInitialReading(companyName) {
       el.addEventListener("change", resetYearSelectIfEditingDates);
     });
 
-    // HÀM KHỞI TẠO REALTIME LISTENER (Mặc định)
-    function startRealtimeReports() {
-        if (unsubscribeReports1) return; // Đã chạy rồi thì thôi
-
-        unsubscribeReports1 = listenReports("reports_1", async (reports) => {
-            allReports = reports;
-
-            // 1. Populate Year Select
-            const years = [...new Set(reports.map(r => {
-                const dateString = r.ngay_ghi;
-                if (dateString) return new Date(dateString).getFullYear();
-                return null;
-            }).filter(y => y !== null))].sort((a,b)=>b-a);
-
-            const ys = document.getElementById("yearSelect");
-            if(ys) {
-                const currentVal = ys.value; // Giữ giá trị đang chọn
-                ys.innerHTML = `<option value="">--Chọn năm--</option>`;
-                years.forEach(y => ys.innerHTML += `<option value="${y}">${y}</option>`);
-                if (currentVal && years.includes(Number(currentVal))) ys.value = currentVal;
-            }
+    // HÀM TẢI DỮ LIỆU ĐỒNG BỘ THEO NHU CẦU (THAY THẾ REALTIME)
+    async function loadStatisticsData(fromDate, toDate) {
+        showLoading("Đang tải dữ liệu báo cáo...");
+        try {
+            // 1. Tải dữ liệu Chỉ số (reports_1) - Bỏ qua limit
+            allReports = await getReportsByDate("reports_1", "ngay_ghi", fromDate, toDate, "all");
             
-            // 2. Set default filter on initial load
-            if(isInitialLoad) {
+            // 2. Tải dữ liệu Ngày nghỉ (reports_2)
+            // Do reports_2 lưu ở 2 field khác nhau nên query 2 lần rồi gộp lại
+            const q1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", fromDate), where("ngay_nghi", "<=", toDate));
+            const q2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", fromDate), where("ngay_lam_db", "<=", toDate));
+            
+            const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            const holidayMap = new Map();
+            snap1.docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
+            snap2.docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
+            allHolidayRecords = Array.from(holidayMap.values());
+            
+            // 3. Khởi tạo danh sách dropdown Năm (2024 -> Năm nay)
+            const ys = document.getElementById("yearSelect");
+            if (ys && ys.options.length <= 1) {
                 const currentYear = new Date().getFullYear();
-                if (years.includes(currentYear) && ys) {
-                  const todayISO = formatISODate(new Date());
-                  const currentYearStart = currentYear + '-01-01';
-                  
-                  // document.querySelector('input[name="report-mode"]').checked = true; 
-                  ys.value = currentYear;
-                  currentFilter.from = currentYearStart;
-                  currentFilter.to = todayISO; 
+                for(let y = currentYear; y >= 2024; y--) {
+                    ys.innerHTML += `<option value="${y}">${y}</option>`;
                 }
             }
-
-            // 3. Get config
-            await getReportConfig(); 
             
-            // 4. Render report
+            // 4. Lấy Config (Xử lý Ngày nghỉ, Ngày chốt) và Render bảng
+            await getReportConfig();
             reRenderReport();
+            filterReportByCompanyGroup();
             
-            if (companyGroupFilter) {
-                filterReportByCompanyGroup();
-            }
-            
-            isInitialLoad = false;
-        });
+        } catch (e) {
+            console.error("Lỗi tải dữ liệu thống kê:", e);
+            showSwal("error", "Lỗi tải dữ liệu", e.message);
+        } finally {
+            hideLoading();
+        }
     }
 
     const applyDateFilter = async () => {
       const fromVal = fromInput.value;
       const toVal = toInput.value;
       const yearVal = yearSelect.value;
-
       const todayISO = formatISODate(new Date());
       const currentYear = new Date().getFullYear();
       const currentYearStart = currentYear + '-01-01';
 
       if (yearVal) {
         currentFilter.from = `${yearVal}-01-01`;
-        currentFilter.to = `${yearVal}-12-31`;
-        fromInput.value = "";
-        toInput.value = "";
+        currentFilter.to = parseInt(yearVal) === currentYear ? todayISO : `${yearVal}-12-31`;
+        fromInput.value = currentFilter.from;
+        toInput.value = currentFilter.to;
       } else if (fromVal && toVal) {
         currentFilter.from = fromVal;
         currentFilter.to = toVal;
@@ -2116,44 +2586,12 @@ async function deleteInitialReading(companyName) {
         currentFilter.from = fromVal;
         currentFilter.to = todayISO;
       } else {
-        currentFilter.from = null;
-        currentFilter.to = null;
+        currentFilter.from = currentYearStart;
+        currentFilter.to = todayISO;
       }
 
-      // LOGIC MỚI: Tải dữ liệu theo nhu cầu (Bỏ qua giới hạn 6000)
-      if (currentFilter.from && currentFilter.to) {
-          // 1. Tắt Realtime Listener (để tránh xung đột dữ liệu và tiết kiệm)
-          if (unsubscribeReports1) {
-              unsubscribeReports1();
-              unsubscribeReports1 = null;
-              console.log("LOG: Đã tắt Realtime Listener để chuyển sang chế độ Lọc Lịch sử.");
-          }
-
-          // 2. Tải dữ liệu đầy đủ từ Server cho khoảng thời gian này
-          showLoading("Đang tải dữ liệu lịch sử...");
-          try {
-              // Gọi hàm getReportsByDate (đã có trong script.js) để lấy chính xác khoảng thời gian
-              allReports = await getReportsByDate("reports_1", "ngay_ghi", currentFilter.from, currentFilter.to);
-              
-              await getReportConfig(); // Cập nhật config
-              reRenderReport();
-              filterReportByCompanyGroup();
-              
-          } catch (e) {
-              console.error("Lỗi tải lịch sử:", e);
-              showSwal("error", "Lỗi tải dữ liệu", e.message);
-          } finally {
-              hideLoading();
-          }
-      } else {
-          // Nếu bỏ lọc -> Quay lại chế độ Realtime mặc định
-          if (!unsubscribeReports1) {
-              startRealtimeReports();
-          } else {
-              reRenderReport();
-              filterReportByCompanyGroup();
-          }
-      }
+      // Gọi hàm tải dữ liệu mới
+      await loadStatisticsData(currentFilter.from, currentFilter.to);
     };
 
     if(applyFilterBtn) {
@@ -2233,21 +2671,6 @@ if (reportModeToggle) {
         }
     }
     
-    // === GÁN SỰ KIỆN QUẢN LÝ MASTER LIST ===
-    if (addCompanyBtn) {
-        addCompanyBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await manageMasterCompany(companyNameInput.value, 'add');
-        });
-    }
-
-    if (removeCompanyBtn) {
-        removeCompanyBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await manageMasterCompany(companyNameInput.value, 'remove');
-        });
-    }
-    // === KẾT THÚC GÁN SỰ KIỆN QUẢN LÝ MASTER LIST ===
 
 
 // ==== THAY THẾ: handler nút Xuất báo cáo ====
@@ -2320,7 +2743,6 @@ async function exportTableToPDF(element, filename) {
   const prevPdfOnlyDisplay = pdfOnlyEls.map(el => el.style.display || '');
   const toggleEl = document.getElementById('reportModeToggle');
   const prevToggleDisplay = toggleEl ? toggleEl.style.display : null;
-  const prevNote = note ? note.textContent : "";
 
   try {
     // 1) Hiện tất cả child-row & pdf-only trong UI (để clone lấy trạng thái hiển thị)
@@ -2329,9 +2751,6 @@ async function exportTableToPDF(element, filename) {
 
     // 2) Ẩn control toggle gốc (nếu có)
     if (toggleEl) toggleEl.style.display = 'none';
-
-    // 3) chỉnh note cho PDF
-    if (note) note.textContent = (note.textContent || "").replace('Đang xem dữ liệu', 'Báo cáo thống kê chi tiết');
 
     // 4) đảm bảo hiển thị tất cả cột (muốn dùng chế độ export all companies)
     if (companyGroupFilter) {
@@ -2390,9 +2809,6 @@ async function exportTableToPDF(element, filename) {
     // restore toggle display
     if (toggleEl) toggleEl.style.display = prevToggleDisplay || 'flex';
 
-    // restore note
-    if (note) note.textContent = prevNote;
-
     // restore company group filter (bỏ về giá trị cũ nếu cần)
     // (lưu ý: filterReportByCompanyGroup() sẽ được gọi bởi reRenderReport nếu cần)
     if (companyGroupFilter) {
@@ -2416,12 +2832,19 @@ async function exportTableToPDF(element, filename) {
 
     const snapQuota = (snapData.quotaMultipliers && typeof snapData.quotaMultipliers === 'object') ? snapData.quotaMultipliers : {};
 
+    // ⭐️ MỚI: Tải cấu hình defaultHolidays từ settings
+    const settingsRef = doc(db, "settings", "reportConfig");
+    const settingsSnap = await getDoc(settingsRef);
+    const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+    const defaultHolidays = settingsData.defaultHolidays || {};
+
     config = {
         weekDayStart: (snapData.weekDayStart ?? config.weekDayStart),
         monthDayStart: (snapData.monthDayStart ?? config.monthDayStart),
         billingDayStart: (snapData.billingDayStart ?? config.billingDayStart),
         yearDayStart: (snapData.yearDayStart ?? config.yearDayStart),
         quotaMultipliers: { ...(config.quotaMultipliers || {}), ...snapQuota },
+        defaultHolidays: defaultHolidays // ⭐️ Lưu vào biến toàn cục config để tự tính toán
     };
 
     console.log("🔥 merged config:", JSON.stringify(config));
@@ -2451,7 +2874,6 @@ async function exportTableToPDF(element, filename) {
     // Update UI selects
     document.getElementById("weekDayStart").value = config.weekDayStart;
     document.getElementById("monthDayStart").value = config.monthDayStart;
-    document.getElementById("billingDayStart").value = config.billingDayStart;
     document.getElementById("yearDayStart").value = config.yearDayStart;
 }
 
@@ -2474,16 +2896,11 @@ async function exportTableToPDF(element, filename) {
     const newConfig = {
         weekDayStart: Number(document.getElementById("weekDayStart").value),
         monthDayStart: Number(document.getElementById("monthDayStart").value),
-        billingDayStart: Number(document.getElementById("billingDayStart").value),
+        billingDayStart: config.billingDayStart, // Giữ lại cấu hình cũ nếu có
         yearDayStart: Number(document.getElementById("yearDayStart").value),
         quotaMultipliers: config.quotaMultipliers,
     };
     
-    document.querySelectorAll('#quotaMultipliersSetting input[data-company]').forEach(input => {
-        const company = input.dataset.company;
-        const value = parseFloat(input.value);
-        newConfig.quotaMultipliers[company] = isNaN(value) ? 0 : value;
-    });
 
     showLoading("Đang lưu cài đặt..."); 
     try {
@@ -2499,21 +2916,6 @@ async function exportTableToPDF(element, filename) {
     }
 }
 
-    function renderQuotaMultipliers(companies) {
-    let html = "<div class='quota-scroll'><table><thead><tr><th>STT</th><th>Công ty</th><th>Hệ số (m³/ngày)</th></tr></thead><tbody>";
-    companies.forEach((company, idx) => {
-      const currentMultiplier = config.quotaMultipliers?.[company] || 0;
-      html += `
-        <tr>
-          <td>${idx + 1}</td>
-          <td>${company}</td>
-          <td><input type="number" step="1" value="${currentMultiplier}" data-company="${company}" style="width: 80px; text-align: center;"></td>
-        </tr>
-      `;
-    });
-    html += "</tbody></table></div>";
-    quotaMultipliersSettingDiv.innerHTML = html;
-    }
 
 
     // kiểm tra trạng thái đăng nhập
@@ -2537,28 +2939,40 @@ async function exportTableToPDF(element, filename) {
             // === Listener MỚI: companies_master (Master List) ===
             listenCollection("companies_master", (masterDocs) => {
                 allMasterCompanies = masterDocs.filter(d => d && d.company);
-                renderMasterListManager();
+                populateModalCompanyDropdown(); // Tự động cập nhật menu thả xuống ngay lập tức
                 reRenderReport();
             });
 
             // === KẾT THÚC Listener MỚI ===
-
-
-            // Listener 1: reports_1 (Chỉ số tiêu thụ) - Dùng hàm mới startRealtimeReports
-            startRealtimeReports();
             
-            // Listener 2: reports_2 (Ngày nghỉ/Ngày làm việc đặc biệt)
-            listenReports("reports_2", async (holidays) => {
-                allHolidayRecords = holidays;
-                
-                // Sau khi reports_2 được tải, cần chạy lại config để xử lý dữ liệu mới và render lại báo cáo
+            // === Listener MỚI: company_configs (Cấu hình Công ty Lịch sử) ===
+            onSnapshot(collection(db, "company_configs"), (snapshot) => {
+                allCompanyConfigs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (!isInitialLoad) {
-                    await getReportConfig();
-                    reRenderReport();
-                    // Đảm bảo lọc được áp dụng lại sau khi render
-                    filterReportByCompanyGroup();
+                    reRenderReport(); // Render lại nếu có thay đổi trong cài đặt
                 }
+            }, (error) => {
+                console.error("Lỗi lắng nghe company_configs (Permission Denied):", error);
             });
+            // === KẾT THÚC Listener ===
+
+            // TẢI DỮ LIỆU LẦN ĐẦU (Năm Hiện Tại) THAY VÌ LẮNG NGHE REAL-TIME
+            if (isInitialLoad) {
+                const currentYear = new Date().getFullYear();
+                const currentYearStart = currentYear + '-01-01';
+                const todayISO = formatISODate(new Date());
+                
+                currentFilter.from = currentYearStart;
+                currentFilter.to = todayISO;
+                fromInput.value = currentYearStart;
+                toInput.value = todayISO;
+                
+                const ys = document.getElementById("yearSelect");
+                if (ys) ys.value = currentYear;
+                
+                await loadStatisticsData(currentYearStart, todayISO);
+                isInitialLoad = false;
+            }
 
             
         } else {
