@@ -294,8 +294,8 @@
         <div class="home-login-box" aria-label="Đăng nhập nhanh">
             <h3 style="margin:0 0 8px 0; color:#0b3b6f;">Đăng nhập</h3>
             <form id="homeLoginForm">
-                <input type="email" id="homeEmail" name="email" placeholder="Email" required style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
-                <input type="password" id="homePassword" name="password" placeholder="Mật khẩu" required style="width:100%; padding:8px; margin-bottom:12px; border:1px solid #ddd; border-radius:6px;" />
+                <input type="email" id="homeEmail" name="email" placeholder="Email" required autocomplete="username" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
+                <input type="password" id="homePassword" name="password" placeholder="Mật khẩu" required autocomplete="current-password" style="width:100%; padding:8px; margin-bottom:12px; border:1px solid #ddd; border-radius:6px;" />
                 <button type="submit" id="homeLoginSubmit" class="submit-btn" style="width:100%; background:#1f3765; color:#fff; padding:10px; border-radius:6px; border:none;">Đăng nhập</button>
             </form>
         </div>
@@ -359,7 +359,7 @@
             getAutoplanRules,
             getCachedSchedule,
             calculateAndCacheSchedule
-        } from "./chatbot-firebase-queries.js";
+        } from "./chatbot-firebase-queries.js?v=2";
 
         // load menu
         fetch("menu.html").then(r => r.text()).then(h => {
