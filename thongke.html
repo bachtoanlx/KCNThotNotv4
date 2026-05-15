@@ -513,11 +513,11 @@
     }
     // ⭐ KẾT THÚC HÀM MỚI
     // Copy từ baocao.html
-    function formatNumberForDisplay(num, fractionDigits = 1) {
+    function formatNumberForDisplay(num, fractionDigits = 1, forceDecimals = false) {
         if (num == null || isNaN(num)) return '';
         // Sửa: Luôn hiển thị ít nhất 0 chữ số thập phân, tối đa 'fractionDigits'
         return new Intl.NumberFormat('vi-VN', {
-            minimumFractionDigits: 0,
+            minimumFractionDigits: forceDecimals ? fractionDigits : 0,
             maximumFractionDigits: fractionDigits
         }).format(num);
     }
@@ -814,11 +814,11 @@
         const getCellId = (metric, typeVietnamese, period) => `${metric}-${typeVietnamese}-${period}`; // vd: dien-tong-tuan
 
         // Hàm cập nhật ô (Giữ nguyên)
-        const updateCell = (id, value, fractionDigits = 1) => {
+        const updateCell = (id, value, fractionDigits = 1, forceDecimals = false) => {
             const cell = document.getElementById(id);
             console.log(`Updating cell: ID=${id}, Value=${value}`);
             if (cell) {
-                cell.textContent = formatNumberForDisplay(value, fractionDigits);
+                cell.textContent = formatNumberForDisplay(value, fractionDigits, forceDecimals);
             } else {
                  console.warn("Không tìm thấy cell ID:", id);
             }
@@ -842,7 +842,9 @@
                     // Đọc giá trị từ summaryData bằng key tiếng Anh
                     const value = summaryData[metric]?.[typeEnglish] ?? null;
                     // Gọi updateCell với ID tiếng Việt
-                    updateCell(getCellId(metric, typeVietnamese, period), value, (metric === 'dien' ? 0 : 1));
+                    const isAvg = typeEnglish === 'avg';
+                    const fractionDigits = (metric === 'dien' && !isAvg) ? 0 : 1;
+                    updateCell(getCellId(metric, typeVietnamese, period), value, fractionDigits, isAvg);
                 });
             });
         });
@@ -853,7 +855,7 @@
              Object.keys(typesMap).forEach(typeVietnamese => {
                  const typeEnglish = typesMap[typeVietnamese];
                  const value = summaryData.chemicals.totalAll?.[typeEnglish] ?? null;
-                 updateCell(getCellId('chem', typeVietnamese, period), value);
+                 updateCell(getCellId('chem', typeVietnamese, period), value, 1, typeEnglish === 'avg');
              });
         });
 
@@ -865,7 +867,7 @@
                 Object.keys(typesMap).forEach(typeVietnamese => {
                     const typeEnglish = typesMap[typeVietnamese];
                     const value = summaryData.chemicals[normalizedDataName]?.[typeEnglish] ?? null;
-                    updateCell(getCellId(htmlName, typeVietnamese, period), value);
+                    updateCell(getCellId(htmlName, typeVietnamese, period), value, 1, typeEnglish === 'avg');
                 });
              });
         });
@@ -882,7 +884,7 @@
                     Object.keys(typesMap).forEach(typeVietnamese => { // Lặp qua tong, tb
                         const typeEnglish = typesMap[typeVietnamese]; // Lấy total, avg
                         const value = summaryData.chemicals[name]?.[typeEnglish] ?? null; // Đọc data
-                        const displayValue = formatNumberForDisplay(value);
+                        const displayValue = formatNumberForDisplay(value, 1, typeEnglish === 'avg');
                         const isHidden = (period === 'ky' && !isCustomPeriod) || (period !== 'ky' && isCustomPeriod);
                         // Cell ID vẫn dùng tong/tb (nhưng không cần ID vì tạo động)
                         otherChemicalsHtml += `<td style="${isHidden ? 'display:none;' : ''}">${displayValue}</td>`;
@@ -912,10 +914,10 @@
         console.log("Rendering summary for Week, Month, Year");
         showLoading("Đang cập nhật bảng...");
 
-        const updateCell = (id, value, fractionDigits = 1) => {
+        const updateCell = (id, value, fractionDigits = 1, forceDecimals = false) => {
             const cell = document.getElementById(id);
             if (cell) {
-                cell.textContent = formatNumberForDisplay(value, fractionDigits);
+                cell.textContent = formatNumberForDisplay(value, fractionDigits, forceDecimals);
             } else {
                  console.warn("Không tìm thấy cell ID:", id);
             }
@@ -939,7 +941,9 @@
                 Object.keys(typesMap).forEach(typeVietnamese => {
                     const typeEnglish = typesMap[typeVietnamese];
                     const value = periodData[metric]?.[typeEnglish] ?? null;
-                    updateCell(`${metric}-${typeVietnamese}-${period}`, value, (metric === 'dien' ? 0 : 1));
+                    const isAvg = typeEnglish === 'avg';
+                    const fractionDigits = (metric === 'dien' && !isAvg) ? 0 : 1;
+                    updateCell(`${metric}-${typeVietnamese}-${period}`, value, fractionDigits, isAvg);
                 });
             });
         });
@@ -952,7 +956,7 @@
              Object.keys(typesMap).forEach(typeVietnamese => {
                  const typeEnglish = typesMap[typeVietnamese];
                  const value = periodData.chemicals.totalAll?.[typeEnglish] ?? null;
-                 updateCell(`chem-${typeVietnamese}-${period}`, value);
+                 updateCell(`chem-${typeVietnamese}-${period}`, value, 1, typeEnglish === 'avg');
              });
         });
 
@@ -965,7 +969,7 @@
                 Object.keys(typesMap).forEach(typeVietnamese => {
                     const typeEnglish = typesMap[typeVietnamese];
                     const value = periodData.chemicals[normalizedDataName]?.[typeEnglish] ?? null;
-                    updateCell(`${htmlName}-${typeVietnamese}-${period}`, value);
+                    updateCell(`${htmlName}-${typeVietnamese}-${period}`, value, 1, typeEnglish === 'avg');
                 });
              });
         });
@@ -993,7 +997,7 @@
                 Object.keys(typesMap).forEach(typeVietnamese => { // Lặp qua tong, tb
                     const typeEnglish = typesMap[typeVietnamese];
                     const value = periodData?.chemicals[name]?.[typeEnglish] ?? null;
-                    const displayValue = formatNumberForDisplay(value);
+                    const displayValue = formatNumberForDisplay(value, 1, typeEnglish === 'avg');
                     otherChemicalsHtml += `<td>${displayValue}</td>`;
                 });
             });
