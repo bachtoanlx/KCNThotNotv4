@@ -1249,15 +1249,17 @@ if (exactMatchDoc) {
 
 //
 export function listenReports(collectionName, callback) {
-  // ⭐️ GIỚI HẠN BẢN GHI để giảm chi phí đọc (Tăng lên 6000 cho thống kê năm)
+  // ⭐️ GIỚI HẠN BẢN GHI ĐỂ TRÁNH ĐỐT CHI PHÍ (Mặc định 50 cho các luồng listen)
   const q = query(
     collection(db, collectionName), 
     orderBy("createdAt", "desc"),
-    limit(6000) // ← Đã tăng từ 500 lên 6000
+    limit(50) 
   );
   return onSnapshot(q, (snapshot) => {
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     callback(reports);
+  }, (error) => {
+    console.error(`[listenReports] Lỗi lắng nghe ${collectionName}:`, error);
   });
 }
 //
@@ -1319,6 +1321,8 @@ export function listenCollection(collectionName, callback) {
   return onSnapshot(q, (snapshot) => {
     const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     callback(docs);
+  }, (error) => {
+    console.error(`[listenCollection] Lỗi lắng nghe ${collectionName}:`, error);
   });
 }
 
@@ -1703,6 +1707,8 @@ export function listenRulesRealtime(callback) {
     firstSnapshotLoaded = true;
     console.log("[listenRulesRealtime] cập nhật", rules.length, "quy tắc");
     callback(rules);
+  }, (error) => {
+    console.error("[listenRulesRealtime] Lỗi lắng nghe:", error);
   });
 
   // Hàm này trả về một hàm để hủy lắng nghe khi cần
