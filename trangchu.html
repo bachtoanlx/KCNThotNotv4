@@ -355,7 +355,10 @@
             getTopConsumers,
             getQuotaMultipliers,
             getStartDaySettings,
-            getDefaultHolidays
+            getDefaultHolidays,
+            getAutoplanRules,
+            getCachedSchedule,
+            calculateAndCacheSchedule
         } from "./chatbot-firebase-queries.js";
 
         // load menu
@@ -425,7 +428,8 @@
             // Hàm khởi tạo: Tải danh sách công ty một lần
             async function initializeChatbot() {
                 try {
-                    const companiesRef = collection(db, "reports_1");
+                    // ⭐️ TỐI ƯU HÓA: Chỉ đọc Master List thay vì quét toàn bộ reports_1
+                    const companiesRef = collection(db, "companies_master");
                     const snapshot = await getDocs(companiesRef);
                     const uniqueCompanies = new Set();
                     snapshot.forEach(doc => {
@@ -548,6 +552,12 @@
                 
                 // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
                 if (dataQuery) {
+                    // KIỂM TRA ĐĂNG NHẬP: Nếu cần dữ liệu mà chưa đăng nhập thì chặn lại
+                    if (!auth.currentUser) {
+                        setTimeout(() => addMessage("⚠️ Bạn cần <b>đăng nhập</b> để tra cứu dữ liệu chi tiết (chỉ số, ngày nghỉ, thống kê...).", false, true), 500);
+                        return; // Dừng xử lý, không gọi AI tốn quota
+                    }
+
                     try {
                         switch (dataQuery.type) {
                             case 'companyList':
@@ -570,6 +580,10 @@
                                 } else {
                                     // Tìm kiếm fuzzy để gợi ý công ty
                                     console.log('🔎 Running fuzzy search for:', userMessage);
+                                    if (!fuse) {
+                                        console.warn('⚠️ Hệ thống tìm kiếm chưa sẵn sàng.');
+                                        break;
+                                    }
                                     const results = fuse.search(userMessage);
                                     console.log('🔎 Fuzzy results:', results);
                                     if (results.length > 0 && results[0].score < 0.3) {
@@ -650,6 +664,50 @@
                                     contextData = { history, company: dataQuery.company };
                                 }
                                 break;
+                            
+                            case 'autoplan':
+                                // Lấy danh sách Autoplan
+                                
+                                // --- LOGIC MỚI: Thử tìm ngày cụ thể trong câu hỏi để lấy Cache ---
+                                let cachedData = null;
+                                let targetDateStr = "";
+                                
+                                // Regex tìm ngày/tháng (VD: 12/12 hoặc 12/12/2024)
+                                const dateMatch = userMessage.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+                                if (dateMatch) {
+                                    const day = dateMatch[1].padStart(2, '0');
+                                    const month = dateMatch[2].padStart(2, '0');
+                                    const year = dateMatch[3] || new Date().getFullYear();
+                                    targetDateStr = `${year}-${month}-${day}`;
+                                    
+                                    console.log(`🔍 Phát hiện ngày ${targetDateStr}, đang tìm trong Cache...`);
+                                    cachedData = await getCachedSchedule(targetDateStr);
+                                } else if (userMessage.toLowerCase().includes("hôm nay")) {
+                                    const now = new Date();
+                                    targetDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                                    cachedData = await getCachedSchedule(targetDateStr);
+                                }
+                                
+                                let finalScheduleContent = "";
+
+                                if (cachedData) {
+                                    console.log('✅ Tìm thấy lịch Cache:', cachedData);
+                                    finalScheduleContent = cachedData.content;
+                                } else if (targetDateStr) {
+                                    // Nếu chưa có cache, dùng JS tính toán ngay lập tức và lưu lại
+                                    console.log('⚠️ Chưa có cache, đang tính toán JS...');
+                                    finalScheduleContent = await calculateAndCacheSchedule(targetDateStr);
+                                }
+                                // ----------------------------------------------------------------
+
+                                // Gửi thêm ngày hiện tại để AI tính toán lịch cho năm nay
+                                contextData = { 
+                                    calculatedSchedule: finalScheduleContent, // Chỉ gửi kết quả cuối cùng
+                                    targetDate: targetDateStr,
+                                    currentDate: new Date().toLocaleDateString('vi-VN'),
+                                    note: "Dữ liệu lịch trực đã được tính toán sẵn."
+                                };
+                                break;
 
                             default:
                                 // Không có query type cụ thể
@@ -697,7 +755,12 @@
             });
 
             // Khởi tạo chatbot khi trang tải xong
-            initializeChatbot();
+            // Chỉ khởi tạo dữ liệu tìm kiếm nếu đã đăng nhập (để tránh lỗi permission denied trong console)
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    initializeChatbot();
+                }
+            });
             
             // Kiểm tra và hiển thị trạng thái AI
             const aiStatusEl = document.getElementById('aiStatus');
