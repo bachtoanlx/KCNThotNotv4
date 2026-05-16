@@ -95,7 +95,19 @@ export async function initFCM(email) {
 
     // Lắng nghe thông báo khi web ĐANG MỞ (Hiển thị bằng SweetAlert)
     onMessage(messaging, (payload) => {
-      showSwal("info", payload.data.title, { html: payload.data.body });
+      // Nếu tab đang mở nhưng bị thu nhỏ hoặc che khuất
+      if (document.hidden) {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(payload.data.title, {
+            body: payload.data.body,
+            icon: '/favicon.ico',
+            data: { link: payload.data.link }
+          });
+        });
+      } else {
+        // Nếu người dùng đang nhìn trực tiếp vào tab web
+        showSwal("info", payload.data.title, { html: payload.data.body });
+      }
     });
   } catch (error) {
     console.warn("Lỗi khởi tạo FCM (Có thể do chạy HTTP localhost thay vì HTTPS):", error);
