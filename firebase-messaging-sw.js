@@ -29,11 +29,6 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Nhận được thông báo ngầm: ', payload);
   
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon.ico', // Có thể thay bằng logo trang web của bạn
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // 🚀 Firebase đã TỰ ĐỘNG hiển thị thông báo nếu payload có chứa object "notification".
+  // Chúng ta không cần gọi self.registration.showNotification ở đây nữa để tránh bị đúp 2 thông báo.
 });
