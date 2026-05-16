@@ -109,6 +109,37 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// ====== HÀM TỰ ĐỘNG TÌM ADMIN VÀ GỬI THÔNG BÁO PUSH ======
+export async function notifyAdmins(title, body) {
+  const user = auth.currentUser;
+  if (!user) return;
+  try {
+    const idToken = await user.getIdToken();
+    
+    // 1. Tìm tất cả tài khoản Admin
+    const rolesSnap = await getDocs(collection(db, "roles"));
+    const adminEmails = rolesSnap.docs.filter(d => d.data().role === "admin").map(d => d.id);
+    if (adminEmails.length === 0) return;
+
+    // 2. Lấy FCM Token của các Admin đó
+    const usersSnap = await getDocs(collection(db, "users"));
+    const adminTokens = usersSnap.docs
+      .filter(d => adminEmails.includes(d.id) && d.data().fcmToken)
+      .map(d => d.data().fcmToken);
+
+    // 3. Gửi lệnh bắn thông báo qua Apps Script
+    for (const token of adminTokens) {
+      const formData = new URLSearchParams();
+      formData.append("idToken", idToken);
+      formData.append("action", "sendPushNotification");
+      formData.append("data", JSON.stringify({ fcmToken: token, title: title, body: body, link: window.location.origin }));
+      fetch(DRIVE_API_URL, { method: "POST", body: formData }).catch(e => console.warn("Lỗi gửi push:", e));
+    }
+  } catch (err) {
+    console.error("Lỗi hàm notifyAdmins:", err);
+  }
+}
+
 export function logout() {
   const userEmail = auth.currentUser?.email || "unknown";
   // ⭐️ BỔ SUNG LOG ⭐️
@@ -838,6 +869,12 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
         showSwal("success", "Gửi báo cáo thành công!", successMsg);
         addLog("form2_submit_success", { email: userEmail, company: baseData.company, added: addedCount, skipped: skipped });
 
+        // 🚀 Thông báo nộp Form 2 (Ngày nghỉ/Làm việc đặc biệt)
+        notifyAdmins(
+            "📅 Thông báo nghỉ/làm đặc biệt",
+            `Có thông báo ${submissionTypeDisplay.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
+        );
+
     } else if (skipped > 0) {
         showSwal("info", "Gửi báo cáo hoàn tất (Bị bỏ qua)", `Không có ngày nào được thêm mới. Đã bỏ qua ${skipped} ngày (do trùng lặp hoặc vô nghĩa).`);
         addLog("form2_submit_skipped_only", { email: userEmail, company: baseData.company, skipped: skipped });
@@ -982,6 +1019,11 @@ if (!snapSameDay.empty) {
         await setDoc(doc(db, collectionName, existingDoc.id), updatedRecord, { merge: true });
         // Log cũ đã có: addLog("updateReport", { id: existingDoc.id, collection: collectionName, reason, newChiSo });
 
+        // 🚀 Gửi Push Notification Cảnh báo
+        notifyAdmins(
+            "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
+            `Công ty ${company} báo cáo giảm (Ghi đè). Lý do: ${reason} - User: ${userEmail}`
+        );
         hideLoading();
         showSwal("success", "Đã ghi đè bản ghi reset.");
         form.reset();
@@ -1016,6 +1058,11 @@ if (!snapSameDay.empty) {
         await addReportDoc(data, collectionName);
         // Log cũ đã có: addLog("addReport (special)", { collection: collectionName, reason, newChiSo });
 
+        // 🚀 Gửi Push Notification Cảnh báo
+        notifyAdmins(
+            "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
+            `Công ty ${company} báo cáo giảm (Thêm mới). Lý do: ${reason} - User: ${userEmail}`
+        );
         hideLoading();
         showSwal("success", "Đã thêm bản ghi reset mới.");
         form.reset();
@@ -1121,6 +1168,9 @@ if (exactMatchDoc) {
         };
         await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
         await addLog("updateFile", { id: exactDoc.id, collection: collectionName, newFile: uploaded.id, oldFile: exactData.fileId, action: "replace" });
+        
+        // 🚀 Gửi Push Notification Cập nhật ảnh
+        notifyAdmins("🔄 Cập nhật báo cáo", `Cập nhật hình ảnh chỉ số Công ty ${company} - User: ${userEmail}`);
         hideLoading();
         showSwal("success", "Đã thay thế file cho bản ghi.");
         form.reset();
@@ -1282,6 +1332,13 @@ if (exactMatchDoc) {
     // LƯU VÀO FIRESTORE (data đã có isMeterReset: true nếu chỉ số giảm)
     // Sẽ gọi addDoc_success trong addReportDoc
     const docRef = await addReportDoc(data, collectionName); 
+
+    // 🚀 Gửi Push Notification Form 1 (Chỉ số)
+    if (data.isMeterReset) {
+        notifyAdmins("🚨 CẢNH BÁO: CHỈ SỐ GIẢM", `Công ty ${data.company} báo cáo giảm chỉ số. User: ${userEmail}`);
+    } else {
+        notifyAdmins("💧 Có chỉ số mới", `Có chỉ số mới Công ty ${data.company} - User: ${userEmail}`);
+    }
 
     showSwal("success", "Thành công", "Báo cáo đã được gửi!");
     form.reset();
