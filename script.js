@@ -113,19 +113,32 @@ onAuthStateChanged(auth, (user) => {
 export async function notifyAdmins(title, body) {
   const user = auth.currentUser;
   if (!user) return;
+  console.log(`[FCM] Bắt đầu tiến trình gửi thông báo: "${title}"`);
   try {
     const idToken = await user.getIdToken();
     
     // 1. Tìm tất cả tài khoản Admin
     const rolesSnap = await getDocs(collection(db, "roles"));
     const adminEmails = rolesSnap.docs.filter(d => d.data().role === "admin").map(d => d.id);
-    if (adminEmails.length === 0) return;
+    console.log("[FCM] Danh sách tài khoản Admin:", adminEmails);
+    if (adminEmails.length === 0) {
+        console.warn("[FCM] Không tìm thấy tài khoản admin nào trong collection 'roles'!");
+        return;
+    }
 
     // 2. Lấy FCM Token của các Admin đó
     const usersSnap = await getDocs(collection(db, "users"));
     const adminTokens = usersSnap.docs
       .filter(d => adminEmails.includes(d.id) && d.data().fcmToken)
       .map(d => d.data().fcmToken);
+      
+    console.log(`[FCM] Tìm thấy ${adminTokens.length} thiết bị Admin hợp lệ để gửi thông báo.`);
+    if (adminTokens.length === 0) {
+        console.warn("[FCM] Các tài khoản admin hiện chưa có FCM Token (Chưa cấp quyền nhận thông báo).");
+        return;
+    }
+    
+    const apiUrl = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
 
     // 3. Gửi lệnh bắn thông báo qua Apps Script
     for (const token of adminTokens) {
@@ -133,10 +146,13 @@ export async function notifyAdmins(title, body) {
       formData.append("idToken", idToken);
       formData.append("action", "sendPushNotification");
       formData.append("data", JSON.stringify({ fcmToken: token, title: title, body: body, link: window.location.origin }));
-      fetch(DRIVE_API_URL, { method: "POST", body: formData }).catch(e => console.warn("Lỗi gửi push:", e));
+      fetch(apiUrl, { method: "POST", body: formData })
+        .then(res => res.json())
+        .then(data => console.log("[FCM] Phản hồi từ Apps Script:", data))
+        .catch(e => console.warn("[FCM] Lỗi gọi API Apps Script:", e));
     }
   } catch (err) {
-    console.error("Lỗi hàm notifyAdmins:", err);
+    console.error("[FCM] Lỗi hàm notifyAdmins:", err);
   }
 }
 
