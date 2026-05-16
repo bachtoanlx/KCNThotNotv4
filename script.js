@@ -75,7 +75,6 @@ export async function initFCM(email) {
       let swRegistration = null;
       if ('serviceWorker' in navigator) {
         swRegistration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
-        // 🚀 Đợi Service Worker cài đặt và kích hoạt thành công hoàn toàn
         swRegistration = await navigator.serviceWorker.ready;
       }
 
@@ -1867,5 +1866,5 @@ export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
     }
 }
 
-// Export thêm các hàm Firestore cần thiết cho chatbot
+// Export thêm các h��m Firestore cần thiết cho chatbot
 export { query, orderBy, limit, where, getDocs, collection, doc, getDoc };
