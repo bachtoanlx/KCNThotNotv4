@@ -14,6 +14,9 @@ import {
 
 // Firebase Firestore
 import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   getFirestore,
   collection,
   addDoc,
@@ -29,6 +32,9 @@ import {
   where,
   limit 
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// Firebase Cloud Messaging
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
 
 
 
@@ -47,12 +53,54 @@ export let config = { defaultHolidays: {} };
 // ====== Firebase khởi tạo ======
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// 🚀 Bật Cache ngoại tuyến (Offline Persistence) giảm chi phí đọc
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+});
+export const messaging = getMessaging(app);
+
 
 // ====== AUTH ======
 export function onAuth(callback) {
   onAuthStateChanged(auth, callback);
 }
+
+// ====== CLOUD MESSAGING (FCM) ======
+export async function initFCM(email) {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      // THAY ĐOẠN KEY NÀY BẰNG VAPID KEY COPY Ở BƯỚC 1:
+      const currentToken = await getToken(messaging, { 
+        vapidKey: "QOkvreLCZCnnspSPR6AfXFNlNB8u7ZSPYTtrVgG2gHM" 
+      });
+      
+      if (currentToken) {
+        await setDoc(doc(db, "users", email), {
+          fcmToken: currentToken,
+          email: email,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        console.log("✅ Đã lưu FCM Token thành công!");
+      }
+    }
+
+    // Lắng nghe thông báo khi web ĐANG MỞ (Hiển thị bằng SweetAlert)
+    onMessage(messaging, (payload) => {
+      showSwal("info", payload.notification.title, { html: payload.notification.body });
+    });
+  } catch (error) {
+    console.warn("Lỗi khởi tạo FCM (Có thể do chạy HTTP localhost thay vì HTTPS):", error);
+  }
+}
+
+// Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    initFCM(user.email);
+  }
+});
 
 export function logout() {
   const userEmail = auth.currentUser?.email || "unknown";
@@ -318,7 +366,7 @@ async function addReportDoc(data = {}, collectionName) {
   try {
       const docRef = await addDoc(collection(db, collectionName), record);
       // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("addDoc_success", { collection: collectionName, docId: docRef.id, email: userEmail, company: data.company });
+      addLog("addDoc_success", { collection: collectionName, docId: docRef.id, email: userEmail, ...data });
       return docRef;
   } catch (err) {
       // ⭐️ BỔ SUNG LOG ⭐️
@@ -1742,6 +1790,73 @@ export async function saveDailyScheduleCache(dateStr, content) {
   } catch (error) {
     console.error("❌ Lỗi lưu cache lịch trực:", error);
   }
+}
+
+// ===================================================================
+// 🔹 CÁC HÀM QUẢN LÝ DANH SÁCH CÔNG TY
+// ===================================================================
+
+/**
+ * Tải danh sách công ty từ Firestore và tự động render vào thẻ select.
+ * Tận dụng bảng companies_master và company_configs để xác định nhóm.
+ * @param {string} selectId ID của thẻ select HTML
+ * @param {string} filterGroup Lọc theo nhóm: 'group1' (Đồng hồ), 'group2' (Hóa đơn), 'group3' (Khoán), 'all' (Tất cả)
+ */
+export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
+    try {
+        const selectElement = document.getElementById(selectId);
+        if (!selectElement) return;
+
+        // 1. Lấy dữ liệu từ cả 2 bảng cùng lúc để tiết kiệm thời gian
+        const [masterSnap, configSnap] = await Promise.all([
+            getDocs(collection(db, "companies_master")),
+            getDocs(collection(db, "company_configs"))
+        ]);
+        
+        const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
+        const configs = configSnap.docs.map(d => d.data());
+        const configCompanies = configs.map(c => c.company).filter(Boolean);
+        
+        // 2. Gộp danh sách và loại bỏ trùng lặp để có danh sách tổng thể nhất
+        // (Bao gồm cả cty thêm tay bên master và cty đã có trong configs)
+        let allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
+
+        // 3. Tìm config mới nhất cho mỗi công ty để phân loại nhóm
+        const latestConfigs = {};
+        // Sắp xếp theo effectiveDate tăng dần để config mới nhất đè lên config cũ
+        configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
+        configs.forEach(c => {
+            if (c.company) latestConfigs[c.company] = c;
+        });
+
+        // 4. Lọc danh sách theo yêu cầu
+        if (filterGroup !== 'all') {
+            allCompanies = allCompanies.filter(comp => {
+                const c = latestConfigs[comp];
+                // Lấy group từ cấu hình. Nếu công ty mới thêm tay chưa có cấu hình thì dùng fallback
+                const group = (c && c.group) ? c.group : (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
+                return group === filterGroup;
+            });
+        }
+        
+        // 5. Sắp xếp Alphabet
+        allCompanies.sort((a, b) => a.localeCompare(b));
+
+        // 6. Render ra giao diện
+        selectElement.innerHTML = '<option value="" disabled selected>- Chọn công ty -</option>';
+        allCompanies.forEach(comp => {
+            const option = document.createElement("option");
+            option.value = comp;
+            option.textContent = comp;
+            selectElement.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Lỗi tải danh sách công ty:", error);
+        const selectElement = document.getElementById(selectId);
+        if (selectElement) {
+            selectElement.innerHTML = '<option value="" disabled selected>- Lỗi tải dữ liệu -</option>';
+        }
+    }
 }
 
 // Export thêm các hàm Firestore cần thiết cho chatbot
