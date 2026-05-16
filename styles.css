@@ -21,11 +21,19 @@ html {
   overflow-x: hidden;
 }
 
+/* === Khóa cuộn dọc và ép nội dung vừa màn hình trên Desktop === */
+@media (min-width: 769px) {
+  html, body {
+    height: 100vh; /* Cố định chiều cao bằng 100% viewport */
+    overflow: hidden; /* Ẩn toàn bộ thanh cuộn (ngang & dọc) ở cấp trang */
+  }
+}
+
 /* ===== Thanh menu trên cùng ===== */
 nav.navbar {
   background: #273668;
   padding: 8px 20px;
-  margin-bottom: 20px;
+  margin-bottom: 5px; /* Đã giảm từ 20px xuống 5px để thu hẹp khoảng cách */
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
@@ -230,7 +238,7 @@ form {
 }
 
 form div {
-  margin-bottom: 15px;
+  margin-bottom: 1px;
 }
 
 input[type="text"],
@@ -238,7 +246,7 @@ input[type="email"],
 input[type="password"],
 input[type="file"] {
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 10px; /* Giảm padding từ 8px xuống 6px cho gọn */
   border: 1px solid #ccc;
   border-radius: 6px;
 }
@@ -265,20 +273,28 @@ button:hover {
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 10px;
   min-width: 800px; /* Đảm bảo bảng có độ rộng tối thiểu */
 }
 th, td {
-  border: 1px solid #ddd;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  border-right: 1px solid #ddd;
   padding: 10px;
   text-align: left;
+}
+th:first-child, td:first-child {
+  border-left: 1px solid #ddd;
 }
 th {
   background: #e8ebf5;
   font-weight: 600;
   position: sticky;
   top: 0;
+  border-top: 1px solid #ddd;
+  background-clip: padding-box;
   z-index: 10;
 }
 tr:nth-child(even) {
@@ -395,24 +411,24 @@ tr:nth-child(even) {
 /* Các quy tắc CSS chung cho cả 2 form (ví dụ từ lần trước) */
 .card-body {
     padding-top: 0rem;   /* Chỉnh khoảng cách phía trên */
-    padding-bottom: 1.5rem; /* Giữ nguyên khoảng cách phía dưới */
+    padding-bottom: 0.5rem; /* Giảm khoảng cách phía dưới */
     padding-left: 1.5rem;  /* Giữ nguyên khoảng cách bên trái */
     padding-right: 1.5rem; /* Giữ nguyên khoảng cách bên phải */
 }
 .form-field {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem; /* Thu hẹp khoảng cách giữa các khối nhập liệu */
     position: relative;
 }
 .form-field label {
     font-weight: 600;
     color: #495057;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.1rem; /* Kéo label sát lại với ô input/select */
     display: block;
 }
 .form-field .form-control, .form-field .form-control-file {
     border-radius: 0.5rem;
     border: 1px solid #ced4da;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.8rem; /* Giảm độ cao (padding top/bottom) của input/select */
     font-size: 1rem;
     line-height: 1.0;
     width: 100%;
@@ -522,16 +538,21 @@ tr:nth-child(even) {
 
 .modal-section table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 5px;
 }
 
 .modal-section th, .modal-section td {
-    border: 1px solid #ddd;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
     padding: 8px;
     text-align: left;
     font-size: 0.9em;
 }
+.modal-section th:first-child, .modal-section td:first-child { border-left: 1px solid #ddd; }
+.modal-section th { border-top: 1px solid #ddd; background-clip: padding-box; }
 
 .modal-section th {
     background-color: #f2f2f2;
@@ -742,6 +763,8 @@ tr:nth-child(even) {
 /* Thêm vào cuối file styles.css */
 #pageContent, #content-container {
     flex: 1; /* Giúp nội dung chính co giãn để đẩy footer xuống */
+    overflow-y: auto; /* Bật thanh cuộn dọc độc lập cho vùng nội dung chính */
+    min-height: 0; /* Quan trọng: Ép phần nội dung không được phình to quá flexbox màn hình */
 }
 
 /* ===== Shared filter-box styles (áp dụng cho các trang có bộ lọc ngày) ===== */
@@ -890,18 +913,18 @@ tr:nth-child(even) {
   
   /* Form field mobile */
   .form-field {
-    margin-bottom: 12px;
+    margin-bottom: 8px; /* Ép gọn khoảng cách các field trên mobile */
   }
   
   .form-field label {
     font-size: 14px;
-    margin-bottom: 6px;
+    margin-bottom: 2px; /* Kéo label sát input trên mobile */
   }
   
   .form-control,
   .form-control-file {
     font-size: 16px !important;
-    padding: 10px !important;
+    padding: 8px 10px !important; /* Thu gọn chiều cao ô nhập trên mobile */
   }
   
   /* Controls row mobile */
@@ -1049,14 +1072,3 @@ tr:nth-child(even) {
     display: none; /* Mặc định ẩn, JS sẽ hiển thị khi admin login */
   }
 }
-
-
-
-
-
-
-
-
-
-
-
