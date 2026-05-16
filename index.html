@@ -37,6 +37,21 @@
         overflow-x: hidden; /* Ngăn cuộn ngang không mong muốn */
         padding-bottom: 20px;
     }
+
+    /* Tối ưu khoảng cách cho màn hình máy tính để tránh cuộn */
+    @media (min-width: 768px) {
+        .card-body {
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
+        }
+        form {
+            padding: 15px 20px !important;
+            margin-bottom: 15px !important;
+        }
+        .form-field {
+            margin-bottom: 12px !important;
+        }
+    }
   </style>
 </head>
 
@@ -52,16 +67,11 @@
   <div id="pageContent" style="display:none;">
     <div class="form-style-1">          
         <div class="card-body">
-            <form id="registrationForm_1" data-collection="reports_1" data-folder-id="172daCAN-J_TSKBnLvDIzQU_ejbdtLQpB" onsubmit="submitForm(event, this.id, this.dataset.collection, this.dataset.folderId)">
+            <form id="registrationForm_1" data-collection="reports_1" data-folder-id="172daCAN-J_TSKBnLvDIzQU_ejbdtLQpB" onsubmit="submitForm(event, this.id, this.dataset.collection, this.dataset.folderId)" style="margin-bottom: 15px;">
                 <div class="form-group form-field">
                     <label for="c_ty">Tên Công ty:</label>
                     <select class="form-control" id="c_ty" name="c_ty" required>
-                        <option value="" disabled selected>- Chọn công ty -</option>
-                        <option value="Amicogen">Amicogen</option>
-                        <option value="Ấn Độ Dương">Ấn Độ Dương</option>
-                        <option value="Cá Việt Nam">Cá Việt Nam</option>
-                        <option value="Đại Tây Dương">Đại Tây Dương</option>
-                        <option value="NTSF">NTSF</option>
+                        <option value="" disabled selected>- Đang tải danh sách... -</option>
                     </select>
                 </div>
                 <div style="display: flex; gap: 10px;">
@@ -92,7 +102,6 @@
                     </div>
                 </div>
             </form>
-                <br>
                 <div class="form-group text-center">
                     <button type="submit" class="submit-btn" form="registrationForm_1">Gửi thông tin</button>
                 </div>    
@@ -105,7 +114,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module">
-    import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db } from "./script.js";
+    import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db, loadCompanyDropdown } from "./script.js";
     import { initMenu } from "./menu.js";
     import { collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
@@ -131,6 +140,8 @@
       if (user) {
         notLogged.style.display = "none";
         content.style.display = "flex";
+        // Tự động tải danh sách công ty (Chỉ lấy nhóm Đồng hồ - group1)
+        loadCompanyDropdown('c_ty', 'group1');
       } else {
         notLogged.style.display = "block";
         content.style.display = "none";
@@ -325,35 +336,6 @@
             const newLength = formattedValue.length;
             input.setSelectionRange(cursorPosition + (newLength - oldLength), cursorPosition + (newLength - oldLength));
         }
-        // ⭐️ LOGIC XỬ LÝ ĐĂNG NHẬP VÀ ADMIN ⭐️
-    onAuth(async user => {
-        const notLogged = document.getElementById("notLogged");
-        const pageContent = document.getElementById("pageContent");
-        
-        if (user) {
-            notLogged.style.display = "none";
-            pageContent.style.display = "block";
-            
-            // Kiểm tra và hiển thị cài đặt nếu là admin
-            const role = await getRole(user.email);
-            if (role === 'admin') {
-                const adminSettingsDiv = document.getElementById("adminHolidaySettings");
-                if (adminSettingsDiv) {
-                    adminSettingsDiv.style.display = "block";
-
-                    // Tải và hiển thị cài đặt
-                    const settings = await loadDefaultHolidaySettings();
-                    renderCompanyHolidaySettings(settings);
-
-                    // Gán sự kiện cho nút Lưu
-                    document.getElementById('saveDefaultHolidays').addEventListener('click', saveDefaultHolidays);
-                }
-            }
-        } else {
-            notLogged.style.display = "block";
-            pageContent.style.display = "none";
-        }
-    });
     });
   </script>
 </body>
