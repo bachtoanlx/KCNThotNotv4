@@ -148,7 +148,14 @@ export async function notifyAdmins(title, body) {
       formData.append("data", JSON.stringify({ fcmToken: token, title: title, body: body, link: window.location.origin }));
       fetch(apiUrl, { method: "POST", body: formData })
         .then(res => res.json())
-        .then(data => console.log("[FCM] Phản hồi từ Apps Script:", data))
+        .then(data => {
+            console.log("[FCM] Phản hồi từ Apps Script:", data);
+            if (data.result && data.result.error) {
+                console.error("❌ LỖI TỪ FIREBASE FCM:", data.result.error.message || data.result.error.status);
+            } else if (data.success) {
+                console.log("✅ Firebase đã chấp nhận và đang đẩy thông báo đến thiết bị!");
+            }
+        })
         .catch(e => console.warn("[FCM] Lỗi gọi API Apps Script:", e));
     }
   } catch (err) {
