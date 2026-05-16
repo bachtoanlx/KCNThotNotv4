@@ -95,7 +95,7 @@ export async function initFCM(email) {
 
     // Lắng nghe thông báo khi web ĐANG MỞ (Hiển thị bằng SweetAlert)
     onMessage(messaging, (payload) => {
-      showSwal("info", payload.notification.title, { html: payload.notification.body });
+      showSwal("info", payload.data.title, { html: payload.data.body });
     });
   } catch (error) {
     console.warn("Lỗi khởi tạo FCM (Có thể do chạy HTTP localhost thay vì HTTPS):", error);
