@@ -75,6 +75,8 @@ export async function initFCM(email) {
       let swRegistration = null;
       if ('serviceWorker' in navigator) {
         swRegistration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+        // 🚀 Đợi Service Worker cài đặt và kích hoạt thành công hoàn toàn
+        swRegistration = await navigator.serviceWorker.ready;
       }
 
       const currentToken = await getToken(messaging, { 
