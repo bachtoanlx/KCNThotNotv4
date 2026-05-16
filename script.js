@@ -79,7 +79,7 @@ export async function initFCM(email) {
       }
 
       const currentToken = await getToken(messaging, { 
-        vapidKey: "QOkvreLCZCnnspSPR6AfXFNlNB8u7ZSPYTtrVgG2gHM",
+        vapidKey: "BKpLjAuAte8ay_adRyliXxgFTAH_Wh3ID9tMVU6d8nSGbDRH3scSoT1FgGUm0GVaujVnZ7nnwtZYZv5g2AOX7CY",
         serviceWorkerRegistration: swRegistration
       });
       
