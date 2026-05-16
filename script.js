@@ -71,9 +71,15 @@ export async function initFCM(email) {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      // THAY ĐOẠN KEY NÀY BẰNG VAPID KEY COPY Ở BƯỚC 1:
+      // 🚀 Đăng ký Service Worker thủ công với đường dẫn tương đối cho Github Pages
+      let swRegistration = null;
+      if ('serviceWorker' in navigator) {
+        swRegistration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+      }
+
       const currentToken = await getToken(messaging, { 
-        vapidKey: "QOkvreLCZCnnspSPR6AfXFNlNB8u7ZSPYTtrVgG2gHM" 
+        vapidKey: "QOkvreLCZCnnspSPR6AfXFNlNB8u7ZSPYTtrVgG2gHM",
+        serviceWorkerRegistration: swRegistration
       });
       
       if (currentToken) {
