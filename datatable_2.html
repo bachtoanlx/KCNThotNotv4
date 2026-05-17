@@ -281,28 +281,14 @@
         padding-right: 10px !important;
     }
 
-    form {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-    }
-
     /* Tùy chỉnh container để cuộn dọc nội dung bảng */
     .table-container {
         flex: 1; /* Tự động chiếm không gian còn lại */
         max-height: none; /* Bỏ giới hạn cứng */
         overflow: auto; /* Hiện thanh cuộn (cả dọc và ngang nếu cần) */
-        border: 1px solid #ddd;
+        border: none; /* Bỏ viền ngoài của container để dùng viền bảng */
     }
     
-    /* Cố định tiêu đề bảng */
-    #dataTable th {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        box-shadow: 0 1px 0 #ccc;
-    }
         
   </style>
 </head>
@@ -316,7 +302,7 @@
   </div>
 
   <div id="pageContent" style="display:none;">
-    <h2>📊 Bảng dữ liệu báo cáo ngày nghỉ </h2>
+    <h2>📊 Bảng dữ liệu ngày nghỉ </h2>
     <div class="card-body">
 
     <div class="filter-box">
@@ -329,7 +315,6 @@
       </label>
       <button id="applyFilter" type="button">Áp dụng</button>
     </div>
-      <form>
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm...">
     </div>
@@ -350,7 +335,6 @@
           <tbody></tbody>
         </table>
         </div>
-      </form>
       
       <div class="controls-row">
         <div class="left-controls">
@@ -816,10 +800,6 @@
                 document.querySelectorAll("#dataTable th.admin-only").forEach(th => {
                     th.style.display = isAdmin ? "table-cell" : "none";
                 });
-                const formElement = document.querySelector('#pageContent form'); 
-                if (formElement) {
-                    formElement.addEventListener('submit', (e) => e.preventDefault());
-                }
 
                 // --- 2. TẢI DANH SÁCH NĂM TỰ ĐỘNG (CÁCH ĐƠN GIẢN HƠN) ---
                 let years = [];
