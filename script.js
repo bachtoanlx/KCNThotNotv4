@@ -101,9 +101,12 @@ export async function initFCM(email) {
       
       // 🚀 Luôn bắn thông báo Hệ điều hành (Góc màn hình) thay vì dùng SweetAlert để tránh bị ghi đè
       if (Notification.permission === "granted") {
-          const notif = new Notification(title, { body: body, icon: '/favicon.ico' });
+          const notif = new Notification(title, { body: body });
           // Khi click vào thông báo ở góc, tự động focus lại tab web này
           notif.onclick = function() { window.focus(); this.close(); };
+          
+          // (Tùy chọn) Hiện thêm popup nhỏ trên web để chắc chắn admin không bỏ lỡ nếu Windows bị lỗi
+          showSwal("info", title, { html: body, timer: 5000 });
       }
     });
   } catch (error) {
