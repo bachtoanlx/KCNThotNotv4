@@ -24,35 +24,3 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
-
-// Lắng nghe thông báo khi trang web đang bị ĐÓNG hoặc CHẠY NGẦM
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Nhận được thông báo ngầm: ', payload);
-  
-  const notificationTitle = payload.data.title;
-  const notificationOptions = {
-    body: payload.data.body,
-    icon: '/favicon.ico', 
-    data: { link: payload.data.link }
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
-
-// 🚀 Lắng nghe sự kiện người dùng nhấp chuột vào thông báo
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close(); // Đóng thông báo
-  const urlToOpen = event.notification.data.link || '/';
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Nếu tab web của bạn đã mở sẵn thì nó sẽ focus (nhảy) tới tab đó thay vì mở tab mới
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes(urlToOpen) && 'focus' in client) return client.focus();
-      }
-      // Nếu chưa mở thì tạo tab mới
-      if (clients.openWindow) return clients.openWindow(urlToOpen);
-    })
-  );
-});
