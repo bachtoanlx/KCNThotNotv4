@@ -93,20 +93,17 @@ export async function initFCM(email) {
       }
     }
 
-    // Lắng nghe thông báo khi web ĐANG MỞ (Hiển thị bằng SweetAlert)
+    // Lắng nghe thông báo khi web ĐANG MỞ
     onMessage(messaging, (payload) => {
-      // Nếu tab đang mở nhưng bị thu nhỏ hoặc che khuất
-      if (document.hidden) {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.showNotification(payload.data.title, {
-            body: payload.data.body,
-            icon: '/favicon.ico',
-            data: { link: payload.data.link }
-          });
-        });
-      } else {
-        // Nếu người dùng đang nhìn trực tiếp vào tab web
-        showSwal("info", payload.data.title, { html: payload.data.body });
+      console.log("[FCM] Nhận tin nhắn Foreground:", payload);
+      const title = payload.notification?.title || "Thông báo";
+      const body = payload.notification?.body || "";
+      
+      // 🚀 Luôn bắn thông báo Hệ điều hành (Góc màn hình) thay vì dùng SweetAlert để tránh bị ghi đè
+      if (Notification.permission === "granted") {
+          const notif = new Notification(title, { body: body, icon: '/favicon.ico' });
+          // Khi click vào thông báo ở góc, tự động focus lại tab web này
+          notif.onclick = function() { window.focus(); this.close(); };
       }
     });
   } catch (error) {
