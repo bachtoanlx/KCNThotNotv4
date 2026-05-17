@@ -10,15 +10,20 @@
   /* ======= BẢNG CHUNG ======= */
   table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 10px;
   }
 
   th, td {
-    border: 1px solid #ccc;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-right: 1px solid #ccc;
     padding: 8px;
     text-align: center;
   }
+  th:first-child, td:first-child { border-left: 1px solid #ccc; }
+  th { border-top: 1px solid #ccc; background-clip: padding-box; }
 
   /* ======= KHUNG MỖI PHẦN (3 KHUNG ADMIN) ======= */
   .rule-box {
@@ -94,11 +99,9 @@
     font-weight: 600;
     text-align: center; /* Kế thừa từ 'th' toàn cục */
     padding: 8px;
-    border: 1px solid #ccc;
   }
 
   .rule-box table tbody td {
-    border: 1px solid #ccc;
     padding: 6px 8px;
     text-align: center; /* Kế thừa từ 'td' toàn cục */
     vertical-align: middle;
@@ -194,12 +197,10 @@
     font-weight: 600;
     text-align: center !important; 
     padding: 10px;
-    border: 1px solid #ccc;
   }
 
   /* --- ĐÃ TỐI ƯU HÓA --- */
   #scheduleTable tbody td {
-    border: 1px solid #ccc;
     padding: 8px 10px; /* Thêm padding trái/phải mặc định */
     text-align: left; /* Căn trái tất cả TD trong tbody */
     line-height: 1.4em;
@@ -352,6 +353,7 @@
     background-color: #f0f0f0;
     text-align: center !important;
     box-shadow: 0 2px 2px -1px rgba(0,0,0,0.2);
+    background-clip: padding-box;
 }
 
 /* === RESPONSIVE CHO MODAL & TABS ADMIN === */
@@ -678,7 +680,7 @@
 /* --- MỚI: Ghim cố định tiêu đề bảng khi cuộn --- */
 .collapsible-content thead th {
     position: sticky;
-    top: 0px; /* Ghim vào mép trên (dùng -1px để che viền) */
+    top: -1px; /* Ghim vào mép trên (dùng -1px để che viền) */
     
     /* Đảm bảo tiêu đề có nền, không bị trong suốt */
     background-color: #f0f0f0; 
@@ -1233,6 +1235,14 @@
               <label style="font-weight: 500; min-width: unset; margin-left: 10px;">Giờ Kết thúc:</label> <input type="time" id="editEndTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
           </div>
           <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
+              <label style="font-weight: 500; min-width: 100px;">Thông báo:</label> 
+              <select id="editPatternNotifyTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                  <option value="">Không tự động thông báo</option>
+                  <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                  <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+              </select>
+          </div>
+          <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <label style="font-weight: 500; min-width: 100px;">Ghi chú:</label> <input type="text" id="editPatternNote" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
           </div>
           <div class="action-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
@@ -1255,6 +1265,24 @@
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="editRuleIsCommonCheckbox"> #CV Chung</label>
           </div>
+          
+          <!-- Bổ sung div Nhóm áp dụng & Thông báo cho Modal Sửa -->
+          <div id="editCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
+              <div class="input-row" style="margin-bottom: 8px;">
+                  <label style="font-weight: 500; min-width: 120px; display: inline-block;">Nhóm áp dụng:</label>
+                  <select id="editCommonJobTargetGroup" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
+              </div>
+              <div class="input-row" style="margin-bottom: 0;">
+                  <label style="font-weight: 500; min-width: 120px; display: inline-block;">Thông báo:</label>
+                  <select id="editCommonJobNotifyTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                      <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
+                      <option value="">Không tự động thông báo</option>
+                      <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                      <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                  </select>
+              </div>
+          </div>
+
           <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <input type="time" id="editRuleTime" title="Giờ hoàn thành" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #eaf3ff;">
@@ -1337,6 +1365,24 @@
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
               <label style="display: flex; align-items: center; gap: 4px;"><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
             </div>
+            
+            <!-- Bổ sung div Nhóm áp dụng & Thông báo cho Modal Thêm Mới -->
+            <div id="addCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
+                <div class="input-row" style="margin-bottom: 8px;">
+                    <label style="font-weight: 500; min-width: 120px;">Nhóm áp dụng:</label>
+                    <select id="addCommonJobTargetGroup" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                </div>
+                <div class="input-row" style="margin-bottom: 0;">
+                    <label style="font-weight: 500; min-width: 120px;">Thông báo:</label>
+                    <select id="addCommonJobNotifyTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
+                        <option value="">Không tự động thông báo</option>
+                        <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                        <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;">
               <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #eaf3ff;">
@@ -1399,6 +1445,15 @@
                     <label>Giờ kết thúc ca:</label>
                     <input type="time" id="shiftEndTime">
                 </div>
+            </div>
+
+            <div class="input-row" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; margin-bottom: 15px;">
+                <label style="font-weight: 500; min-width: 100px;">Thông báo:</label> 
+                <select id="patternNotifyTime" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="">Không tự động thông báo</option>
+                    <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                    <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                </select>
             </div>
 
             <div class="input-row">
@@ -1667,6 +1722,11 @@
     });
     document.getElementById("isCommonJobRuleCheckbox").addEventListener("change", function() {
         if (this.checked) document.getElementById("isAdminJobRuleCheckbox").checked = false;
+        document.getElementById("addCommonJobSettings").style.display = this.checked ? "block" : "none";
+        
+        if (this.checked) {
+            document.getElementById("addCommonJobNotifyTime").value = "immediate"; // Chọn mặc định: Ngay lập tức
+        }
     });
     document.getElementById("editRuleIsAdminCheckbox").addEventListener("change", function() {
         if (this.checked) document.getElementById("editRuleIsCommonCheckbox").checked = false;
@@ -1677,6 +1737,11 @@
     });
     document.getElementById("editRuleIsCommonCheckbox").addEventListener("change", function() {
         if (this.checked) document.getElementById("editRuleIsAdminCheckbox").checked = false;
+        document.getElementById("editCommonJobSettings").style.display = this.checked ? "block" : "none";
+        
+        if (this.checked) {
+            document.getElementById("editCommonJobNotifyTime").value = "immediate"; // Chọn mặc định: Ngay lập tức
+        }
     });
 
     document.getElementById("editRuleCompletedNoteSelect").addEventListener("change", function() {
@@ -1863,6 +1928,12 @@
             document.getElementById("isAdminJobRuleCheckbox").checked = exactMatchRule.is_admin_job || false;
             document.getElementById("isCommonJobRuleCheckbox").checked = exactMatchRule.is_common_job || false;
             
+            document.getElementById("addCommonJobSettings").style.display = exactMatchRule.is_common_job ? "block" : "none";
+            if (exactMatchRule.is_common_job) {
+                document.getElementById("addCommonJobTargetGroup").value = exactMatchRule.targetGroup || "all";
+                document.getElementById("addCommonJobNotifyTime").value = (exactMatchRule.notifyTime !== undefined && exactMatchRule.notifyTime !== null) ? exactMatchRule.notifyTime : "immediate";
+            }
+            
             let rawNote = exactMatchRule.note || "";
             if (rawNote.startsWith("[CVAdmin]")) rawNote = rawNote.replace("[CVAdmin]", "").trim();
             else if (rawNote.startsWith("[CVChung]")) rawNote = rawNote.replace("[CVChung]", "").trim();
@@ -1951,8 +2022,8 @@
     // (Hàm này thay thế cho cả 3 hàm load... cũ)
     function setupRealtimeListeners(email, role) {
         
-        // 1. Lắng nghe work_rules - ⭐️ GIỚI HẠN 100 BẢN GHI
-        const qRules = query(collection(db, "work_rules"), limit(100));
+        // 1. Lắng nghe work_rules (Bỏ limit để tương thích hoàn toàn với Cache ngoại tuyến)
+        const qRules = query(collection(db, "work_rules"));
         onSnapshot(qRules, (snapshot) => {
             console.log("Real-time: work_rules đã thay đổi.");
             allRulesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
@@ -1978,8 +2049,8 @@
             checkAllDataLoadedAndRender(email, role); 
         });
 
-        // 3. Lắng nghe work_patterns - ⭐️ GIỚI HẠN 200 BẢN GHI
-        const qPatterns = query(collection(db, "work_patterns"), limit(200));
+        // 2. Lắng nghe work_patterns
+        const qPatterns = query(collection(db, "work_patterns"));
         onSnapshot(qPatterns, (snapshot) => {
             console.log("Real-time: work_patterns đã thay đổi.");
             allPatternsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
@@ -2001,7 +2072,7 @@
         });
 
         // 3. Lắng nghe shift_swaps
-        const qSwaps = query(collection(db, "shift_swaps"), limit(100));
+        const qSwaps = query(collection(db, "shift_swaps"));
         onSnapshot(qSwaps, (snapshot) => {
             console.log("Real-time: shift_swaps đã thay đổi.");
             allSwapsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
@@ -2034,6 +2105,22 @@
             option.value = group;
             datalist.appendChild(option);
         });
+        
+        // Đổ dữ liệu vào select Nhóm áp dụng của CV Chung
+        const addSelect = document.getElementById("addCommonJobTargetGroup");
+        const editSelect = document.getElementById("editCommonJobTargetGroup");
+        if (addSelect && editSelect) {
+            const currentAddVal = addSelect.value;
+            const currentEditVal = editSelect.value;
+            let optionsHtml = '<option value="all">Tất cả nhân viên</option>';
+            groups.forEach(g => { optionsHtml += `<option value="${g}">Nhóm: ${g}</option>`; });
+            
+            addSelect.innerHTML = optionsHtml;
+            editSelect.innerHTML = optionsHtml;
+            
+            if (groups.has(currentAddVal) || currentAddVal === 'all') addSelect.value = currentAddVal;
+            if (groups.has(currentEditVal) || currentEditVal === 'all') editSelect.value = currentEditVal;
+        }
     }
 
     // --- HÀM MỚI: Cập nhật danh sách gợi ý Công việc ---
@@ -2085,6 +2172,7 @@
         
         document.getElementById("editStartTime").value = pattern.startTime || "";
         document.getElementById("editEndTime").value = pattern.endTime || "";
+        document.getElementById("editPatternNotifyTime").value = pattern.notifyTime || "";
         document.getElementById("editShiftGroupName").value = pattern.shiftGroup || "";
         document.getElementById("editAdminShiftGroupName").value = pattern.shiftGroup || "";
         document.getElementById("editPatternNote").value = pattern.note || "";
@@ -2120,6 +2208,9 @@
         const note = document.getElementById("editPatternNote").value.trim();
         const startTime = document.getElementById("editStartTime").value;
         const endTime = document.getElementById("editEndTime").value;
+        
+        // Lấy và lưu trực tiếp chuỗi thời gian người dùng đã chọn
+        const notifyTime = document.getElementById("editPatternNotifyTime").value;
 
         if (!displayName || !patternStartDate || !startTime || !endTime) {
             return Swal.fire("Thiếu thông tin!", "Tên hiển thị, Ngày áp dụng và Giờ làm việc không được để trống.", "warning");
@@ -2133,6 +2224,7 @@
             note, 
             startTime, 
             endTime,
+            notifyTime,
             updatedAt: serverTimestamp() 
         };
 
@@ -2162,13 +2254,13 @@
 
         const oldData = allPatternsData.find(p => p.id === id) || {};
         const changes = {};
-        const fieldLabels = { displayName: "Tên hiển thị", patternStartDate: "Ngày BĐ", patternEndDate: "Ngày KT", type: "Loại lịch", note: "Ghi chú", startTime: "Giờ BĐ", endTime: "Giờ KT", shiftGroup: "Nhóm ca", workDaysOfWeek: "Thứ làm việc", user: "Tài khoản" };
+        const fieldLabels = { displayName: "Tên hiển thị", patternStartDate: "Ngày BĐ", patternEndDate: "Ngày KT", type: "Loại lịch", note: "Ghi chú", startTime: "Giờ BĐ", endTime: "Giờ KT", notifyTime: "Giờ TB", shiftGroup: "Nhóm ca", workDaysOfWeek: "Thứ làm việc", user: "Tài khoản" };
         
         for (const key in updateData) {
             if (key === "updatedAt" || key === "isNextDay") continue;
             let oldVal = oldData[key];
             let newVal = updateData[key];
-            if (key === "workDaysOfWeek") {
+            if (key === "workDaysOfWeek" || key === "notifyTime") {
                 oldVal = JSON.stringify(oldVal || []);
                 newVal = JSON.stringify(newVal || []);
             }
@@ -2244,6 +2336,17 @@
             rawNote = rawNote.replace("[CVChung]", "").trim();
         }
         document.getElementById("editRuleNote").value = rawNote;
+        
+        const commonSettings = document.getElementById("editCommonJobSettings");
+        if (rule.is_common_job) {
+            commonSettings.style.display = "block";
+            document.getElementById("editCommonJobTargetGroup").value = rule.targetGroup || "all";
+            document.getElementById("editCommonJobNotifyTime").value = (rule.notifyTime !== undefined && rule.notifyTime !== null) ? rule.notifyTime : "immediate";
+        } else {
+            commonSettings.style.display = "none";
+            document.getElementById("editCommonJobTargetGroup").value = "all";
+            document.getElementById("editCommonJobNotifyTime").value = "immediate";
+        }
         
         document.getElementById("editRuleLastCompletedDate").value = rule.lastCompletedDate || "";
         let actualCompletedDateValue = "";
@@ -2381,6 +2484,13 @@
 
         const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
         
+        if (isCommon) {
+            updateData.targetGroup = document.getElementById("editCommonJobTargetGroup").value;
+            updateData.notifyTime = document.getElementById("editCommonJobNotifyTime").value;
+        } else {
+            updateData.targetGroup = null; updateData.notifyTime = null;
+        }
+        
         if (isAdmin) {
             updateData.lastCompletedDate = lastCompletedDate || null;
             updateData.actualCompletedDate = actualCompletedDate || null;
@@ -2403,6 +2513,11 @@
             addLog("admin_update_work_rule", { email: getCurrentUserEmail(), ruleId: id, targetName: job, changes, updateData });
             hideLoading();
             Swal.fire("Thành công!", "Đã cập nhật quy tắc.", "success");
+            
+            if (isCommon && updateData.notifyTime === 'immediate') {
+                sendImmediateNotificationGAS(job, exactDate || dom || day || week || month || "Định kỳ", updateData.targetGroup, note);
+            }
+            
             closeEditRuleModalFn();
         } catch (error) {
             hideLoading();
@@ -3166,6 +3281,8 @@
             note: noteStr,
             is_admin_job: isAdmin, // Vẫn lưu boolean để ẩn/hiện trên lịch
             is_common_job: isCommon,
+            targetGroup: isCommon ? document.getElementById("addCommonJobTargetGroup").value : null,
+            notifyTime: isCommon ? document.getElementById("addCommonJobNotifyTime").value : null,
             createdAt: serverTimestamp()
         };
         // (logic validation của bạn ở đây)
@@ -3178,6 +3295,11 @@
                 ...jobData
             });
             showSwal("success", "Đã lưu quy tắc!");
+            
+            if (isCommon && jobData.notifyTime === 'immediate') {
+                sendImmediateNotificationGAS(jobNameVal, exactDateVal || domSelect.value || daySelect.value || weekSelect.value || monthSelect.value || "Định kỳ", jobData.targetGroup, noteStr);
+            }
+            
             [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
             resetAddJobFormMode();
             updateAddRuleState();
@@ -3197,13 +3319,15 @@
         const patternStartDate = document.getElementById("patternStartDate").value;
         const note = document.getElementById("patternNote").value.trim();
         const type = document.getElementById("patternTypeSelect").value;
+        // Lưu trực tiếp chuỗi thời gian (VD: "19:00")
+        const notifyTime = document.getElementById("patternNotifyTime").value;
 
         // --- VALIDATION CƠ BẢN ---
         if (!user || !displayName || !patternStartDate) {
             return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Nhân viên, Tên hiển thị và Ngày bắt đầu.", "warning");
         }
 
-        let data = { user, displayName, patternStartDate, note, type, createdAt: serverTimestamp() };
+        let data = { user, displayName, patternStartDate, note, type, notifyTime, createdAt: serverTimestamp() };
 
         // --- BƯỚC 2: LẤY DỮ LIỆU VÀ VALIDATE TÙY THEO LOẠI QUY TẮC ---
         if (type === 'administrative') {
@@ -3941,8 +4065,8 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             // Tạo ghi chú
             const noteDisplay = (r.note || "").replace("[CVAdmin]", "<span style='color:#e74c3c; font-weight:bold;'>[CVAdmin]</span>").replace("[CVChung]", "<span style='color:#3498db; font-weight:bold;'>[CVChung]</span>");
             const noteStr = noteDisplay ? `<div style="color:#666; font-style:italic; font-size:0.9em; margin-top:2px; padding-left:14px;">↳ 📝 Ghi chú: ${noteDisplay}</div>` : "";
-            
-            jobsForDay.push(`<div style="margin-bottom:8px;">• ${r.job}${timeStr}${noteStr}</div>`);
+            const targetTag = (r.is_common_job && r.targetGroup && r.targetGroup !== 'all') ? `<span style='color:#8e44ad; font-weight:bold;'>[Nhóm: ${r.targetGroup}]</span> ` : "";
+            jobsForDay.push(`<div style="margin-bottom:8px;">• ${targetTag}${r.job}${timeStr}${noteStr}</div>`);
         });
 
         // ===== 4) HIỂN THỊ TRÊN BẢNG =====
@@ -4059,6 +4183,22 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             }
             renderSchedule(globalSearchInput.value, currentlyViewedDate);
         });
+    }
+    
+    // Hàm gọi GAS gửi email tức thì cho CV Chung
+    async function sendImmediateNotificationGAS(job, dateInfo, targetGroup, note) {
+        try {
+            const idToken = await auth.currentUser.getIdToken(true);
+            const scriptUrl = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
+            const formData = new FormData();
+            formData.append("action", "sendImmediateJobNotification");
+            formData.append("idToken", idToken);
+            formData.append("data", JSON.stringify({ job, dateInfo, targetGroup, note }));
+            
+            fetch(scriptUrl, { method: "POST", body: formData }); // Chạy ngầm không chặn UI
+        } catch (e) {
+            console.error("Lỗi gửi thông báo ngay lập tức:", e);
+        }
     }
 
   // Hàm gọi modal lịch làm việc cá nhân (ĐÃ SỬA LẠI HOÀN TOÀN)
@@ -4192,7 +4332,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
           if (uniqueTasks.length > 0) {
               html = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: visible;">
-                  <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
+                  <table style="width: 100%; max-width: 100%; min-width: 0; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                   <thead>
                     <tr style="background:#f0f0f0;">
                       <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px;">Công việc</th>
@@ -4306,15 +4446,22 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   }
               }
 
+              const myShiftGroup = myPattern ? myPattern.shiftGroup : null;
               const allRuleJobs = allRulesData.filter(rule => 
-                  !rule.is_admin_job && 
-                  ruleMatchesDate(rule, checkDate)
+                  !rule.is_admin_job && ruleMatchesDate(rule, checkDate)
               );
+              const personalRuleJobs = allRuleJobs.filter(rule => {
+                  if (rule.is_common_job && rule.targetGroup && rule.targetGroup !== 'all' && rule.targetGroup !== myShiftGroup) return false;
+                  return true;
+              });
 
-              if (matchedShifts.length > 0) {
+              // Kiểm tra xem ngày này có Công việc chung không
+              const hasCommonJobs = personalRuleJobs.some(r => r.is_common_job);
+
+              if (matchedShifts.length > 0 || hasCommonJobs) {
                   let tasksHtml = "";
-                  if (allRuleJobs.length > 0) {
-                      const tasksArray = allRuleJobs.map(task => {
+                  if (personalRuleJobs.length > 0) {
+                      const tasksArray = personalRuleJobs.map(task => {
                           const noteDisplay = (task.note || "").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
                           let noteString = noteDisplay && noteDisplay !== "" ? ` <i>— ${noteDisplay}</i>` : "";
                           return `<div style="margin-bottom: 3px; word-break: break-word;">- ${task.job} ${task.time ? `(${task.time})` : ""}${noteString}</div>`;
@@ -4324,10 +4471,11 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                       tasksHtml = "<i style='font-size: 0.9em; color:#777;'>Không có công việc chung nào được gán.</i>";
                   }
 
-                  const shiftContent = matchedShifts.join("<br>");
+                  // Nếu không có ca trực, hiển thị trạng thái Nghỉ
+                  const shiftContent = matchedShifts.length > 0 ? matchedShifts.join("<br>") : "<i style='color:#7f8c8d; font-weight:normal;'>Không có ca trực (Nghỉ)</i>";
 
                   foundDayHtml = `<div style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: visible;">
-                    <table style="width: 100%; max-width: 100%; min-width: 0; border-collapse:collapse; border:1px solid #ccc; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
+                    <table style="width: 100%; max-width: 100%; min-width: 0; text-align:left; table-layout: fixed; font-size: 14px; box-sizing: border-box; word-break: break-word;">
                     <thead>
                       <tr style="background:#f0f0f0;">
                         <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 40%;">Ngày & Ca</th>
