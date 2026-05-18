@@ -907,7 +907,7 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
         // 🚀 Thông báo nộp Form 2 (Ngày nghỉ/Làm việc đặc biệt)
         notifyAdmins(
             "📅 Thông báo nghỉ/làm đặc biệt",
-            `Có thông báo ${submissionTypeDisplay.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
+            `Thông báo ${submissionTypeDisplay.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
         );
 
     } else if (skipped > 0) {
@@ -1372,7 +1372,7 @@ if (exactMatchDoc) {
     if (data.isMeterReset) {
         notifyAdmins("🚨 CẢNH BÁO: CHỈ SỐ GIẢM", `Công ty ${data.company} báo cáo giảm chỉ số. User: ${userEmail}`);
     } else {
-        notifyAdmins("💧 Có chỉ số mới", `Có chỉ số mới Công ty ${data.company} - User: ${userEmail}`);
+        notifyAdmins("💧 Có chỉ số mới", `Công ty ${data.company} - User: ${userEmail}`);
     }
 
     showSwal("success", "Thành công", "Báo cáo đã được gửi!");
