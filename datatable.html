@@ -170,41 +170,55 @@
     .search-container {
         margin-bottom: 5px !important;
     }
+    
+    /* Đảm bảo pageContent là cột trên mobile khi JS set display: flex */
+    #pageContent {
+        display: flex;
+        flex-direction: column;
+    }
     /* --------------------------------------------- */
 
-    /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
-    html, body {
-        height: 100vh; /* Fallback an toàn cho các trình duyệt quá cũ */
-        height: 100dvh; /* dvh tự động trừ đi thanh menu trình duyệt trên mobile */
-        overflow: hidden;
-    }
+    /* --- Tinh chỉnh layout App-like (Chỉ áp dụng trên Desktop) --- */
+    /* Để trên Mobile trang cuộn tự nhiên giống autoplan.html, không bị che footer */
+    @media (min-width: 769px) {
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    #pageContent {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-height: 0;
-    }
+        #pageContent {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-    .card-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        padding-bottom: 2px;
-        padding-left: 10px !important;
-        padding-right: 10px !important;
-    }
+        .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 2px;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
 
-    /* Tùy chỉnh container để cuộn dọc nội dung bảng */
-    .table-container {
-        flex: 1; /* Tự động chiếm không gian còn lại */
-        max-height: none; /* Bỏ giới hạn cứng */
-        overflow: auto; /* Hiện thanh cuộn (cả dọc và ngang nếu cần) */
-        border: none; /* Bỏ viền ngoài của container để dùng viền bảng */
+        .table-container {
+            flex: 1; 
+            max-height: none; 
+            overflow: auto; 
+            border: none; 
+        }
     }
     
+    /* Giữ lề cho card-body trên Mobile */
+    @media (max-width: 768px) {
+        .card-body {
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
+    }
   </style>
 </head>
 <body>
