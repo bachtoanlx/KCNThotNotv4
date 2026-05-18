@@ -203,6 +203,7 @@
                     where("company", "==", companyName),
                     where("ngay_ghi", "<=", getCurrentDate()),
                     orderBy("ngay_ghi", "desc"),
+                    orderBy("createdAt", "desc"),
                     limit(1)
                 );
                 const snapshot = await getDocs(q);
