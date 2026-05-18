@@ -40,19 +40,12 @@
         padding-right: 10px !important;
     }
 
-    form {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-    }
-
     /* Tùy chỉnh container để cuộn dọc nội dung bảng */
     .table-container {
         flex: 1; /* Tự động chiếm không gian còn lại */
         max-height: none; /* Bỏ giới hạn cứng */
         overflow-y: auto; /* Hiện thanh cuộn dọc */
-        border: 1px solid #ddd;
+        border: none; /* Bỏ viền ngoài của container để dùng viền bảng */
     }
 
     /* Thiết lập độ rộng cụ thể cho từng cột và căn chỉnh */
@@ -70,10 +63,7 @@
       text-align: center;
       background-color: #e8ebf5;
       padding: 8px;
-      position: sticky; /* Cố định tiêu đề */
-      top: 0;
       z-index: 5;
-      box-shadow: 0 1px 0 #ccc;
     }
     
     #logsTable td {
@@ -188,7 +178,6 @@
     <button id="toggleFilterBtn" type="button">Áp dụng</button>
   </div>
     
-    <form>
       <div style="margin-bottom: 12px;">
         <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm nhật ký..." style="width: 100%; padding: 8px;">
       </div>
@@ -205,7 +194,6 @@
           <tbody></tbody>
         </table>
       </div>
-    </form>
         <div style="text-align: right; margin-top: 10px;">
         <label for="displayCount">Hiển thị:</label>
         <select id="displayCount">
@@ -378,6 +366,7 @@
 
                 // Quản lý hoán đổi ca
                 "admin_create_shift_swap": "Admin tạo hoán đổi ca",
+                "admin_update_shift_swap": "Admin cập nhật hoán đổi ca",
                 "admin_delete_shift_swap": "Admin xóa hoán đổi ca",
 
                 // Quản lý dữ liệu chỉ số
@@ -435,6 +424,7 @@
                 case "admin_update_work_rule":
                 case "admin_update_manual_job":
                 case "admin_update_work_pattern":
+                case "admin_update_shift_swap":
                     const changesObj = log.changes || {};
                     let changesHtml = Object.values(changesObj).map(c => {
                         let oldV = c.old;
@@ -571,7 +561,8 @@
                     details = `
                         <b>Ngày đổi:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}<br>
                         <b>Người xin nghỉ (A):</b> ${log.user1 || "N/A"}<br>
-                        <b>Người làm thay (B):</b> ${log.user2 || "N/A"}
+                        <b>Người làm thay (B):</b> ${log.user2 || "N/A"}<br>
+                        <b>Lý do:</b> ${log.reason || "-"}
                     `;
                     break;
 
