@@ -17,35 +17,37 @@
     }
 
     /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
-    html, body {
-        height: 100vh;
-        overflow: hidden;
-    }
+    @media (min-width: 769px) {
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    #pageContent {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        min-height: 0;
-    }
+        #pageContent {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
 
-    .card-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        padding-bottom: 2px;
-        padding-left: 10px !important;
-        padding-right: 10px !important;
-    }
+        .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 2px;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+        }
 
-    /* Tùy chỉnh container để cuộn dọc nội dung bảng */
-    .table-container {
-        flex: 1; /* Tự động chiếm không gian còn lại */
-        max-height: none; /* Bỏ giới hạn cứng */
-        overflow-y: auto; /* Hiện thanh cuộn dọc */
-        border: none; /* Bỏ viền ngoài của container để dùng viền bảng */
+        /* Tùy chỉnh container để cuộn dọc nội dung bảng */
+        .table-container {
+            flex: 1; /* Tự động chiếm không gian còn lại */
+            max-height: none; /* Bỏ giới hạn cứng */
+            overflow-y: auto; /* Hiện thanh cuộn dọc */
+            border: none; /* Bỏ viền ngoài của container để dùng viền bảng */
+        }
     }
 
     /* Thiết lập độ rộng cụ thể cho từng cột và căn chỉnh */
@@ -113,6 +115,30 @@
       
       label[for="displayCount"] {
         font-size: 11px !important;
+      }
+
+      /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
+      .filter-box {
+        width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
+      }
+      /* Ẩn các label đứng đơn lẻ không chứa input (Hành động, Người dùng) */
+      .filter-box label:not(:has(input)) {
+          display: none !important;
+      }
+      /* Cho các thành phần còn lại co giãn lấp đầy */
+      .filter-box > label,
+      .filter-box > button#toggleFilterBtn {
+          flex: 1; /* Chia đều không gian */
+          min-width: 0; /* Cho phép co lại */
+          margin: 0 !important; /* Xóa lề thừa */
+      }
+      .filter-box > label {
+          gap: 0 !important; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
+      }
+      /* Ghi đè lại input bên trong để nó chiếm 100% label cha */
+      .filter-box label input[type="date"] {
+          width: 100% !important; /* Quan trọng: Ghi đè width: 90px từ styles.css */
+          box-sizing: border-box; /* Đảm bảo padding không làm tràn */
       }
     }
     
