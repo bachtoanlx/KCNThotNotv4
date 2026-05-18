@@ -174,7 +174,8 @@
 
     /* Tinh chỉnh layout để lấp đầy màn hình và bỏ cuộn trang */
     html, body {
-        height: 100vh;
+        height: 100vh; /* Fallback an toàn cho các trình duyệt quá cũ */
+        height: 100dvh; /* dvh tự động trừ đi thanh menu trình duyệt trên mobile */
         overflow: hidden;
     }
 
