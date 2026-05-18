@@ -1077,7 +1077,9 @@ tr:nth-child(even) {
   /* Fix cuộn trang và che footer trên mobile */
   #pageContent, #content-container {
     overflow-y: visible !important; /* Để trang cuộn tự nhiên (body cuộn) thay vì cuộn nội bộ */
-    flex: none !important; /* Gỡ bỏ khóa flexbox để div phình to tự nhiên theo độ dài của bảng */
-    display: block !important; /* Ghi đè lệnh display: flex của JS, giúp trình duyệt ẩn thanh menu khi cuộn */
+    flex: 1 0 auto !important; /* Căng giãn lấp đầy khoảng trống để đẩy footer xuống sát đáy */
+    display: flex !important; /* Dùng flexbox để khối tự động co giãn theo màn hình */
+    flex-direction: column !important;
+    min-height: auto !important; /* Bỏ giới hạn chiều cao */
   }
 }
