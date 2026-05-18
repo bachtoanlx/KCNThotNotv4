@@ -12,6 +12,7 @@ body {
   line-height: 1.5;
   padding: 2px;
   min-height: 100vh;
+  min-height: 100dvh; /* Tự động trừ thanh công cụ trên mobile */
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
@@ -574,6 +575,7 @@ tr:nth-child(even) {
   padding: 1px 0; /* Khoảng đệm trên và dưới */
   text-align: center; /* Căn giữa nội dung */
   border-top: 1px solid #dddddda8; /* Một đường kẻ mỏng ở trên */
+  padding-bottom: calc(10px + env(safe-area-inset-bottom)); /* An toàn cho thanh điều hướng/tai thỏ */
   
   /* Thuộc tính này sẽ tạo khoảng trống với nội dung chính của trang */
   margin-top: 1px; 
@@ -1070,5 +1072,12 @@ tr:nth-child(even) {
   /* Cho phép hiển thị link menu admin-only (như Nhật ký) */
   .nav-links .admin-only {
     display: none; /* Mặc định ẩn, JS sẽ hiển thị khi admin login */
+  }
+  
+  /* Fix cuộn trang và che footer trên mobile */
+  #pageContent, #content-container {
+    overflow-y: visible !important; /* Để trang cuộn tự nhiên (body cuộn) thay vì cuộn nội bộ */
+    flex: none !important; /* Gỡ bỏ khóa flexbox để div phình to tự nhiên theo độ dài của bảng */
+    display: block !important; /* Ghi đè lệnh display: flex của JS, giúp trình duyệt ẩn thanh menu khi cuộn */
   }
 }
