@@ -144,6 +144,18 @@ export function initMenu() {
           userAgent: navigator.userAgent,
         });
 
+        // 🚀 BỔ SUNG: Bắn tín hiệu cảnh báo bảo mật về Google Apps Script
+        try {
+          const formData = new URLSearchParams();
+          formData.append("action", "securityAlert");
+          formData.append("data", JSON.stringify({ email: email }));
+          // Gọi ngầm, không dùng await để tránh làm chậm giao diện người dùng
+          fetch("https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec", {
+            method: "POST",
+            body: formData
+          }).catch(e => console.warn("Lỗi gửi cảnh báo bảo mật:", e));
+        } catch(e) {}
+
         showSwal("error", "Vui lòng kiểm tra lại tài khoản!");
       }
     });
