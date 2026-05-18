@@ -1306,6 +1306,10 @@
                   <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
               </select>
           </div>
+          <div class="input-row" style="display: flex; margin-bottom: 15px; align-items: center; gap: 10px;">
+              <label style="font-weight: 500; min-width: 120px; display: inline-block; color: #d35400;">Ngày kết thúc:</label>
+              <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #fdf2e9;">
+          </div>
           <div class="input-row" style="display: flex; margin-bottom: 15px;">
               <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
           </div>
@@ -1402,6 +1406,10 @@
                 <option value="">--Tháng--</option>
                 <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
               </select>
+            </div>
+            <div class="input-row" style="display: flex; margin-bottom: 15px; align-items: center; gap: 10px;">
+              <label style="font-weight: 500; min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
+              <input type="date" id="addRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #fdf2e9;">
             </div>
             <div class="input-row" style="display: flex; margin-bottom: 15px;">
               <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
@@ -1924,6 +1932,7 @@
             daySelect.value = exactMatchRule.day || "";
             weekSelect.value = exactMatchRule.week || "";
             monthSelect.value = exactMatchRule.month || "";
+            document.getElementById("addRuleEndDate").value = exactMatchRule.ruleEndDate || "";
             
             document.getElementById("isAdminJobRuleCheckbox").checked = exactMatchRule.is_admin_job || false;
             document.getElementById("isCommonJobRuleCheckbox").checked = exactMatchRule.is_common_job || false;
@@ -1982,7 +1991,7 @@
                     showSwal("success", "Đã xóa quy tắc!");
                     
                     // Reset form và đóng modal
-                    [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = "");
+                    [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime"), document.getElementById("addRuleEndDate")].forEach(el => el.value = "");
                     resetAddJobFormMode();
                     updateAddRuleState();
                     closeAddRuleModalFn();
@@ -2326,6 +2335,7 @@
         document.getElementById("editRuleDay").value = rule.day || "";
         document.getElementById("editRuleWeek").value = rule.week || "";
         document.getElementById("editRuleMonth").value = rule.month || "";
+        document.getElementById("editRuleEndDate").value = rule.ruleEndDate || "";
         
         document.getElementById("editRuleIsAdminCheckbox").checked = rule.is_admin_job || false;
         document.getElementById("editRuleIsCommonCheckbox").checked = rule.is_common_job || false;
@@ -2406,6 +2416,7 @@
         const day = document.getElementById("editRuleDay").value;
         const week = document.getElementById("editRuleWeek").value;
         const month = document.getElementById("editRuleMonth").value;
+        const ruleEndDate = document.getElementById("editRuleEndDate").value;
         const rawNote = document.getElementById("editRuleNote").value.trim();
         let lastCompletedDate = document.getElementById("editRuleLastCompletedDate").value;
         const actualCompletedDateInput = document.getElementById("editRuleActualCompletedDate").value;
@@ -2482,7 +2493,7 @@
             actualCompletedDate = null;
         }
 
-        const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, note, updatedAt: serverTimestamp() };
+        const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, ruleEndDate, note, updatedAt: serverTimestamp() };
         
         if (isCommon) {
             updateData.targetGroup = document.getElementById("editCommonJobTargetGroup").value;
@@ -2499,7 +2510,7 @@
 
         const oldData = allRulesData.find(r => r.id === id) || {};
         const changes = {};
-        const fieldLabels = { job: "Công việc", is_admin_job: "CV Admin", is_common_job: "CV Chung", time: "Giờ", exactDate: "Ngày cụ thể", dom: "Ngày", day: "Thứ", week: "Tuần", month: "Tháng", note: "Ghi chú", lastCompletedDate: "Kỳ hoàn thành", actualCompletedDate: "Ngày xác nhận", completedNote: "Lý do hoàn thành" };
+        const fieldLabels = { job: "Công việc", is_admin_job: "CV Admin", is_common_job: "CV Chung", time: "Giờ", exactDate: "Ngày cụ thể", dom: "Ngày", day: "Thứ", week: "Tuần", month: "Tháng", ruleEndDate: "Ngày kết thúc", note: "Ghi chú", lastCompletedDate: "Kỳ hoàn thành", actualCompletedDate: "Ngày xác nhận", completedNote: "Lý do hoàn thành" };
         for (const key in updateData) {
             if (key !== "updatedAt" && oldData[key] !== updateData[key]) {
                 if ((oldData[key] === undefined || oldData[key] === null || oldData[key] === "") && (updateData[key] === undefined || updateData[key] === null || updateData[key] === "")) continue;
@@ -3150,6 +3161,7 @@
         const isCommon = document.getElementById("isCommonJobRuleCheckbox").checked;
         const originalNote = jobNoteInput.value.trim();
         const jobNameVal = jobInput.value.trim();
+        const ruleEndDateVal = document.getElementById("addRuleEndDate").value;
 
         if (!jobNameVal) return showSwal("error", "Vui lòng nhập tên công việc!");
 
@@ -3208,7 +3220,7 @@
             const updateData = {
                 job: jobNameVal, time: document.getElementById("jobTime").value, exactDate: exactDateVal,
                 day: daySelect.value, week: weekSelect.value, month: monthSelect.value, dom: domSelect.value,
-                note: noteStr, is_admin_job: isAdmin, is_common_job: isCommon, updatedAt: serverTimestamp()
+                ruleEndDate: ruleEndDateVal, note: noteStr, is_admin_job: isAdmin, is_common_job: isCommon, updatedAt: serverTimestamp()
             };
             
             try {
@@ -3218,7 +3230,7 @@
                 hideLoading();
                 showSwal("success", "Đã cập nhật quy tắc!");
                 
-                [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = "");
+                [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime"), document.getElementById("addRuleEndDate")].forEach(el => el.value = "");
                 resetAddJobFormMode();
                 updateAddRuleState();
                 closeAddRuleModalFn();
@@ -3277,6 +3289,7 @@
             day: daySelect.value,
             week: weekSelect.value,
             month: monthSelect.value,
+            ruleEndDate: ruleEndDateVal,
             dom: domSelect.value,
             note: noteStr,
             is_admin_job: isAdmin, // Vẫn lưu boolean để ẩn/hiện trên lịch
@@ -3300,7 +3313,7 @@
                 sendImmediateNotificationGAS(jobNameVal, exactDateVal || domSelect.value || daySelect.value || weekSelect.value || monthSelect.value || "Định kỳ", jobData.targetGroup, noteStr);
             }
             
-            [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime")].forEach(el => el.value = ""); 
+            [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime"), document.getElementById("addRuleEndDate")].forEach(el => el.value = ""); 
             resetAddJobFormMode();
             updateAddRuleState();
             closeAddRuleModalFn();
@@ -3799,9 +3812,15 @@ function renderPatternList(patternsToRender) {
 
 // Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
 function ruleMatchesDate(rule, d) {
+    const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    // NẾU CÓ NGÀY KẾT THÚC -> Kiểm tra xem ngày đang xét có vượt qua ngày kết thúc không
+    if (rule.ruleEndDate && rule.ruleEndDate !== "") {
+        if (isoDate > rule.ruleEndDate) return false;
+    }
+
     // NẾU CÓ NGÀY CỤ THỂ -> Chỉ khớp duy nhất ngày đó
     if (rule.exactDate && rule.exactDate !== "") {
-        const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         return rule.exactDate === isoDate;
     }
 
