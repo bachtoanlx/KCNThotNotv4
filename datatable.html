@@ -129,6 +129,30 @@
         overflow: hidden !important;
         text-overflow: clip !important;
       }
+
+      /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
+      .filter-box {
+        width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
+      }
+      /* Ẩn label của select năm đi */
+      .filter-box label:has(#yearSelect) {
+          display: none;
+      }
+      /* Cho các thành phần còn lại co giãn lấp đầy */
+      .filter-box > label,
+      .filter-box > button#applyFilter {
+          flex: 1; /* Chia đều không gian */
+          min-width: 0; /* Cho phép co lại */
+          margin: 0 !important; /* Xóa lề thừa */
+      }
+      .filter-box > label {
+          gap: 0 !important; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
+      }
+      /* Ghi đè lại input bên trong để nó chiếm 100% label cha */
+      .filter-box label input[type="date"] {
+          width: 100% !important; /* Quan trọng: Ghi đè width: 90px từ styles.css */
+          box-sizing: border-box; /* Đảm bảo padding không làm tràn */
+      }
     }
     
     /* Animation highlight */
@@ -145,6 +169,7 @@
         outline-offset: 6px;
     }
 
+    
     /* Giảm khoảng cách dưới menu */
     nav.navbar {
         margin-bottom: 5px !important;
