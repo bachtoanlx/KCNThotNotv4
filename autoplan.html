@@ -1855,7 +1855,7 @@
     // --- HÀM 1 (MỚI): onAuth ---
     onAuth(async (user) => {
         if (!user) {
-            notLogged.style.display = "block";
+            notLogged.style.display = "flex";
             content.style.display = "none";
             return;
         }
@@ -2660,7 +2660,7 @@
                 dueMidnight.setHours(0, 0, 0, 0);
 
                 // Kiểm tra xem chu kỳ này đã có tiến độ (Đang làm) chưa
-                const currentHistory = (d.progressHistory && d.progressHistory[matchDateStr]) ? d.progressHistory[matchDateStr] : [];
+                const currentHistory = (d.progressHistory && d.progressHistory[matchDateStr]) ? [...d.progressHistory[matchDateStr]].sort((a, b) => new Date(a.time) - new Date(b.time)) : [];
                 const isInProgress = !isCompleted && currentHistory.length > 0;
                 
                 let doneBtnHtml = "";
@@ -2699,10 +2699,12 @@
                             doneBtnHtml = `<button class="doneAdminTaskBtn" data-id="${d.id}" data-date="${matchDateStr}" style="flex: 1; background:#2980b9; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">📝 Cập nhật</button>`;
                         } else {
                             category = 4; // Tương lai xa
-                            statusText = `Chưa đến hạn (${daysUntil} ngày)`;
-                            statusColor = '#7f8c8d';
-                            doneBtnHtml = "";
+                            statusText = isInProgress ? `🏃 Đang làm (${daysUntil} ngày)` : `Chưa đến hạn (${daysUntil} ngày)`;
+                            statusColor = isInProgress ? '#2980b9' : '#7f8c8d';
                         }
+                        
+                        // Luôn hiển thị nút cập nhật (cho cả tương lai xa)
+                        doneBtnHtml = `<button class="doneAdminTaskBtn" data-id="${d.id}" data-date="${matchDateStr}" style="flex: 1; background:#2980b9; color:white; border:none; padding: 4px 10px; border-radius:4px; cursor:pointer;">📝 Cập nhật</button>`;
                     }
                 }
                 
@@ -2951,8 +2953,9 @@
                                     if (historyArr.length === 0) {
                                         pastContent.innerHTML = '<i>Không có dữ liệu tiến độ.</i>';
                                     } else {
+                                        const sortedHistory = [...historyArr].sort((a, b) => new Date(a.time) - new Date(b.time));
                                         let hHtml = '';
-                                        historyArr.forEach((h) => {
+                                        sortedHistory.forEach((h) => {
                                             const t = new Date(h.time);
                                             const timeStr = `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
                                             hHtml += `<div style="margin-top: 6px; padding-bottom: 6px; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -3063,8 +3066,9 @@
                                 user: currentUserEmail
                             };
                             
-                            // Nối vào mảng lịch sử hiện tại
+                            // Nối vào mảng lịch sử hiện tại và sắp xếp lại theo thời gian thực hiện
                             const updatedHistory = [...(task.currentHistory || []), newLog];
+                            updatedHistory.sort((a, b) => new Date(a.time) - new Date(b.time));
                             
                             // Dữ liệu sẽ update vào Firestore
                             let updatePayload = {
@@ -4355,7 +4359,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
                   <thead>
                     <tr style="background:#f0f0f0;">
                       <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px;">Công việc</th>
-                      <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 180px;">Hạn / Trạng thái</th>
+                      <th style="padding: 8px; border: 1px solid #ccc; text-align: center; font-size: 14px; width: 270px;">Hạn / Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody>`;
