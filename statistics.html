@@ -30,6 +30,12 @@
       align-items: center;
       gap: 8px; /* consistent spacing between controls */
     }
+    .filter-main-group, .filter-action-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
     /* remove per-control right margin (gap handles spacing), increase padding for click targets */
     .filter-box input, .filter-box select {
       margin-right: 0;
@@ -166,62 +172,70 @@
     padding: 8px;
   }
   
-  /* Filter box mobile - 1 hàng ngang cực gọn */
+  /* Filter box mobile - Chia thành 2 dòng (Dòng 1: Ngày + Áp dụng, Dòng 2: PDF + Cấu hình) */
   .filter-box {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 1px;
-    margin-bottom: 8px;
-    flex-wrap: nowrap;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important; 
+    margin-bottom: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   
-  .filter-box label {
-    font-size: 0;
-    line-height: 0;
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 1;
-    margin: 0 !important;
-    padding: 0 !important;
+  /* Gán thứ tự cho các thành phần bằng order (Đổi thành block và width 100% để input lấp đầy) */
+  .filter-box > label:nth-of-type(1) { order: 1; flex: 1 1 0% !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; display: block !important; width: 100% !important; }
+  .filter-box > label:nth-of-type(2) { order: 2; flex: 1 1 0% !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; display: block !important; width: 100% !important; }
+  .filter-box > button#applyFilter { order: 3; flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; max-width: none !important; }
+  
+  /* Sử dụng ::before làm trick ép xuống dòng */
+  .filter-box::before {
+    content: "";
+    display: block;
+    width: 100%;
+    order: 4;
+    height: 0;
+    margin: 0;
   }
   
-  .filter-box input[type="date"] {
-    width: 90px !important;
+  /* Dòng 2: Các nút chức năng chia đều 50/50 */
+  .filter-box > button#exportPDF { order: 5; flex: 1 1 0% !important; width: 100% !important; min-width: 0 !important; max-width: none !important; justify-content: center; }
+  .filter-box > button#openConfigModal { order: 6; flex: 1 1 0% !important; width: 100% !important; min-width: 0 !important; max-width: none !important; justify-content: center; }
+
+  /* Ẩn triệt để text và các nhãn rỗng để loại bỏ hoàn toàn các khoảng trắng ảo */
+  .mobile-hide-text, .mobile-hide-label {
+    display: none !important;
+  }
+  
+  /* Tăng độ ưu tiên (thêm 'label') để ép ô input phải ghi đè hoàn toàn lệnh 90px trong styles.css */
+  .filter-box label input[type="date"] {
+    width: 100% !important; /* Ép lấp đầy phần label */
+    max-width: 100% !important;
+    display: block !important;
     font-size: 11px !important;
     padding: 4px 2px !important;
     height: 27px !important;
     border: 1px solid #ccc;
     border-radius: 4px;
     margin: 0 !important;
-  }
-  
-  .filter-box select {
-    display: none !important;
+    box-sizing: border-box !important;
   }
   
   .filter-box button {
-    flex: 0 !important;
-    width: 68px !important;
-    min-width: 68px !important;
-    max-width: 68px !important;
     font-size: 11px !important;
-    padding: 4px !important;
+    padding: 4px 8px !important;
     height: 27px !important;
     white-space: nowrap !important;
     margin-left: 0 !important;
+    display: flex !important;
+    align-items: center !important;
   }
   
-  /* Nút Xuất báo cáo rộng hơn giống thongke */
-  .filter-box button#exportPDF {
-    width: 74px !important;
-    min-width: 74px !important;
-    max-width: 74px !important;
-  }
-  
-  /* Đổi text nút Xuất báo cáo trên mobile */
+  /* Rút gọn text nút Xuất báo cáo trên mobile */
   .filter-box button#exportPDF::before {
-    content: 'Xuất báo cáo';
+    content: 'Xuất BC';
   }
   
   .filter-box button#exportPDF {
@@ -581,14 +595,14 @@
 
   <div class="card-body">
     <div class="filter-box">
-      <label>Từ ngày: <input type="date" id="fromDate"></label>
-      <label>Đến ngày: <input type="date" id="toDate"></label>
-      <label>Năm nhanh:
+      <label><span class="mobile-hide-text">Từ ngày: </span><input type="date" id="fromDate"></label>
+      <label><span class="mobile-hide-text">Đến ngày: </span><input type="date" id="toDate"></label>
+      <label class="mobile-hide-label">Năm nhanh:
         <select id="yearSelect">
           <option value="">--Chọn năm--</option>
         </select>
       </label>
-      <label>Nhóm công ty: 
+      <label class="mobile-hide-label">Nhóm công ty: 
         <select id="companyGroupFilter">
             <option value="group1">Nhóm 1 (Đồng hồ)</option>
             <option value="group2">Nhóm 2 (Hóa đơn)</option>
