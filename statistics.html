@@ -8,11 +8,17 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
     /* CSS CŨ (GIỮ NGUYÊN) */
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; margin-top: 20px; }
     #reportTable th { text-align: center; vertical-align: middle; background: #034892; color: white; } 
     #reportTable td:first-child { text-align: left; } 
     #reportTable td:not(:first-child) { text-align: center; } 
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    
+    th, td { 
+        border: none; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; 
+        padding: 6px; text-align: center; 
+    }
+    th:first-child, td:first-child { border-left: 1px solid #ccc; }
+    th { border-top: 1px solid #ccc; background-clip: padding-box; position: sticky; top: 0; z-index: 10; }
     
     .toggle-btn { cursor: pointer; margin-left: 8px; color: rgba(0, 0, 255, 0.527); }
     .child-row { display: none; background: #f0f0f0; } 
@@ -38,6 +44,14 @@
     tr.past-row td { font-size: 0.85em; color: #444; }
     tr.total-current-row { background: #eef6ff; }
     tr.detail-current-row { background: white !important; }
+
+    /* Bảng có thanh cuộn để giữ cố định tiêu đề (sticky header) */
+    .table-container {
+        max-height: 70vh; /* Giới hạn chiều cao để kích hoạt thanh cuộn dọc */
+        overflow-y: auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 
     #quotaMultipliersSetting table { width: 100%; }
     #quotaMultipliersSetting th, #quotaMultipliersSetting td { padding: 4px 8px; }
@@ -219,10 +233,7 @@
   }
   
   /* Bảng responsive */
-  .table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  /* .table-container đã được định nghĩa ở CSS gốc */
   
   #reportTable,
   #holidayDetailTable {
@@ -385,7 +396,7 @@
     #holidayDetailTable {
         margin-top: 10px;
         width: 100%;
-        border-collapse: collapse;
+        border-collapse: separate; border-spacing: 0;
     }
     #holidayDetailReport h3 {
         margin-bottom: 5px;
@@ -410,7 +421,6 @@
     }
     
     #holidayDetailTable td {
-        border: 1px solid #ccc;
         padding: 8px;
         text-align: center;
         vertical-align: top;
@@ -429,9 +439,9 @@
     padding: 0; /* IMPORTANT: remove padding so sticky header aligns to top */
     background: #fff;
   }
-  .quota-scroll table { margin: 0; width: 100%; border-collapse: collapse; }
+  .quota-scroll table { margin: 0; width: 100%; border-collapse: separate; border-spacing: 0; }
   .quota-scroll thead th { background: transparent; font-weight: 600; }
-  .quota-scroll tbody tr td { padding: 8px; border: 1px solid #ccc; }
+  .quota-scroll tbody tr td { padding: 8px; }
   /* Make the header sticky so it stays visible while scrolling the quota list
      Match visual style from autoplan: light gray bg, slight shadow, no gap to container */
   .quota-scroll thead th {
@@ -439,9 +449,8 @@
     top: 0px; /* align to the very top of the scroll container */
     background-color: #f0f0f0; /* match autoplan look */
     z-index: 3;
-    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
     padding: 8px;
-    border: 1px solid #ccc;
+    background-clip: padding-box;
   }
   /* Make the first column (STT) narrow and centered */
   .quota-scroll table th:first-child,
@@ -570,7 +579,7 @@
   <h2>📊 Báo cáo thống kê</h2>
 
 
-  <form>
+  <div class="card-body">
     <div class="filter-box">
       <label>Từ ngày: <input type="date" id="fromDate"></label>
       <label>Đến ngày: <input type="date" id="toDate"></label>
@@ -647,7 +656,7 @@
     </div>
 
   </div>
-  </form>
+  </div>
 
   <div id="adminSettings" class="admin-settings" style="border: none; padding: 0; background: transparent;">
     
@@ -763,7 +772,7 @@
 
         <h3 style="color: #034892; margin-top: 10px; margin-bottom: 8px; font-size: 1rem;">📜 Lịch sử Quy tắc</h3>
         <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px;">
-            <table id="csHistoryTable" style="margin-top: 0; width: 100%; border-collapse: collapse;">
+            <table id="csHistoryTable" style="margin-top: 0; width: 100%;">
                 <thead>
                     <tr><th>Ngày áp dụng</th><th>Nhóm</th><th>Hệ số Khoán</th><th>Kỳ phí</th><th>Ngày nghỉ</th><th>Ghi chú</th><th>Hành động</th></tr>
                 </thead>
@@ -1833,9 +1842,6 @@ function calculateWorkingDays(startDate, endDate, companyName, config, processed
     // tính net = tổng - nghỉ
     let netWorkingDays = totalDaysInPeriod - specialDayOffs;
 
-    // logic trừ 1 để đếm khoảng (giữ nguyên logic cũ)
-    if (netWorkingDays > 0) netWorkingDays -= 1;
-
     // TRẢ VỀ OBJECT CHỨA KẾT QUẢ
     return { workingDays: netWorkingDays, dayOffsCount: specialDayOffs, dayOffDates };
 }
@@ -1905,7 +1911,10 @@ function calculateWorkingDays(startDate, endDate, companyName, config, processed
             
             // 1. TÍNH WORKING DAYS CHỈ ĐẾN latestDataDate (Dùng cho AVG)
             if (latestDataDate) {
-                const avgResult = calculateWorkingDays(p.start, latestDataDate, companyName, config, processedHolidayData);
+                const consumedEndDate = new Date(latestDataDate.getTime());
+                consumedEndDate.setDate(consumedEndDate.getDate() - 1);
+
+                const avgResult = calculateWorkingDays(p.start, consumedEndDate, companyName, config, processedHolidayData);
                 workingDaysForAvg = avgResult.workingDays; 
                 dayOffsCount = avgResult.dayOffsCount; 
                 dayOffDates = avgResult.dayOffDates; // ⭐️ Tooltip và Bảng chi tiết cũng chỉ lấy đến ngày có số liệu
@@ -2076,15 +2085,13 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
         if (isCurrent) {
             // Dành cho tính Trung bình, Khoán và hiển thị Chi tiết: Chỉ đếm đến ngày có dữ liệu (latestDataDate)
             if (latestDataDate) {
-                const avgResult = calculateWorkingDays(p.start, latestDataDate, companyName, config, processedHolidayData);
+                const consumedEndDate = new Date(latestDataDate.getTime());
+                consumedEndDate.setDate(consumedEndDate.getDate() - 1);
+                
+                const avgResult = calculateWorkingDays(p.start, consumedEndDate, companyName, config, processedHolidayData);
                 workingDaysForAvg = avgResult.workingDays;
                 dayOffsCount = avgResult.dayOffsCount; 
                 dayOffDates = avgResult.dayOffDates; // ⭐️ Đồng bộ, không lấy đến today nữa
-                
-                // Khắc phục lỗi thiếu 1 ngày cho kỳ hiện tại (bù lại logic đếm khoảng)
-                if (workingDaysForAvg > 0) {
-                    workingDaysForAvg += 1; 
-                }
             } else {
                 workingDaysForAvg = 0;
                 dayOffsCount = 0;
@@ -2100,11 +2107,6 @@ function getBillingPeriodsInFilter(readings, from, to, config, processedHolidayD
             workingDaysForAvg = pastResult.workingDays;
             dayOffsCount = pastResult.dayOffsCount;
             dayOffDates = pastResult.dayOffDates;
-            
-            // Khắc phục lỗi trừ kép: Bù lại 1 ngày do calculateWorkingDays tự động trừ
-            if (workingDaysForAvg > 0) {
-                workingDaysForAvg += 1;
-            }
         }
 
         // Lấy Hệ số nhân khoán từ bảng Lịch sử (Tính tại thời điểm cuối kỳ)
@@ -2765,10 +2767,19 @@ async function deleteInitialReading(companyName) {
             const q1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", fromDate), where("ngay_nghi", "<=", toDate));
             const q2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", fromDate), where("ngay_lam_db", "<=", toDate));
             
-            const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+            let snap1Docs = [];
+            let snap2Docs = [];
+            try {
+                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+                snap1Docs = snap1.docs;
+                snap2Docs = snap2.docs;
+            } catch (e) {
+                console.warn("⚠️ Lỗi tải reports_2 (có thể do offline, dùng cache rỗng):", e);
+            }
+
             const holidayMap = new Map();
-            snap1.docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
-            snap2.docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
+            snap1Docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
+            snap2Docs.forEach(doc => holidayMap.set(doc.id, { id: doc.id, ...doc.data() }));
             allHolidayRecords = Array.from(holidayMap.values());
             
             // 3. Khởi tạo danh sách dropdown Năm (2024 -> Năm nay)
@@ -3004,6 +3015,12 @@ async function exportTableToPDF(element, filename) {
     content.querySelectorAll('.toggle-btn').forEach(btn => btn.remove());
     content.querySelector('#reportModeToggle')?.remove();
 
+    // Gỡ bỏ thanh cuộn và giới hạn chiều cao để PDF in đầy đủ toàn bộ bảng
+    content.querySelectorAll('.table-container').forEach(c => {
+      c.style.maxHeight = 'none';
+      c.style.overflow = 'visible';
+    });
+
     // 8) Mở tất cả hàng con trên bản sao (đảm bảo xuất đầy đủ)
     content.querySelectorAll('.child-row').forEach(r => r.style.display = 'table-row');
     content.querySelectorAll('.child-row-detail').forEach(r => r.style.display = 'table-row');
@@ -3053,19 +3070,26 @@ async function exportTableToPDF(element, filename) {
 
 
     async function getReportConfig() {
-    const configRef = doc(db, "config", "reportConfig");
-    const configSnap = await getDoc(configRef);
-
-    console.log("🔥 configSnap.exists:", configSnap.exists());
-    const snapData = configSnap.exists() ? configSnap.data() : {};
-    console.log("🔥 raw snapData:", JSON.stringify(snapData));
+    let snapData = {};
+    try {
+        const configRef = doc(db, "config", "reportConfig");
+        const configSnap = await getDoc(configRef);
+        snapData = configSnap.exists() ? configSnap.data() : {};
+    } catch (e) {
+        console.warn("⚠️ Lỗi tải config (có thể do offline, dùng mặc định):", e);
+    }
 
     const snapQuota = (snapData.quotaMultipliers && typeof snapData.quotaMultipliers === 'object') ? snapData.quotaMultipliers : {};
 
     // ⭐️ MỚI: Tải cấu hình defaultHolidays từ settings
-    const settingsRef = doc(db, "settings", "reportConfig");
-    const settingsSnap = await getDoc(settingsRef);
-    const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+    let settingsData = {};
+    try {
+        const settingsRef = doc(db, "settings", "reportConfig");
+        const settingsSnap = await getDoc(settingsRef);
+        settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+    } catch (e) {
+        console.warn("⚠️ Lỗi tải settings (có thể do offline, dùng mặc định):", e);
+    }
     const defaultHolidays = settingsData.defaultHolidays || {};
 
     config = {
