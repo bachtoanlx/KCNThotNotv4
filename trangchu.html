@@ -542,6 +542,12 @@
                 // Add user message to chat
                 addMessage(userMessage, true);
 
+                // 🛡️ BẢO VỆ LỚP 1: Khóa giao diện trong lúc chờ AI
+                chatSubmit.disabled = true;
+                chatInput.disabled = true;
+                chatSubmit.textContent = '...';
+                chatSubmit.style.background = '#6c757d';
+
                 const lowerMsg = userMessage.toLowerCase();
                 
                 // ====== AI-POWERED CHATBOT ======
@@ -555,6 +561,10 @@
                     // KIỂM TRA ĐĂNG NHẬP: Nếu cần dữ liệu mà chưa đăng nhập thì chặn lại
                     if (!auth.currentUser) {
                         setTimeout(() => addMessage("⚠️ Bạn cần <b>đăng nhập</b> để tra cứu dữ liệu chi tiết (chỉ số, ngày nghỉ, thống kê...).", false, true), 500);
+                        chatSubmit.disabled = false;
+                        chatInput.disabled = false;
+                        chatSubmit.textContent = 'Gửi';
+                        chatSubmit.style.background = '#1f3765';
                         return; // Dừng xử lý, không gọi AI tốn quota
                     }
 
@@ -592,6 +602,10 @@
                                             <button class="confirm-btn" data-confirmed="yes" data-company="${suggestion}">Đúng</button>
                                             <button class="confirm-btn" data-confirmed="no">Không</button>`;
                                         setTimeout(() => addMessage(confirmationHtml, false, true), 500);
+                                        chatSubmit.disabled = false;
+                                        chatInput.disabled = false;
+                                        chatSubmit.textContent = 'Gửi';
+                                        chatSubmit.style.background = '#1f3765';
                                         return;
                                     } else {
                                         console.warn('⚠️ No fuzzy match found or score too low');
@@ -723,7 +737,13 @@
                 const aiResponse = await getAIResponse(userMessage, contextData);
                 
                 // Bước 4: Hiển thị phản hồi từ AI
-                setTimeout(() => addMessage(aiResponse), 500);
+                setTimeout(() => {
+                    addMessage(aiResponse);
+                    chatSubmit.disabled = false;
+                    chatInput.disabled = false;
+                    chatSubmit.textContent = 'Gửi';
+                    chatSubmit.style.background = '#1f3765';
+                }, 500);
             }
 
             // Handle submit button click
