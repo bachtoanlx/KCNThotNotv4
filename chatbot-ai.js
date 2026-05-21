@@ -403,7 +403,7 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
                 if (!d.hasData) return responseText + `⚠️ Công ty **${d.company}** bị thiếu chỉ số mốc đầu kỳ (${d.startMark}), không thể tính toán.`;
                 responseText += `- Công ty: **${d.company}**\n`;
                 responseText += `- Tổng lưu lượng: **${d.total.toLocaleString('vi-VN')} m³**\n`;
-                if (d.avg !== null) responseText += `- Trung bình: **${d.avg.toLocaleString('vi-VN')} m³/ngày** (Tính trên ${d.workingDays} ngày làm việc)\n`;
+                if (d.avg !== null) responseText += `- Trung bình: **${d.avg.toLocaleString('vi-VN', {maximumFractionDigits: 1})} m³/ngày** (Tính trên ${d.workingDays} ngày làm việc)\n`;
                 if (d.quota !== null) responseText += `- Khối lượng khoán: **${d.quota.toLocaleString('vi-VN')} m³**\n`;
             } else if (stats.tong_luong_xa_thai_kcn !== undefined) {
                 responseText += `- Tổng KCN: **${stats.tong_luong_xa_thai_kcn.toLocaleString('vi-VN')} m³** (Từ ${stats.so_cong_ty_co_du_lieu} công ty)\n\n`;
