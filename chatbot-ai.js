@@ -60,9 +60,7 @@ HỆ THỐNG QUẢN LÝ:
 - Cấu hình ngày bắt đầu tuần/tháng/năm/kỳ thanh toán
 
 CÁC CÔNG TY TRONG KCN:
-- Nhóm 1 (đồng hồ): NTSF, Ấn Độ Dương, Đại Tây Dương, Cá Việt Nam, Amicogen
-- Nhóm 2 (hóa đơn): VNPT, Trường Hải, Petec, Tân Cảng, Agribank
-- Nhóm 3 (khoán): Hiệp Phú, Honoroad
+(Danh sách công ty sẽ được nạp tự động từ Database)
 
 QUY TẮC MỐC NEO THỜI GIAN (CỰC KỲ QUAN TRỌNG):
 - "Tuần", "Tháng", "Năm" và "Kỳ thu phí" trong hệ thống này KHÔNG được tính theo lịch thông thường. Chúng phụ thuộc hoàn toàn vào các "Mốc neo" do quản trị viên cài đặt.
@@ -136,25 +134,11 @@ let conversationHistory = [
     }
 ];
 
+// Khởi tạo rỗng, danh sách sẽ được nạp tự động qua hàm initDynamicChatbotData()
+// Nếu bạn có các từ gọi tắt đặc biệt không trùng tên (ví dụ gọi Agribank là ngân hàng), hãy giữ lại những từ đó.
 let companyNameMap = {
-    'ntsf': 'NTSF',
-    'vnpt': 'VNPT',
-    'amicogen': 'Amicogen',
-    'hiệp phú': 'Hiệp Phú',
-    'honoroad': 'Honoroad',
-    'petec': 'Petec',
-    'ấn độ dương': 'Ấn Độ Dương',
-    'an do duong': 'Ấn Độ Dương',
-    'đại tây dương': 'Đại Tây Dương',
-    'dai tay duong': 'Đại Tây Dương',
-    'cá việt nam': 'Cá Việt Nam',
-    'ca viet nam': 'Cá Việt Nam',
-    'trường hải': 'Trường Hải',
-    'truong hai': 'Trường Hải',
-    'tân cảng': 'Tân Cảng',
-    'tan cang': 'Tân Cảng',
-    'ngan hang': 'Agribank',
-    'ngân hàng': 'Agribank'
+    'ngân hàng': 'Agribank',
+    'ngan hang': 'Agribank'
 };
 
 function removeAccents(str) {
