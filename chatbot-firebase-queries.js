@@ -6,6 +6,7 @@
 
 // Import db từ script.js (đã export)
 import { db, auth } from "./script.js";
+import { formatISODate, getCompanyConfigAtDate, getPeriodsInFilter, getBillingPeriodsInFilter } from "./core-calculator.js";
 
 // Import Firestore functions trực tiếp từ Firebase
 import {
@@ -24,7 +25,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // ============================================
-// 1. QUERIES CHO reports_1 (Chỉ số điện/nước)
+// 1. QUERIES CHO reports_1 (Chỉ số nước)
 // ============================================
 
 /**
@@ -36,18 +37,17 @@ export async function getLatestCompanyIndex(companyName) {
             collection(db, "reports_1"),
             where("company", "==", companyName),
             orderBy("ngay_ghi", "desc"),
-            orderBy("createdAt", "desc"),
-            limit(1)
+            limit(1) // ⭐️ Chỉ lấy 1 bản ghi gần nhất để đọc mặt đồng hồ
         );
         const snapshot = await getDocs(q);
         
         if (!snapshot.empty) {
-            const data = snapshot.docs[0].data();
+            const current = snapshot.docs[0].data();
+            
             return {
                 company: companyName,
-                chi_so: data.chi_so || 0,
-                ngay_ghi: data.ngay_ghi || 'N/A',
-                ghi_chu: data.ghi_chu || ''
+                chi_so_dong_ho_hien_tai: current.chi_so || 0,
+                ngay_ghi_hien_tai: current.ngay_ghi || 'N/A'
             };
         }
         return null;
@@ -86,14 +86,8 @@ export async function getCompanyIndexHistory(companyName, startDate, endDate) {
  */
 export async function getTotalCompanies() {
     try {
-        const snapshot = await getDocs(collection(db, "reports_1"));
-        const companies = new Set();
-        snapshot.forEach(doc => {
-            if (doc.data().company) {
-                companies.add(doc.data().company);
-            }
-        });
-        return companies.size;
+        const snapshot = await getDocs(collection(db, "company_configs"));
+        return snapshot.size;
     } catch (error) {
         console.error('Error fetching total companies:', error);
         return 0;
@@ -105,65 +99,27 @@ export async function getTotalCompanies() {
  */
 export async function getAllCompanies() {
     try {
-        const snapshot = await getDocs(collection(db, "reports_1"));
-        const companies = new Set();
-        snapshot.forEach(doc => {
-            if (doc.data().company) {
-                companies.add(doc.data().company);
-            }
-        });
-        return Array.from(companies).sort();
-    } catch (error) {
-        console.error('Error fetching all companies:', error);
-        return [];
-    }
-}
-
-/**
- * So sánh tiêu thụ giữa các công ty trong tháng
- */
-export async function compareCompaniesThisMonth() {
-    try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const startDate = `${year}-${month}-01`;
-        const endDate = `${year}-${month}-31`;
+        const snapshot = await getDocs(collection(db, "company_configs"));
+        const groups = { group1: [], group2: [], group3: [] };
+        let total = 0;
         
-        const q = query(
-            collection(db, "reports_1"),
-            where("ngay_ghi", ">=", startDate),
-            where("ngay_ghi", "<=", endDate)
-        );
-        const snapshot = await getDocs(q);
-        
-        // Nhóm theo công ty và tính tổng
-        const companyData = {};
         snapshot.forEach(doc => {
             const data = doc.data();
-            if (!companyData[data.company]) {
-                companyData[data.company] = {
-                    total: 0,
-                    count: 0,
-                    records: []
-                };
+            if (data.company) {
+                total++;
+                const g = data.group || 'group3'; // Mặc định là nhóm khoán
+                if (groups[g]) groups[g].push(data.company);
+                else groups['group3'].push(data.company);
             }
-            companyData[data.company].total += (data.chi_so || 0);
-            companyData[data.company].count += 1;
-            companyData[data.company].records.push(data);
         });
-        
-        // Chuyển sang array và sắp xếp
-        return Object.entries(companyData)
-            .map(([company, stats]) => ({
-                company,
-                total: stats.total,
-                average: stats.count > 0 ? stats.total / stats.count : 0,
-                count: stats.count
-            }))
-            .sort((a, b) => b.total - a.total);
+        return {
+            total: total,
+            group1: groups.group1.sort(),
+            group2: groups.group2.sort(),
+            group3: groups.group3.sort()
+        };
     } catch (error) {
-        console.error('Error comparing companies:', error);
+        console.error('Error fetching all companies:', error);
         return [];
     }
 }
@@ -241,6 +197,51 @@ export async function getSpecialWorkdays(startDate, endDate) {
     }
 }
 
+/**
+ * Lấy cấu hình ngày nghỉ định kỳ của công ty
+ */
+export async function getCompanyHolidayConfig(companyName) {
+    try {
+        const [settingsSnap, companiesSnap] = await Promise.all([
+            getDoc(doc(db, "settings", "reportConfig")),
+            getDocs(query(collection(db, "company_configs"), where("company", "==", companyName)))
+        ]);
+        
+        let defaultHolidays = [];
+        const settings = settingsSnap.exists() ? settingsSnap.data() : {};
+        const globalDef = settings.defaultHolidays || {};
+        
+        const configs = companiesSnap.docs.map(d => d.data());
+        if (configs.length > 0) {
+            configs.sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate));
+            const latest = configs[0];
+            if (latest.defaultHolidays) {
+                defaultHolidays = latest.defaultHolidays;
+            } else {
+                const defSet = globalDef[companyName];
+                if (defSet === 'sat_sun' || defSet === 'sat-sun') defaultHolidays = [0, 6];
+                else if (defSet === 'sun_only' || defSet === 'sun') defaultHolidays = [0];
+                else if (defSet === 'sat') defaultHolidays = [6];
+            }
+        } else {
+            const defSet = globalDef[companyName];
+            if (defSet === 'sat_sun' || defSet === 'sat-sun') defaultHolidays = [0, 6];
+            else if (defSet === 'sun_only' || defSet === 'sun') defaultHolidays = [0];
+            else if (defSet === 'sat') defaultHolidays = [6];
+        }
+        
+        const dayMap = {0:"Chủ nhật", 1:"Thứ 2", 2:"Thứ 3", 3:"Thứ 4", 4:"Thứ 5", 5:"Thứ 6", 6:"Thứ 7"};
+        if (defaultHolidays.length === 0) return "Không nghỉ (Làm full tuần)";
+        
+        // Sắp xếp T2->CN
+        const sorted = defaultHolidays.sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+        return sorted.map(d => dayMap[d]).join(", ");
+    } catch (error) {
+        console.error('Error fetching holiday config:', error);
+        return "Chưa rõ cấu hình";
+    }
+}
+
 // ============================================
 // 3. QUERIES CHO CONFIG (Cấu hình hệ thống)
 // ============================================
@@ -310,102 +311,149 @@ export async function getDefaultHolidays() {
 // ============================================
 
 /**
- * Thống kê tiêu thụ theo tuần hiện tại
+ * ⭐️ ĐỘNG CƠ THỐNG KÊ TRÍ TUỆ (SỬ DỤNG CHUNG CORE-CALCULATOR)
+ * @param {string} timeframe - 'week', 'month', 'billing'
+ * @param {string} targetCompany - Tên công ty (hoặc null nếu lấy toàn KCN)
+ * @param {Date} targetDateObj - Mốc thời gian muốn tính (null = hiện tại)
  */
-export async function getWeeklyStatistics() {
+export async function getAdvancedStatistics(timeframe, targetCompany = null, targetDateObj = null) {
     try {
-        const now = new Date();
-        const dayOfWeek = now.getDay();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - dayOfWeek + 1); // Thứ 2
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Chủ nhật
-        
-        const startDate = startOfWeek.toISOString().split('T')[0];
-        const endDate = endOfWeek.toISOString().split('T')[0];
-        
-        const q = query(
-            collection(db, "reports_1"),
-            where("ngay_ghi", ">=", startDate),
-            where("ngay_ghi", "<=", endDate)
-        );
-        
-        // ⭐️ TỐI ƯU: Sử dụng Aggregation Queries (Tính toán trên Server)
-        // Không tải documents về, chỉ tải kết quả số -> Cực nhanh
-        const snapshot = await getAggregateFromServer(q, {
-            totalConsumption: sum('chi_so'),
-            recordCount: count()
-        });
-        
-        const data = snapshot.data();
+        const now = targetDateObj ? new Date(targetDateObj) : new Date();
 
-        return {
-            period: `${startDate} đến ${endDate}`,
-            totalConsumption: data.totalConsumption,
-            averageConsumption: data.recordCount > 0 ? data.totalConsumption / data.recordCount : 0,
-            recordCount: data.recordCount,
-            companyCount: "N/A" // Aggregation chưa hỗ trợ count distinct, chấp nhận bỏ qua để đổi lấy tốc độ
+        // 1. TẢI CẤU HÌNH HỆ THỐNG
+        const [configSnap, settingsSnap, companiesSnap] = await Promise.all([
+            getDoc(doc(db, "config", "reportConfig")),
+            getDoc(doc(db, "settings", "reportConfig")),
+            getDocs(collection(db, "company_configs"))
+        ]);
+        
+        const sysConfig = configSnap.exists() ? configSnap.data() : {};
+        const settings = settingsSnap.exists() ? settingsSnap.data() : {};
+        const allCompanyConfigs = companiesSnap.docs.map(d => d.data());
+
+        const coreConfig = {
+            weekDayStart: sysConfig.weekDayStart || 1,
+            monthDayStart: sysConfig.monthDayStart || 1,
+            yearDayStart: sysConfig.yearDayStart || 1,
+            defaultHolidays: settings.defaultHolidays || {},
+            quotaMultipliers: sysConfig.quotaMultipliers || {}
         };
-    } catch (error) {
-        console.error('Error fetching weekly statistics:', error);
-        return null;
-    }
-}
 
-/**
- * Thống kê tiêu thụ theo tháng hiện tại
- */
-export async function getMonthlyStatistics() {
-    try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const startDate = `${year}-${month}-01`;
-        const endDate = `${year}-${month}-31`;
+        // 2. XÁC ĐỊNH KHOẢNG THỜI GIAN LẤY DỮ LIỆU RỘNG RÃI
+        let fetchStart = new Date(now);
+        if (timeframe === 'year') {
+            fetchStart = new Date(now.getFullYear(), 0, 1);
+        } else {
+            fetchStart.setMonth(fetchStart.getMonth() - 2); 
+        }
+        fetchStart.setDate(fetchStart.getDate() - 15);
+        const fetchStartStr = formatISODate(fetchStart);
         
-        const q = query(
-            collection(db, "reports_1"),
-            where("ngay_ghi", ">=", startDate),
-            where("ngay_ghi", "<=", endDate)
-        );
+        const fetchEnd = new Date(now);
+        fetchEnd.setDate(fetchEnd.getDate() + 45); // Dư dả thời gian về tương lai để chốt mốc cuối
+        const fetchEndStr = formatISODate(fetchEnd);
 
-        // ⭐️ TỐI ƯU: Sử dụng Aggregation Queries
-        const snapshot = await getAggregateFromServer(q, {
-            totalConsumption: sum('chi_so'),
-            recordCount: count()
+        // 3. TẢI DỮ LIỆU ĐỂ TÍNH TOÁN
+        const qReports = query(collection(db, "reports_1"), where("ngay_ghi", ">=", fetchStartStr), where("ngay_ghi", "<=", fetchEndStr));
+        const snapReports = await getDocs(qReports);
+        const allReadings = snapReports.docs.map(d => ({ date: new Date(d.data().ngay_ghi + "T00:00:00"), value: parseFloat(d.data().chi_so), company: d.data().company }));
+
+        const qHolidays1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", fetchStartStr), where("ngay_nghi", "<=", fetchEndStr));
+        const qHolidays2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", fetchStartStr), where("ngay_lam_db", "<=", fetchEndStr));
+        const [snapH1, snapH2] = await Promise.all([getDocs(qHolidays1), getDocs(qHolidays2)]);
+        
+        const processedHolidays = {};
+        [...snapH1.docs, ...snapH2.docs].forEach(doc => {
+            const r = doc.data();
+            if (!processedHolidays[r.company]) processedHolidays[r.company] = { dayOffs: new Set(), specialWorkdays: new Set() };
+            if (r.ngay_nghi) processedHolidays[r.company].dayOffs.add(r.ngay_nghi);
+            if (r.ngay_lam_db) processedHolidays[r.company].specialWorkdays.add(r.ngay_lam_db);
         });
-        
-        const data = snapshot.data();
 
-        return {
-            period: `Tháng ${month}/${year}`,
-            totalConsumption: data.totalConsumption,
-            averageConsumption: data.recordCount > 0 ? data.totalConsumption / data.recordCount : 0,
-            recordCount: data.recordCount,
-            companyCount: "N/A"
-        };
+        // 4. TÍNH TOÁN CHO TỪNG CÔNG TY
+        const companyList = targetCompany ? [targetCompany] : [...new Set(allReadings.map(r => r.company))];
+        let kcnTotal = 0;
+        const topConsumers = [];
+        let targetCompanyData = null;
+        let kcnPeriodLabel = "";
+
+        companyList.forEach(comp => {
+            const compReadings = allReadings.filter(r => r.company === comp);
+            
+            let periodData;
+            if (timeframe === 'billing') {
+                periodData = getBillingPeriodsInFilter(compReadings, now, now, coreConfig, processedHolidays, comp, allCompanyConfigs);
+            } else {
+                periodData = getPeriodsInFilter(compReadings, now, now, timeframe, coreConfig, processedHolidays, comp, allCompanyConfigs);
+            }
+
+            // Do query `from = now, to = now`, kết quả sẽ rớt vào `current` (nếu đang là kỳ này) hoặc `past[0]` (nếu là quá khứ)
+            const currentData = (periodData.past && periodData.past.length > 0) ? periodData.past[0] : periodData.current;
+            
+            if (!currentData) return;
+            if (!kcnPeriodLabel) kcnPeriodLabel = currentData.label;
+
+            let total = currentData.total === "N/A" ? null : currentData.total;
+            let avg = currentData.avg === "N/A" ? null : currentData.avg;
+            let quota = currentData.quota === "N/A" ? null : (currentData.quota !== undefined ? currentData.quota : null);
+            let workingDays = currentData.workingDaysForAvg || 0;
+
+            // Tính Khoán (Nếu là tuần/tháng/năm nhưng công ty có áp khoán, AI vẫn cần đọc)
+            if (timeframe !== 'billing' && total !== null) {
+                const periodEndStr = formatISODate(currentData.end);
+                const cCfg = getCompanyConfigAtDate(comp, periodEndStr, allCompanyConfigs);
+                const qMult = cCfg ? (Number(cCfg.quotaMultiplier) || 0) : (Number(sysConfig.quotaMultipliers?.[comp]) || 0);
+                if (qMult > 0) {
+                    quota = parseFloat((workingDays * qMult).toFixed(0));
+                } else {
+                    quota = 0;
+                }
+            }
+
+            if (total !== null) {
+                kcnTotal += total;
+            }
+
+            const compResult = {
+                company: comp,
+                total: total,
+                avg: avg,
+                quota: quota,
+                workingDays: workingDays,
+                startMark: currentData.start ? formatISODate(currentData.start) : 'N/A',
+                endMark: currentData.end ? formatISODate(currentData.end) : 'N/A',
+                hasData: total !== null
+            };
+            
+            topConsumers.push(compResult);
+            if (comp === targetCompany) targetCompanyData = compResult;
+        });
+
+        // 5. TRẢ VỀ KẾT QUẢ CHO AI
+        if (targetCompany) {
+            return {
+                periodLabel: kcnPeriodLabel,
+                companyData: targetCompanyData || {
+                    company: targetCompany,
+                    hasData: false,
+                    startMark: 'N/A',
+                    total: 0
+                }
+            };
+        } else {
+            // Lấy Top 5 xả thải
+            const sortedTop = topConsumers.filter(c => c.hasData).sort((a, b) => b.total - a.total).slice(0, 5);
+            return {
+                periodLabel: kcnPeriodLabel || "Báo cáo KCN",
+                tong_luong_xa_thai_kcn: kcnTotal,
+                so_cong_ty_co_du_lieu: topConsumers.filter(c => c.hasData).length,
+                topConsumers: sortedTop
+            };
+        }
+
     } catch (error) {
-        console.error('Error fetching monthly statistics:', error);
+        console.error('Error getting advanced statistics:', error);
         return null;
-    }
-}
-
-/**
- * Tìm công ty tiêu thụ nhiều nhất
- */
-export async function getTopConsumers(limit = 5) {
-    try {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const startDate = `${year}-${month}-01`;
-        const endDate = `${year}-${month}-31`;
-        
-        const comparison = await compareCompaniesThisMonth();
-        return comparison.slice(0, limit);
-    } catch (error) {
-        console.error('Error fetching top consumers:', error);
-        return [];
     }
 }
 
@@ -419,35 +467,72 @@ export async function getTopConsumers(limit = 5) {
  */
 export async function calculateAndCacheSchedule(dateStr) {
     try {
-        // 1. Lấy quy tắc
-        const rules = await getAutoplanRules();
-        if (rules.length === 0) return "Chưa có quy tắc trực.";
-
-        // 2. Phân tích ngày
-        const date = new Date(dateStr);
-        const dayOfWeek = date.getDay(); // 0-6
-        const dayOfMonth = date.getDate(); // 1-31
-
-        // 3. Logic so khớp (JS thuần, cực nhanh)
-        let matchedContent = [];
+        const checkDate = new Date(dateStr + "T00:00:00");
+        const [patternsSnap, swapsSnap] = await Promise.all([
+            getDocs(collection(db, "work_patterns")),
+            getDocs(collection(db, "shift_swaps"))
+        ]);
         
-        rules.forEach(rule => {
-            // So khớp thứ
-            if (rule.dayOfWeek !== null && rule.dayOfWeek === dayOfWeek) {
-                matchedContent.push(rule.content);
-            }
-            // So khớp ngày
-            if (rule.dayOfMonth !== null && rule.dayOfMonth === dayOfMonth) {
-                matchedContent.push(rule.content);
+        const patterns = patternsSnap.docs.map(d => d.data());
+        const swaps = swapsSnap.docs.map(d => d.data()).filter(s => s.date === dateStr);
+        
+        const dayOfWeek = checkDate.getDay() === 0 ? 8 : checkDate.getDay() + 1;
+        let workers = [];
+
+        // Hàm kiểm tra quy tắc
+        const isRuleActive = (r) => {
+            const start = new Date(r.patternStartDate + 'T00:00:00');
+            const end = r.patternEndDate ? new Date(r.patternEndDate + 'T00:00:00') : null;
+            if (checkDate < start) return false;
+            if (end && checkDate >= end) return false;
+            return true;
+        };
+
+        // Nhóm cố định (Hành chính)
+        patterns.filter(p => p.type === 'administrative').forEach(r => {
+            if (isRuleActive(r) && r.workDaysOfWeek && r.workDaysOfWeek.includes(dayOfWeek)) {
+                let name = r.displayName;
+                const swap = swaps.find(s => s.user1 === name);
+                if (swap) name = `${swap.user2} (trực thay ${swap.user1})`;
+                workers.push(`[${r.shiftGroup || 'Hành chính'}] ${name} (${r.startTime}-${r.endTime})`);
             }
         });
 
-        // Loại bỏ trùng lặp
-        const uniqueContent = [...new Set(matchedContent)];
-        const resultString = uniqueContent.length > 0 ? uniqueContent.join(", ") : "Không có lịch trực";
+        // Nhóm xoay ca
+        const shiftRules = patterns.filter(p => p.type === 'shift_rotation');
+        const shiftGroups = {};
+        shiftRules.forEach(r => {
+            const g = r.shiftGroup || "Vận hành";
+            if (!shiftGroups[g]) shiftGroups[g] = [];
+            shiftGroups[g].push(r);
+        });
 
-        // 4. LƯU CACHE (Quan trọng: Để lần sau không phải tính lại)
-        // Import hàm save từ script.js hoặc dùng trực tiếp setDoc
+        for (const group in shiftGroups) {
+            const groupRules = shiftGroups[group];
+            groupRules.sort((a,b) => {
+                if (a.patternStartDate !== b.patternStartDate) return new Date(a.patternStartDate) - new Date(b.patternStartDate);
+                if (a.startTime !== b.startTime) return (a.startTime || "").localeCompare(b.startTime || "");
+                return (a.displayName || "").localeCompare(b.displayName || "");
+            });
+            const groupRefDate = new Date(groupRules[0].patternStartDate + 'T00:00:00');
+            
+            const membersToday = groupRules.filter(isRuleActive);
+            if (membersToday.length > 0) {
+                const n = membersToday.length;
+                const diffDays = Math.round((checkDate - groupRefDate) / (1000 * 60 * 60 * 24));
+                const idx = (diffDays % n + n) % n;
+                const worker = membersToday[idx];
+                if (worker) {
+                    let name = worker.displayName;
+                    const swap = swaps.find(s => s.user1 === name);
+                    if (swap) name = `${swap.user2} (trực thay ${swap.user1})`;
+                    workers.push(`[${group}] ${name} (${worker.startTime}-${worker.endTime})`);
+                }
+            }
+        }
+
+        const resultString = workers.length > 0 ? workers.join(", ") : "Không có ai trực";
+
         const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js");
         
         await setDoc(doc(db, "daily_schedules", dateStr), {
