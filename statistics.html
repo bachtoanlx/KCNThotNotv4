@@ -2002,7 +2002,7 @@ if (btnSyncAutoInit) {
         // Logic để xác định nội dung ô (Total)
         function getDisplayContent(dataItem, isPast = false, idx = 0) {
             const currentData = isPast ? dataItem?.data?.past[idx] : dataItem?.data?.current;
-            const totalFixed = currentData?.total || 'N/A';
+            const totalFixed = currentData ? safeFixed(currentData.total, 1) : 'N/A';
             const dayOffs = currentData?.dayOffsCount || 0;
             const holidayDates = currentData?.holidayDates || [];
             
@@ -2136,7 +2136,8 @@ if (btnSyncAutoInit) {
                         tooltips.push(`Phép tính: (N/A - N/A) / N/A`);
                     }
                     let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
-                    return `<td ${titleAttr}>${currentData?.avg || 'N/A'}</td>`;
+                    const avgDisplay = currentData ? safeFixed(currentData.avg, 1, true) : 'N/A';
+                    return `<td ${titleAttr}>${avgDisplay}</td>`;
                 }).join('')}
               </tr>`;
 
@@ -2166,7 +2167,8 @@ if (btnSyncAutoInit) {
                             tooltips.push(`Phép tính: (N/A - N/A) / N/A`);
                         }
                         let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
-                        return `<td ${titleAttr}>${currentData?.avg || 'N/A'}</td>`;
+                        const avgDisplay = currentData ? safeFixed(currentData.avg, 1, true) : 'N/A';
+                        return `<td ${titleAttr}>${avgDisplay}</td>`;
                     }).join('')}
                 </tr>`;
               });
@@ -2190,7 +2192,8 @@ if (btnSyncAutoInit) {
                             tooltips.push(`Phép tính: N/A * N/A`);
                         }
                         let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
-                        return `<td ${titleAttr}>${currentData?.quota || 'N/A'}</td>`;
+                        const quotaDisplay = currentData ? safeFixed(currentData.quota, 0) : 'N/A';
+                        return `<td ${titleAttr}>${quotaDisplay}</td>`;
                     }).join('')}
                 </tr>`;
 
@@ -2214,7 +2217,8 @@ if (btnSyncAutoInit) {
                               tooltips.push(`Phép tính: N/A * N/A`);
                           }
                           let titleAttr = tooltips.length > 0 ? `title="${tooltips.join('&#10;---&#10;')}"` : '';
-                          return `<td ${titleAttr}>${currentData?.quota || 'N/A'}</td>`;
+                          const quotaDisplay = currentData ? safeFixed(currentData.quota, 0) : 'N/A';
+                          return `<td ${titleAttr}>${quotaDisplay}</td>`;
                       }).join('')}
                   </tr>`;
                 });
