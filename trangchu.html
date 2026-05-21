@@ -170,6 +170,41 @@
             background: #f5f5f5;
             align-self: flex-start;
         }
+        
+        /* CSS cho các nút gợi ý trong chat */
+        .suggestion-btn {
+            background-color: #e3f2fd;
+            border: 1px solid #b3e5fc;
+            color: #0d47a1;
+            padding: 8px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            margin: 4px 2px;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        .suggestion-btn:hover { background-color: #bbdefb; }
+
+        /* Hiệu ứng Đang gõ (Typing Indicator) */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 2px;
+        }
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background-color: #90949c;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
 
         .chat-input {
             display: flex;
@@ -322,9 +357,7 @@
             <span style="cursor: pointer" id="chatClose">✕</span>
         </div>
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot-message">
-                Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt. Tôi có thể giúp gì cho bạn?
-            </div>
+            <!-- Tin nhắn sẽ được thêm bằng JavaScript -->
         </div>
         <div class="chat-input">
             <input type="text" id="chatInput" placeholder="Nhập câu hỏi của bạn..." />
@@ -346,19 +379,14 @@
             getCompanyIndexHistory,
             getTotalCompanies,
             getAllCompanies,
-            compareCompaniesThisMonth,
             getHolidays, 
             getNextHoliday,
             getSpecialWorkdays,
-            getWeeklyStatistics,
-            getMonthlyStatistics,
-            getTopConsumers,
-            getQuotaMultipliers,
-            getStartDaySettings,
-            getDefaultHolidays,
             getAutoplanRules,
             getCachedSchedule,
-            calculateAndCacheSchedule
+            calculateAndCacheSchedule,
+            getAdvancedStatistics,
+            getCompanyHolidayConfig
         } from "./chatbot-firebase-queries.js?v=2";
 
         // load menu
@@ -452,17 +480,37 @@
 
             // Handle message submission
             function addMessage(content, isUser = false, isHtml = false) {
+                // Xóa hiệu ứng "Đang gõ" nếu có (khi bot chuẩn bị trả lời)
+                if (!isUser) {
+                    const typingMsg = chatMessages.querySelector('.typing-message');
+                    if (typingMsg) typingMsg.remove();
+                }
+
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`; // Gán class
                 if (isHtml) {
                     messageDiv.innerHTML = content;
                 } else {
                     // Parse markdown
                     let parsedContent = content
-                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') // **bold**
-                        .replace(/\*(.+?)\*/g, '<em>$1</em>') // *italic*
-                        .replace(/`(.+?)`/g, '<code>$1</code>') // `code`
-                        .replace(/\n/g, '<br>'); // Line breaks
+                        .replace(/\$m\^3\$/g, 'm³') // Gọt lỗi hiển thị m3 dạng LaTeX 1
+                        .replace(/m\^3/g, 'm³')     // Gọt lỗi hiển thị m3 dạng LaTeX 2
+                        
+                        // 1. Phải xử lý `code` trước để tránh các ký tự bên trong code block bị dính định dạng khác
+                        .replace(/`(.+?)`/g, '<code>$1</code>') 
+                        
+                        // 2. Xử lý BOLD (dấu ** đôi) TRƯỚC dấu * đơn
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') 
+                        
+                        // 3. Xử lý ITALIC (dấu * đơn) SAU, dùng [^*] để ép nó không ăn vào thẻ strong
+                        .replace(/\*([^*]+?)\*/g, '<em>$1</em>') 
+                        
+                        // 4. Sửa lại Regex của BUTTON (Thêm ngoặc tròn () để tạo nhóm $1)
+                        .replace(/\[BUTTON\](.+?)\[\/BUTTON\]/g, '<button class="suggestion-btn">$1</button>') 
+                        
+                        // 5. Xuống dòng xử lý cuối cùng
+                        .replace(/\n/g, '<br>'); 
+
                     messageDiv.innerHTML = parsedContent;
                 }
                 chatMessages.appendChild(messageDiv);
@@ -476,6 +524,14 @@
                 }
             }
 
+            // Lắng nghe sự kiện click trên các nút gợi ý
+            chatMessages.addEventListener('click', (e) => {
+                if (e.target && e.target.classList.contains('suggestion-btn')) {
+                    const question = e.target.textContent;
+                    handleUserInput(question);
+                }
+            });
+
             // Hàm xử lý khi người dùng nhấn nút "Đúng" / "Không"
             async function handleConfirmationClick(event) {
                 const button = event.target;
@@ -487,6 +543,14 @@
 
                 if (isConfirmed) {
                     lastMentionedCompany = companyName; // Set lastMentionedCompany on confirmation
+                    
+                    // Hiện "đang gõ..." khi đang chui vào Firebase lấy dữ liệu
+                    const typingDiv = document.createElement('div');
+                    typingDiv.className = 'message bot-message typing-message';
+                    typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+                    chatMessages.appendChild(typingDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
                     const response = await getLatestCompanyIndexFromFirebase(companyName);
                     setTimeout(() => addMessage(response), 300);
                 } else { setTimeout(() => addMessage("Xin lỗi, vậy bạn vui lòng gõ lại tên công ty chính xác hơn nhé."), 300); }
@@ -542,6 +606,13 @@
                 // Add user message to chat
                 addMessage(userMessage, true);
 
+                // Hiển thị hiệu ứng "Đang gõ..." của Bot
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot-message typing-message';
+                typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+                chatMessages.appendChild(typingDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
                 // 🛡️ BẢO VỆ LỚP 1: Khóa giao diện trong lúc chờ AI
                 chatSubmit.disabled = true;
                 chatInput.disabled = true;
@@ -555,6 +626,18 @@
                 const dataQuery = detectDataQuery(userMessage);
                 console.log('🔍 detectDataQuery result:', dataQuery);
                 let contextData = null;
+                
+                // --- XỬ LÝ QUY TẮC REDIRECT CHO LỊCH SỬ LƯU LƯỢNG CỤ THỂ ---
+                if (dataQuery && dataQuery.requiresRedirect) {
+                    setTimeout(() => {
+                        addMessage(`Dữ liệu đã được tải, bạn có thể truy cập <a href="https://bachtoanlx.github.io/KCNThotNotv4/statistics.html" target="_blank" style="color: #034892; font-weight: bold; text-decoration: underline;">Thống kê lưu lượng</a> để xem chi tiết. Thank!`, false, true);
+                        chatSubmit.disabled = false;
+                        chatInput.disabled = false;
+                        chatSubmit.textContent = 'Gửi';
+                        chatSubmit.style.background = '#1f3765';
+                    }, 500);
+                    return; // Dừng, không gọi AI và Firebase (Tiết kiệm tài nguyên)
+                }
                 
                 // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
                 if (dataQuery) {
@@ -571,13 +654,9 @@
                     try {
                         switch (dataQuery.type) {
                             case 'companyList':
-                                // Lấy danh sách và số lượng công ty
-                                const totalCount = await getTotalCompanies();
-                                const companies = await getAllCompanies();
-                                contextData = { 
-                                    totalCompanies: totalCount,
-                                    companies: companies.slice(0, 20) // Giới hạn 20 công ty đầu tiên
-                                };
+                                // Lấy danh sách và số lượng công ty được phân nhóm
+                                const companyList = await getAllCompanies();
+                                contextData = { companyList: companyList };
                                 break;
 
                             case 'companyData':
@@ -614,13 +693,21 @@
                                 break;
 
                             case 'holidayData':
-                                // Lấy ngày nghỉ tháng này
-                                const now = new Date();
-                                const startDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-                                const endDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-31`;
-                                const holidays = await getHolidays(startDate, endDate);
+                                // Lấy ngày nghỉ theo thời gian yêu cầu
+                                let hYear = dataQuery.targetYear || new Date().getFullYear();
+                                let hMonth = dataQuery.targetMonth || (new Date().getMonth() + 1);
+                                let startDate = `${hYear}-${String(hMonth).padStart(2,'0')}-01`;
+                                let endDate = `${hYear}-${String(hMonth).padStart(2,'0')}-31`;
+                                
+                                let holidays = await getHolidays(startDate, endDate);
+                                let defaultHolidayConfig = null;
+                                // Lọc đúng công ty nếu người dùng có nhắc đến tên công ty
+                                if (dataQuery.company) {
+                                    holidays = holidays.filter(h => h.company === dataQuery.company);
+                                    defaultHolidayConfig = await getCompanyHolidayConfig(dataQuery.company);
+                                }
                                 const nextHoliday = await getNextHoliday();
-                                contextData = { holidays, nextHoliday };
+                                contextData = { holidays, nextHoliday, company: dataQuery.company, defaultHolidayConfig };
                                 break;
 
                             case 'specialWorkday':
@@ -633,37 +720,23 @@
                                 break;
 
                             case 'statistics':
-                                // Lấy thống kê theo timeframe
-                                if (dataQuery.timeframe === 'tuần' || dataQuery.timeframe === 'week') {
-                                    contextData = { stats: await getWeeklyStatistics() };
-                                } else if (dataQuery.timeframe === 'tháng' || dataQuery.timeframe === 'month') {
-                                    contextData = { stats: await getMonthlyStatistics() };
-                                } else {
-                                    // Mặc định lấy cả 2
-                                    const weekly = await getWeeklyStatistics();
-                                    const monthly = await getMonthlyStatistics();
-                                    contextData = { weeklyStats: weekly, monthlyStats: monthly };
+                                // Phân tích Timeframe
+                                // Động cơ detectDataQuery đã chuẩn hóa timeframe thành 'week', 'month', 'billing', 'year'
+                                const timeMode = dataQuery.timeframe;
+                                
+                                // Phân tích Target Date (Cỗ máy thời gian)
+                                let targetDateObj = null;
+                                if (dataQuery.targetDateExact) {
+                                    targetDateObj = new Date(dataQuery.targetDateExact);
                                 }
-                                break;
 
-                            case 'comparison':
-                                // So sánh công ty hoặc lấy top consumers
-                                const topConsumers = await getTopConsumers(dataQuery.limit || 5);
-                                const comparison = await compareCompaniesThisMonth();
-                                contextData = { topConsumers, comparison: comparison.slice(0, 10) };
-                                break;
-
-                            case 'quotaMultipliers':
-                                // Lấy hệ số khoán
-                                const quotas = await getQuotaMultipliers();
-                                contextData = { quotas };
-                                break;
-
-                            case 'systemConfig':
-                                // Lấy cấu hình hệ thống
-                                const startDaySettings = await getStartDaySettings();
-                                const defaultHolidays = await getDefaultHolidays();
-                                contextData = { startDaySettings, defaultHolidays };
+                                // Sử dụng Động cơ Thống kê mới
+                                const advStats = await getAdvancedStatistics(timeMode, dataQuery.company || null, targetDateObj);
+                                if (advStats) {
+                                    contextData = { advancedStats: advStats };
+                                } else {
+                                    contextData = { error: 'Lỗi tính toán mốc thời gian.' };
+                                }
                                 break;
 
                             case 'history':
@@ -686,21 +759,28 @@
                                 let cachedData = null;
                                 let targetDateStr = "";
                                 
-                                // Regex tìm ngày/tháng (VD: 12/12 hoặc 12/12/2024)
-                                const dateMatch = userMessage.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+                                const lowerMsgStr = userMessage.toLowerCase();
+                                const dateMatch = lowerMsgStr.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+                                const dNow = new Date();
+                                
                                 if (dateMatch) {
                                     const day = dateMatch[1].padStart(2, '0');
                                     const month = dateMatch[2].padStart(2, '0');
-                                    const year = dateMatch[3] || new Date().getFullYear();
+                                    const year = dateMatch[3] || dNow.getFullYear();
                                     targetDateStr = `${year}-${month}-${day}`;
-                                    
-                                    console.log(`🔍 Phát hiện ngày ${targetDateStr}, đang tìm trong Cache...`);
-                                    cachedData = await getCachedSchedule(targetDateStr);
-                                } else if (userMessage.toLowerCase().includes("hôm nay")) {
-                                    const now = new Date();
-                                    targetDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-                                    cachedData = await getCachedSchedule(targetDateStr);
+                                } else if (lowerMsgStr.includes("ngày mai") || lowerMsgStr.includes("mai")) {
+                                    dNow.setDate(dNow.getDate() + 1);
+                                    targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
+                                } else if (lowerMsgStr.includes("hôm qua") || lowerMsgStr.includes("qua")) {
+                                    dNow.setDate(dNow.getDate() - 1);
+                                    targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
+                                } else {
+                                    // Mặc định là hôm nay
+                                    targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
                                 }
+                                
+                                console.log(`🔍 Đang kiểm tra lịch trực ngày: ${targetDateStr}`);
+                                cachedData = await getCachedSchedule(targetDateStr);
                                 
                                 let finalScheduleContent = "";
 
@@ -771,14 +851,36 @@
             chatReset.addEventListener('click', () => {
                 resetConversation();
                 chatMessages.innerHTML = '';
-                addMessage('Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt. Tôi có thể giúp gì cho bạn?');
+                // Tái tạo tin nhắn chào mừng với các nút gợi ý
+                const welcomeMessage = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+                Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
+                [BUTTON]Hôm nay ai trực?[/BUTTON]
+                [BUTTON]Tổng xả thải tháng này?[/BUTTON]
+                [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
+                addMessage(welcomeMessage);
             });
 
             // Khởi tạo chatbot khi trang tải xong
             // Chỉ khởi tạo dữ liệu tìm kiếm nếu đã đăng nhập (để tránh lỗi permission denied trong console)
             auth.onAuthStateChanged(user => {
+                const homeLoginBox = document.querySelector('.home-login-box');
+                
                 if (user) {
                     initializeChatbot();
+                    // Ẩn box đăng nhập nhanh nếu đã đăng nhập
+                    if (homeLoginBox) homeLoginBox.style.display = 'none';
+                } else {
+                    // Hiện box đăng nhập nhanh nếu chưa đăng nhập
+                    if (homeLoginBox) homeLoginBox.style.display = 'block';
+                }
+                // Luôn hiển thị tin nhắn chào mừng khi tải trang, dù đăng nhập hay chưa
+                if (chatMessages.children.length === 0) {
+                    const welcomeMessage = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+                    Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
+                    [BUTTON]Hôm nay ai trực?[/BUTTON]
+                    [BUTTON]Tổng xả thải tháng này?[/BUTTON]
+                    [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
+                    addMessage(welcomeMessage);
                 }
             });
             
