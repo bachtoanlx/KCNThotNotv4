@@ -1,5 +1,5 @@
 // menu.js
-import { auth, db, onAuth, logout, addLog, showSwal, getRole, initAutoLogout } from "./script.js";
+import { auth, db, onAuth, logout, addLog, showSwal, getRole, initAutoLogout, requestNotificationPermission } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
@@ -127,6 +127,13 @@ export function initMenu() {
 
         form.reset();
         showSwal("success", "Đăng nhập thành công!");
+        
+        // Đợi 6 giây sau khi đăng nhập mới hiện popup hỏi quyền thông báo (Soft Ask)
+        setTimeout(() => {
+            if (Notification.permission === 'default') {
+                requestNotificationPermission();
+            }
+        }, 6000);
       } catch (err) {
         console.error("🔥 LOGIN FAIL:", {
           email,
