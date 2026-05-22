@@ -94,6 +94,15 @@ export async function initFCM(email) {
         }, { merge: true });
         console.log("✅ Đã lưu FCM Token thành công!");
       }
+    } else if (permission === 'denied') {
+      // 🚀 Cảnh báo ngay lập tức nếu người dùng VỪA bấm "Chặn" trên popup của trình duyệt
+      window.Swal.fire({
+        title: 'Bạn đã chặn thông báo!',
+        html: 'Hệ thống sẽ không thể gửi các Cảnh báo đến thiết bị này.<br><br>Nếu muốn, bạn hãy bấm vào biểu tượng <b>ổ khóa 🔒</b> trên thanh địa chỉ, chuyển phần <b>Thông báo (Notifications)</b> sang <b>Cho phép (Allow)</b> và tải lại trang.',
+        icon: 'error',
+        confirmButtonText: 'Đã hiểu',
+        confirmButtonColor: '#273668'
+      });
     }
 
     // Lắng nghe thông báo khi web ĐANG MỞ
@@ -140,6 +149,42 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+// ====== HÀM YÊU CẦU QUYỀN THÔNG BÁO (SOFT ASK / DOUBLE OPT-IN) ======
+export async function requestNotificationPermission() {
+  if (Notification.permission === 'granted') {
+      showSwal("info", "Đã bật", { html: "Thông báo hệ thống đã được bật từ trước." });
+      return;
+  }
+  
+  // 🚀 Kiểm tra nếu thiết bị đang trong trạng thái chặn
+  if (Notification.permission === 'denied') {
+      window.Swal.fire({
+          title: 'Thông báo đang bị chặn',
+          html: 'Trình duyệt của bạn hiện đang <b>chặn</b> thông báo từ trang web này.<br><br><b>Cách mở lại:</b><br>1. Bấm vào biểu tượng <b>ổ khóa 🔒</b> (hoặc biểu tượng tùy chỉnh) trên thanh địa chỉ.<br>2. Tìm mục <i>Thông báo (Notifications)</i> và chuyển sang <b>Cho phép (Allow)</b>.<br>3. Tải lại trang web (F5).',
+          icon: 'warning',
+          confirmButtonText: 'Đã hiểu',
+          confirmButtonColor: '#273668'
+      });
+      return;
+  }
+
+  // Hỏi khéo bằng SweetAlert2 trước khi gọi requestPermission của trình duyệt
+  const isConfirmed = await showConfirmSwal(
+      "Bật thông báo hệ thống",
+      "Để không bỏ lỡ các cảnh báo quan trọng (ví dụ: cảnh báo chỉ số nước giảm, cập nhật lịch trực), bạn có muốn bật thông báo trên thiết bị này không?",
+      "Đồng ý",
+      "Lúc khác",
+      "info"
+  );
+
+  if (isConfirmed) {
+      const user = auth.currentUser;
+      if (user) {
+          await initFCM(user.email);
+      }
+  }
+}
+
 // ====== HÀM TỰ ĐỘNG TÌM ADMIN VÀ GỬI THÔNG BÁO PUSH ======
 export async function notifyAdmins(title, body) {
   const user = auth.currentUser;
@@ -171,24 +216,22 @@ export async function notifyAdmins(title, body) {
     
     const apiUrl = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
 
-    // 3. Gửi lệnh bắn thông báo qua Apps Script
-    for (const token of adminTokens) {
-      const formData = new URLSearchParams();
-      formData.append("idToken", idToken);
-      formData.append("action", "sendPushNotification");
-      formData.append("data", JSON.stringify({ fcmToken: token, title: title, body: body, link: window.location.origin }));
-      fetch(apiUrl, { method: "POST", body: formData })
-        .then(res => res.json())
-        .then(data => {
-            console.log("[FCM] Phản hồi từ Apps Script:", data);
-            if (data.result && data.result.error) {
-                console.error("❌ LỖI TỪ FIREBASE FCM:", data.result.error.message || data.result.error.status);
-            } else if (data.success) {
-                console.log("✅ Firebase đã chấp nhận và đang đẩy thông báo đến thiết bị!");
-            }
-        })
-        .catch(e => console.warn("[FCM] Lỗi gọi API Apps Script:", e));
-    }
+    // 3. Gửi 1 lệnh duy nhất chứa toàn bộ mảng Token qua Apps Script
+    const formData = new URLSearchParams();
+    formData.append("idToken", idToken);
+    formData.append("action", "sendPushNotification");
+    formData.append("data", JSON.stringify({ fcmTokens: adminTokens, title: title, body: body, link: window.location.origin }));
+    
+    fetch(apiUrl, { method: "POST", body: formData })
+      .then(res => res.json())
+      .then(data => {
+          console.log("[FCM] Phản hồi từ Apps Script (Batch):", data);
+          if (data.success) {
+              console.log(`✅ Đã yêu cầu GAS gửi push đến ${adminTokens.length} thiết bị!`);
+          }
+      })
+      .catch(e => console.warn("[FCM] Lỗi gọi API Apps Script:", e));
+      
   } catch (err) {
     console.error("[FCM] Lỗi hàm notifyAdmins:", err);
   }
@@ -1397,6 +1440,13 @@ if (exactMatchDoc) {
     showSwal("success", "Thành công", "Báo cáo đã được gửi!");
     form.reset();
     if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+
+    // Đợi một chút rồi hỏi bật thông báo nếu họ chưa bật
+    setTimeout(() => {
+        if (Notification.permission === 'default') {
+            requestNotificationPermission();
+        }
+    }, 2500);
 }
 
 // ... (các khối xử lý form khác và khối finally) ...
