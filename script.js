@@ -69,7 +69,10 @@ export function onAuth(callback) {
 // ====== CLOUD MESSAGING (FCM) ======
 export async function initFCM(email) {
   try {
-    const permission = await Notification.requestPermission();
+    let permission = Notification.permission;
+    if (permission !== 'granted') {
+      permission = await Notification.requestPermission();
+    }
     if (permission === 'granted') {
       // 🚀 Đăng ký Service Worker thủ công với đường dẫn tương đối cho Github Pages
       let swRegistration = null;
@@ -115,9 +118,25 @@ export async function initFCM(email) {
 }
 
 // Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (user) {
-    initFCM(user.email);
+    try {
+        // Đảm bảo user luôn có mặt trong collection `users` ngay khi đăng nhập
+        // Bất kể họ có cho phép thông báo (FCM) hay không
+        await setDoc(doc(db, "users", user.email), {
+            email: user.email,
+            lastActiveAt: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        console.warn("Không thể lưu thông tin đăng nhập ban đầu:", e);
+    }
+    
+    // Sửa lỗi: Chỉ khởi tạo FCM ngầm nếu quyền thông báo ĐÃ ĐƯỢC CẤP TỪ TRƯỚC.
+    if (Notification.permission === 'granted') {
+        initFCM(user.email);
+    } else {
+        console.log("[FCM] Đang đợi người dùng cấp quyền thông báo qua thao tác nhấp chuột.");
+    }
   }
 });
 
@@ -1958,5 +1977,5 @@ export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
     }
 }
 
-// Export thêm các h��m Firestore cần thiết cho chatbot
+// Export thêm các hàm Firestore cần thiết cho chatbot
 export { query, orderBy, limit, where, getDocs, collection, doc, getDoc };
