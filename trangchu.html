@@ -325,8 +325,8 @@
 
     <div id="content-container">
         <h1 class="welcome-text">CHÀO MỪNG BẠN ĐẾN VỚI<br>KHU CÔNG NGHIỆP THỐT NỐT</h1>
-        <!-- Inline login box (always visible) so users can login without opening modal -->
-        <div class="home-login-box" aria-label="Đăng nhập nhanh">
+        <!-- Inline login box (ẩn mặc định, sẽ tự hiện nếu chưa đăng nhập) -->
+        <div class="home-login-box" aria-label="Đăng nhập nhanh" style="display: none;">
             <h3 style="margin:0 0 8px 0; color:#0b3b6f;">Đăng nhập</h3>
             <form id="homeLoginForm">
                 <input type="email" id="homeEmail" name="email" placeholder="Email" required autocomplete="username" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
