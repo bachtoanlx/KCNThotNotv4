@@ -288,16 +288,16 @@
 
 #personalScheduleModal .personal-schedule-content {
     background-color: #fefefe;
-    margin: 5vh auto;
+    margin: 10vh auto;
     padding: 20px;
     border: 1px solid #888;
     width: 100%;
-    max-width: 800px; 
+    max-width: 900px; 
     border-radius: 10px;
     box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     box-sizing: border-box;
     position: relative;
-    max-height: 90vh;
+    max-height: 85vh;
     display: flex;
     flex-direction: column;
 }
@@ -1287,8 +1287,7 @@
               <input type="time" id="editRuleTime" title="Giờ hoàn thành" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #eaf3ff;">
               <select id="editRuleDom" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                  <option value="">--Ngày--</option>
-                  <script>for(let i=1;i<=31;i++) document.write(`<option value="${i}">${i}</option>`);</script>
+                  <!-- Options sẽ được gen bằng JavaScript -->
               </select>
               <select id="editRuleDay" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                   <option value="">--Thứ--</option>
@@ -1391,8 +1390,7 @@
               <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
               <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; background-color: #eaf3ff;">
               <select id="domSelect" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                <option value="">--Ngày--</option>
-                <script>for (let i = 1; i <= 31; i++) { document.write(`<option value="${i}">${i}</option>`); }</script>
+                <!-- Options sẽ được gen bằng JavaScript -->
               </select>
               <select id="daySelect" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
                 <option value="">--Thứ--</option>
@@ -1419,7 +1417,8 @@
           <!-- CONTAINER CHO FORM NGÀY LÀM -->
           <div id="addPatternFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
             <div class="input-row">
-              <input type="text" id="patternUser" placeholder="Nhân viên (email hoặc mã)">
+              <input type="text" id="patternUser" list="systemUsersList" placeholder="Chọn Email/Mã từ danh sách..." autocomplete="off">
+              <datalist id="systemUsersList"></datalist>
               <input type="text" id="patternDisplayName" placeholder="Tên hiển thị trên lịch">
               <input type="date" id="patternStartDate" title="Ngày bắt đầu áp dụng quy tắc">
               <select id="patternTypeSelect">
@@ -1676,7 +1675,7 @@
 <div id="footer-placeholder"></div>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module">
-    import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail } from "./script.js";
+    import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail, fetchAllUsers } from "./script.js";
     import { collection, addDoc, deleteDoc, doc, getDocs, serverTimestamp, updateDoc, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
@@ -1816,6 +1815,7 @@
     let patternsLoaded = false;
     let swapsLoaded = false;
     let initialLoadComplete = false; // Cờ chính
+    let allKnownEmails = new Set(); // Khai báo Set toàn cục để lưu email
 
     const specificDate = document.getElementById("specificDate");
     const jobNoteInput = document.getElementById("jobNote");
@@ -1852,6 +1852,27 @@
 
     let userRole = "user";
 
+    // --- Đổ dữ liệu ngày cho select (Thay thế document.write) ---
+    const domSelectEl = document.getElementById('domSelect');
+    const editRuleDomEl = document.getElementById('editRuleDom');
+    let domOptions = '<option value="">--Ngày--</option>';
+    for(let i=1; i<=31; i++) { domOptions += `<option value="${i}">${i}</option>`; }
+    if(domSelectEl) domSelectEl.innerHTML = domOptions;
+    if(editRuleDomEl) editRuleDomEl.innerHTML = domOptions;
+
+    // --- HÀM MỚI: Cập nhật datalist từ Set toàn cục ---
+    function renderUserDatalist() {
+        const datalist = document.getElementById("systemUsersList");
+        // Chỉ chạy nếu là admin và có datalist
+        if (datalist && userRole === 'admin') {
+            let optionsHtml = "";
+            Array.from(allKnownEmails).sort().forEach(email => { 
+                optionsHtml += `<option value="${email}">${email}</option>`; 
+            });
+            datalist.innerHTML = optionsHtml;
+        }
+    }
+
     // --- HÀM 1 (MỚI): onAuth ---
     onAuth(async (user) => {
         if (!user) {
@@ -1859,16 +1880,26 @@
             content.style.display = "none";
             return;
         }
-        userRole = await getRole(user.email);
+        showLoading("Đang tải dữ liệu lịch làm việc...");
         notLogged.style.display = "none";
         content.style.display = "block";
+        userRole = await getRole(user.email);
         if (userRole === "admin") {
             document.querySelectorAll(".admin-only").forEach(el => el.classList.add("admin-visible"));
             const adminTabs = document.getElementById("adminTabsContainer");
             if (adminTabs) adminTabs.style.display = "block";
+            // Tải danh sách người dùng cơ bản một lần duy nhất khi admin đăng nhập
+            const firestoreUsers = await fetchAllUsers();
+            firestoreUsers.forEach(u => { if (u.email) allKnownEmails.add(u.email); });
+            renderUserDatalist(); // Render danh sách email lần đầu
+            // Tải danh sách người dùng ngầm (Không dùng await để không chặn luồng vẽ lịch)
+            fetchAllUsers().then(firestoreUsers => {
+                firestoreUsers.forEach(u => { if (u.email) allKnownEmails.add(u.email); });
+                renderUserDatalist(); // Render danh sách email lần đầu
+            });
         }
-
-        // Bắt đầu lắng nghe thời gian thực
+        // Sau khi đã có danh sách cơ bản, mới bắt đầu lắng nghe các thay đổi
+        // Lắng nghe dữ liệu và vẽ lịch ngay lập tức mà không cần chờ danh sách user
         setupRealtimeListeners(user.email, userRole);
     });
 
@@ -2024,6 +2055,7 @@
             console.log("Tất cả dữ liệu đã tải. Hiển thị lần đầu.");
             renderSchedule(searchVal, currentlyViewedDate);
             showPersonalScheduleModal(email, role); // Gọi modal sau khi đã có dữ liệu
+            hideLoading(); // Ẩn loading khi đã vẽ xong
         }
     }
 
@@ -2072,6 +2104,19 @@
             renderPatternList(allPatternsData); // Cập nhật bảng admin
             updateShiftGroupDatalist(allPatternsData); // Cập nhật danh sách gợi ý nhóm ca
             
+            // Cập nhật danh sách email toàn cục với các user từ pattern
+            if (role === 'admin') {
+                let newUsersFound = false;
+                allPatternsData.forEach(p => {
+                    if (p.user && !allKnownEmails.has(p.user)) {
+                        allKnownEmails.add(p.user);
+                        newUsersFound = true;
+                    }
+                });
+                // Luôn cập nhật lại datalist vì trạng thái "chưa có lịch" của user có thể đã thay đổi (vd: bị xóa lịch, thêm lịch)
+                renderUserDatalist();
+            }
+
             if (!patternsLoaded) patternsLoaded = true; // Đặt cờ
             checkAllDataLoadedAndRender(email, role); // Kiểm tra
         }, (error) => {
@@ -3342,6 +3387,21 @@
         // --- VALIDATION CƠ BẢN ---
         if (!user || !displayName || !patternStartDate) {
             return Swal.fire("Thiếu thông tin!", "Vui lòng nhập Nhân viên, Tên hiển thị và Ngày bắt đầu.", "warning");
+        }
+        
+        // Sử dụng Set email toàn cục đã được tải và cập nhật ở onAuth/setupRealtimeListeners
+        if (!allKnownEmails.has(user)) {
+            const isConfirmed = await Swal.fire({
+                title: 'Sử dụng Email thủ công?',
+                text: `Email "${user}" không nằm trong danh sách Tài khoản hệ thống (Firebase). Hệ thống sẽ ghi nhận đây là email nhận thông báo thủ công (nếu đây là chủ đích của bạn). Bạn có chắc chắn đã gõ đúng chính tả không?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#f39c12',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Đúng, tôi chắc chắn',
+                cancelButtonText: 'Sửa lại'
+            });
+            if (!isConfirmed.isConfirmed) return;
         }
 
         let data = { user, displayName, patternStartDate, note, type, notifyTime, createdAt: serverTimestamp() };
