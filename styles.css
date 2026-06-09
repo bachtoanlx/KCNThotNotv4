@@ -1,14 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 /* Reset cơ bản */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
 }
 
 body {
-  background: #f5f7fa;
-  color: #222;
+  background: #f8fafc;
+  color: #334155;
   line-height: 1.5;
   padding: 2px;
   min-height: 100vh;
@@ -32,10 +34,11 @@ html {
 
 /* ===== Thanh menu trên cùng ===== */
 nav.navbar {
-  background: #273668;
+  background: linear-gradient(135deg, #1e293b, #273668);
   padding: 8px 20px;
   margin-bottom: 5px; /* Đã giảm từ 20px xuống 5px để thu hẹp khoảng cách */
-  border-radius: 6px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -146,11 +149,15 @@ nav.navbar {
   cursor: pointer;
   white-space: nowrap;
   min-width: 90px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 #loginBtn:hover,
 #logoutBtn:hover {
-  background: #e8ebf5;
+  background: #f1f5f9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 /* ===== Modal đăng nhập ===== */
@@ -168,8 +175,9 @@ nav.navbar {
   margin: 10% auto;
   padding: 20px;
   width: 320px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+  border: 1px solid #e2e8f0;
 }
 
 @media (max-width: 768px) {
@@ -198,8 +206,15 @@ nav.navbar {
   width: 100%;
   padding: 8px 10px;
   margin: 6px 0;
-  border: 1px solid #ccc;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.modal-content input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  outline: none;
 }
 
 .modal-content button {
@@ -211,10 +226,13 @@ nav.navbar {
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .modal-content button:hover {
-  background: #1a254a;
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 .close {
@@ -231,10 +249,11 @@ h2 {
 
 /* ===== Form ===== */
 form {
-  background: rgba(255, 255, 255, 0.8);
+  background: #ffffff;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
   max-width: 100%;
 }
 
@@ -248,8 +267,18 @@ input[type="password"],
 input[type="file"] {
   width: 100%;
   padding: 6px 10px; /* Giảm padding từ 8px xuống 6px cho gọn */
-  border: 1px solid #ccc;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="file"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  outline: none;
 }
 
 button {
@@ -259,10 +288,13 @@ button {
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 button:hover {
-  background: #1a254a;
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
 /* ===== Bảng dữ liệu ===== */
@@ -278,28 +310,37 @@ table {
   border-spacing: 0;
   margin-top: 10px;
   min-width: 800px; /* Đảm bảo bảng có độ rộng tối thiểu */
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
 }
 th, td {
   border: none;
-  border-bottom: 1px solid #ddd;
-  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0; /* Thêm đường kẻ dọc mờ để phân tách cột */
   padding: 10px;
   text-align: left;
 }
-th:first-child, td:first-child {
-  border-left: 1px solid #ddd;
+th:last-child, td:last-child {
+  border-right: none; /* Bỏ đường kẻ dọc ở cột cuối cùng để tránh viền kép với khung bảng */
 }
 th {
-  background: #e8ebf5;
+  background: #f1f5f9; /* Làm đậm màu nền tiêu đề bảng lên một chút để dễ nhận diện */
   font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
   position: sticky;
   top: 0;
-  border-top: 1px solid #ddd;
   background-clip: padding-box;
   z-index: 10;
 }
-tr:nth-child(even) {
-  background: #f9f9f9;
+tr:hover {
+  background: #f1f5f9;
+}
+tr:last-child td {
+  border-bottom: none;
 }
 
 /* Responsive table wrapper cho mobile */
