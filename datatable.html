@@ -87,28 +87,66 @@
     .admin-visible {
         display: table-cell !important;
     }
-    /* 🆕 CSS MỚI CHO CÁC CONTROLS DƯỚI BỘ LỌC CHÍNH */
-    .controls-row {
+    
+    /* --- CSS MỚI CHO THANH TÌM KIẾM VÀ CHECKBOX NẰM NGANG --- */
+    .search-row {
         display: flex;
-        justify-content: space-between; /* Đẩy các nhóm điều khiển ra hai phía */
-        align-items: center; /* Căn chỉnh theo chiều dọc */
-        margin-top: 5px;
-        margin-bottom: 2px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
     }
-
-    .left-controls {
+    .special-filter-label {
+        background: #fff3cd;
+        padding: 0 12px;
+        height: 35px;
         display: flex;
         align-items: center;
-        gap: 15px; /* Khoảng cách giữa checkbox và ghi chú lọc */
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        white-space: nowrap;
+        color: #856404;
+        margin: 0;
+        cursor: pointer;
+        border: 1px solid #ffeeba;
+        box-sizing: border-box;
+        transition: all 0.2s;
     }
-
-    .right-controls {
-        display: flex;
-        align-items: center;
+    .special-filter-label:hover {
+        background: #ffe8a1;
+    }
+    .special-filter-label input {
+        margin: 0 6px 0 0 !important;
+        width: 15px;
+        height: 15px;
+        accent-color: #d35400;
+        cursor: pointer;
     }
     
+    @media (min-width: 769px) {
+        .special-text-long { display: inline; }
+        .special-text-short { display: none; }
+    }
+
     /* RESPONSIVE MOBILE */
     @media (max-width: 768px) {
+        .search-row {
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .special-filter-label {
+            height: 27px; /* Cân đối với chiều cao ô tìm kiếm trên mobile */
+            padding: 0 8px;
+            font-size: 11px;
+        }
+        .special-filter-label input {
+            width: 12px;
+            height: 12px;
+            margin-right: 4px !important;
+        }
+        .special-text-long { display: none; }
+        .special-text-short { display: inline; }
+
       /* Cột Hành động (cột 9 - admin-only) */
       #dataTable th:nth-child(9),
       #dataTable td:nth-child(9) {
@@ -197,46 +235,55 @@
     }
     /* --------------------------------------------- */
 
-    /* --- Tinh chỉnh layout App-like (Chỉ áp dụng trên Desktop) --- */
-    /* Để trên Mobile trang cuộn tự nhiên giống autoplan.html, không bị che footer */
-    @media (min-width: 769px) {
-        html, body {
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #pageContent {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        .card-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            padding-bottom: 2px;
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-        }
-
-        .table-container {
-            flex: 1; 
-            max-height: none; 
-            overflow: auto; 
-            border: none; 
-        }
+    /* --- BẢN SỬA LỖI HIỂN THỊ FOOTER & CUỘN BẢNG --- */
+    html, body {
+        width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important; /* Dùng dvh để vượt qua thanh công cụ trình duyệt */
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important; /* Khóa cuộn trang toàn cục */
     }
     
-    /* Giữ lề cho card-body trên Mobile */
-    @media (max-width: 768px) {
-        .card-body {
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-        }
+    body {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 4px !important; /* Tạo lề ngoài an toàn */
+        box-sizing: border-box !important;
+    }
+    
+    #menu-placeholder, #footer-placeholder {
+        flex: 0 0 auto !important; /* Không giãn, không co, bám chặt kích thước thực */
+        width: 100%;
+        z-index: 100; /* Nâng z-index lên 100 để Menu thả xuống không bị che bởi tiêu đề bảng */
+    }
+
+    #pageContent {
+        flex: 1 1 auto !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important;
+        width: 100%;
+    }
+
+    .card-body {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+    }
+
+    .table-container {
+        flex: 1 1 auto !important; 
+        min-height: 0 !important; 
+        height: 0 !important; /* HACK CSS: Ép vùng chứa bảng vô hiệu hóa kích thước nội dung */
+        overflow-y: auto !important; 
+        -webkit-overflow-scrolling: touch; 
+        width: 100%;
     }
   </style>
 </head>
@@ -263,8 +310,15 @@
       </label>
       <button id="applyFilter" type="button">Áp dụng</button>
     </div>
-    <div class="search-container">
-        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm...">
+    <div class="search-row">
+        <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
+            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%;">
+        </div>
+        <label class="special-filter-label" title="Chỉ hiển thị các bản ghi có đánh dấu đặc biệt">
+            <input type="checkbox" id="meterResetFilter"> 
+            <span class="special-text-long">Chỉ xem Ngày chỉ số đặc biệt</span>
+            <span class="special-text-short">Lọc Đặc biệt</span>
+        </label>
     </div>
         <div class="table-container">
         <table id="dataTable">
@@ -287,11 +341,6 @@
             <button id="loadMoreBtn" style="display: none; background: #273668; color: white; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬇️ Cuộn để tải thêm...</button>
         </div>
         </div>
-      <div class="controls-row">
-        <div class="left-controls">
-          <label><input type="checkbox" id="meterResetFilter"> Chỉ xem Ngày chỉ số đặc biệt</label>
-        </div>
-      </div>
     </div>
   </div>
 <div id="footer-placeholder"></div>
