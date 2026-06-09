@@ -3135,7 +3135,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       let html = '';
 
       if (currentUserRole === 'admin') {
-          document.querySelector("#personalScheduleModal h2").textContent = "Công việc Admin cần chú ý";
+          document.querySelector("#personalScheduleModal h2").textContent = "Công việc Admin";
           const adminRules = allRulesData.filter(r => r.is_admin_job);
           let taskList = [];
 
