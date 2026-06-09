@@ -283,19 +283,13 @@
           </thead>
           <tbody></tbody>
         </table>
+        <div style="text-align: center; margin-top: 15px; padding-bottom: 20px;">
+            <button id="loadMoreBtn" style="display: none; background: #273668; color: white; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬇️ Cuộn để tải thêm...</button>
+        </div>
         </div>
       <div class="controls-row">
         <div class="left-controls">
           <label><input type="checkbox" id="meterResetFilter"> Chỉ xem Ngày chỉ số đặc biệt</label>
-        </div>
-        <div class="right-controls">
-          <label for="displayCount">Hiển thị:</label>
-          <select id="displayCount">
-              <option value="10">10 dòng</option>
-              <option value="20">20 dòng</option>
-              <option value="50">50 dòng</option>
-              <option value="all">Toàn bộ</option>
-          </select>
         </div>
       </div>
     </div>
@@ -310,7 +304,7 @@
              getReportsByDate, db } from "./script.js";
              
     // Import các hàm GỐC (native) của Firebase SDK
-    import { collection, query, where, orderBy, getDocs, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, query, where, orderBy, getDocs, limit, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     
     // Import menu
     import { initMenu } from "./menu.js";
@@ -332,19 +326,24 @@
     const content   = document.getElementById("pageContent");
     const tbody     = document.querySelector("#dataTable tbody");
     const searchInput = document.getElementById("searchInput");
-    const displayCountSelect = document.getElementById("displayCount");
     const fromInput = document.getElementById("fromDate");
     const toInput = document.getElementById("toDate");
     const yearSelect = document.getElementById("yearSelect");
     const applyFilterBtn = document.getElementById("applyFilter");
     const meterResetFilterInput = document.getElementById("meterResetFilter"); 
+    const loadMoreBtn = document.getElementById("loadMoreBtn");
     
     let currentFilter = { from: null, to: null };
     let initialLoad = true;
     let allSearchData = []; // Mảng này giờ sẽ lưu kết quả đã lọc
     let userRole = null;
-    let realtimeListener = null; // ⭐️ Listener để cleanup
     let highlightTimeout = null; // Biến debounce cho highlight
+    
+    let lastDoc = null; // Lưu vị trí bản ghi cuối cùng để phân trang
+    const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
+    let isFetching = false; // Khóa để tránh tải trùng lặp
+    let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
+    const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
 
     // === 4. CÁC HÀM TIỆN ÍCH (Giữ nguyên) ===
     function formatISODate(d) {
@@ -378,7 +377,7 @@
                       await deleteReport("reports_1", id);
                       showSwal("success", "Đã xóa báo cáo!");
                       // Tải lại dữ liệu sau khi xóa
-                      await fetchAndRenderData(); 
+                      await fetchAndRenderData(false); 
                   } catch (err) {
                       console.error("Lỗi khi xóa báo cáo:", err);
                       showSwal("error", "Lỗi khi xóa", "Không thể xóa báo cáo. Vui lòng thử lại.");
@@ -391,7 +390,7 @@
     };
 
     // Hàm render (Giữ nguyên, không thay đổi)
-    const filterAndRenderData = (data, query, limit) => {
+    const filterAndRenderData = (data, query) => {
         const isMeterResetFilterActive = meterResetFilterInput ? meterResetFilterInput.checked : false;
         let fromDate = null;
         let toDate = null;
@@ -470,11 +469,9 @@
                     filterBox.classList.add('highlight-area');
                     setTimeout(() => {
                         filterBox.classList.remove('highlight-area');
-                        const displayCountEl = document.getElementById('displayCount');
-                        const displayContainer = displayCountEl ? (displayCountEl.closest('.right-controls') || displayCountEl.parentElement) : null;
-                        if (displayContainer) {
-                            displayContainer.classList.add('highlight-area');
-                            setTimeout(() => displayContainer.classList.remove('highlight-area'), 2000);
+                        if (loadMoreBtn) {
+                            loadMoreBtn.classList.add('highlight-area');
+                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
                         }
                     }, 2000);
                 }
@@ -554,13 +551,10 @@
     };
 
     // === 6. HÀM TẢI DỮ LIỆU MỚI (Từ lần trước) ===
-    async function fetchAndRenderData() {
-        // ⭐️ 1. HỦY LISTENER CŨ (nếu có)
-        if (realtimeListener) {
-            realtimeListener();
-            realtimeListener = null;
-        }
-
+    async function fetchAndRenderData(isLoadMore = false) {
+        if (isFetching) return;
+        isFetching = true;
+        
         // Tự động điền ngày mặc định nếu trống và không chọn năm
         if (!yearSelect.value) {
             if (!fromInput.value) {
@@ -617,32 +611,66 @@
             endDate = currentFilter.to || todayISO;
         }
 
-        // ⭐️ 2. TẢI DỮ LIỆU BẰNG getDocs (1 LẦN)
-        const selectedLimit = displayCountSelect.value;
-        allSearchData = await getReportsByDate("reports_1", "ngay_ghi", startDate, endDate, selectedLimit);
+        if (!isLoadMore) {
+            lastDoc = null; // Reset con trỏ Firebase nếu đây là đợt tải (lọc) mới
+            autoLoadCount = 0; // Reset lại bộ đếm cuộn tự động
+        }
 
-        // ⭐️ 3. BẬT REAL-TIME LISTENER (Chỉ lắng nghe data MỚI trong khoảng ngày)
-        let q = query(
-            collection(db, "reports_1"),
-            where("ngay_ghi", ">=", startDate),
-            where("ngay_ghi", "<=", endDate),
-            orderBy("ngay_ghi", "desc")
-        );
-        
-        if (selectedLimit && selectedLimit !== "all") {
-            q = query(q, limit(parseInt(selectedLimit)));
+        if (loadMoreBtn && isLoadMore) {
+            loadMoreBtn.textContent = "⏳ Đang tải...";
         }
         
-        realtimeListener = onSnapshot(q, (snapshot) => {
-            // Cập nhật allSearchData với data mới
-            allSearchData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        try {
+            let q = query(
+                collection(db, "reports_1"),
+                where("ngay_ghi", ">=", startDate),
+                where("ngay_ghi", "<=", endDate),
+                orderBy("ngay_ghi", "desc"),
+                limit(LIMIT_PER_PAGE)
+            );
             
-            // Render lại bảng
-            filterAndRenderData(allSearchData, searchInput.value, "all");
-        });
+            if (isLoadMore && lastDoc) {
+                q = query(q, startAfter(lastDoc));
+            }
+            
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                if (!isLoadMore) {
+                    allSearchData = [];
+                    filterAndRenderData(allSearchData, searchInput.value);
+                }
+                return;
+            }
 
-        // 4. Render dữ liệu ban đầu (KHÔNG CẦN nữa vì onSnapshot sẽ trigger)
-        // filterAndRenderData(allSearchData, searchInput.value, "all");
+            // Lưu document cuối cùng làm mốc (cursor) cho lần tải sau
+            lastDoc = snapshot.docs[snapshot.docs.length - 1];
+            const newReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            if (isLoadMore) {
+                allSearchData = [...allSearchData, ...newReports]; // Nối mảng
+            } else {
+                allSearchData = newReports; // Tải mới
+            }
+            
+            if (loadMoreBtn) {
+                loadMoreBtn.style.background = "#273668"; // Reset màu gốc (Xanh)
+                if (snapshot.docs.length < LIMIT_PER_PAGE) {
+                    loadMoreBtn.style.display = 'none'; // Hết dữ liệu thì ẩn nút
+                } else {
+                    loadMoreBtn.style.display = 'inline-block';
+                    loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
+                }
+            }
+            
+            filterAndRenderData(allSearchData, searchInput.value);
+        } catch (err) {
+            console.error("Lỗi khi tải báo cáo:", err);
+            showSwal("error", "Lỗi tải dữ liệu", err.message);
+        } finally {
+            isFetching = false; // Mở khóa
+        }
     }
     
     // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC (ĐÃ SỬA) ===
@@ -659,21 +687,21 @@
     if(applyFilterBtn) {
         applyFilterBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            fetchAndRenderData(); // Gọi hàm mới
+            fetchAndRenderData(false);
         });
     }
 
     if(yearSelect) {
         yearSelect.addEventListener("change", (e) => {
             // Tự động tải lại khi chọn năm
-            fetchAndRenderData(); 
+            fetchAndRenderData(false); 
         });
     }
 
     if (meterResetFilterInput) {
         meterResetFilterInput.addEventListener("change", () => {
             // Chỉ render lại, không tải lại
-            filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+            filterAndRenderData(allSearchData, searchInput.value);
         });
     }
 
@@ -756,13 +784,8 @@
                     initialLoad = false;
                 }
 
-                // Tự động chọn 10 dòng trên mobile
-                if (window.innerWidth <= 768 && displayCountSelect) {
-                    displayCountSelect.value = "10";
-                }
-
                 // 4. Tải dữ liệu chính (Lần đầu)
-                await fetchAndRenderData(); 
+                await fetchAndRenderData(false); 
                 
                 // 5. HIỂN THỊ NỘI DUNG (Chống giật)
                 content.style.display = "flex"; 
@@ -776,15 +799,44 @@
             
             // 6. Gắn listener (Giữ nguyên)
             searchInput.addEventListener("input", () => {
-                filterAndRenderData(allSearchData, searchInput.value, "all");
+                    filterAndRenderData(allSearchData, searchInput.value);
             });
-            displayCountSelect.addEventListener("change", () => {
-                // ⭐️ KHI THAY ĐỔI LIMIT → TẢI LẠI DATA TỪ FIREBASE
-                fetchAndRenderData();
-            });
+                
+                // MỚI: Xử lý click nút tải thêm (phòng khi Intersection Observer không nhạy)
+                if (loadMoreBtn) {
+                    loadMoreBtn.addEventListener('click', () => {
+                        autoLoadCount = 0; // Reset lại bộ đếm, cấp "quota" cho 5 lần cuộn tự động tiếp theo
+                        loadMoreBtn.style.background = "#273668";
+                        fetchAndRenderData(true);
+                    });
+                }
+    
+                // MỚI: Intersection Observer cho Infinite Scroll (Cuộn tới đâu tải tới đó)
+                if (loadMoreBtn) {
+                    const handleIntersection = (entries) => {
+                        // Nếu nút xuất hiện trên màn hình và không phải đang tải dở
+                        if (entries[0].isIntersecting && !isFetching && loadMoreBtn.style.display !== 'none') {
+                            if (autoLoadCount < MAX_AUTO_LOADS) {
+                                autoLoadCount++;
+                                fetchAndRenderData(true); // Gửi cờ 'true' để nối thêm data
+                            } else {
+                                loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
+                                loadMoreBtn.style.background = "#d35400"; // Đổi sang màu cam cảnh báo
+                            }
+                        }
+                    };
+                    
+                    // Theo dõi cuộn trong vùng chứa bảng (Desktop)
+                    const observer = new IntersectionObserver(handleIntersection, { root: document.querySelector('.table-container'), rootMargin: "100px", threshold: 0.1 });
+                    observer.observe(loadMoreBtn);
+                    
+                    // Theo dõi cuộn toàn trang (Mobile)
+                    const windowObserver = new IntersectionObserver(handleIntersection, { root: null, rootMargin: "100px", threshold: 0.1 });
+                    windowObserver.observe(loadMoreBtn);
+                }
 
         } else {
-            notLogged.style.display = "block";
+            notLogged.style.display = "flex";
             content.style.display = "none";
             hideLoading(); 
         }
