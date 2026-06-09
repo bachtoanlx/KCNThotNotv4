@@ -20,6 +20,22 @@ export function initMenu() {
     navLinks.classList.toggle("active");
   });
 
+  // Tự động đóng menu trên mobile khi chạm/click ra ngoài khu vực menu
+  document.addEventListener("click", (event) => {
+    if (hamburger && navLinks && !hamburger.contains(event.target) && !navLinks.contains(event.target)) {
+      navLinks.classList.remove("active");
+      document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
+    }
+  });
+
+  // Tự động đóng menu khi cuộn trang (lướt màn hình)
+  window.addEventListener("scroll", () => {
+    if (window.innerWidth <= 820 && navLinks && navLinks.classList.contains("active")) {
+      navLinks.classList.remove("active");
+      document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
+    }
+  }, { passive: true });
+
   // Xử lý click cho tất cả dropdown trên mobile (ví dụ: Tác vụ, Thống kê BC)
   const dropdowns = document.querySelectorAll('.dropdown');
   dropdowns.forEach(drop => {
