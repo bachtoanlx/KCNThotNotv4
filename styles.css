@@ -601,6 +601,19 @@ tr:nth-child(even) {
   text-decoration: underline; /* Gạch chân khi di chuột qua */
 }
 
+.footer-mobile-text {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .footer-desktop-text {
+    display: none;
+  }
+  .footer-mobile-text {
+    display: inline;
+  }
+}
+
 /* ===== CSS cho Responsive Menu ===== */
 
 /* 1. Thiết lập cho nút hamburger */
