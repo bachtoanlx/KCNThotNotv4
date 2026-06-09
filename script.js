@@ -505,6 +505,59 @@ function toBase64(file) {
   });
 }
 
+// ================== HÀM NÉN ẢNH (CANVAS API) ==================
+/**
+ * Nén hình ảnh trực tiếp trên trình duyệt
+ * @param {File} file - File ảnh gốc
+ * @param {number} thresholdMB - Ngưỡng dung lượng (MB) để bắt đầu nén (VD: 4)
+ * @param {number} quality - Chất lượng nén từ 0.0 đến 1.0 (VD: 0.9)
+ * @returns {Promise<File>} Trả về file đã nén hoặc file gốc
+ */
+export async function compressImage(file, thresholdMB = 4, quality = 0.9) {
+  const thresholdBytes = thresholdMB * 1024 * 1024;
+  
+  // Nếu không phải ảnh hoặc dung lượng <= 4MB thì giữ nguyên file gốc
+  if (!file.type.startsWith('image/') || file.size <= thresholdBytes) {
+      return file; 
+  }
+
+  return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+          URL.revokeObjectURL(img.src);
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Tối ưu kích thước: Thu nhỏ kích thước ảnh nếu quá lớn (Max cạnh 2560px - Mức 2K để giữ độ nét cao)
+          const MAX_DIM = 2560;
+          let { width, height } = img;
+          if (width > height && width > MAX_DIM) {
+              height = Math.round(height * (MAX_DIM / width));
+              width = MAX_DIM;
+          } else if (height > MAX_DIM) {
+              width = Math.round(width * (MAX_DIM / height));
+              height = MAX_DIM;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Chuyển Canvas thành File JPEG để ép dung lượng xuống mức thấp
+          canvas.toBlob(blob => {
+              if (!blob) return reject(new Error("Lỗi khi chuyển đổi Canvas sang Blob"));
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                  type: "image/jpeg",
+                  lastModified: Date.now()
+              });
+              resolve(compressedFile);
+          }, 'image/jpeg', quality);
+      };
+      img.onerror = (err) => reject(new Error("Lỗi khi load ảnh để nén: " + err));
+  });
+}
+
 // ====== REPORTS ======
 
 // ⭐️ BỔ SUNG: HÀM LƯU FIRESTORE ĐƠN LẺ ⭐️
@@ -551,16 +604,33 @@ export async function submitForm(e, formId, collectionName, folderId) {
 // --- KIỂM TRA KÍCH THƯỚC FILE ---
   // SỬA: Lấy file input bằng querySelector để đảm bảo tìm thấy dù không có name
   const fileInputElement = form.querySelector('input[type="file"]');
-  const fileInput = fileInputElement?.files?.[0]; 
-  const MAX_FILE_SIZE_BYTES = 5242880; // 5MB
+  let fileInput = fileInputElement?.files?.[0]; 
+  
+  const HARD_LIMIT_BYTES = 15728640; // 15MB: Cho phép user chọn file từ đt thoải mái
+  const FINAL_LIMIT_BYTES = 5242880; // 5MB: Giới hạn an toàn trước khi gửi payload lên Google Apps Script
 
   if (fileInput) {
-    if (fileInput.size > MAX_FILE_SIZE_BYTES) {
+    // Chặn tức thì nếu file khổng lồ (> 15MB) để tránh treo trình duyệt khi vẽ Canvas
+    if (fileInput.size > HARD_LIMIT_BYTES) {
       hideLoading();
-      showSwal("error", "Kích thước file vượt quá 5MB. Vui lòng chọn file nhỏ hơn.");
-      // ⭐️ BỔ SUNG LOG ⭐️
+      showSwal("error", "Kích thước file quá lớn (Vượt quá 15MB). Vui lòng chọn file khác.");
       addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
       return; // Ngăn chặn việc gửi form
+    }
+
+    // Tiến hành nén ngầm nếu dung lượng > 4MB
+    try {
+        fileInput = await compressImage(fileInput, 4, 0.9);
+    } catch (err) {
+        console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
+    }
+
+    // Kiểm tra lại lần cuối sau khi nén
+    if (fileInput.size > FINAL_LIMIT_BYTES) {
+      hideLoading();
+      showSwal("error", "Kích thước file sau khi tự động nén vẫn vượt quá 5MB. Vui lòng chọn file nhỏ hơn.");
+      addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
+      return;
     }
   }
 // ------------------------------------------
