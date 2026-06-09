@@ -5,1166 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lịch làm việc</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="autoplan.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<style>
-  /* ======= BẢNG CHUNG ======= */
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 10px;
-  }
-
-  th, td {
-    border: none;
-    border-bottom: 1px solid #ccc;
-    border-right: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-  }
-  th:first-child, td:first-child { border-left: 1px solid #ccc; }
-  th { border-top: 1px solid #ccc; background-clip: padding-box; }
-
-  /* ======= KHUNG MỖI PHẦN (3 KHUNG ADMIN) ======= */
-  .rule-box {
-    margin-top: 20px;
-    border: 1px solid #ccc;
-    padding: 10px;
-    border-radius: 8px;
-    background: #f7f7f7;
-    display: block;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden; /* Chặn tuyệt đối bảng con tràn ngang làm vỡ layout */
-    box-sizing: border-box;
-  }
-
-  /* Hàng nhập liệu trong mỗi khung */
-  .rule-box .input-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-
-  /* Ô nhập văn bản co giãn hợp lý */
-  .rule-box input[type="text"] {
-    flex: 1;
-    min-width: 200px;
-  }
-  
-  @media (max-width: 768px) {
-    .rule-box input[type="text"] {
-      min-width: 0 !important;
-      width: 100% !important;
-    }
-  }
-
-  /* Phần tử còn lại: select, date, button */
-  .rule-box select,
-  .rule-box input[type="date"],
-  .rule-box input[type="time"],
-  .rule-box button {
-    height: 32px;
-    padding: 4px 8px;
-  }
-
-  /* ======= NÚT TRONG BẢNG ======= */
-  .rule-box table button {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .rule-box table button:hover {
-    background: #c0392b;
-  }
-
-  /* ======= CÁC BẢNG TRONG PHẦN ADMIN ======= */
-  .rule-box table {
-    width: 100%;
-    /* border-collapse: collapse;  <-- ĐÃ XÓA (Thừa) */
-    margin-top: 0px;
-    background: #fff;
-    border: none;
-  }
-
-  .rule-box table thead th {
-    background-color: #f0f0f0;
-    font-weight: 600;
-    text-align: center; /* Kế thừa từ 'th' toàn cục */
-    padding: 8px;
-  }
-
-  .rule-box table tbody td {
-    padding: 6px 8px;
-    text-align: center; /* Kế thừa từ 'td' toàn cục */
-    vertical-align: middle;
-  }
-
-  .rule-box table tbody tr:nth-child(odd) {
-    background-color: #fafafa;
-  }
-  .rule-box table tbody tr:nth-child(even) {
-    background-color: #ffffff;
-  }
-
-  .rule-box table tbody tr:hover {
-    background-color: #eaf3ff;
-    transition: background-color 0.2s ease;
-  }
-
-  .rule-box + .rule-box {
-    margin-top: 20px;
-  }
-
-  .rule-box h3 {
-    margin-top: 0;
-    text-align: left;
-    color: #333;
-  }
-
-  .rule-box table th,
-  .rule-box table td {
-    white-space: normal;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
-
-  .rule-box table td:first-child
-  {
-    text-align: left;
-    padding-left: 10px;
-  }
-
-  .rule-box table th:first-child {
-    text-align: center;
-    padding-left: 10px;
-  }
-
-  /* ======= MODAL FORM BOX (THAY THẾ RULE-BOX TRONG MODAL) ======= */
-  .modal-form-box .input-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .modal-form-box input[type="text"] {
-    flex: 1;
-    min-width: 200px;
-  }
-  .modal-form-box select, .modal-form-box input[type="date"], .modal-form-box input[type="time"], .modal-form-box button {
-    height: 32px;
-    padding: 4px 8px;
-  }
-
-  /* ======= PHẦN 3: CÀI ĐẶT QUY TẮC NGÀY LÀM ======= */
-  #workPatternConfig #dayCheckboxes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-  }
-
-  #workPatternConfig #dayCheckboxes label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid #ccc;
-    padding: 3px 6px;
-    border-radius: 4px;
-    background: #fff;
-    cursor: pointer;
-  }
-
-  /* ======= BẢNG LỊCH LÀM VIỆC ======= */
-  #scheduleTable {
-    table-layout: fixed;
-    word-wrap: break-word;
-    /* border-collapse: collapse; <-- ĐÃ XÓA (Thừa) */
-    width: 100%;
-    background: white;
-  }
-
-  #scheduleTable thead th {
-    background-color: #f0f0f0;
-    font-weight: 600;
-    text-align: center !important; 
-    padding: 10px;
-  }
-
-  /* --- ĐÃ TỐI ƯU HÓA --- */
-  #scheduleTable tbody td {
-    padding: 8px 10px; /* Thêm padding trái/phải mặc định */
-    text-align: left; /* Căn trái tất cả TD trong tbody */
-    line-height: 1.4em;
-  }
-  
-  /* Căn lề trái cho cột Ngày (vốn đã left) */
-  #scheduleTable td:nth-child(1) {
-     padding-left: 8px; /* Giữ nguyên padding riêng */
-  }
-  /* --- KẾT THÚC TỐI ƯU HÓA --- */
-
-  #scheduleTable tbody tr:nth-child(odd) {
-    background-color: #fafafa;
-  }
-
-  #scheduleTable tbody tr:nth-child(even) {
-    background-color: #ffffff;
-  }
-
-  #scheduleTable tbody tr:hover {
-    background-color: #eaf3ff;
-    transition: background-color 0.2s ease;
-  }
-  
-  /* Độ rộng bảng <-- ĐÃ XÓA KHỐI NÀY (Thừa) */
-
-  /* Độ rộng cột cụ thể */
-  #scheduleTable th:nth-child(1),
-  #scheduleTable td:nth-child(1) {
-    width: 20%;
-    min-width: 150px; 
-  }
-
-  #scheduleTable th:nth-child(2),
-  #scheduleTable td:nth-child(2) {
-    width: 30%;
-    min-width: 150px;
-  }
-
-  #scheduleTable th:nth-child(3),
-  #scheduleTable td:nth-child(3) {
-    width: 50%;
-    min-width: 150px;
-  }
-  
-  /* Loại bỏ min-width trên mobile */
-  @media (max-width: 768px) {
-    #scheduleTable th,
-    #scheduleTable td {
-      min-width: 0 !important;
-    }
-  }
-
-  /* Dòng “hôm nay” tô sáng */
-  #scheduleTable tr.today-row {
-    background-color: #dff0ff !important;
-    font-weight: 600;
-  }
-  
-  /* Ngăn cuộn ngang - chỉ cho các container chính */
-  .table-responsive-wrapper,
-  #pageContent,
-  .card-body {
-    overflow-x: hidden !important;
-    width: 100% !important;
-    max-width: 100vw !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* ======= MODAL XEM LỊCH CÁ NHÂN ======= */
-#personalScheduleModal {
-    display: none; 
-    position: fixed; 
-    z-index: 1000; 
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    background-color: rgba(0,0,0,0.4); 
-    box-sizing: border-box;
-    padding: 0;
-}
-
-#personalScheduleModal .personal-schedule-content {
-    background-color: #fefefe;
-    margin: 10vh auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 100%;
-    max-width: 900px; 
-    border-radius: 10px;
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-    box-sizing: border-box;
-    position: relative;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-}
-
-#personalScheduleModal .close {
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    line-height: 20px;
-    position: absolute;
-    right: 15px;
-    top: 15px;
-    z-index: 1;
-}
-
-#personalScheduleModal .close:hover,
-#personalScheduleModal .close:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-#personalScheduleDetails {
-    margin-top: 15px;
-    text-align: left;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    overflow-y: auto;
-    flex: 1;
-    padding-right: 5px;
-}
-
-#personalScheduleDetails::-webkit-scrollbar {
-    width: 6px;
-}
-#personalScheduleDetails::-webkit-scrollbar-track {
-    background: #f1f1f1; 
-}
-#personalScheduleDetails::-webkit-scrollbar-thumb {
-    background: #ccc; 
-    border-radius: 4px;
-}
-
-#personalScheduleDetails table {
-    min-width: 0 !important; /* Ghi đè thuộc tính min-width: 800px từ styles.css */
-}
-
-#personalScheduleDetails table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #f0f0f0;
-    text-align: center !important;
-    box-shadow: 0 2px 2px -1px rgba(0,0,0,0.2);
-    background-clip: padding-box;
-}
-
-/* === RESPONSIVE CHO MODAL & TABS ADMIN === */
-@media (max-width: 768px) {
-  /* 1. DIỆT TRỪ TẬN GỐC LỖI BỊ ẨN TỪ STYLES.CSS */
-  /* styles.css dùng !important ẩn đi các thẻ Admin, ta phải dùng độ ưu tiên cao hơn để đè lại */
-  div#adminConfig.active,
-  div#workPatternConfig.active,
-  div#swapConfig.active,
-  div.rule-box.active {
-      display: block !important;
-  }
-  #adminTabsContainer.admin-visible {
-      display: block !important;
-  }
-
-  /* Modals chung */
-  .personal-schedule-content {
-    width: 95% !important;
-    max-width: 100% !important;
-    margin: 20px auto !important;
-    padding: 20px 15px !important;
-    max-height: calc(100vh - 40px) !important;
-    border-radius: 12px !important;
-    box-sizing: border-box !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
-  
-  .personal-schedule-content h2 {
-    font-size: 1.3rem !important;
-    margin-bottom: 15px !important;
-    margin-top: 0 !important;
-    padding-right: 35px !important;
-    word-wrap: break-word !important;
-    line-height: 1.3 !important;
-  }
-  
-  .personal-schedule-content hr {
-    margin: 8px 0 !important;
-  }
-  
-  .personal-schedule-content .close {
-    font-size: 32px !important;
-    right: 15px !important;
-    top: 15px !important;
-    padding: 0 !important;
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
-    position: absolute !important;
-  }
-  
-  /* Form Inputs trong Modal - Chuyển sang Grid/Flex thông minh */
-  .personal-schedule-content .input-row {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: 10px !important;
-    margin-bottom: 15px !important;
-  }
-
-  .personal-schedule-content .input-row > label {
-    flex: 1 1 100% !important;
-    margin: 0 !important;
-    font-size: 13px !important;
-    color: #444;
-  }
-
-  /* Ngoại lệ cho label chứa checkbox */
-  .personal-schedule-content .input-row > label:has(input[type="checkbox"]) {
-    flex: 1 1 auto !important;
-    display: inline-flex !important;
-    width: auto !important;
-    font-size: 14px !important;
-    padding: 6px 0 !important;
-  }
-
-  .personal-schedule-content .input-row > input[type="text"],
-  .personal-schedule-content .input-row > input[type="date"],
-  .personal-schedule-content .input-row > input[type="time"],
-  .personal-schedule-content .input-row > select {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-    box-sizing: border-box !important;
-    height: 42px !important;
-    font-size: 14px !important;
-    border-radius: 6px !important;
-  }
-  
-  /* Tối ưu các dropdown/input thời gian thành lưới 2 cột */
-  #addJobFormContainer .input-row:nth-of-type(2) > select,
-  #addJobFormContainer .input-row:nth-of-type(2) > input[type="time"],
-  #editRuleModal .input-row:nth-of-type(2) > select,
-  #editRuleModal .input-row:nth-of-type(2) > input[type="time"] {
-    flex: 1 1 calc(50% - 5px) !important;
-    width: calc(50% - 5px) !important;
-  }
-  
-  /* Input date chiếm full dòng */
-  #exactDate, #editRuleExactDate {
-    flex: 1 1 100% !important;
-  }
-  
-  /* Nhóm checkbox (T2..CN) */
-  #dayCheckboxes, #editDayCheckboxes {
-    flex-direction: row !important;
-    width: 100% !important;
-    gap: 6px !important;
-  }
-  #dayCheckboxes label, #editDayCheckboxes label {
-    flex: 1 1 calc(25% - 6px) !important;
-    justify-content: center !important;
-    padding: 8px 4px !important;
-    font-size: 13px !important;
-  }
-
-  /* Nút Hành động trong Modal - Xếp dọc an toàn */
-  .action-buttons {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
-    margin-top: 25px !important;
-  }
-  .action-buttons > div {
-    display: none !important;
-  }
-  .action-buttons button {
-    width: 100% !important;
-    padding: 12px !important;
-    font-size: 15px !important;
-    margin: 0 !important;
-    border-radius: 8px !important;
-  }
-  .action-buttons button[id^="save"] { order: 1; }
-  .action-buttons button[id^="cancel"] { 
-      order: 2; 
-      background: #ecf0f1 !important; 
-      color: #333 !important; 
-  }
-  .action-buttons button[id^="delete"] { 
-      order: 3; 
-      margin-top: 15px !important; 
-      background: #fff !important; 
-      color: #e74c3c !important; 
-      border: 1px solid #e74c3c !important; 
-  }
-
-  /* Lịch cá nhân chi tiết (Modal) */
-  #personalScheduleDetails {
-    font-size: 13px !important;
-    margin-top: 8px !important;
-    overflow-x: hidden !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 0 !important;
-  }
-  
-  #personalScheduleDetails table {
-    font-size: 13px !important;
-    width: 100% !important;
-    table-layout: fixed !important;
-    word-break: break-word !important;
-  }
-  
-  #personalScheduleDetails th, #personalScheduleDetails td {
-    padding: 6px 4px !important;
-    white-space: normal !important;
-  }
-  
-  #closeModalBottom {
-    width: 100% !important;
-    padding: 10px !important;
-    font-size: 14px !important;
-    margin-top: 10px !important;
-    box-sizing: border-box !important;
-    border-radius: 4px !important;
-  }
-
-  /* Tabs Admin */
-  .admin-tabs {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    border-bottom: none !important;
-    gap: 10px !important;
-    padding-bottom: 15px !important;
-    width: 100% !important;
-    overflow: visible !important;
-  }
-.admin-tab-btn {
-    min-width: 0 !important;
-    width: auto !important;
-    height: auto !important;
-
-    min-height: 48px !important;
-    padding: 8px !important;
-    font-size: 13px !important;
-    border-radius: 8px !important;
-    border: 1px solid #ccc !important;
-    margin-bottom: 0 !important;
-
-    text-align: center !important;
-
-    white-space: normal !important;
-    word-break: break-word !important;
-
-    line-height: 1.2 !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-  .admin-tab-btn.active {
-    border: 2px solid #273668 !important;
-    background: #eef6ff !important;
-    color: #273668 !important;
-    font-weight: bold !important;
-    box-shadow: 0 2px 5px rgba(39, 54, 104, 0.2);
-  }
-  
-  /* Bảng Admin Config */
-  .rule-box {
-    padding: 10px 0px !important; /* Xóa padding 2 bên để không đội kích thước */
-    margin-top: 10px !important;
-    border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-  }
-  .collapsible-content {
-    max-height: 60vh !important;
-    width: 100% !important;
-    overflow-x: auto !important; /* Kích hoạt thanh cuộn ngang */
-    -webkit-overflow-scrolling: touch !important;
-  }
-  #ruleList, #patternList, #swapList, #adminTaskList {
-    width: 100% !important; /* Tràn đều 100% màn hình */
-    min-width: unset !important;
-    table-layout: fixed !important; 
-  }
-  
-  /* Ẩn tất cả các cột ở giữa, chỉ giữ lại cột đầu tiên và cột cuối cùng */
-  #ruleList th:not(:first-child):not(:last-child), #ruleList td:not(:first-child):not(:last-child),
-  #patternList th:not(:first-child):not(:last-child), #patternList td:not(:first-child):not(:last-child),
-  #adminTaskList th:not(:first-child):not(:last-child), #adminTaskList td:not(:first-child):not(:last-child) {
-    display: none !important;
-  }
-  
-  /* Đối với DS Hoán đổi: giữ lại cột 1, 2 và cuối cùng */
-  #swapList th:not(:first-child):not(:nth-child(2)):not(:last-child),
-  #swapList td:not(:first-child):not(:nth-child(2)):not(:last-child) {
-    display: none !important;
-  }
-  
-  /* Ép cột đầu tiên chiếm toàn bộ không gian còn lại (đẩy cột hành động về đúng kích thước chuẩn) */
-  #ruleList th:first-child, #ruleList td:first-child,
-  #patternList th:first-child, #patternList td:first-child,
-  #adminTaskList th:first-child, #adminTaskList td:first-child {
-    width: 100% !important;
-  }
-  
-  /* Chia tỷ lệ cho cột 1 và 2 của DS Hoán đổi */
-  #swapList th:first-child, #swapList td:first-child {
-    width: 35% !important;
-  }
-  #swapList th:nth-child(2), #swapList td:nth-child(2) {
-    width: 65% !important;
-  }
-  
-  /* Thiết lập độ rộng cố định cho cột hành động (cột cuối), cột đầu tiên sẽ tự động co giãn */
-  #ruleList th:last-child, #ruleList td:last-child,
-  #patternList th:last-child, #patternList td:last-child,
-  #swapList th:last-child, #swapList td:last-child {
-    width: 65px !important;
-  }
-  #adminTaskList th:last-child, #adminTaskList td:last-child {
-    width: 95px !important; /* Nới rộng để chữ Cập nhật không bị tràn */
-  }
-  
-  /* Xếp dọc 2 nút trong cột Hành động của DS CV Admin để tiết kiệm chiều ngang */
-  #adminTaskList td:last-child > div {
-    flex-direction: column !important;
-    gap: 4px !important;
-  }
-  
-  /* Tối ưu kích thước nút trong các bảng admin trên mobile cho cân đối với chữ */
-  .collapsible-content table button {
-    font-size: 11px !important;
-    padding: 4px 6px !important;
-  }
-}
-
-/* === CSS CHO DANH SÁCH ẨN/HIỆN === */
-.list-header {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
-    margin-top: 20px;
-}
-.list-header h4 {
-    margin: 0;
-}
-
-/* KHỐI .toggle-visibility-btn ĐÃ BỊ XÓA */
-
-.collapsible-content {
-    display: block; /* Luôn hiển thị */
-    max-height: 350px; /* Giới hạn chiều cao để xem được nhiều dòng hơn */
-    min-height: 250px; /* THÊM: Ngăn khung bị co dãn chiều dọc khi tìm kiếm ít kết quả */
-    overflow-y: auto; /* Bật thanh cuộn dọc */
-    overflow-x: auto; /* THÊM: Bật thanh cuộn ngang khi cần */
-    margin-top: 10px;
-    background: #fff;
-    border: 1px solid #ccc;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-/* --- MỚI: Ghim cố định tiêu đề bảng khi cuộn --- */
-.collapsible-content thead th {
-    position: sticky;
-    top: -1px; /* Ghim vào mép trên (dùng -1px để che viền) */
-    
-    /* Đảm bảo tiêu đề có nền, không bị trong suốt */
-    background-color: #f0f0f0; 
-    z-index: 1; /* Đảm bảo tiêu đề luôn nằm trên nội dung */
-    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
-    
-}
-
-/* Cố định layout bảng admin để không bị co dãn ngang khi tìm kiếm */
-#ruleList {
-    table-layout: fixed;
-    min-width: 800px;
-}
-#ruleList th:nth-child(1) { width: 31%; }
-#ruleList th:nth-child(2) { width: 8%; }
-#ruleList th:nth-child(3) { width: 8%; }
-#ruleList th:nth-child(4) { width: 45%; }
-#ruleList th:nth-child(5) { width: 8%; }
-
-#adminTaskList {
-    table-layout: fixed;
-    min-width: 900px;
-}
-#adminTaskList th:nth-child(1) { width: 33%; }
-#adminTaskList th:nth-child(2) { width: 14%; }
-#adminTaskList th:nth-child(3) { width: 14%; }
-#adminTaskList th:nth-child(4) { width: 21%; }
-#adminTaskList th:nth-child(5) { width: 18%; }
-
-#patternList {
-    table-layout: fixed;
-    min-width: 1000px;
-}
-#patternList th:nth-child(1) { width: 12%; }
-#patternList th:nth-child(2) { width: 14%; }
-#patternList th:nth-child(3) { width: 8%; }
-#patternList th:nth-child(4) { width: 26%; }
-#patternList th:nth-child(5) { width: 10%; }
-#patternList th:nth-child(6) { width: 10%; }
-#patternList th:nth-child(7) { width: 6%; }
-#patternList th:nth-child(8) { width: 6%; }
-#patternList th:nth-child(9) { width: 8%; }
-
-#swapList {
-    table-layout: fixed;
-    min-width: 900px;
-}
-#swapList th:nth-child(1) { width: 12%; }
-#swapList th:nth-child(2) { width: 18%; }
-#swapList th:nth-child(3) { width: 18%; }
-#swapList th:nth-child(4) { width: 29%; }
-#swapList th:nth-child(5) { width: 15%; }
-#swapList th:nth-child(6) { width: 8%; }
-
-/* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
-#scheduleTable tr.highlight {
-    background-color: #fff8c4 !important;
-    font-weight: bold;
-}
-
-/* === CSS CHO BỐ CỤC ĐIỀU KHIỂN TUẦN === */
-#weekNavigator {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1px;
-    padding: 8px;
-    background-color: #f9f9f9;
-}
-
-.week-nav-group {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-#weekNavigator button {
-    padding: 3px 12px;
-    font-size: 14px !important;
-    border: 1px solid #ccc;
-    background-color: #e01313bd;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-#weekNavigator button:hover {
-    background-color: #7789ecb7;
-}
-
-#weekNumberDisplay {
-    font-weight: bold;
-    font-size: 14px;
-    margin: 0 10px;
-    width: 100px;
-    text-align: center;
-}
-
-.week-label {
-  color: #666;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* === CSS CHO MÀU NỀN NHÓM XEN KẼ === */
-.rule-box table tbody tr.group-color-a {
-    background-color: #f8f9fa;
-}
-.rule-box table tbody tr.group-color-b {
-    background-color: #e9f7ef;
-}
-
-.rule-box table tbody tr.group-color-a:hover,
-.rule-box table tbody tr.group-color-b:hover {
-    background-color: #eaf3ff !important;
-}
-/* === GIAO DIỆN DẠNG THẺ CHO MÀN HÌNH NHỎ (CẢI TIẾN) === */
-@media (max-width: 768px) {
-  /* Reset độ rộng bảng khi sang giao diện thẻ dọc */
-  #scheduleTable {
-    table-layout: auto !important;
-    width: 100% !important;
-    min-width: unset !important;
-  }
-
-  #scheduleTable th,
-  #scheduleTable td {
-    width: auto !important;
-    min-width: unset !important;
-    max-width: none !important;
-  }
-
-  #scheduleTable,
-  #scheduleTable thead,
-  #scheduleTable tbody,
-  #scheduleTable th,
-  #scheduleTable td,
-  #scheduleTable tr {
-    display: block;
-    width: 100%;
-  }
-
-  #scheduleTable thead {
-    display: none; /* Ẩn tiêu đề cột */
-  }
-
-  #scheduleTable tr {
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    box-sizing: border-box !important;
-  }
-
-  #scheduleTable tbody td {
-    display: flex;
-    flex-direction: column;
-    border: none !important;
-    border-bottom: 1px dashed #eaeaea !important;
-    padding: 10px 0 !important;
-    font-size: 14px;
-    text-align: left;
-    line-height: 1.5em;
-    white-space: normal;
-  }
-
-  #scheduleTable tbody td:last-child {
-    border-bottom: none !important;
-    padding-bottom: 0 !important;
-  }
-  
-  #scheduleTable tbody td:first-child {
-    padding-top: 0 !important;
-  }
-
-  #scheduleTable td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #273668;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  #scheduleTable tr.today-row {
-    background-color: #f8fbff !important;
-    border-color: #bbd6fe;
-    box-shadow: 0 4px 12px rgba(39, 54, 104, 0.08);
-  }
-
-  #scheduleTable td + td {
-    margin-top: 0px;
-  }
-
-  #scheduleTable td[data-label="Ngày"] br {
-    display: none;
-  }
-
-  #scheduleTable td[data-label="Ngày"] {
-    flex-direction: row;
-    align-items: baseline;
-    flex-wrap: wrap;
-    font-size: 15px;
-    color: #e74c3c;
-    font-weight: bold;
-  }
-
-  #scheduleTable td[data-label="Ngày"] .week-label {
-    display: inline-block;
-    margin-left: 8px;
-    font-size: 12px;
-    color: #888;
-    font-weight: normal;
-  }
-
-  #scheduleTable td[data-label="Ngày"]::before {
-    content: "📅 \00a0";
-    font-size: 15px;
-    color: #333;
-    margin-bottom: 0;
-  }
-
-  #scheduleTable td[data-label="Người làm"]::before {
-    content: "👤 " attr(data-label);
-  }
-
-  #scheduleTable td[data-label="Công việc"]::before {
-    content: "💼 " attr(data-label);
-  }
-
-  #scheduleTable td.hide-empty-mobile {
-    display: none !important;
-  }
-  
-  /* CSS cho weekNavigator trên mobile */
-  #weekNavigator {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 5px !important;
-    padding: 6px 2px !important;
-    overflow: visible !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-  
-  #todayWeekBtn {
-    order: 0 !important;
-    font-size: 11px !important;
-    padding: 5px 10px !important;
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-    margin: 0 4px !important;
-  }
-  
-  .week-nav-group {
-    display: contents !important;
-  }
-  
-  #firstWeekBtn {
-    order: -2 !important;
-  }
-  
-  #prevWeekBtn {
-    order: -1 !important;
-  }
-  
-  #nextWeekBtn {
-    order: 1 !important;
-  }
-  
-  #lastWeekBtn {
-    order: 2 !important;
-  }
-  
-  #weekNavigator button {
-    font-size: 11px !important;
-    padding: 5px 6px !important;
-    flex-shrink: 0 !important;
-    min-width: 28px !important;
-  }
-  
-  #weekNumberDisplay {
-    display: none !important;
-  }
-}
-
-/* === CSS CHO TABS ADMIN === */
-.admin-tabs {
-    display: flex;
-    border-bottom: 2px solid #273668;
-    gap: 5px;
-    overflow-x: auto;
-    margin-top: 20px;
-}
-
-.admin-tab-btn {
-    background: #e9ecef;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    font-weight: bold;
-    border-radius: 8px 8px 0 0;
-    color: #495057;
-    white-space: nowrap;
-    outline: none;
-}
-
-.admin-tab-btn:hover {
-    background: #dde2e6;
-}
-
-.admin-tab-btn.active {
-    background: #f7f7f7;
-    color: #273668;
-    border: 2px solid #273668;
-    border-bottom: 2px solid #f7f7f7;
-    margin-bottom: -2px;
-    z-index: 1;
-    position: relative;
-}
-
-.admin-tab-content {
-    display: none !important;
-}
-
-.admin-tab-content.active {
-    display: block !important;
-}
-
-/* ======= LỊCH THÁNG ======= */
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  background-color: #ccc;
-  border: 1px solid #ccc;
-}
-.calendar-header {
-  background-color: #273668;
-  color: white;
-  font-weight: bold;
-  text-align: center;
-  padding: 8px 4px;
-  font-size: 14px;
-}
-.calendar-day {
-  background-color: #fff;
-  min-height: 80px;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-}
-.calendar-day.empty {
-  background-color: #f9f9f9;
-}
-.calendar-date {
-  font-weight: bold;
-  text-align: right;
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #555;
-}
-.calendar-day.today .calendar-date {
-  color: #fff;
-  background-color: #e74c3c;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: flex-end;
-}
-.calendar-workers {
-  font-size: 13px;
-  color: #034892;
-  flex: 1;
-  overflow-y: auto;
-  font-weight: bold;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  word-break: break-word;
-}
-
-/* --- TỐI ƯU MOBILE CHO LỊCH THÁNG --- */
-@media (max-width: 768px) {
-  #monthScheduleModal .personal-schedule-content {
-    margin: 15px auto !important;
-    padding: 10px !important;
-    width: 96% !important;
-    max-height: 95vh;
-    overflow-y: auto;
-  }
-  #monthScheduleTitle {
-    font-size: 1.1rem !important;
-    flex: 1;
-    text-align: center;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.2 !important;
-  }
-  #prevMonthBtn, #nextMonthBtn {
-    padding: 4px 6px !important;
-    font-size: 11px !important;
-    white-space: nowrap;
-    margin: 0 !important;
-  }
-  .calendar-day {
-    min-height: 55px;
-    padding: 2px;
-  }
-  .calendar-workers {
-    font-size: 11px;
-    line-height: 1.2;
-  }
-  .calendar-header {
-    font-size: 12px;
-    padding: 4px 2px;
-  }
-}
-
-/* === CSS IN ẤN === */
-@media print {
-  nav.navbar, #footer-placeholder, #adminTabsContainer, #globalSearchInput, #printScheduleBtn {
-    display: none !important;
-  }
-  body {
-    background-color: #fff;
-    padding: 0;
-    margin: 0;
-  }
-  #pageContent {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-  .card-body {
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-  #scheduleTable th, #scheduleTable td {
-    border: none !important;
-    border-bottom: 1px solid #ccc !important;
-    padding: 6px !important;
-    color: #000 !important;
-  }
-  #scheduleTable th {
-    background-color: #eee !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  #weekNavigator button {
-    display: none !important;
-  }
-  #weekNavigator {
-    background: none !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    margin: 10px 0 !important;
-  }
-  #weekNumberDisplay {
-    font-size: 16px !important;
-    color: #000 !important;
-  }
-}
-
-/* === HIỆU ỨNG NHẤP NHÁY DÒNG CÔNG VIỆC ADMIN === */
-@keyframes blinkTaskRow {
-    0% { background-color: #fff8b0; outline: 2px solid #f39c12; }
-    50% { background-color: transparent; outline: 2px solid transparent; }
-    100% { background-color: #fff8b0; outline: 2px solid #f39c12; }
-}
-.highlight-task-row {
-    animation: blinkTaskRow 1s ease-in-out 3;
-}
-</style>
 </head>
-<body>
+<body class="autoplan-page">
   <div id="menu-placeholder"></div>
   <div id="loading-placeholder"></div>
 
@@ -1472,6 +316,7 @@
               <button id="deleteAddRuleBtn" style="padding: 8px 15px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">🗑️ Xóa vĩnh viễn</button>
               <div id="addRuleSpacer" style="flex: 1; display: none;"></div>
               <button id="cancelAddRuleBtn" style="padding: 8px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Hủy</button>
+              <button id="saveAsNewRuleBtn" style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: none;" title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm việc mới</button>
               <button id="saveNewRuleBtn" style="padding: 8px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu quy tắc</button>
           </div>
       </div>
@@ -1601,17 +446,26 @@
       <div class="admin-tabs">
           <button class="admin-tab-btn" id="btn-openAddModal" style="background: #273668; color: white;">➕ Thêm, Sửa quy tắc</button>
           <button class="admin-tab-btn" id="btn-openSwapModal" style="background: #f39c12; color: white;">🔄 Hoán đổi ca</button>
-          <button class="admin-tab-btn active" id="tabBtn-adminConfig">📋 1. DS CV Chung</button>
-          <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 2. DS Ngày làm</button>
-          <button class="admin-tab-btn" id="tabBtn-swapConfig">📋 3. DS Hoán đổi</button>
-          <button class="admin-tab-btn" id="tabBtn-adminTasks">📋 4. DS CV Admin</button>
+          <button class="admin-tab-btn active" id="tabBtn-adminTasks">📋 1. DS CV Admin</button>
+          <button class="admin-tab-btn" id="tabBtn-adminConfig">📋 2. DS CV Chung</button>
+          <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 3. DS Ngày làm</button>
+          <button class="admin-tab-btn" id="tabBtn-swapConfig">📋 4. DS Hoán đổi</button>
       </div>
 
-  <div id="adminConfig" class="rule-box admin-tab-content active" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">⚙️ 1.Cài đặt quy tắc công việc (Admin)</h3>
-  <div class="list-header" style="margin-top: 0;">
-      <h4>Danh sách quy tắc công việc</h4>
-  </div>
+<div id="adminTasks" class="rule-box admin-tab-content active" style="margin-top: 0; border-top-left-radius: 0;">
+  <h3 style="display: none;">📋 1.DS CV Admin</h3>
+  <div class="collapsible-content">
+    <table id="adminTaskList">
+    <thead>
+      <tr><th>Công việc</th><th>Hạn hoàn thành</th><th>Ngày hoàn thành</th><th>Trạng thái</th><th>Hành động</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+</div>
+
+  <div id="adminConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
+  <h3 style="display: none;">⚙️ 2.Cài đặt quy tắc công việc (Admin)</h3>
   <div class="collapsible-content">
     <table id="ruleList">
     <thead>
@@ -1625,11 +479,8 @@
 </div>
 
 <div id="workPatternConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">🧭 2.Cài đặt quy tắc ngày làm (Admin)</h3>
+  <h3 style="display: none;">🧭 3.Cài đặt quy tắc ngày làm (Admin)</h3>
 
-  <div class="list-header" style="margin-top: 0;">
-      <h4>Danh sách quy tắc ngày làm</h4>      
-  </div>
   <div class="collapsible-content">
     <table id="patternList">
     <thead>
@@ -1641,29 +492,11 @@
 </div>
 
 <div id="swapConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">🔄 3.DS Hoán đổi ca (Admin)</h3>
-  <div class="list-header" style="margin-top: 0;">
-      <h4>Danh sách Hoán đổi ca</h4>      
-  </div>
+  <h3 style="display: none;">🔄 4.DS Hoán đổi ca (Admin)</h3>
   <div class="collapsible-content">
     <table id="swapList">
     <thead>
       <tr><th>Ngày đổi</th><th>Người xin đổi (A)</th><th>Người làm thay (B)</th><th>Lý do</th><th>Ngày tạo</th><th>Hành động</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-</div>
-
-<div id="adminTasks" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">📋 4.DS CV Admin</h3>
-  <div class="list-header" style="margin-top: 0;">
-      <h4>Danh sách Công việc Admin</h4>      
-  </div>
-  <div class="collapsible-content">
-    <table id="adminTaskList">
-    <thead>
-      <tr><th>Công việc</th><th>Hạn hoàn thành</th><th>Ngày hoàn thành</th><th>Trạng thái</th><th>Hành động</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -1678,17 +511,8 @@
     import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail, fetchAllUsers } from "./script.js";
     import { collection, addDoc, deleteDoc, doc, getDocs, serverTimestamp, updateDoc, onSnapshot, query, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
+    import { getWeekNumber, getWeekOfMonth, getDaysDifference, isRuleActiveOnDate, sortShiftRules, ruleMatchesDate, getLastMatchDate, getNextMatchDate, getNormalizedFirstChar, getWorkersForDateMonth } from "./autoplan-core.js";
 
-     // === HÀM CHUẨN HÓA KÝ TỰ ĐẦU TIÊN CỦA CHUỖI ===
-    function getNormalizedFirstChar(str) {
-          if (!str || str.trim() === "") return '?';
-          return str
-              .trim()
-              .normalize('NFD') // Tách ký tự và dấu (VD: "É" -> "E" + "´")
-              .replace(/[\u0300-\u036f]/g, '') // Xóa tất cả các loại dấu
-              .charAt(0) // Lấy ký tự đầu tiên đã được chuẩn hóa
-              .toUpperCase(); // Viết hoa
-    }
 
     // === Load menu, modal và footer===
     fetch("menu.html").then(r => r.text()).then(h => {
@@ -1706,13 +530,6 @@
     const content = document.getElementById("pageContent");
     let currentlyViewedDate = new Date();
 
-    function getWeekNumber(d) {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        return [d.getUTCFullYear(), weekNo];
-    }
 
     const scheduleBody = document.getElementById("scheduleBody");
     const ruleListBody = document.querySelector("#ruleList tbody");
@@ -1917,6 +734,8 @@
         const saveBtn = document.getElementById("saveNewRuleBtn");
         saveBtn.innerHTML = "💾 Lưu quy tắc";
         saveBtn.style.background = "#2ecc71"; // Màu xanh lá
+        const saveAsNewBtn = document.getElementById("saveAsNewRuleBtn");
+        if (saveAsNewBtn) saveAsNewBtn.style.display = "none";
     }
 
     function openAddRuleModal() {
@@ -1929,7 +748,24 @@
     }
     const closeAddRuleModalFn = () => {
         addRuleModal.style.display = "none";
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = '';
+        
+        // --- LÀM MỚI FORM KHI ĐÓNG MODAL ---
+        // Xóa dữ liệu form Quy tắc công việc
+        [jobInput, daySelect, weekSelect, monthSelect, domSelect, document.getElementById("exactDate"), jobNoteInput, document.getElementById("jobTime"), document.getElementById("addRuleEndDate")].forEach(el => { if (el) el.value = ""; });
+        if (document.getElementById("isAdminJobRuleCheckbox")) document.getElementById("isAdminJobRuleCheckbox").checked = false;
+        if (document.getElementById("isCommonJobRuleCheckbox")) document.getElementById("isCommonJobRuleCheckbox").checked = false;
+        if (document.getElementById("addCommonJobSettings")) document.getElementById("addCommonJobSettings").style.display = "none";
+        
+        // Xóa dữ liệu form Quy tắc phân ca
+        ["patternUser", "patternDisplayName", "patternStartDate", "patternNote", "adminShiftGroupName", "adminStartTime", "adminEndTime", "shiftGroupName", "shiftStartTime", "shiftEndTime", "patternNotifyTime"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+        document.querySelectorAll("#dayCheckboxes input").forEach(cb => cb.checked = false);
+        
+        resetAddJobFormMode();
+        updateAddRuleState();
     };
     document.getElementById("closeAddRuleModal").onclick = closeAddRuleModalFn;
     document.getElementById("cancelAddRuleBtn").onclick = closeAddRuleModalFn;
@@ -1941,6 +777,8 @@
     // --- LOGIC BIẾN FORM THÊM THÀNH FORM SỬA KHI TÌM NHANH ---
     jobInput.addEventListener("change", function() {
         const val = this.value.trim().toLowerCase();
+        // Lấy giá trị nguyên bản để điền lại vào input nếu chọn "Tạo mới"
+        const originalVal = this.value.trim(); 
         if (!val) {
             resetAddJobFormMode();
             return;
@@ -1957,6 +795,7 @@
 
         if (exactMatchRule) {
             // Tự động tải dữ liệu cũ lên form
+            jobInput.value = exactMatchRule.job; // Cập nhật đúng tên hoa/thường của quy tắc cũ
             document.getElementById("jobTime").value = exactMatchRule.time || "";
             document.getElementById("exactDate").value = exactMatchRule.exactDate || "";
             domSelect.value = exactMatchRule.dom || "";
@@ -1989,12 +828,24 @@
             const saveBtn = document.getElementById("saveNewRuleBtn");
             saveBtn.innerHTML = "💾 Lưu thay đổi";
             saveBtn.style.background = "#f39c12"; // Màu cam như Sửa
-            
-            showSwal("info", "Đã tải dữ liệu công việc cũ", "Bạn có thể chỉnh sửa và nhấn Lưu thay đổi, hoặc Xóa vĩnh viễn.");
+
+            // Hiển thị nút Lưu thêm việc mới
+            const saveAsNewBtn = document.getElementById("saveAsNewRuleBtn");
+            if (saveAsNewBtn) saveAsNewBtn.style.display = "block";
+
+            showSwal("info", "Đã tải dữ liệu công việc cũ", "Bạn có thể chỉnh sửa và Lưu thay đổi, hoặc Lưu thêm việc mới với ngày khác.");
         } else {
             // Tên mới hoàn toàn -> Trả lại giao diện Thêm mới
             resetAddJobFormMode();
         }
+    });
+
+    // Kích hoạt chức năng Lưu thành việc mới
+    document.getElementById("saveAsNewRuleBtn").addEventListener("click", () => {
+        // Chỉ cần xóa ID đi, hệ thống sẽ hiểu đây là lệnh Tạo mới thay vì Cập nhật
+        document.getElementById("addJobRuleEditId").value = "";
+        // Tự động bấm nút Lưu gốc
+        document.getElementById("saveNewRuleBtn").click();
     });
 
     // Chức năng Xóa cho nút "Xóa vĩnh viễn" tích hợp thẳng trên Modal Thêm
@@ -2247,7 +1098,17 @@
     // Đóng Modal
     const closeEditModalFn = () => {
         editPatternModal.style.display = "none";
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = '';
+        
+        // --- LÀM MỚI FORM SỬA QUY TẮC PHÂN CA KHI ĐÓNG ---
+        ["editPatternId", "editPatternUser", "editPatternDisplayName", "editPatternStartDate", "editPatternEndDate", "editStartTime", "editEndTime", "editPatternNotifyTime", "editShiftGroupName", "editAdminShiftGroupName", "editPatternNote"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+        document.getElementById("editPatternTypeSelect").value = "administrative";
+        document.querySelectorAll("#editDayCheckboxes input").forEach(cb => cb.checked = false);
+        document.getElementById("editAdministrativeInputs").style.display = 'block';
+        document.getElementById("editShiftRotationInputs").style.display = 'none';
     };
     document.getElementById("closeEditPatternModal").onclick = closeEditModalFn;
     document.getElementById("cancelEditPatternBtn").onclick = closeEditModalFn;
@@ -2445,7 +1306,22 @@
 
     const closeEditRuleModalFn = () => {
         editRuleModal.style.display = "none";
-        document.body.style.overflow = 'auto';
+        document.body.style.overflow = '';
+        
+        // --- LÀM MỚI FORM SỬA CÔNG VIỆC KHI ĐÓNG ---
+        ["editRuleId", "editRuleJobName", "editRuleTime", "editRuleExactDate", "editRuleDom", "editRuleDay", "editRuleWeek", "editRuleMonth", "editRuleEndDate", "editRuleNote", "editRuleLastCompletedDate", "editRuleActualCompletedDate", "editRuleCompletedNoteSelect", "editRuleCompletedNoteCustom"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = "";
+        });
+        ["editRuleIsAdminCheckbox", "editRuleIsCommonCheckbox"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.checked = false;
+        });
+        if (document.getElementById("editCommonJobSettings")) document.getElementById("editCommonJobSettings").style.display = "none";
+        if (document.getElementById("editRuleCompletionFields")) document.getElementById("editRuleCompletionFields").style.display = "none";
+        if (document.getElementById("editRuleCompletedNoteCustom")) document.getElementById("editRuleCompletedNoteCustom").style.display = "none";
+        
+        updateEditRuleState();
     };
     document.getElementById("closeEditRuleModal").onclick = closeEditRuleModalFn;
     document.getElementById("cancelEditRuleBtn").onclick = closeEditRuleModalFn;
@@ -2620,35 +1496,19 @@
         });
     });
 
-    function getLastMatchDate(rule) {
-        const today = new Date();
-        for (let i = 0; i < 365; i++) { // Quét ngược 365 ngày
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            if (ruleMatchesDate(rule, d)) {
-                return d;
-            }
-        }
-        return null;
-    }
-
-    function getNextMatchDate(rule) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        for (let i = 0; i < 365; i++) {
-            const d = new Date(tomorrow);
-            d.setDate(tomorrow.getDate() + i);
-            if (ruleMatchesDate(rule, d)) {
-                return d;
-            }
-        }
-        return null;
-    }
-
     function renderAdminTaskList(rulesToRender) {
         const adminTaskListBody = document.querySelector("#adminTaskList tbody");
         if (!adminTaskListBody) return;
+        
+        // --- BẢO TOÀN VỊ TRÍ CUỘN TRANG & BẢNG ---
+        const scrollContainer = document.querySelector("#adminTasks .collapsible-content");
+        const tableScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+        const pageScrollTop = document.getElementById("pageContent") ? document.getElementById("pageContent").scrollTop : 0;
+        
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = scrollContainer.offsetHeight + "px";
+        }
+
         adminTaskListBody.innerHTML = "";
         
         const adminRules = rulesToRender.filter(r => r.is_admin_job);
@@ -3149,12 +2009,32 @@
             });
             adminTaskListBody.appendChild(tr);
         });
+
+        // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = "";
+            scrollContainer.scrollTop = tableScrollTop;
+        }
+        if (document.getElementById("pageContent")) {
+            document.getElementById("pageContent").scrollTop = pageScrollTop;
+        }
     }
 
     //
     function renderRuleList(rulesToRender) {
         ruleListBody.innerHTML = "";
         
+        // --- BẢO TOÀN VỊ TRÍ CUỘN TRANG & BẢNG ---
+        const scrollContainer = document.querySelector("#adminConfig .collapsible-content");
+        const tableScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+        const pageScrollTop = document.getElementById("pageContent") ? document.getElementById("pageContent").scrollTop : 0;
+        
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = scrollContainer.offsetHeight + "px";
+        }
+
+        ruleListBody.innerHTML = "";
+
         const rulesToRenderFiltered = rulesToRender.filter(r => !r.is_admin_job);
         
         if (rulesToRenderFiltered.length === 0) {
@@ -3196,6 +2076,15 @@
             });
             ruleListBody.appendChild(tr);
         });
+
+        // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = "";
+            scrollContainer.scrollTop = tableScrollTop;
+        }
+        if (document.getElementById("pageContent")) {
+            document.getElementById("pageContent").scrollTop = pageScrollTop;
+        }
     }
 
     // =========================================================================
@@ -3636,9 +2525,11 @@
     
     const closeSwapModalFn = () => {
         swapModal.style.display = "none";
-        document.body.style.overflow = "auto";
+        document.body.style.overflow = '';
         document.getElementById("swapDate").value = "";
         document.getElementById("swapReason").value = "";
+        document.getElementById("swapUser1").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
+        document.getElementById("swapUser2").innerHTML = '<option value="">-- Vui lòng chọn ngày trước --</option>';
     };
     document.getElementById("closeSwapModal").onclick = closeSwapModalFn;
     document.getElementById("cancelSwapBtn").onclick = closeSwapModalFn;
@@ -3688,7 +2579,14 @@
 
     const closeEditSwapModalFn = () => {
         editSwapModal.style.display = "none";
-        document.body.style.overflow = "auto";
+        document.body.style.overflow = '';
+        
+        // --- LÀM MỚI FORM SỬA HOÁN ĐỔI KHI ĐÓNG ---
+        document.getElementById("editSwapId").value = "";
+        document.getElementById("editSwapDate").value = "";
+        document.getElementById("editSwapReason").value = "";
+        document.getElementById("editSwapUser1").innerHTML = '';
+        document.getElementById("editSwapUser2").innerHTML = '';
     };
     document.getElementById("closeEditSwapModal").onclick = closeEditSwapModalFn;
     document.getElementById("cancelEditSwapBtn").onclick = closeEditSwapModalFn;
@@ -3759,6 +2657,16 @@
     function renderSwapList() {
         const tbody = document.querySelector("#swapList tbody");
         if (!tbody) return;
+        
+        // --- BẢO TOÀN VỊ TRÍ CUỘN TRANG & BẢNG ---
+        const scrollContainer = document.querySelector("#swapConfig .collapsible-content");
+        const tableScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+        const pageScrollTop = document.getElementById("pageContent") ? document.getElementById("pageContent").scrollTop : 0;
+        
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = scrollContainer.offsetHeight + "px";
+        }
+
         tbody.innerHTML = "";
         [...allSwapsData].sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0)).forEach(s => {
             const tr = document.createElement("tr");
@@ -3781,11 +2689,6 @@
         });
     }
 
-    function getWeekOfMonth(date) {
-        const day = date.getDate();
-        return Math.ceil(day / 7);
-    }
-
 // --- LOGIC MỚI: ĐIỀU KHIỂN GIAO DIỆN MỤC 3 ---
     const patternTypeSelect = document.getElementById('patternTypeSelect');
     const administrativeInputs = document.getElementById('administrativeInputs');
@@ -3804,6 +2707,17 @@
     
 function renderPatternList(patternsToRender) {
         const tbody = document.querySelector("#patternList tbody");
+        if (!tbody) return;
+        
+        // --- BẢO TOÀN VỊ TRÍ CUỘN TRANG & BẢNG ---
+        const scrollContainer = document.querySelector("#workPatternConfig .collapsible-content");
+        const tableScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
+        const pageScrollTop = document.getElementById("pageContent") ? document.getElementById("pageContent").scrollTop : 0;
+        
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = scrollContainer.offsetHeight + "px";
+        }
+
         tbody.innerHTML = "";
         
         const todayForCheck = new Date();
@@ -3870,107 +2784,19 @@ function renderPatternList(patternsToRender) {
             });
             tbody.appendChild(tr);
         });
+
+        // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
+        if (scrollContainer) {
+            scrollContainer.style.minHeight = "";
+            scrollContainer.scrollTop = tableScrollTop;
+        }
+        if (document.getElementById("pageContent")) {
+            document.getElementById("pageContent").scrollTop = pageScrollTop;
+        }
     }
     // Xóa hàm findWorkersForDate cũ đi.
     // Thay thế hoàn toàn hàm renderSchedule cũ bằng hàm mới này.
 
-// Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
-function ruleMatchesDate(rule, d) {
-    const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    // NẾU CÓ NGÀY KẾT THÚC -> Kiểm tra xem ngày đang xét có vượt qua ngày kết thúc không
-    if (rule.ruleEndDate && rule.ruleEndDate !== "") {
-        if (isoDate > rule.ruleEndDate) return false;
-    }
-
-    // NẾU CÓ NGÀY CỤ THỂ -> Chỉ khớp duy nhất ngày đó
-    if (rule.exactDate && rule.exactDate !== "") {
-        return rule.exactDate === isoDate;
-    }
-
-    const dayNum = d.getDate();                    // ngày trong tháng (1..31)
-    const monthNum = d.getMonth() + 1;             // tháng (1..12)
-    const weekOfMonth = getWeekOfMonth(d);         // hàm bạn đã có
-    const weekDay = d.getDay() === 0 ? 8 : d.getDay() + 1; // mapping: CN -> 8, T2..T7 -> 2..7
-
-    // Ngày cụ thể trong tháng (dom)
-    if (rule.dom && rule.dom !== "" && rule.dom !== String(dayNum)) return false;
-
-    // Thứ
-    if (rule.day && rule.day !== "" && rule.day !== "all") {
-        // rule.day có thể lưu là string '8' cho CN hoặc số khác
-        if (Number(rule.day) !== Number(weekDay)) return false;
-    }
-
-    // Tuần trong tháng
-    if (rule.week && rule.week !== "" && rule.week !== "all") {
-        if (Number(rule.week) !== Number(weekOfMonth)) return false;
-    }
-
-    // Tháng
-    if (rule.month && rule.month !== "" && rule.month !== "all") {
-        if (Number(rule.month) !== Number(monthNum)) return false;
-    }
-
-    return true;
-}
-
-// Tìm danh sách công việc (work_rules) phù hợp cho 1 người vào 1 ngày
-function findJobsForPersonOnDate(personDisplayName, d) {
-    // Nếu muốn match theo user (email/mã) thay displayName bằng pattern.user
-    // Ở đây ta match theo rule chung (không gán admin job mặc định)
-    const matched = allRulesData.filter(rule => {
-        // Bỏ qua quy tắc chỉ dành cho admin (nếu bạn muốn bao gồm, remove điều kiện này)
-        if (rule.is_admin_job) return false;
-        return ruleMatchesDate(rule, d);
-    });
-
-    // Nếu muốn giới hạn job theo người cụ thể (vd rule có trường assignedTo), thêm điều kiện ở trên.
-    // Trả về mảng chuỗi mô tả ngắn
-    return matched.map(r => {
-        const timePart = r.time ? ` ${r.time}` : "";
-        return `${r.job}${timePart}${r.note ? " — " + r.note : ""}`;
-    });
-}
-//
-/**
-     * Helper 1: Kiểm tra quy tắc còn hiệu lực
-     */
-    const isRuleActiveOnDate = (rule, d) => {
-        // Đồng bộ logic với GAS: Cắt bỏ giờ phút giây, đưa về chuẩn 00:00:00
-        const checkDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        const startDate = new Date(rule.patternStartDate + 'T00:00:00');
-        const endDate = rule.patternEndDate ? new Date(rule.patternEndDate + 'T00:00:00') : null;
-        if (checkDate < startDate) return false;
-        // Dùng >= để đảm bảo quy tắc kết thúc ngay từ đầu ngày endDate
-        if (endDate && checkDate >= endDate) return false;
-        return true;
-    };
-    
-    /**
-     * Helper 2 (MỚI): Logic sắp xếp xoay ca 3 cấp
-     * Ưu tiên 1: Ngày bắt đầu (sớm nhất trước)
-     * Ưu tiên 2: Giờ bắt đầu (sớm nhất trước)
-     * Ưu tiên 3: Tên A-Z
-     */
-    const sortShiftRules = (a, b) => {
-        // 1. So sánh Ngày
-        const dateA = new Date(a.patternStartDate);
-        const dateB = new Date(b.patternStartDate);
-        if (dateA - dateB !== 0) {
-            return dateA - dateB;
-        }
-
-        // 2. So sánh Giờ (nếu Ngày trùng)
-        const timeA = a.startTime || "00:00";
-        const timeB = b.startTime || "00:00";
-        if (timeA.localeCompare(timeB) !== 0) {
-            return timeA.localeCompare(timeB);
-        }
-
-        // 3. So sánh Tên (nếu cả Ngày và Giờ trùng)
-        return (a.displayName || "").localeCompare(b.displayName || "");
-    };
 // Hàm renderSchedule thay thế — dán đè hàm cũ
 async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
     scheduleBody.innerHTML = "";
@@ -4181,25 +3007,27 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
     const [year, weekNo] = getWeekNumber(referenceDate);
     document.getElementById('weekNumberDisplay').textContent = `Tuần ${weekNo} / ${year}`;
+    
+    // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
+    if (tableWrapper) {
+        tableWrapper.style.minHeight = "";
+    }
+    if (document.getElementById("pageContent")) {
+        document.getElementById("pageContent").scrollTop = pageScrollTop;
+    }
 }
 
     
 
 
-    function getDaysDifference(date1, date2) {
-        const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-        const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-        return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
-    }
-    
     // Logic modal
     closeModalBtn.onclick = () => {
-        document.body.style.overflow = 'auto'; // Khôi phục scroll
+        document.body.style.overflow = ''; // Khôi phục scroll
         personalScheduleModal.style.display = "none";
     };
     window.onclick = (event) => { 
         if (event.target == personalScheduleModal) {
-            document.body.style.overflow = 'auto'; // Khôi phục scroll
+            document.body.style.overflow = ''; // Khôi phục scroll
             personalScheduleModal.style.display = "none"; 
         }
         if (event.target == document.getElementById("monthScheduleModal")) {
@@ -4207,7 +3035,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
         }
     };
     document.getElementById("closeModalBottom").onclick = () => {
-        document.body.style.overflow = 'auto'; // Khôi phục scroll
+        document.body.style.overflow = ''; // Khôi phục scroll
         personalScheduleModal.style.display = "none";
     };
 
@@ -4631,7 +3459,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
   function closeMonthScheduleModal() {
       document.getElementById("monthScheduleModal").style.display = "none";
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = '';
   }
 
   document.getElementById("monthViewBtn").addEventListener("click", openMonthScheduleModal);
@@ -4646,82 +3474,6 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
       currentMonthView.setMonth(currentMonthView.getMonth() + 1);
       renderMonthCalendar(currentMonthView.getFullYear(), currentMonthView.getMonth());
   });
-
-  function getWorkersForDateMonth(d) {
-      const adminRules = allPatternsData.filter(p => p.type === 'administrative');
-      const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
-      let workers = [];
-      
-      const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const swapsForDate = allSwapsData.filter(s => s.date === isoDate);
-      const yesterday = new Date(d);
-      yesterday.setDate(d.getDate() - 1);
-      const dayOfWeek = d.getDay() === 0 ? 8 : d.getDay() + 1;
-
-      // Nhân sự cố định
-      adminRules.forEach(rule => {
-          if (!isRuleActiveOnDate(rule, d) || !Array.isArray(rule.workDaysOfWeek)) return;
-          if (rule.workDaysOfWeek.includes(dayOfWeek)) {
-              let displayName = rule.displayName;
-              const swap = swapsForDate.find(s => s.user1 === displayName);
-              if (swap) displayName = swap.user2;
-              if (!workers.includes(displayName)) workers.push(displayName);
-          }
-      });
-
-      // Nhân sự ca
-      if (allShiftRules.length > 0) {
-          const shiftGroups = {};
-          allShiftRules.forEach(rule => {
-              const group = rule.shiftGroup || "Vận hành";
-              if (!shiftGroups[group]) shiftGroups[group] = [];
-              shiftGroups[group].push(rule);
-          });
-
-          for (const group in shiftGroups) {
-              const groupRules = shiftGroups[group];
-              const sortedGroupRules = [...groupRules].sort(sortShiftRules);
-              const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
-              
-              const membersYesterday = groupRules.filter(rule => isRuleActiveOnDate(rule, yesterday)).sort(sortShiftRules);
-              const membersToday = groupRules.filter(rule => isRuleActiveOnDate(rule, d)).sort(sortShiftRules);
-              
-              let workerYesterdayName = null;
-              let isNightYesterday = false;
-              
-              if (membersYesterday.length > 0) {
-                  const n_yesterday = membersYesterday.length;
-                  const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
-                  const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
-                  const workerYesterday = membersYesterday[workerIndexYesterday];
-                  if (workerYesterday) {
-                      workerYesterdayName = workerYesterday.displayName;
-                      const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
-                      const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
-                      if ( (endH < startH) || (endH === startH && endM < startM) ) isNightYesterday = true;
-                      else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) isNightYesterday = true;
-                  }
-              }
-
-              if (membersToday.length > 0) {
-                  const n_today = membersToday.length;
-                  const daysSinceToday = getDaysDifference(d, groupRefDate);
-                  const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
-                  const workerToday = membersToday[workerIndexToday];
-                  
-                  if (workerToday) {
-                      if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
-                          let displayName = workerToday.displayName;
-                          const swap = swapsForDate.find(s => s.user1 === displayName);
-                          if (swap) displayName = swap.user2;
-                          if (!workers.includes(displayName)) workers.push(displayName);
-                      }
-                  }
-              }
-          }
-      }
-      return workers;
-  }
 
   function renderMonthCalendar(year, month) {
       const title = document.getElementById("monthScheduleTitle");
@@ -4754,7 +3506,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
           const d = new Date(year, month, day);
           const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
           
-          const workers = getWorkersForDateMonth(d);
+          const workers = getWorkersForDateMonth(d, allPatternsData, allSwapsData);
           
           // Lấy chữ cuối cùng của tên (vd: Nguyễn Văn A -> A)
           const shortNames = workers.map(name => {
