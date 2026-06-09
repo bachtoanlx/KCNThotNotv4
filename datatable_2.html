@@ -83,26 +83,47 @@
     .admin-visible {
         display: table-cell !important;
     }
-    /* CSS MỚI CHO CÁC CONTROLS DƯỚI BỘ LỌC CHÍNH */
-    .controls-row {
-        display: flex;
-        justify-content: space-between; /* Đẩy các nhóm điều khiển ra hai phía */
-        align-items: center; /* Căn chỉnh theo chiều dọc */
-        margin-top: 5px;
-        margin-bottom: 2px;
-    }
 
-    .left-controls {
+    /* --- CSS MỚI CHO THANH TÌM KIẾM VÀ CHECKBOX NẰM NGANG --- */
+    .search-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .special-filter-label {
+        background: #fff3cd;
+        padding: 0 12px;
+        height: 35px;
         display: flex;
         align-items: center;
-        gap: 15px; /* Khoảng cách giữa checkbox và ghi chú lọc */
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        white-space: nowrap;
+        color: #856404;
+        margin: 0;
+        cursor: pointer;
+        border: 1px solid #ffeeba;
+        box-sizing: border-box;
+        transition: all 0.2s;
+    }
+    .special-filter-label:hover {
+        background: #ffe8a1;
+    }
+    .special-filter-label input {
+        margin: 0 6px 0 0 !important;
+        width: 15px;
+        height: 15px;
+        accent-color: #d35400;
+        cursor: pointer;
     }
 
-    .right-controls {
-        display: flex;
-        align-items: center;
+    @media (min-width: 769px) {
+        .special-text-long { display: inline; }
+        .special-text-short { display: none; }
     }
-    
+
     /* RESPONSIVE MOBILE */
     @media (max-width: 768px) {
       .table-reports-2 {
@@ -201,17 +222,22 @@
         text-overflow: clip !important;
       }
       
-      .controls-row {
-        flex-direction: column;
-        gap: 10px;
-        align-items: stretch;
-      }
-      
-      .left-controls,
-      .right-controls {
-        width: 100%;
-        justify-content: space-between;
-      }
+        .search-row {
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .special-filter-label {
+            height: 27px; /* Cân đối với chiều cao ô tìm kiếm trên mobile */
+            padding: 0 8px;
+            font-size: 11px;
+        }
+        .special-filter-label input {
+            width: 12px;
+            height: 12px;
+            margin-right: 4px !important;
+        }
+        .special-text-long { display: none; }
+        .special-text-short { display: inline; }
 
       /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
       .filter-box {
@@ -279,48 +305,56 @@
     }
     /* --------------------------------------------- */
 
-    /* --- Tinh chỉnh layout App-like (Chỉ áp dụng trên Desktop) --- */
-    /* Để trên Mobile trang cuộn tự nhiên giống autoplan.html, không bị che footer */
-    @media (min-width: 769px) {
-        html, body {
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        #pageContent {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-
-        .card-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            padding-bottom: 2px;
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-        }
-
-        .table-container {
-            flex: 1; 
-            max-height: none; 
-            overflow: auto; 
-            border: none; 
-        }
+    /* --- BẢN SỬA LỖI HIỂN THỊ FOOTER & CUỘN BẢNG --- */
+    html, body {
+        width: 100% !important;
+        height: 100% !important;
+        height: 100dvh !important; /* Dùng dvh để vượt qua thanh công cụ trình duyệt */
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important; /* Khóa cuộn trang toàn cục */
     }
     
-    /* Giữ lề cho card-body trên Mobile */
-    @media (max-width: 768px) {
-        .card-body {
-            padding-left: 10px !important;
-            padding-right: 10px !important;
-        }
+    body {
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 4px !important; /* Tạo lề ngoài an toàn */
+        box-sizing: border-box !important;
     }
-        
+    
+    #menu-placeholder, #footer-placeholder {
+        flex: 0 0 auto !important; /* Không giãn, không co, bám chặt kích thước thực */
+        width: 100%;
+        z-index: 100; /* Nâng z-index lên 100 để Menu thả xuống không bị che bởi tiêu đề bảng */
+    }
+
+    #pageContent {
+        flex: 1 1 auto !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important;
+        width: 100%;
+    }
+
+    .card-body {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+    }
+
+    .table-container {
+        flex: 1 1 auto !important; 
+        min-height: 0 !important; 
+        height: 0 !important; /* HACK CSS: Ép vùng chứa bảng vô hiệu hóa kích thước nội dung */
+        overflow-y: auto !important; 
+        -webkit-overflow-scrolling: touch; 
+        width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -346,8 +380,15 @@
       </label>
       <button id="applyFilter" type="button">Áp dụng</button>
     </div>
-    <div class="search-container">
-        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm...">
+    <div class="search-row">
+        <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
+            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%;">
+        </div>
+        <label class="special-filter-label" title="Chỉ hiển thị các ngày làm việc đặc biệt">
+            <input type="checkbox" id="specialWorkdayFilter"> 
+            <span class="special-text-long">Chỉ xem Ngày làm đặc biệt</span>
+            <span class="special-text-short">Lọc Đặc biệt</span>
+        </label>
     </div>
         <div class="table-container table-reports-2">
         <table id="dataTable">
@@ -365,22 +406,10 @@
           </thead>
           <tbody></tbody>
         </table>
+        <div style="text-align: center; margin-top: 15px; padding-bottom: 20px;">
+            <button id="loadMoreBtn" style="display: none; background: #273668; color: white; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬇️ Cuộn để tải thêm...</button>
         </div>
-      
-      <div class="controls-row">
-        <div class="left-controls">
-          <label><input type="checkbox" id="specialWorkdayFilter"> Chỉ xem Ngày làm đặc biệt</label>
         </div>
-        <div class="right-controls">
-          <label for="displayCount">Hiển thị:</label>
-          <select id="displayCount">
-              <option value="10">10 dòng</option>
-              <option value="20">20 dòng</option>
-              <option value="50">50 dòng</option>
-              <option value="all">Toàn bộ</option>
-          </select>
-        </div>
-      </div>
     </div>
   </div>
 <div id="footer-placeholder" style="display:none;"></div>
@@ -390,7 +419,7 @@
     // === 1. IMPORT ===
     import { auth, onAuth, deleteReport, getRole, showLoading, hideLoading, showSwal, showConfirmSwal, 
              getReportsByDate, db } from "./script.js";
-    import { collection, query, where, orderBy, getDocs, limit, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, query, where, orderBy, getDocs, limit, doc, getDoc, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
     // === 2. TẢI GIAO DIỆN CHUNG ===
@@ -410,19 +439,27 @@
     const footer = document.getElementById("footer-placeholder");
     const tbody     = document.querySelector("#dataTable tbody");
     const searchInput = document.getElementById("searchInput");
-    const displayCountSelect = document.getElementById("displayCount");
     const fromInput = document.getElementById("fromDate");
     const toInput = document.getElementById("toDate");
     const yearSelect = document.getElementById("yearSelect");
     const applyFilterBtn = document.getElementById("applyFilter");
     const specialWorkdayFilterInput = document.getElementById("specialWorkdayFilter"); 
+    const loadMoreBtn = document.getElementById("loadMoreBtn");
     
     let currentFilter = { from: null, to: null };
     let initialLoad = true;
     let allSearchData = [];
     let userRole = null;
-    let realtimeListener = null; // ⭐️ Listener để cleanup
     let highlightTimeout = null; // Biến debounce cho highlight
+    
+    let lastDoc1 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 1
+    let lastDoc2 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 2
+    let hasMore1 = true;
+    let hasMore2 = true;
+    const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
+    let isFetching = false; // Khóa để tránh tải trùng lặp
+    let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
+    const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
 
     // === 4. CÁC HÀM TIỆN ÍCH ===
     function formatISODate(d) {
@@ -455,7 +492,7 @@
                   try {
                       await deleteReport("reports_2", id); 
                       showSwal("success", "Đã xóa báo cáo!");
-                      await fetchAndRenderData(); // Tải lại data sau khi xóa
+                      await fetchAndRenderData(false); // Tải lại data sau khi xóa
                   } catch (err) {
                       console.error("Lỗi khi xóa báo cáo:", err);
                       showSwal("error", "Lỗi khi xóa", "Không thể xóa báo cáo. Vui lòng thử lại.");
@@ -467,7 +504,7 @@
       });
     };
 
-    const filterAndRenderData = (data, query, limit) => {
+    const filterAndRenderData = (data, query) => {
         const isSpecialWorkdayFilterActive = specialWorkdayFilterInput ? specialWorkdayFilterInput.checked : false;
         let fromDate = null;
         let toDate = null;
@@ -538,11 +575,9 @@
                     filterBox.classList.add('highlight-area');
                     setTimeout(() => {
                         filterBox.classList.remove('highlight-area');
-                        const displayCountEl = document.getElementById('displayCount');
-                        const displayContainer = displayCountEl ? (displayCountEl.closest('.right-controls') || displayCountEl.parentElement) : null;
-                        if (displayContainer) {
-                            displayContainer.classList.add('highlight-area');
-                            setTimeout(() => displayContainer.classList.remove('highlight-area'), 2000);
+                        if (loadMoreBtn) {
+                            loadMoreBtn.classList.add('highlight-area');
+                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
                         }
                     }, 2000);
                 }
@@ -620,13 +655,10 @@
     };
 
     // === 6. HÀM TẢI DỮ LIỆU MỚI ===
-    async function fetchAndRenderData() {
-        // ⭐️ 0. HỦY LISTENER CŨ (nếu có)
-        if (realtimeListener) {
-            realtimeListener();
-            realtimeListener = null;
-        }
-
+    async function fetchAndRenderData(isLoadMore = false) {
+        if (isFetching) return;
+        isFetching = true;
+        
         // Tự động điền ngày mặc định nếu trống và không chọn năm
         if (!yearSelect.value) {
             if (!fromInput.value) {
@@ -684,99 +716,90 @@
             currentFilter.to = endDate;
         }
         
-        // 2. Bật loading
-        showLoading("Đang tải dữ liệu...");
+        if (!isLoadMore) {
+            lastDoc1 = null; 
+            lastDoc2 = null; 
+            hasMore1 = true;
+            hasMore2 = true;
+            autoLoadCount = 0; 
+        }
+
+        if (loadMoreBtn && isLoadMore) {
+            loadMoreBtn.textContent = "⏳ Đang tải...";
+        }
+
+        if (!isLoadMore) showLoading("Đang tải dữ liệu...");
+        
         try {
-            // ⭐️ 3. Chạy 2 truy vấn VỚI LIMIT
-            const selectedLimit = displayCountSelect.value; // "7", "20", hoặc "all"
-            
-            let q1 = query(
-                collection(db, "reports_2"),
-                where("ngay_nghi", ">=", startDate),
-                where("ngay_nghi", "<=", endDate),
-                orderBy("ngay_nghi", "desc")
-            );
-            let q2 = query(
-                collection(db, "reports_2"),
-                where("ngay_lam_db", ">=", startDate),
-                where("ngay_lam_db", "<=", endDate),
-                orderBy("ngay_lam_db", "desc")
-            );
-            
-            // Thêm limit nếu không phải "all"
-            if (selectedLimit && selectedLimit !== "all") {
-                const limitNum = parseInt(selectedLimit);
-                q1 = query(q1, limit(limitNum));
-                q2 = query(q2, limit(limitNum));
+            let promises = [];
+            let snap1 = null, snap2 = null;
+
+            if (hasMore1) {
+                let q1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", startDate), where("ngay_nghi", "<=", endDate), orderBy("ngay_nghi", "desc"), limit(LIMIT_PER_PAGE));
+                if (isLoadMore && lastDoc1) q1 = query(q1, startAfter(lastDoc1));
+                promises.push(getDocs(q1).then(s => { snap1 = s; }));
             }
 
-            const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-            
-            const reportsMap = new Map();
-            snap1.docs.forEach(doc => reportsMap.set(doc.id, { id: doc.id, ...doc.data() }));
-            snap2.docs.forEach(doc => reportsMap.set(doc.id, { id: doc.id, ...doc.data() }));
-
-            allSearchData = Array.from(reportsMap.values());
-            
-            // ⭐️ 4. BẬT REAL-TIME LISTENER (Lắng nghe cả 2 trường ngày)
-            // Tạo lại queries với listener
-            let q1Listener = query(
-                collection(db, "reports_2"),
-                where("ngay_nghi", ">=", startDate),
-                where("ngay_nghi", "<=", endDate),
-                orderBy("ngay_nghi", "desc")
-            );
-            let q2Listener = query(
-                collection(db, "reports_2"),
-                where("ngay_lam_db", ">=", startDate),
-                where("ngay_lam_db", "<=", endDate),
-                orderBy("ngay_lam_db", "desc")
-            );
-            
-            if (selectedLimit && selectedLimit !== "all") {
-                const limitNum = parseInt(selectedLimit);
-                q1Listener = query(q1Listener, limit(limitNum));
-                q2Listener = query(q2Listener, limit(limitNum));
+            if (hasMore2) {
+                let q2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", startDate), where("ngay_lam_db", "<=", endDate), orderBy("ngay_lam_db", "desc"), limit(LIMIT_PER_PAGE));
+                if (isLoadMore && lastDoc2) q2 = query(q2, startAfter(lastDoc2));
+                promises.push(getDocs(q2).then(s => { snap2 = s; }));
             }
             
-            // Dùng onSnapshot để tự động cập nhật
-            let snap1Data = [];
-            let snap2Data = [];
-            
-            const unsubscribe1 = onSnapshot(q1Listener, (snapshot) => {
-                snap1Data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateCombinedData();
-            });
-            
-            const unsubscribe2 = onSnapshot(q2Listener, (snapshot) => {
-                snap2Data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateCombinedData();
-            });
-            
-            // Cleanup function
-            realtimeListener = () => {
-                unsubscribe1();
-                unsubscribe2();
-            };
-            
-            function updateCombinedData() {
+            await Promise.all(promises);
+
+            let newReports = [];
+
+            if (snap1) {
+                if (snap1.empty) {
+                    hasMore1 = false;
+                } else {
+                    lastDoc1 = snap1.docs[snap1.docs.length - 1];
+                    newReports.push(...snap1.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    if (snap1.docs.length < LIMIT_PER_PAGE) hasMore1 = false;
+                }
+            }
+
+            if (snap2) {
+                if (snap2.empty) {
+                    hasMore2 = false;
+                } else {
+                    lastDoc2 = snap2.docs[snap2.docs.length - 1];
+                    newReports.push(...snap2.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    if (snap2.docs.length < LIMIT_PER_PAGE) hasMore2 = false;
+                }
+            }
+
+            if (isLoadMore) {
                 const combinedMap = new Map();
-                snap1Data.forEach(item => combinedMap.set(item.id, item));
-                snap2Data.forEach(item => combinedMap.set(item.id, item));
+                allSearchData.forEach(item => combinedMap.set(item.id, item));
+                newReports.forEach(item => combinedMap.set(item.id, item));
                 allSearchData = Array.from(combinedMap.values());
-                filterAndRenderData(allSearchData, searchInput.value, "all");
+            } else {
+                const combinedMap = new Map();
+                newReports.forEach(item => combinedMap.set(item.id, item));
+                allSearchData = Array.from(combinedMap.values());
+            }
+
+            if (loadMoreBtn) {
+                loadMoreBtn.style.background = "#273668"; 
+                if (!hasMore1 && !hasMore2) {
+                    loadMoreBtn.style.display = 'none';
+                } else {
+                    loadMoreBtn.style.display = 'inline-block';
+                    loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
+                }
             }
             
+            filterAndRenderData(allSearchData, searchInput.value);
         } catch (err) {
              console.error("Lỗi khi tải reports_2:", err);
              showSwal("error", "Lỗi tải dữ liệu", err.message);
-             allSearchData = [];
+             if (!isLoadMore) allSearchData = [];
         } finally {
-             hideLoading();
+             if (!isLoadMore) hideLoading();
+             isFetching = false; 
         }
-        
-        // 5. KHÔNG render ở đây nữa vì onSnapshot sẽ trigger
-        // filterAndRenderData(allSearchData, searchInput.value, "all");
     }
     
     // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC ===
@@ -793,22 +816,22 @@
     if(applyFilterBtn) {
         applyFilterBtn.addEventListener("click", async (e) => {
             e.preventDefault();
-            await fetchAndRenderData(); // Tải data
-            hideLoading(); // Tắt loading SAU KHI data tải xong
+            await fetchAndRenderData(false);
+            hideLoading();
         });
     }
 
     if(yearSelect) {
         yearSelect.addEventListener("change", async (e) => {
-            await fetchAndRenderData(); // Tải data
-            hideLoading(); // Tắt loading SAU KHI data tải xong
+            await fetchAndRenderData(false);
+            hideLoading(); 
         });
     }
 
     if (specialWorkdayFilterInput) {
         specialWorkdayFilterInput.addEventListener("change", () => {
             // Chỉ render lại, không tải lại
-            filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+            filterAndRenderData(allSearchData, searchInput.value);
         });
     }
 
@@ -870,11 +893,6 @@
                     initialLoad = false;
                 }
 
-                // Tự động chọn 10 dòng trên mobile
-                if (window.innerWidth <= 768 && displayCountSelect) {
-                    displayCountSelect.value = "10";
-                }
-
                 // 4. Tải dữ liệu chính (Lần đầu)
                 // (Hàm này sẽ bật loading, nhưng không tắt nó)
                 await fetchAndRenderData(); 
@@ -894,12 +912,41 @@
             
             // 7. Gắn listener
             searchInput.addEventListener("input", () => {
-                filterAndRenderData(allSearchData, searchInput.value, displayCountSelect.value);
+                filterAndRenderData(allSearchData, searchInput.value);
             });
-            displayCountSelect.addEventListener("change", () => {
-                // ⭐️ KHI THAY ĐỔI LIMIT → TẢI LẠI DATA TỪ FIREBASE
-                fetchAndRenderData();
-            });
+            
+            // MỚI: Xử lý click nút tải thêm (phòng khi Intersection Observer không nhạy)
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', () => {
+                    autoLoadCount = 0; // Reset lại bộ đếm, cấp "quota" cho 5 lần cuộn tự động tiếp theo
+                    loadMoreBtn.style.background = "#273668";
+                    fetchAndRenderData(true);
+                });
+            }
+
+            // MỚI: Intersection Observer cho Infinite Scroll (Cuộn tới đâu tải tới đó)
+            if (loadMoreBtn) {
+                const handleIntersection = (entries) => {
+                    // Nếu nút xuất hiện trên màn hình và không phải đang tải dở
+                    if (entries[0].isIntersecting && !isFetching && loadMoreBtn.style.display !== 'none') {
+                        if (autoLoadCount < MAX_AUTO_LOADS) {
+                            autoLoadCount++;
+                            fetchAndRenderData(true); // Gửi cờ 'true' để nối thêm data
+                        } else {
+                            loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
+                            loadMoreBtn.style.background = "#d35400"; // Đổi sang màu cam cảnh báo
+                        }
+                    }
+                };
+                
+                // Theo dõi cuộn trong vùng chứa bảng (Desktop)
+                const observer = new IntersectionObserver(handleIntersection, { root: document.querySelector('.table-container'), rootMargin: "100px", threshold: 0.1 });
+                observer.observe(loadMoreBtn);
+                
+                // Theo dõi cuộn toàn trang (Mobile)
+                const windowObserver = new IntersectionObserver(handleIntersection, { root: null, rootMargin: "100px", threshold: 0.1 });
+                windowObserver.observe(loadMoreBtn);
+            }
 
         } else {
             notLogged.style.display = "block";
