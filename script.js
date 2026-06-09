@@ -969,7 +969,7 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
         // 🚀 Thông báo nộp Form 2 (Ngày nghỉ/Làm việc đặc biệt)
         notifyAdmins(
             "📅 Thông báo nghỉ/làm đặc biệt",
-            `Thông báo ${submissionTypeDisplay.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
+            `Thông báo ${submissionType.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
         );
 
     } else if (skipped > 0) {
