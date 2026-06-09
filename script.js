@@ -245,10 +245,39 @@ export function logout() {
 }
 
 // ====== TỰ ĐỘNG ĐĂNG XUẤT NẾU KHÔNG HOẠT ĐỘNG ======
+let isAutoLogoutInitialized = false;
+
 export function initAutoLogout(timeoutInDays = 7) {
+  if (isAutoLogoutInitialized) return; // Tránh chạy nhiều lần nếu onAuth kích hoạt lại
+  isAutoLogoutInitialized = true;
+
   const INACTIVITY_LIMIT_MS = timeoutInDays * 24 * 60 * 60 * 1000; // Đổi ngày ra mili-giây
   let isThrottled = false;
   let checkInterval;
+
+  // 1. KIỂM TRA NGAY LẬP TỨC KHI VỪA TẢI TRANG
+  // (Trường hợp người dùng đóng tab và quay lại sau nhiều ngày)
+  const lastActivityStr = localStorage.getItem('lastActivityTime');
+  if (lastActivityStr) {
+    const lastActivity = parseInt(lastActivityStr, 10);
+    if (Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
+      console.log("Đã quá thời gian không hoạt động từ lần truy cập trước. Đang tự động đăng xuất...");
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        addLog("auto_logout_inactivity", { 
+          email: currentUser.email, 
+          status: "success", 
+          reason: `Inactive for ${timeoutInDays} days`,
+          details: `Hệ thống tự động đăng xuất do tài khoản quá ${timeoutInDays} ngày không thao tác (kiểm tra lúc mở lại web).`,
+          userAgent: navigator.userAgent
+        }).then(() => {
+          localStorage.removeItem('lastActivityTime');
+          signOut(auth);
+        });
+      }
+      return; // Dừng khởi tạo nếu đã quá hạn
+    }
+  }
 
   // Hàm cập nhật thời gian thao tác cuối cùng vào localStorage
   function updateLastActivity() {
@@ -264,12 +293,12 @@ export function initAutoLogout(timeoutInDays = 7) {
   window.addEventListener('click', updateLastActivity);
   window.addEventListener('scroll', updateLastActivity);
 
-  // Khởi tạo mốc thời gian lần đầu nếu chưa có
+  // 2. Khởi tạo mốc thời gian lần đầu nếu chưa có
   if (!localStorage.getItem('lastActivityTime')) {
     localStorage.setItem('lastActivityTime', Date.now().toString());
   }
 
-  // Hàm kiểm tra định kỳ (mỗi phút 1 lần)
+  // 3. Hàm kiểm tra định kỳ (mỗi phút 1 lần) - cho trường hợp treo tab mở liên tục
   checkInterval = setInterval(async () => {
     const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || "0", 10);
     const currentUser = auth.currentUser;
