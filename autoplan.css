@@ -355,19 +355,19 @@
   .personal-schedule-content {
     width: 95% !important;
     max-width: 100% !important;
-    margin: 20px auto !important;
-    padding: 20px 15px !important;
-    max-height: calc(100vh - 40px) !important;
+    margin: 80px auto 20px auto !important; /* Tăng khoảng cách phía trên lên 60px để dịch modal xuống */
+    padding: 15px 12px !important;
+    max-height: calc(100vh - 100px) !important; /* Trừ đi phần margin mới để modal không bị tràn đáy màn hình */
     border-radius: 12px !important;
     box-sizing: border-box !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
   .personal-schedule-content h2 {
-    font-size: 1.3rem !important;
-    margin-bottom: 15px !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 10px !important;
     margin-top: 0 !important;
-    padding-right: 35px !important;
+    padding-right: 30px !important;
     word-wrap: break-word !important;
     line-height: 1.3 !important;
   }
@@ -438,14 +438,14 @@
   .action-buttons {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
-    margin-top: 25px !important;
+    gap: 8px !important;
+    margin-top: 15px !important;
   }
   .action-buttons > div { display: none !important; }
   .action-buttons button {
     width: 100% !important;
-    padding: 12px !important;
-    font-size: 15px !important;
+    padding: 10px !important;
+    font-size: 14px !important;
     margin: 0 !important;
     border-radius: 8px !important;
   }
@@ -463,7 +463,7 @@
       border: 1px solid #e74c3c !important; 
   }
   #personalScheduleDetails {
-    font-size: 13px !important;
+    font-size: 12px !important;
     margin-top: 8px !important;
     overflow-x: hidden !important;
     width: 100% !important;
@@ -471,13 +471,13 @@
     padding: 0 !important;
   }
   #personalScheduleDetails table {
-    font-size: 13px !important;
+    font-size: 12px !important;
     width: 100% !important;
     table-layout: fixed !important;
     word-break: break-word !important;
   }
   #personalScheduleDetails th, #personalScheduleDetails td {
-    padding: 6px 4px !important;
+    padding: 4px 4px !important;
     white-space: normal !important;
   }
   #personalScheduleDetails table th:first-child:not([style*="width"]) {
@@ -489,9 +489,9 @@
   }
   #closeModalBottom {
     width: 100% !important;
-    padding: 10px !important;
-    font-size: 14px !important;
-    margin-top: 10px !important;
+    padding: 8px !important;
+    font-size: 13px !important;
+    margin-top: 8px !important;
     box-sizing: border-box !important;
     border-radius: 4px !important;
   }
@@ -721,6 +721,9 @@
     table-layout: auto !important;
     width: 100% !important;
     min-width: unset !important;
+    border: none !important; /* Xóa đường viền của khung lớn bao ngoài */
+    border-radius: 0 !important; /* Bỏ bo góc của khung ngoài */
+    background: transparent !important; /* Bỏ màu nền trắng của khung ngoài */
   }
   #scheduleTable th, #scheduleTable td {
     width: auto !important;
