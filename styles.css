@@ -53,17 +53,20 @@ nav.navbar {
 
 .nav-left a,
 .dropbtn {
-  color: #fff;
+  color: #f1f5f9;
   text-decoration: none;
-  font-weight: bold;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  font-weight: 500; /* Dùng phông chữ vừa phải, không quá đậm để thanh thoát hơn */
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  letter-spacing: 0.01em;
 }
 
 .nav-left a:hover,
 .dropbtn:hover {
-  background: #1a254a;
+  background: rgba(255, 255, 255, 0.1); /* Lớp nền sáng nhẹ mờ ảo */
+  color: #ffffff;
+  transform: translateY(-1px); /* Nổi nhẹ lên khi rê chuột */
 }
 
 /* Logo */
@@ -90,27 +93,34 @@ nav.navbar {
   /* display: none; <-- Xóa hoặc vô hiệu hóa dòng này */
   visibility: hidden; /* Ẩn hoàn toàn, không thể tương tác */
   opacity: 0; /* Trong suốt */
-  transform: translateY(-10px); /* Dịch chuyển nhẹ lên trên */
-  transition: all 0.4s ease-in-out; /* Tạo hiệu ứng cho tất cả thuộc tính trong 0.4 giây */
+  transform: translateY(10px); /* Trượt từ trên xuống thay vì dưới lên */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Hiệu ứng mượt hơn */
 
   position: absolute;
-  background-color: #273668;
-  min-width: 180px;
-  border-radius: 6px;
-  box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+  top: 100%;
+  margin-top: 5px;
+  background-color: #1e293b;
+  min-width: 200px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 100;
+  padding: 8px 0;
 }
 
 .dropdown-content a {
-  color: #fff;
-  padding: 10px 14px;
+  color: #cbd5e1;
+  padding: 10px 16px;
   text-decoration: none;
   display: block;
-  font-weight: normal;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
 .dropdown-content a:hover {
-  background-color: #1a254a;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  padding-left: 22px; /* Chữ thụt lùi nhẹ vào trong tạo cảm giác tương tác cực tốt */
 }
 
 .dropdown:hover .dropdown-content {
@@ -129,8 +139,13 @@ nav.navbar {
 }
 
 #userEmail {
-  color: #fff;
+  color: #e2e8f0;
   font-size: 13px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.2); /* Tạo mảng màu tối mờ bọc lấy email */
+  padding: 6px 12px;
+  border-radius: 20px; /* Bo góc tròn dạng huy hiệu (badge/pill) */
+  border: 1px solid rgba(255, 255, 255, 0.05);
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -691,11 +706,12 @@ tr:last-child td {
 
   /* --- Cấu hình cho menu chính (hamburger) --- */
   .nav-links {
-    display: none;
+    display: flex; /* Đổi thành flex thay vì none để CSS Transition hoạt động được */
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s ease-in-out;
+    transform: translateY(-15px) scale(0.98); /* Bắt đầu từ vị trí cao hơn và nhỏ hơn một chút */
+    transition: all 0.5s cubic-bezier(0.215, 0.61, 0.355, 1); /* Hiệu ứng trượt mượt mà */
+    pointer-events: none; /* Ngăn chặn click nhầm khi menu đang ẩn */
 
     flex-direction: column;
     width: calc(100% + 30px);
@@ -713,10 +729,10 @@ tr:last-child td {
 
   /* Trạng thái khi menu chính được mở */
   .nav-links.active {
-    display: flex;
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translateY(0) scale(1); /* Trở về vị trí và kích thước ban đầu */
+    pointer-events: auto; /* Kích hoạt lại khả năng click */
   }
   
   .nav-links a,
@@ -790,6 +806,7 @@ tr:last-child td {
       position: static;
       box-shadow: none;
       background-color: #1a254a;
+      border: none; /* Bỏ viền của dropdown menu khi xem trên mobile */
 
       /* Thu gọn hoàn toàn và ẩn nội dung */
       max-height: 0;
