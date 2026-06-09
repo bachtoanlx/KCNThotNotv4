@@ -480,6 +480,13 @@
     padding: 6px 4px !important;
     white-space: normal !important;
   }
+  #personalScheduleDetails table th:first-child:not([style*="width"]) {
+    width: 55% !important;
+  }
+  /* Ép cột thứ 2 (Hạn/Trạng thái) bỏ width 270px cố định trên mobile */
+  #personalScheduleDetails table th:first-child:not([style*="width"]) + th {
+    width: 45% !important;
+  }
   #closeModalBottom {
     width: 100% !important;
     padding: 10px !important;
