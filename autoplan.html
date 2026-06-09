@@ -2737,8 +2737,9 @@ function renderPatternList(patternsToRender) {
 
             if (d.type === 'administrative') {
                 const mapDay = {2:"T2",3:"T3",4:"T4",5:"T5",6:"T6",7:"T7",8:"CN"};
-                detail = (d.workDaysOfWeek || []).map(x => mapDay[x]).join(", ");
-                const daysStr = (d.workDaysOfWeek || []).map(x => mapDay[x]).join(", ");
+            // SỬA LỖI: Đảm bảo workDaysOfWeek là một mảng trước khi gọi .map()
+            const workDays = Array.isArray(d.workDaysOfWeek) ? d.workDaysOfWeek : [];
+            const daysStr = workDays.map(x => mapDay[x]).join(", ");
                 const groupNameDisplay = d.shiftGroup ? `[${d.shiftGroup}]` : `[Hành chính]`;
                 detail = `${groupNameDisplay} ${daysStr}`;
                 endTime = d.endTime || "-"; // Hiển thị giờ KT
