@@ -164,12 +164,16 @@
 @media (max-width: 768px) {
   h2 {
     font-size: 1.1rem;
-    margin-bottom: 8px;
+    margin-top: 0px;
+    margin-top: 0px !important;
+    margin-bottom: 8px !important;
     padding: 0 5px;
+    line-height: 1.2;
   }
   
   .card-body {
-    padding: 8px;
+    padding: 4px;
+    padding: 0px 4px 4px 4px !important;
   }
   
   /* Filter box mobile - Chia thành 2 dòng (Dòng 1: Ngày + Áp dụng, Dòng 2: PDF + Cấu hình) */
@@ -179,8 +183,9 @@
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 8px !important; 
-    margin-bottom: 8px !important;
+    gap: 4px 6px !important; /* Giảm gap để thu hẹp khoảng cách các nút */
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
@@ -602,7 +607,7 @@
           <option value="">--Chọn năm--</option>
         </select>
       </label>
-      <label class="mobile-hide-label">Nhóm công ty: 
+      <label class="mobile-hide-label">Nhóm Công ty: 
         <select id="companyGroupFilter">
             <option value="group1">Nhóm 1 (Đồng hồ)</option>
             <option value="group2">Nhóm 2 (Hóa đơn)</option>
@@ -612,7 +617,7 @@
       </label>
       
       <button id="applyFilter">Áp dụng</button>
-      <button type="button" id="exportPDF">Xuất báo cáo (PDF)</button>
+      <button type="button" id="exportPDF">Xuất BC - PDF</button>
       <button type="button" id="openConfigModal" class="admin-only" style="display:none;">⚙️ Cấu hình</button>
     </div>
     
