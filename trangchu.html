@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <!-- Thêm thư viện Fuse.js để tìm kiếm mờ -->
     <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
-</head>
+
     <style>
         body {
             margin: 0;
@@ -36,18 +36,33 @@
         }
 
         /* Container chứa tất cả nội dung trang */
-            #content-container {
-                position: relative;
-                z-index: 1; 
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-
-                /* Thay đổi dòng min-height thành flex: 1 */
-                flex: 1; /* <-- Quan trọng: Dòng này sẽ làm nó chiếm hết không gian thừa */
+        html body div#content-container {
+            position: relative;
+            z-index: 1; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            html, body {
+                height: 100vh !important;
+                height: 100dvh !important;
+                overflow: hidden !important; /* Khóa cuộn trang hoàn toàn trên mobile cho trang này */
             }
+            html body div#content-container {
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 1 !important; /* Tự động co giãn lấp đầy khoảng trống giữa Menu và Footer */
+                min-height: 0 !important; /* Bỏ min-height gây tràn */
+                margin-top: 0 !important; /* Bỏ margin gây tràn */
+                justify-content: center !important;
+                align-items: center !important;
+            }
+        }
         .welcome-text {
             color: #1f5a92;
             text-shadow: 2px 2px 4px rgba(235, 241, 243, 0.9);
@@ -314,6 +329,88 @@
                 font-size: 11px;
             }
         }
+
+        /* DIGITAL CLOCK STYLES (NO BACKGROUND) */
+        .digital-clock {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; 
+            gap: 12px;
+            margin: 10px auto 25px auto;
+            color: #ffffff; /* Trắng để nổi bật */
+            font-family: 'Impact', 'Arial Narrow', sans-serif;
+            font-weight: normal;
+            width: fit-content;
+            letter-spacing: 2px;
+            position: relative;
+            text-shadow: 2px 4px 6px rgba(0,0,0,0.8), 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .digital-clock .time-part {
+            display: flex;
+            gap: 4px;
+            font-size: 5rem; 
+            line-height: 1;
+        }
+        
+        .digital-clock .time-part.seconds-part {
+            font-size: 2.2rem; 
+            margin-bottom: 7px; 
+            color: #e6e6e6; 
+        }
+
+        .digital-clock .digit {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 0.8em;
+            position: relative;
+            perspective: 800px;
+        }
+
+        /* Hiệu ứng mượt hơn khi không có nền cứng */
+        @keyframes fadeFlip {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .digit.update {
+            animation: fadeFlip 0.25s ease-in-out;
+        }
+
+        .digital-clock .colon {
+            font-size: 4rem;
+            animation: retroBlink 1s steps(2, start) infinite;
+            position: relative;
+            top: -10px;
+            margin: 0 -2px;
+        }
+
+        @keyframes retroBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Đảm bảo hiển thị tốt trên Mobile */
+        @media (max-width: 768px) {
+            .digital-clock {
+                margin: 10px auto;
+                gap: 6px;
+                text-shadow: 1px 2px 4px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.5);
+            }
+            .digital-clock .time-part {
+                font-size: 3.5rem; /* Cân chỉnh cho mobile */
+            }
+            .digital-clock .time-part.seconds-part {
+                font-size: 1.6rem;
+                margin-bottom: 5px;
+            }
+            .digital-clock .colon {
+                font-size: 3rem;
+                top: -6px;
+            }
+        }
     </style>
 
 <body>
@@ -325,6 +422,21 @@
 
     <div id="content-container">
         <h1 class="welcome-text">CHÀO MỪNG BẠN ĐẾN VỚI<br>KHU CÔNG NGHIỆP THỐT NỐT</h1>
+
+        <!-- ĐỒNG HỒ KỸ THUẬT SỐ -->
+        <div class="digital-clock" id="digitalClock">
+            <div class="time-part">
+                <span class="digit" id="hour1">0</span><span class="digit" id="hour2">0</span>
+            </div>
+            <span class="colon">:</span>
+            <div class="time-part">
+                <span class="digit" id="min1">0</span><span class="digit" id="min2">0</span>
+            </div>
+            <div class="time-part seconds-part">
+                <span class="digit" id="sec1">0</span><span class="digit" id="sec2">0</span>
+            </div>
+        </div>
+
         <!-- Inline login box (ẩn mặc định, sẽ tự hiện nếu chưa đăng nhập) -->
         <div class="home-login-box" aria-label="Đăng nhập nhanh" style="display: none;">
             <h3 style="margin:0 0 8px 0; color:#0b3b6f;">Đăng nhập</h3>
@@ -339,7 +451,7 @@
 
     <div id="footer-placeholder"></div>
     <div class="home-footer-bar" role="contentinfo">
-      <div class="marquee-wrap"><div class="marquee" id="homeMarquee">CHÀO MỪNG BẠN ĐẾN VỚI TRUNG TÂM XÂY DỰNG HẠ TẦNG KHU CÔNG NGHIỆP THỐT NỐT,  KV THỚI HÒA 1, P. THỐT NỐT, TP CẦN THƠ</div></div>
+      <div class="marquee-wrap"><div class="marquee" id="homeMarquee">CHÀO MỪNG BẠN ĐẾN VỚI TRUNG TÂM XÂY DỰNG HẠ TẦNG KHU CÔNG NGHIỆP THỐT NỐT,  KV THỚI THẠNH 1, P. THỐT NỐT, TP CẦN THƠ</div></div>
       <div class="home-footer-date" id="homeFooterDate"></div>
     </div>
 
@@ -897,6 +1009,47 @@
                     aiStatusEl.style.color = '#00ff00';
                 }
             }
+        })();
+    </script>
+    <script>
+        // Digital Clock Logic
+        (function() {
+            const h1 = document.getElementById('hour1');
+            const h2 = document.getElementById('hour2');
+            const m1 = document.getElementById('min1');
+            const m2 = document.getElementById('min2');
+            const s1 = document.getElementById('sec1');
+            const s2 = document.getElementById('sec2');
+
+            // Prevent script from crashing if elements are missing
+            if (!h1 || !h2 || !m1 || !m2 || !s1 || !s2) return;
+
+            function updateDigit(element, newValue) {
+                if (element.textContent !== newValue) {
+                    element.classList.remove('update');
+                    // force reflow
+                    void element.offsetWidth;
+                    element.textContent = newValue;
+                    element.classList.add('update');
+                }
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+
+                updateDigit(h1, h[0]);
+                updateDigit(h2, h[1]);
+                updateDigit(m1, m[0]);
+                updateDigit(m2, m[1]);
+                updateDigit(s1, s[0]);
+                updateDigit(s2, s[1]);
+            }
+
+            setInterval(updateClock, 1000);
+            updateClock();
         })();
     </script>
 </body>
