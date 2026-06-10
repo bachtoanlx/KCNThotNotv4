@@ -24,12 +24,12 @@
 .rule-box {
   margin-top: 20px;
   border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 8px;
-  background: #f7f7f7;
+  border-top: none; /* Khớp với viền dưới của admin-tabs */
+  padding: 0; /* Hợp nhất bảng vào khung ngoài */
+  border-radius: 0 0 8px 8px;
+  background: #fff; /* Nền trắng */
   display: block;
   flex-direction: column;
-  gap: 10px;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden; /* Chặn tuyệt đối bảng con tràn ngang làm vỡ layout */
@@ -531,7 +531,7 @@
     box-shadow: 0 2px 5px rgba(39, 54, 104, 0.2);
   }
   .rule-box {
-    padding: 10px 0px !important;
+    padding: 0 !important;
     margin-top: 10px !important;
     border-radius: 0 !important;
     border-left: none !important;
@@ -600,13 +600,13 @@
 
 .collapsible-content {
     display: block;
-    max-height: 350px;
+    max-height: 450px;
     min-height: 250px;
     overflow-y: auto;
     overflow-x: auto;
-    margin-top: 10px;
-    background: #fff;
-    border: 1px solid #ccc;
+    margin-top: 0;
+    background: transparent;
+    border: none;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -717,6 +717,81 @@
 
 /* === GIAO DIỆN DẠNG THẺ CHO MÀN HÌNH NHỎ === */
 @media (max-width: 768px) {
+  /* 
+   * KHẮC PHỤC LỖI NEO (STICKY) TRIỆT ĐỂ
+   * Nguyên nhân: Lỗi Javascript trong file .html có thể đã ngăn cản việc áp dụng các class CSS đặc biệt.
+   * Giải pháp: Gỡ bỏ TẤT CẢ các thuộc tính `overflow` có thể gây xung đột trên các thẻ cha,
+   * mà không cần phụ thuộc vào class `.autoplan-page` nữa.
+  */
+  .autoplan-page #content-container, 
+  .autoplan-page .card, 
+  .autoplan-page .card-body, 
+  .autoplan-page .table-responsive-wrapper {
+    overflow: visible !important;
+  }
+
+  /* Khắc phục khe hở: Xóa padding-top của card-body để thanh tìm kiếm nằm sát lên trên */
+  .autoplan-page .card-body {
+    padding-top: 0 !important;
+  }
+
+  /* 1. Cố định KHỐI bọc Tiêu đề "Lịch làm việc" và các nút trên cùng */
+  #pageContent > div:first-child {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 62 !important;
+    background-color: #f8fafc !important; /* Phông nền che nội dung cuộn */
+    padding: 8px 5px 4px 5px !important;
+    margin-bottom: 0 !important; /* Ghi đè inline style margin-bottom: 5px của thẻ div */
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #pageContent > div:first-child h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 2. Cố định thanh tìm kiếm nối tiếp ngay bên dưới */
+  .search-container {
+    position: -webkit-sticky !important; /* Bắt buộc cho Safari (iPhone/iPad) */
+    position: sticky !important;
+    top: 36px !important; /* Chiều cao khớp với khối tiêu đề phía trên */
+    z-index: 61 !important;
+    background-color: #f8fafc !important;
+    margin-left: -8px !important; /* Ép mở rộng kịch khung 2 bên mép */
+    margin-right: -8px !important;
+    margin-top: 0 !important;
+    padding: 4px 8px 3px 8px !important; /* Tăng padding-bottom để tạo khoảng hở với nội dung cuộn */
+    margin-bottom: 5px !important;
+    /* Dùng box-shadow hắt lên trên để lấp kín khe hở với tiêu đề, và bóng đổ mờ xuống dưới */
+    box-shadow: 0 -20px 0 0 #f8fafc, 0 8px 12px -4px rgba(0,0,0,0.1) !important;
+  }
+
+  /* Khóa cuộn toàn bộ trang trên mobile để giữ cố định Navbar (menu) và Footer */
+  body.autoplan-page {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Bật thanh cuộn độc lập cho phần nội dung (chứa các thẻ ngày làm việc) */
+  body.autoplan-page #pageContent {
+    overflow-y: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Cố định Menu và Footer (đảm bảo không bị cuộn) */
+  body.autoplan-page #menu-placeholder,
+  body.autoplan-page #footer-placeholder {
+    flex: 0 0 auto !important;
+    z-index: 100 !important;
+  }
   #scheduleTable {
     table-layout: auto !important;
     width: 100% !important;
@@ -861,10 +936,10 @@
 .admin-tab-btn:hover { background: #dde2e6; }
 
 .admin-tab-btn.active {
-    background: #f7f7f7;
+    background: #fff;
     color: #273668;
     border: 2px solid #273668;
-    border-bottom: 2px solid #f7f7f7;
+    border-bottom: 2px solid #fff;
     margin-bottom: -2px;
     z-index: 1;
     position: relative;
@@ -1025,10 +1100,56 @@
     animation: blinkTaskRow 1s ease-in-out 3;
 }
 
+/* === CỐ ĐỊNH FOOTER LUÔN NẰM DƯỚI CÙNG TRÊN MỌI THIẾT BỊ === */
+.autoplan-page #footer-placeholder {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 1000 !important;
+}
+
+body.autoplan-page {
+    padding-bottom: 60px !important; /* Đẩy nội dung lên để không bị footer che khuất khi cuộn đến cuối */
+}
+
 /* Chỉ fix lỗi SweetAlert2 trên desktop, tránh làm cắt trang và nảy scroll trên mobile */
 @media (min-width: 769px) {
-    html.swal2-height-auto,
-    body.autoplan-page.swal2-height-auto {
-        height: 100vh !important;
+    /* 1. Mở khóa cuộn để toàn bộ trang có thể cuộn tự nhiên (trả về như lúc đầu) */
+    .autoplan-page .card,
+    .autoplan-page .card-body,
+    .autoplan-page .table-responsive-wrapper {
+        overflow: visible !important; 
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    /* 2. Neo Tiêu đề trang (Tuyệt đối không can thiệp padding/margin/kích thước) */
+    .autoplan-page #pageContent > div:first-child {
+        position: sticky !important;
+        top: 0 !important; /* Dính sát trần */
+        z-index: 62 !important;
+        background-color: #f8fafc !important; /* Chỉ phủ nền để che nội dung trượt bên dưới */
+    }
+
+    /* 3. Neo Thanh tìm kiếm */
+    .autoplan-page .search-container {
+        position: sticky !important;
+        top: 46px !important; /* Bằng chính xác chiều cao Tiêu đề để dính đồng thời */
+        z-index: 61 !important;
+        background-color: #f8fafc !important; /* Phủ nền để không lộ nội dung cuộn bên dưới */
+        padding-bottom: 3px !important; /* Tạo khoảng hở thở cho nội dung cuộn */
+        /* Dùng box-shadow hắt lên trên để lấp kín khe hở với tiêu đề, và bóng đổ mờ xuống dưới */
+        box-shadow: 0 -20px 0 0 #f8fafc, 0 8px 12px -4px rgba(0,0,0,0.1) !important;
+    }
+
+    /* 4. Tiêu đề bảng (thead) chạy cùng nội dung */
+    .autoplan-page #scheduleTable {
+        border-collapse: separate !important; 
+        border-spacing: 0 !important;
+    }
+
+    .autoplan-page #scheduleTable thead th {
+        background-color: #f0f0f0 !important;
     }
 }
