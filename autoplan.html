@@ -191,7 +191,7 @@
 
   <!-- MODAL THÊM QUY TẮC MỚI -->
   <div id="addRuleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
-      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 820px;">
+      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 900px;">
           <span class="close" id="closeAddRuleModal">&times;</span>
           <h2 style="color: #273668; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">➕ Thêm, Sửa quy tắc công việc</h2>
           
@@ -412,7 +412,7 @@
   </div>
 
   <div class="card-body" style="padding-top: 5px;">
-  <div style="margin-bottom: 8px; margin-top: 0;">
+  <div class="search-container" style="margin-bottom: 8px; margin-top: 0;">
       <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box; font-size: 14px;">
   </div>
 
@@ -3009,13 +3009,6 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
     const [year, weekNo] = getWeekNumber(referenceDate);
     document.getElementById('weekNumberDisplay').textContent = `Tuần ${weekNo} / ${year}`;
     
-    // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
-    if (tableWrapper) {
-        tableWrapper.style.minHeight = "";
-    }
-    if (document.getElementById("pageContent")) {
-        document.getElementById("pageContent").scrollTop = pageScrollTop;
-    }
 }
 
     
