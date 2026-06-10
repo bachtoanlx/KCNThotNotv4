@@ -22,6 +22,12 @@
             height: 100vh;
             overflow: hidden;
         }
+        
+        /* Chặn thư viện SweetAlert2 tự động set height: auto làm hỏng layout */
+        html.swal2-height-auto, body.swal2-height-auto {
+            height: 100vh !important;
+            overflow: hidden !important;
+        }
 
         #pageContent {
             flex: 1;
@@ -131,6 +137,75 @@
           width: 100% !important; /* Quan trọng: Ghi đè width: 90px từ styles.css */
           box-sizing: border-box; /* Đảm bảo padding không làm tràn */
       }
+
+      /* --- CƠ CHẾ NEO (STICKY) GIỐNG AUTOPLAN --- */
+      
+      /* Khóa cuộn toàn bộ trang trên mobile để giữ cố định Navbar (menu) */
+      html, body, html.swal2-height-auto, body.swal2-height-auto {
+          height: 100vh !important;
+          height: 100dvh !important;
+          overflow: hidden !important;
+      }
+      
+      /* Bật thanh cuộn độc lập cho phần nội dung */
+      body #pageContent {
+          display: block !important; /* Đảm bảo đóng khung block để hiển thị thanh cuộn */
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* Khắc phục lỗi overflow của các thẻ bọc ngăn cản sticky và cuộn trang */
+      .card-body, .card {
+          display: block !important;
+          overflow: visible !important;
+          padding-top: 0 !important; /* Loại bỏ padding-top mặc định để không bị trượt khoảng hở ban đầu */
+      }
+      
+      /* Đảm bảo bảng có thể cuộn ngang độc lập */
+      .table-container {
+          display: block !important;
+          overflow-x: auto !important;
+          overflow-y: visible !important;
+          -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* 1. Cố định Tiêu đề "Nhật ký hệ thống" trên cùng */
+      #pageContent > h2 {
+          position: -webkit-sticky !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 62 !important;
+          background-color: #f8fafc !important; /* Phông nền che nội dung cuộn */
+          padding: 10px 5px !important; /* Căn giữa nội dung trong khung */
+          margin: 0 !important;
+          width: 100% !important;
+          height: 40px !important; /* Cố định chiều cao tuyệt đối để phần tử dưới neo chuẩn xác */
+          line-height: 20px !important;
+          font-size: 1.1rem !important;
+          box-sizing: border-box !important;
+          -webkit-transform: translate3d(0,0,0); /* Chống rung (Jitter) khi cuộn trên iOS */
+          transform: translate3d(0,0,0);
+      }
+
+      /* 2. Cố định KHỐI bọc Tìm kiếm & Bộ lọc ngay bên dưới */
+      .sticky-search-filter {
+          position: -webkit-sticky !important; /* Bắt buộc cho Safari */
+          position: sticky !important;
+          top: 40px !important; /* Khớp chính xác với chiều cao 40px của thẻ h2 */
+          z-index: 61 !important;
+          background-color: #f8fafc !important;
+          margin-left: -8px !important; /* Ép mở rộng kịch khung 2 bên mép */
+          margin-right: -8px !important;
+          margin-top: 0 !important;
+          padding: 4px 8px 3px 8px !important; 
+          margin-bottom: 5px !important;
+          box-shadow: 0 4px 6px -4px rgba(0,0,0,0.08) !important;
+          -webkit-transform: translate3d(0,0,0); /* Bật tăng tốc phần cứng để chống rung */
+          transform: translate3d(0,0,0);
+      }
     }
     
     /* Animation highlight */
@@ -185,18 +260,21 @@
     <h2>📜 Nhật ký hệ thống</h2>
     <div class="card-body"> 
 
-  <div class="filter-box">
-    <label>Từ ngày: <input type="date" id="startDateInput"></label>
-    <label>Đến ngày: <input type="date" id="endDateInput"></label>
-    <label style="white-space:nowrap;">Hành động:</label>
-    <select id="actionFilter"><option value="">--Tất cả--</option></select>
-    <label style="white-space:nowrap;">Người dùng:</label>
-    <select id="userFilter"><option value="">--Tất cả--</option></select>
-    <button id="toggleFilterBtn" type="button">Áp dụng</button>
-  </div>
-    
-      <div style="margin-bottom: 12px;">
-        <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm nhật ký..." style="width: 100%; padding: 8px;">
+      <!-- KHỐI BỌC STICKY TRÊN MOBILE -->
+      <div class="sticky-search-filter">
+        <div class="filter-box">
+          <label>Từ ngày: <input type="date" id="startDateInput"></label>
+          <label>Đến ngày: <input type="date" id="endDateInput"></label>
+          <label style="white-space:nowrap;">Hành động:</label>
+          <select id="actionFilter"><option value="">--Tất cả--</option></select>
+          <label style="white-space:nowrap;">Người dùng:</label>
+          <select id="userFilter"><option value="">--Tất cả--</option></select>
+          <button id="toggleFilterBtn" type="button">Áp dụng</button>
+        </div>
+          
+        <div style="margin-bottom: 4px;">
+          <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm nhật ký..." style="width: 100%; padding: 8px;">
+        </div>
       </div>
       <div class="table-container">
         <table id="logsTable">
@@ -216,6 +294,8 @@
       </div>
   </div>
 </div>
+
+<div id="footer-placeholder"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module">
