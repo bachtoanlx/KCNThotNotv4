@@ -238,6 +238,7 @@
         padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
         width: calc(100% + 16px) !important;
         box-sizing: border-box !important;
+        box-shadow: 0 -10px 0 0 #f8fafc !important; /* Lấp khoảng hở với h2 */
         -webkit-transform: translate3d(0,0,0);
         transform: translate3d(0,0,0);
       }
@@ -245,14 +246,14 @@
       .search-row {
         position: -webkit-sticky !important;
         position: sticky !important;
-        top: 76px !important; /* 40px (h2) + 36px (filter-box height) */
+        top: 75px !important; /* 40px (h2) + 35px (filter-box height) */
         z-index: 60 !important;
         background-color: #f8fafc !important;
         margin: 0 -8px !important;
         padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
         width: calc(100% + 16px) !important;
         box-sizing: border-box !important;
-        box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1);
+        box-shadow: 0 -10px 0 0 #f8fafc, 0 4px 6px -4px rgba(0,0,0,0.1) !important; /* Lấp khoảng hở với filter-box và đổ bóng dưới */
         -webkit-transform: translate3d(0,0,0);
         transform: translate3d(0,0,0);
       }
