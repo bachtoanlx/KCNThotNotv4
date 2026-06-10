@@ -126,6 +126,64 @@
 
     /* RESPONSIVE MOBILE */
     @media (max-width: 768px) {
+      /* --- SỬA LỖI CUỘN TRANG TRÊN MOBILE (GIỐNG AUTOPLAN) --- */
+      
+      /* Khóa cuộn toàn bộ trang */
+      html, body, html.swal2-height-auto, body.swal2-height-auto {
+        height: 100vh !important;
+        height: 100dvh !important;
+        overflow: hidden !important;
+      }
+      
+      /* Bật cuộn độc lập cho phần nội dung chính */
+      body #pageContent {
+        display: block !important; /* Ghi đè display: flex từ JS để cuộn dọc hoạt động đúng */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 0 8px; /* Đồng bộ padding ngang */
+      }
+      
+      /* Cố định Menu và Footer */
+      #menu-placeholder,
+      #footer-placeholder {
+        flex: 0 0 auto !important;
+        z-index: 100 !important;
+      }
+
+      /* Khắc phục lỗi overflow của các thẻ bọc ngăn cản sticky và cuộn */
+      .card-body, .card {
+          display: block !important;
+          overflow: visible !important;
+          padding-top: 0 !important;
+      }
+
+      .table-container {
+          display: block !important;
+          overflow-x: auto !important;
+          overflow-y: visible !important;
+          -webkit-overflow-scrolling: touch !important;
+          margin-top: 5px; /* Thêm khoảng cách để không bị dính vào search-row */
+      }
+      
+      /* 1. Cố định Tiêu đề "Bảng dữ liệu" */
+      #pageContent > h2 {
+          position: -webkit-sticky !important;
+          position: sticky !important;
+          top: 0 !important;
+          z-index: 62 !important;
+          background-color: #f8fafc !important;
+          padding: 10px 5px 5px 5px !important;
+          margin: 0 -8px !important; /* Bù lại padding của #pageContent */
+          width: calc(100% + 16px) !important;
+          box-sizing: border-box !important;
+          -webkit-transform: translate3d(0,0,0);
+          transform: translate3d(0,0,0);
+      }
+      /* --- KẾT THÚC SỬA LỖI CUỘN --- */
+
       .table-reports-2 {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
@@ -242,6 +300,33 @@
       /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
       .filter-box {
         width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
+        position: -webkit-sticky !important;
+        position: sticky !important;
+        top: 40px !important; /* Giảm khoảng cách với tiêu đề h2 */
+        z-index: 61 !important;
+        background-color: #f8fafc !important;
+        margin: 0 -8px !important;
+        padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
+        width: calc(100% + 16px) !important;
+        box-sizing: border-box !important;
+        box-shadow: 0 -10px 0 0 #f8fafc !important; /* Lấp khoảng hở với h2 */
+        -webkit-transform: translate3d(0,0,0);
+        transform: translate3d(0,0,0);
+      }
+
+      .search-row {
+        position: -webkit-sticky !important;
+        position: sticky !important;
+        top: 75px !important; /* 40px (h2) + 35px (filter-box height) */
+        z-index: 60 !important;
+        background-color: #f8fafc !important;
+        margin: 0 -8px !important;
+        padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
+        width: calc(100% + 16px) !important;
+        box-sizing: border-box !important;
+        box-shadow: 0 -10px 0 0 #f8fafc, 0 4px 6px -4px rgba(0,0,0,0.1) !important; /* Lấp khoảng hở với filter-box và đổ bóng dưới */
+        -webkit-transform: translate3d(0,0,0);
+        transform: translate3d(0,0,0);
       }
       /* Ẩn label của select năm đi */
       .filter-box label:has(#yearSelect) {
@@ -290,7 +375,7 @@
     }
     
     .filter-box {
-        margin: 0 0 5px 0 !important;
+        margin: 0 5 5px 0 !important;
         gap: 5px !important;
     }
     
