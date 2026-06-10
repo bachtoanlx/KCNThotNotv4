@@ -197,17 +197,14 @@
   
   /* Sử dụng ::before làm trick ép xuống dòng */
   .filter-box::before {
-    content: "";
-    display: block;
-    width: 100%;
-    order: 4;
-    height: 0;
-    margin: 0;
+    display: none !important;
   }
   
-  /* Dòng 2: Các nút chức năng chia đều 50/50 */
-  .filter-box > button#exportPDF { order: 5; flex: 1 1 0% !important; width: 100% !important; min-width: 0 !important; max-width: none !important; justify-content: center; }
-  .filter-box > button#openConfigModal { order: 6; flex: 1 1 0% !important; width: 100% !important; min-width: 0 !important; max-width: none !important; justify-content: center; }
+  /* Ẩn các nút chức năng Xuất BC và Cấu hình trên mobile */
+  .filter-box > button#exportPDF,
+  .filter-box > button#openConfigModal {
+    display: none !important;
+  }
 
   /* Ẩn triệt để text và các nhãn rỗng để loại bỏ hoàn toàn các khoảng trắng ảo */
   .mobile-hide-text, .mobile-hide-label {
