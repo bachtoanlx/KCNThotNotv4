@@ -305,55 +305,56 @@
     }
     /* --------------------------------------------- */
 
-    /* --- BẢN SỬA LỖI HIỂN THỊ FOOTER & CUỘN BẢNG --- */
-    html, body {
-        width: 100% !important;
-        height: 100% !important;
-        height: 100dvh !important; /* Dùng dvh để vượt qua thanh công cụ trình duyệt */
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: hidden !important; /* Khóa cuộn trang toàn cục */
-    }
-    
-    body {
-        display: flex !important;
-        flex-direction: column !important;
-        padding: 4px !important; /* Tạo lề ngoài an toàn */
-        box-sizing: border-box !important;
-    }
-    
-    #menu-placeholder, #footer-placeholder {
-        flex: 0 0 auto !important; /* Không giãn, không co, bám chặt kích thước thực */
-        width: 100%;
-        z-index: 100; /* Nâng z-index lên 100 để Menu thả xuống không bị che bởi tiêu đề bảng */
-    }
+    /* --- BẢN SỬA LỖI HIỂN THỊ FOOTER & CUỘN BẢNG (CHỈ ÁP DỤNG DESKTOP) --- */
+    @media (min-width: 769px) {
+        html, body {
+            width: 100% !important;
+            height: 100% !important;
+            height: 100dvh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        
+        body {
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 4px !important;
+            box-sizing: border-box !important;
+        }
+        
+        #menu-placeholder, #footer-placeholder {
+            flex: 0 0 auto !important;
+            width: 100%;
+            z-index: 100;
+        }
 
-    #pageContent {
-        flex: 1 1 auto !important; 
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-        min-height: 0 !important;
-        width: 100%;
-    }
+        #pageContent {
+            flex: 1 1 auto !important; 
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            min-height: 0 !important;
+            width: 100%;
+        }
 
-    .card-body {
-        flex: 1 1 auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        overflow: hidden !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        width: 100%;
-    }
+        .card-body {
+            flex: 1 1 auto !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+        }
 
-    .table-container {
-        flex: 1 1 auto !important; 
-        min-height: 0 !important; 
-        height: 0 !important; /* HACK CSS: Ép vùng chứa bảng vô hiệu hóa kích thước nội dung */
-        overflow-y: auto !important; 
-        -webkit-overflow-scrolling: touch; 
-        width: 100%;
+        .table-container {
+            flex: 1 1 auto !important; 
+            min-height: 0 !important; 
+            overflow: auto !important; 
+            -webkit-overflow-scrolling: touch; 
+            width: 100%;
+        }
     }
   </style>
 </head>
