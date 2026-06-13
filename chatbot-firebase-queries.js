@@ -604,7 +604,7 @@ export async function getAutoplanRules() {
             };
         });
 
-        // Sắp xếp mảng trong Javascript (Mới nhất lên đầu)
+        // Sắp xếp mảng trong Javascript (Mới nhất lên đầu trang)
         return rules.sort((a, b) => {
             const timeA = a.createdAt?.seconds || 0;
             const timeB = b.createdAt?.seconds || 0;

@@ -610,7 +610,6 @@ export function resetConversation() {
         }
     ];
 }
-
 /**
  * Kiểm tra API key có hợp lệ không
  */
