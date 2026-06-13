@@ -136,58 +136,17 @@
         }
         
         .card-body {
-          padding: 10px;
+          padding: 5px 0;
         }
         
-        /* Filter box mobile - 1 hàng ngang cực gọn giống datatable */
-        .filter-box {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 4px;
-          margin-bottom: 8px;
-          flex-wrap: nowrap;
-        }
+        /* Đã xóa các CSS cũ của filter-box vì sẽ dùng chung với styles.css để đồng bộ */
         
-        .filter-box label {
-          font-size: 0;
-          line-height: 0;
-          display: inline-flex;
-          align-items: center;
-          flex-shrink: 1;
-        }
-        
-        body .filter-box input[type="date"] {
-          width: 90px;
-          font-size: 11px;
-          padding: 4px 2px;
-          height: 27px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-        }
-        
-        body .filter-box select {
-          display: none;
-        }
-        
-        body .filter-box button,
-        body .filter-box button#applyFilter {
-          flex: 0;
-          width: 68px;
-          min-width: 68px;
-          max-width: 68px;
-          font-size: 11px;
-          padding: 4px;
-          height: 27px;
-          white-space: nowrap;
-        }
-        
-        /* CSS riêng cho thongke-page - độ ưu tiên cao hơn */
-        body .filter-box.thongke-page button,
-        body .filter-box.thongke-page button#applyFilter {
-          width: 100px;
-          min-width: 100px;
-          max-width: 100px;
+        /* Riêng nút phân tích của admin cho rớt xuống dòng nếu cần */
+        body .filter-box button#openAnalysisModal {
+            flex: 1 1 100% !important;
+            height: 32px !important;
+            font-size: 13px !important;
+            margin-top: 4px !important;
         }
         
         /* Bảng responsive */

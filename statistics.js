@@ -1676,26 +1676,6 @@ if (reportModeToggle) {
         });
     }
     
-    // Di chuyển select Nhóm công ty vào toggle-switch-container trên mobile
-    if (window.innerWidth <= 768) {
-        const companyGroupSelect = document.getElementById('companyGroupFilter');
-        const toggleContainer = document.querySelector('.toggle-switch-container');
-        if (companyGroupSelect && toggleContainer) {
-            // Clone select để giữ event listeners
-            const clonedSelect = companyGroupSelect.cloneNode(true);
-            // Thêm vào đầu toggle-switch-container
-            toggleContainer.insertBefore(clonedSelect, toggleContainer.firstChild);
-            // Ẩn select gốc
-            companyGroupSelect.style.display = 'none';
-            
-            // Đồng bộ giá trị giữa 2 select
-            clonedSelect.addEventListener('change', (e) => {
-                companyGroupSelect.value = e.target.value;
-                companyGroupSelect.dispatchEvent(new Event('change'));
-            });
-        }
-    }
-    
 
 
 // ==== THAY THẾ: handler nút Xuất báo cáo ====

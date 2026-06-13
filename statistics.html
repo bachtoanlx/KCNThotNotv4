@@ -166,71 +166,20 @@
     font-size: 1.1rem;
     margin-top: 0px;
     margin-bottom: 8px;
-    padding: 0 5px;
+    padding: 0;
     line-height: 1.2;
   }
   
-  body .card-body {
-    padding: 0px 4px 4px 4px;
-  }
-  
-  /* Filter box mobile - Chia thành 2 dòng (Dòng 1: Ngày + Áp dụng, Dòng 2: PDF + Cấu hình) */
-  body .filter-box {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px 6px; 
-    margin-top: 2px;
-    margin-bottom: 4px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  /* Gán thứ tự cho các thành phần bằng order (Đổi thành block và width 100% để input lấp đầy) */
-  .filter-box > label:nth-of-type(1) { order: 1; flex: 1 1 0% !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; display: block !important; width: 100% !important; }
-  .filter-box > label:nth-of-type(2) { order: 2; flex: 1 1 0% !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; display: block !important; width: 100% !important; }
-  .filter-box > button#applyFilter { order: 3; flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; max-width: none !important; }
-  
-  /* Sử dụng ::before làm trick ép xuống dòng */
-  .filter-box::before {
-    display: none !important;
-  }
   
   /* Ẩn các nút chức năng Xuất BC và Cấu hình trên mobile */
-  .filter-box > button#exportPDF,
-  .filter-box > button#openConfigModal {
+  body .filter-box > button#exportPDF,
+  body .filter-box > button#openConfigModal {
     display: none !important;
   }
 
   /* Ẩn triệt để text và các nhãn rỗng để loại bỏ hoàn toàn các khoảng trắng ảo */
-  .mobile-hide-text, .mobile-hide-label {
+  body .mobile-hide-text, body .filter-box .mobile-hide-label {
     display: none !important;
-  }
-  
-  /* Tăng độ ưu tiên (thêm 'label') để ép ô input phải ghi đè hoàn toàn lệnh 90px trong styles.css */
-  .filter-box label input[type="date"] {
-    width: 100% !important; /* Ép lấp đầy phần label */
-    max-width: 100% !important;
-    display: block !important;
-    font-size: 11px !important;
-    padding: 4px 2px !important;
-    height: 27px !important;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    margin: 0 !important;
-    box-sizing: border-box !important;
-  }
-  
-  .filter-box button {
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-    height: 27px !important;
-    white-space: nowrap !important;
-    margin-left: 0 !important;
-    display: flex !important;
-    align-items: center !important;
   }
   
   /* Rút gọn text nút Xuất báo cáo trên mobile */
@@ -265,83 +214,48 @@
   
   /* Toggle switch mobile - chuyển thành select */
   body #reportModeToggle {
-    display: none;
+    display: none !important;
   }
   
-  .toggle-switch-container::before {
-    content: 'Chế độ: ';
-    font-size: 11px;
-    color: var(--primary-color);
-    font-weight: 500;
-    margin-right: 5px;
+  .report-header-controls {
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
   }
   
-  .toggle-switch-container::after {
-    content: '';
-    display: block;
-    width: auto;
-  }
-  
-  /* Tạo select thay thế toggle */
   .toggle-switch-container {
-    position: relative;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px 8px !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+  
+  .mobile-mode-label {
+    display: none !important;
   }
   
   #mobileReportModeSelect {
     display: block !important;
-    width: auto !important;
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-    height: 23px !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+    height: 27px !important;
     border: 1px solid #2196F3 !important;
     border-radius: 4px !important;
     background: #e3f2fd !important;
     color: var(--primary-color) !important;
     font-weight: 500 !important;
-    cursor: pointer !important;
-  }
-  
-  /* Report header controls - chuyển note xuống dưới filter box */
-  .report-header-controls {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 5px;
-    margin-top: 5px !important;
-    margin-bottom: 5px !important;
-  }
-  
-  .report-header-controls .note {
-    text-align: left;
     margin: 0 !important;
-    order: 1;
+    box-sizing: border-box !important;
+  }
+
+  .group-label {
+    display: none !important;
   }
   
-  .report-header-controls .toggle-switch-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    order: 2;
-  }
-  
-  /* Nhóm Chế độ (label + select) */
-  .toggle-switch-container::before {
-    content: 'Chế độ: ';
-    font-size: 11px;
-    color: var(--primary-color);
-    font-weight: 500;
-    margin-right: 5px;
-    order: 1;
-  }
-  
-  .toggle-switch-container #mobileReportModeSelect {
-    order: 2;
-  }
-  
-  /* Di chuyển select Nhóm công ty vào toggle-switch-container */
-  .toggle-switch-container select#companyGroupFilter {
-    order: 3;
+  #companyGroupFilter {
     display: block !important;
-    width: auto !important;
+    width: 100% !important;
     font-size: 11px !important;
     padding: 4px 6px !important;
     height: 27px !important;
@@ -351,7 +265,7 @@
     color: var(--primary-color) !important;
     font-weight: 500 !important;
     margin: 0 !important;
-    margin-left: auto !important;
+    box-sizing: border-box !important;
   }
   
   /* Note text */
@@ -572,6 +486,40 @@
         text-align: center;
     }
 
+/* Desktop layout cho controls */
+.report-header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.toggle-switch-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
+.mobile-mode-label {
+    display: none;
+}
+#mobileReportModeSelect {
+    display: none;
+}
+.group-label {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 13px;
+}
+#companyGroupFilter {
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+    outline: none;
+}
+
     /* Responsive cho mobile */
     @media (max-width: 600px) {
         .cs-form-grid {
@@ -594,6 +542,7 @@
 
 
   <div class="card-body">
+  <div class="sticky-filter">
     <div class="filter-box">
       <label><span class="mobile-hide-text">Từ ngày: </span><input type="date" id="fromDate"></label>
       <label><span class="mobile-hide-text">Đến ngày: </span><input type="date" id="toDate"></label>
@@ -602,23 +551,16 @@
           <option value="">--Chọn năm--</option>
         </select>
       </label>
-      <label class="mobile-hide-label">Nhóm Công ty: 
-        <select id="companyGroupFilter">
-            <option value="group1">Nhóm 1 (Đồng hồ)</option>
-            <option value="group2">Nhóm 2 (Hóa đơn)</option>
-            <option value="group3">Nhóm 3 (Khoán)</option>
-            <option value="all">Tất cả 3 nhóm</option>
-        </select>
-      </label>
       
       <button id="applyFilter">Áp dụng</button>
       <button type="button" id="exportPDF">Xuất BC - PDF</button>
       <button type="button" id="openConfigModal" class="admin-only" style="display:none;">⚙️ Cấu hình</button>
     </div>
     
-    <div class="report-header-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px !important; margin-top: 10px !important;">
+    <div class="report-header-controls">
         <div class="toggle-switch-container">
-            <select id="mobileReportModeSelect" style="display: none;">
+            <span class="mobile-mode-label">Chế độ:</span>
+            <select id="mobileReportModeSelect">
                 <option value="0">Chuẩn</option>
                 <option value="1">Ngày nghỉ</option>
                 <option value="2">Chi tiết</option>
@@ -635,9 +577,19 @@
                 <label for="mode-list">Chi tiết</label>
                 <a></a>
             </div>
+            
+            <span class="group-label">Nhóm:</span>
+            <select id="companyGroupFilter">
+                <option value="group1" selected>Nhóm Đồng hồ</option>
+                <option value="group2">Nhóm Hóa đơn</option>
+                <option value="group3">Nhóm Khoán</option>
+                <option value="all">Tất cả 3 nhóm</option>
+            </select>
         </div>
 
     </div>
+    </div> <!-- KẾT THÚC KHỐI BỌC STICKY -->
+
     <div id="pdfReport"> 
     <div class="pdf-only">
       <h2 style="text-align:center">TRUNG TÂM XÂY DỰNG HẠ TẦNG KCN THỐT NỐT</h2>

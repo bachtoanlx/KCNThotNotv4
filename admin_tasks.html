@@ -137,7 +137,7 @@
             flex: 1 1 auto;
             min-height: 0;
             -webkit-overflow-scrolling: touch;
-            padding: 0 8px; 
+            padding: 0; 
         }
         
         body #menu-placeholder,
@@ -165,88 +165,48 @@
             margin-right: 0 !important;
         }
 
-        /* NEO: TIÊU ĐỀ H2 */
-        #pageContent > h2 {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            z-index: 62;
-            background-color: var(--bg-color);
-            padding: 10px 5px 5px 5px;
-            margin: 0 -8px;
-            width: calc(100% + 16px);
-            box-sizing: border-box;
-            -webkit-transform: translate3d(0,0,0);
-            transform: translate3d(0,0,0);
-        }
-
-        /* NEO: BỘ LỌC NGÀY (THỤT XUỐNG DƯỚI H2) */
-        body .filter-box {
+        body #pageContent .filter-box {
             display: grid !important;
             grid-template-columns: 1fr 1fr 0.8fr;
             grid-template-rows: auto auto;
             gap: 6px;
-            width: 100%;
-            position: -webkit-sticky;
-            position: sticky;
-            top: 40px;
-            z-index: 61;
-            background-color: var(--bg-color);
-            margin: 0 -8px;
-            padding: 4px 8px;
-            width: calc(100% + 16px);
-            box-sizing: border-box;
-            box-shadow: 0 -10px 0 0 var(--bg-color);
-            -webkit-transform: translate3d(0,0,0);
-            transform: translate3d(0,0,0);
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 0 4px 0 !important;
+            box-sizing: border-box !important;
+            box-shadow: none !important;
         }
         
         /* ĐỊNH VỊ CÁC PHẦN TỬ TRONG LƯỚI BỘ LỌC */
-        body .filter-box > label:nth-of-type(1) { grid-column: 1 / 2; grid-row: 1; }
-        body .filter-box > label:nth-of-type(2) { grid-column: 2 / 3; grid-row: 1; }
-        body .filter-box > button#applyFilterBtn { grid-column: 3 / 4; grid-row: 1; }
-        body .filter-box > label:nth-of-type(3) { grid-column: 1 / 3; grid-row: 2; }
-        body .filter-box > button#quickAddBtn { grid-column: 3 / 4; grid-row: 2; }
-        
-        /* NEO: HÀNG TÌM KIẾM (THỤT XUỐNG DƯỚI BỘ LỌC) */
-        body .search-row {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 104px; 
-            z-index: 60;
-            background-color: var(--bg-color);
-            margin: 0 -8px;
-            padding: 4px 8px;
-            width: calc(100% + 16px);
-            box-sizing: border-box;
-            box-shadow: 0 -10px 0 0 var(--bg-color), 0 4px 6px -4px rgba(0,0,0,0.1);
-            -webkit-transform: translate3d(0,0,0);
-            transform: translate3d(0,0,0);
-        }
+        body #pageContent .filter-box > label:nth-of-type(1) { grid-column: 1 / 2; grid-row: 1; }
+        body #pageContent .filter-box > label:nth-of-type(2) { grid-column: 2 / 3; grid-row: 1; }
+        body #pageContent .filter-box > button#applyFilterBtn { grid-column: 3 / 4; grid-row: 1; }
+        body #pageContent .filter-box > label:nth-of-type(3) { grid-column: 1 / 3; grid-row: 2; }
+        body #pageContent .filter-box > button#quickAddBtn { grid-column: 3 / 4; grid-row: 2; }
         
         /* TỐI ƯU HIỂN THỊ HÀNG BỘ LỌC */
-        body .filter-box > label,
-        body .filter-box > button {
+        body #pageContent .filter-box > label,
+        body #pageContent .filter-box > button {
             width: 100% !important; 
             margin: 0 !important;
             min-width: 0 !important;
             box-sizing: border-box !important;
         }
-        body .filter-box > label { gap: 0; font-size: 0 !important; }
-        body .filter-box label input[type="date"],
-        body .filter-box label select {
+        body #pageContent .filter-box > label { gap: 0; font-size: 0 !important; }
+        body #pageContent .filter-box label input[type="date"],
+        body #pageContent .filter-box label select {
             width: 100% !important; 
             min-width: 0 !important;
             box-sizing: border-box !important;
         }
-        body .filter-box label select {
+        body #pageContent .filter-box label select {
             display: block !important;
-            height: 25px !important;
+            height: 27px !important;
             font-size: 11px !important;
             padding: 2px 4px !important;
         }
-        body .filter-box > button {
-            height: 25px !important;
+        body #pageContent .filter-box > button {
+            height: 27px !important;
             font-size: 11px !important;
             padding: 2px 6px !important;
             display: inline-flex !important;
@@ -255,7 +215,7 @@
         }
         
         #adminTaskSearchInput {
-            height: 25px !important;
+            height: 27px !important;
             padding: 2px 8px !important;
             font-size: 11px !important;
             box-sizing: border-box;
@@ -411,6 +371,7 @@
   <div id="pageContent" style="display:none;">
       <h2>📝 Bảng điều khiển công việc admin</h2>
       <div class="card-body">
+          <div class="sticky-search-filter">
           <div class="filter-box">
               <label>Từ ngày: <input type="date" id="filterFromDate"></label>
               <label>Đến ngày: <input type="date" id="filterToDate"></label>
@@ -430,6 +391,7 @@
               <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
                   <input type="text" id="adminTaskSearchInput" placeholder="🔍 Tìm kiếm công việc, ghi chú, trạng thái, ngày..." style="width: 100%;">
               </div>
+          </div>
           </div>
 
           <div class="table-responsive-wrapper">

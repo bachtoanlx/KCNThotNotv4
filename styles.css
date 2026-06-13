@@ -1167,12 +1167,68 @@ tr:last-child td {
     flex-wrap: nowrap;
   }
   
-  h2 {
+  h2, body #pageContent > h2 {
     font-size: 1.1rem;
     margin-bottom: 8px;
-    padding: 0 5px;
+    padding: 0;
   }
   
+  /* --- CƠ CHẾ NEO (STICKY) ĐỒNG BỘ TRÊN MOBILE DÀNH CHO TIÊU ĐỀ VÀ BỘ LỌC --- */
+  body #pageContent > h2 {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 62 !important;
+    background-color: var(--bg-color) !important;
+    padding: 6px 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 32px !important;
+    line-height: 20px !important;
+    box-sizing: border-box !important;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+  }
+
+  body .sticky-search-filter,
+  body .sticky-filter {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 32px !important;
+    z-index: 61 !important;
+    background-color: var(--bg-color) !important;
+    margin: 0 0 5px 0 !important;
+    padding: 0 0 6px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 4px 6px -4px rgba(0,0,0,0.1) !important;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+  }
+
+  body .sticky-search-filter .filter-box,
+  body .sticky-filter .filter-box {
+    margin: 0 !important;
+    padding: 0 0 2px 0 !important;
+    margin-bottom: 2px !important;
+    box-shadow: none !important;
+  }
+
+  body .sticky-search-filter .search-row {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Loại bỏ padding và border của form nếu bộ lọc được bọc trong thẻ form */
+  body .sticky-search-filter form,
+  body .sticky-filter form {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
   form {
     padding: 8px;
   }
@@ -1196,7 +1252,7 @@ tr:last-child td {
   
   body #searchInput {
     width: 100%;
-    height: 25px; /* Giảm xuống 25px */
+    height: 27px; /* Chỉnh thành 27px */
     padding: 2px 8px;
     font-size: 11px; /* Giảm font-size cho gọn */
     box-sizing: border-box;
@@ -1209,48 +1265,67 @@ tr:last-child td {
   }
   
   /* Filter box mobile - 1 hàng ngang cực gọn */
-  .filter-box {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 8px;
-    flex-wrap: nowrap;
+  body .filter-box {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+    margin-top: 0 !important;
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   
-  .filter-box label {
-    font-size: 0;
-    line-height: 0;
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 1;
+  body .filter-box label {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
   }
   
-  body .filter-box input[type="date"] {
-    width: 90px;
-    font-size: 11px;
-    padding: 2px 4px;
-    height: 25px; /* Giảm xuống 25px */
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
+  /* Ẩn các nhãn rỗng và ẩn ô Chọn Năm để tối ưu không gian trên điện thoại */
+  body .filter-box label:not(:has(input)):not(:has(select)),
+  body .filter-box label:has(#yearSelect) {
+    display: none !important;
   }
-  
+
+  body .filter-box input[type="date"],
   body .filter-box select {
-    display: none;
+    width: 100% !important;
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+    height: 27px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
   }
   
+  
+  /* Cho phép các thẻ select đứng tự do co giãn lấp đầy */
+  body .filter-box > select {
+    flex: 1 1 0% !important;
+  }
+
   body .filter-box button,
   body .filter-box button#applyFilter {
-    flex: 0;
-    width: auto;
-    min-width: 60px;
-    max-width: none;
-    font-size: 11px;
-    padding: 2px 8px;
-    height: 25px; /* Giảm xuống 25px */
-    white-space: nowrap;
-    box-sizing: border-box;
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+    height: 27px !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   body .search-row {
@@ -1258,7 +1333,7 @@ tr:last-child td {
     margin-bottom: 6px;
   }
   body .special-filter-label {
-    height: 25px; /* Đồng bộ 25px */
+    height: 27px; /* Đồng bộ 27px */
     padding: 0 8px;
     font-size: 11px;
   }
@@ -1396,7 +1471,7 @@ tr:last-child td {
   
   /* Card body */
   .card-body {
-    padding: 8px;
+    padding: 0 0 5px 0;
   }
   
   /* Note text */

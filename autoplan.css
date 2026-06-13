@@ -794,7 +794,7 @@
     top: 0 !important;
     z-index: 62 !important;
     background-color: #f8fafc !important; /* Phông nền che nội dung cuộn */
-    padding: 8px 5px 4px 5px !important;
+    padding: 8px 0 4px 0 !important;
     margin-bottom: 0 !important; /* Ghi đè inline style margin-bottom: 5px của thẻ div */
     width: 100% !important;
     box-sizing: border-box !important;
@@ -812,10 +812,10 @@
     top: 36px !important; /* Chiều cao khớp với khối tiêu đề phía trên */
     z-index: 61 !important;
     background-color: #f8fafc !important;
-    margin-left: -8px !important; /* Ép mở rộng kịch khung 2 bên mép */
-    margin-right: -8px !important;
+    margin-left: 0 !important; 
+    margin-right: 0 !important;
     margin-top: 0 !important;
-    padding: 4px 8px 3px 8px !important; /* Tăng padding-bottom để tạo khoảng hở với nội dung cuộn */
+    padding: 4px 0 3px 0 !important;
     margin-bottom: 5px !important;
     /* Dùng box-shadow hắt lên trên để lấp kín khe hở với tiêu đề, và bóng đổ mờ xuống dưới */
     box-shadow: 0 -20px 0 0 #f8fafc, 0 8px 12px -4px rgba(0,0,0,0.1) !important;

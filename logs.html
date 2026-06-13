@@ -114,30 +114,6 @@
     /* Mobile responsive */
     @media (max-width: 768px) {
 
-      /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
-      .filter-box {
-        width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
-      }
-      /* Ẩn các label đứng đơn lẻ không chứa input (Hành động, Người dùng) */
-      body .filter-box label:not(:has(input)) {
-      display: none;
-      }
-      /* Cho các thành phần còn lại co giãn lấp đầy */
-      body .filter-box > label,
-      body .filter-box > button#toggleFilterBtn {
-          flex: 1; /* Chia đều không gian */
-          min-width: 0; /* Cho phép co lại */
-      margin: 0; /* Xóa lề thừa */
-      }
-      body .filter-box > label {
-      gap: 0; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
-      }
-      /* Ghi đè lại input bên trong để nó chiếm 100% label cha */
-  body .filter-box label input[type="date"] {
-      width: 100% !important; /* Quan trọng: Ghi đè width: 90px từ styles.css */
-          box-sizing: border-box; /* Đảm bảo padding không làm tràn */
-      }
-
       /* --- CƠ CHẾ NEO (STICKY) GIỐNG AUTOPLAN --- */
       
       /* Khóa cuộn toàn bộ trang trên mobile để giữ cố định Navbar (menu) */
@@ -156,7 +132,7 @@
           flex: 1 1 auto;
           min-height: 0;
           -webkit-overflow-scrolling: touch;
-          padding: 0 8px; /* Đồng bộ padding ngang */
+          padding: 0; 
       }
 
       /* Khắc phục lỗi overflow của các thẻ bọc ngăn cản sticky và cuộn trang */
@@ -166,49 +142,54 @@
           padding-top: 0; /* Loại bỏ padding-top mặc định để không bị trượt khoảng hở ban đầu */
       }
       
+      /* --- CẤU TRÚC LƯỚI CHO BỘ LỌC (GIỐNG ADMIN_TASKS) --- */
+      body #pageContent .filter-box {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr 0.8fr;
+          grid-template-rows: auto;
+          gap: 6px;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 0 4px 0 !important;
+          box-sizing: border-box !important;
+          box-shadow: none !important;
+      }
+      
+      /* Hàng 1: Từ ngày | Đến ngày | Nút Áp dụng */
+      body #pageContent .filter-box > label:nth-of-type(1) { grid-column: 1 / 2; grid-row: 1; }
+      body #pageContent .filter-box > label:nth-of-type(2) { grid-column: 2 / 3; grid-row: 1; }
+      body #pageContent .filter-box > button#toggleFilterBtn { grid-column: 3 / 4; grid-row: 1; }
+      
+      /* Ẩn các bộ lọc phụ (Hành động, Người dùng) để giao diện gọn thành 3 dòng */
+      body #pageContent .filter-box > select#actionFilter,
+      body #pageContent .filter-box > select#userFilter,
+      body #pageContent .filter-box > label:nth-of-type(3),
+      body #pageContent .filter-box > label:nth-of-type(4) {
+          display: none !important;
+      }
+      
+      /* Tối ưu định dạng hiển thị trong Grid */
+      body #pageContent .filter-box > label,
+      body #pageContent .filter-box > select {
+          width: 100% !important; 
+          margin: 0 !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+      }
+      
+      body #pageContent .filter-box > label { gap: 0; font-size: 0 !important; }
+      body #pageContent .filter-box label input[type="date"] {
+          width: 100% !important; 
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+      }
+
       /* Đảm bảo bảng có thể cuộn ngang độc lập */
       body .table-container {
           display: block;
           overflow-x: auto;
           overflow-y: visible;
           -webkit-overflow-scrolling: touch;
-      }
-
-      /* 1. Cố định Tiêu đề "Nhật ký hệ thống" trên cùng */
-      #pageContent > h2 {
-      position: -webkit-sticky;
-      position: sticky;
-      top: 0;
-      z-index: 62;
-      background-color: var(--bg-color); /* Phông nền che nội dung cuộn */
-      padding: 10px 5px; /* Căn giữa nội dung trong khung */
-      margin: 0 -8px; /* Bù lại padding của #pageContent */
-      width: calc(100% + 16px);
-      height: 40px; /* Cố định chiều cao tuyệt đối để phần tử dưới neo chuẩn xác */
-      line-height: 20px;
-      font-size: 1.1rem;
-      box-sizing: border-box;
-          -webkit-transform: translate3d(0,0,0); /* Chống rung (Jitter) khi cuộn trên iOS */
-          transform: translate3d(0,0,0);
-      }
-
-      /* 2. Cố định KHỐI bọc Tìm kiếm & Bộ lọc ngay bên dưới */
-  body .sticky-search-filter {
-      position: -webkit-sticky; /* Bắt buộc cho Safari */
-      position: sticky;
-      top: 40px; /* Khớp chính xác với chiều cao 40px của thẻ h2 */
-      z-index: 61;
-      background-color: var(--bg-color);
-      margin-left: -8px; /* Ép mở rộng kịch khung 2 bên mép */
-      margin-right: -8px;
-      margin-top: 0;
-      padding: 4px 8px 3px 8px; 
-      margin-bottom: 5px;
-      width: calc(100% + 16px);
-      box-sizing: border-box;
-      box-shadow: 0 4px 6px -4px rgba(0,0,0,0.08);
-          -webkit-transform: translate3d(0,0,0); /* Bật tăng tốc phần cứng để chống rung */
-          transform: translate3d(0,0,0);
       }
     }
     

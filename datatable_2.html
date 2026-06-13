@@ -103,7 +103,7 @@
         flex: 1 1 auto;
         min-height: 0;
         -webkit-overflow-scrolling: touch;
-        padding: 0 8px; /* Đồng bộ padding ngang */
+        padding: 0; 
       }
       
       /* Cố định Menu và Footer */
@@ -115,9 +115,10 @@
 
       /* Khắc phục lỗi overflow của các thẻ bọc ngăn cản sticky và cuộn */
       body .card-body, body .card {
-          display: block;
-          overflow: visible;
-          padding-top: 0;
+          display: block !important;
+          overflow: visible !important;
+          padding-top: 0 !important;
+          margin-top: 0 !important;
       }
 
       body .table-container {
@@ -128,22 +129,6 @@
           margin-top: 5px; /* Thêm khoảng cách để không bị dính vào search-row */
       }
       
-      /* 1. Cố định Tiêu đề "Bảng dữ liệu" */
-      #pageContent > h2 {
-          position: -webkit-sticky;
-          position: sticky;
-          top: 0;
-          z-index: 62;
-          background-color: var(--bg-color);
-          padding: 10px 5px 5px 5px;
-          margin: 0 -8px; /* Bù lại padding của #pageContent */
-          width: calc(100% + 16px);
-          box-sizing: border-box;
-          -webkit-transform: translate3d(0,0,0);
-          transform: translate3d(0,0,0);
-      }
-      /* --- KẾT THÚC SỬA LỖI CUỘN --- */
-
       .table-reports-2 {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
@@ -240,57 +225,6 @@
         text-overflow: clip !important;
       }
       
-
-      /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
-      body .filter-box {
-        width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
-        position: -webkit-sticky;
-        position: sticky;
-        top: 40px; /* Giảm khoảng cách với tiêu đề h2 */
-        z-index: 61;
-        background-color: var(--bg-color);
-        margin: 0 -8px;
-        padding: 4px 8px; /* Giảm padding dọc, đồng bộ padding ngang */
-        width: calc(100% + 16px);
-        box-sizing: border-box;
-        box-shadow: 0 -10px 0 0 var(--bg-color); /* Lấp khoảng hở với h2 */
-        -webkit-transform: translate3d(0,0,0);
-        transform: translate3d(0,0,0);
-      }
-
-      body .search-row {
-        position: -webkit-sticky;
-        position: sticky;
-        top: 75px; /* 40px (h2) + 35px (filter-box height) */
-        z-index: 60;
-        background-color: var(--bg-color);
-        margin: 0 -8px;
-        padding: 4px 8px; /* Giảm padding dọc, đồng bộ padding ngang */
-        width: calc(100% + 16px);
-        box-sizing: border-box;
-        box-shadow: 0 -10px 0 0 var(--bg-color), 0 4px 6px -4px rgba(0,0,0,0.1); /* Lấp khoảng hở với filter-box và đổ bóng dưới */
-        -webkit-transform: translate3d(0,0,0);
-        transform: translate3d(0,0,0);
-      }
-      /* Ẩn label của select năm đi */
-      body .filter-box label:has(#yearSelect) {
-          display: none;
-      }
-      /* Cho các thành phần còn lại co giãn lấp đầy */
-      body .filter-box > label,
-      body .filter-box > button#applyFilter {
-          flex: 1; /* Chia đều không gian */
-          min-width: 0; /* Cho phép co lại */
-          margin: 0; /* Xóa lề thừa */
-      }
-      body .filter-box > label {
-          gap: 0; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
-      }
-      /* Ghi đè lại input bên trong để nó chiếm 100% label cha */
-      body .filter-box label input[type="date"] {
-          width: 100%; /* Quan trọng: Ghi đè width: 90px từ styles.css */
-          box-sizing: border-box; /* Đảm bảo padding không làm tràn */
-      }
     }
     
     /* Animation highlight */
@@ -392,25 +326,28 @@
     <h2>📊 Bảng dữ liệu ngày nghỉ </h2>
     <div class="card-body">
 
-    <div class="filter-box">
-      <label>Từ ngày: <input type="date" id="fromDate"></label>
-      <label>Đến ngày: <input type="date" id="toDate"></label>
-      <label>Năm nhanh:
-        <select id="yearSelect">
-          <option value="">--Chọn năm--</option>
-        </select>
-      </label>
-      <button id="applyFilter" type="button">Áp dụng</button>
-    </div>
-    <div class="search-row">
-        <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
-            <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%;">
-        </div>
-        <label class="special-filter-label" title="Chỉ hiển thị các ngày làm việc đặc biệt">
-            <input type="checkbox" id="specialWorkdayFilter"> 
-            <span class="special-text-long">Chỉ xem Ngày làm đặc biệt</span>
-            <span class="special-text-short">Lọc Đặc biệt</span>
+    <!-- KHỐI BỌC STICKY TRÊN MOBILE -->
+    <div class="sticky-search-filter">
+      <div class="filter-box">
+        <label>Từ ngày: <input type="date" id="fromDate"></label>
+        <label>Đến ngày: <input type="date" id="toDate"></label>
+        <label>Năm nhanh:
+          <select id="yearSelect">
+            <option value="">--Chọn năm--</option>
+          </select>
         </label>
+        <button id="applyFilter" type="button">Áp dụng</button>
+      </div>
+      <div class="search-row">
+          <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
+              <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm..." style="width: 100%;">
+          </div>
+          <label class="special-filter-label" title="Chỉ hiển thị các ngày làm việc đặc biệt">
+              <input type="checkbox" id="specialWorkdayFilter"> 
+              <span class="special-text-long">Chỉ xem Ngày làm đặc biệt</span>
+              <span class="special-text-short">Lọc Đặc biệt</span>
+          </label>
+      </div>
     </div>
         <div class="table-container table-reports-2">
         <table id="dataTable">
