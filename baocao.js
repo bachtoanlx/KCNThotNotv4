@@ -1,0 +1,2209 @@
+// 1. IMPORT CÁC HÀM DÙNG CHUNG
+    import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage } from "./script.js";
+    import { collection, getDocs, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, setDoc, getDoc, query, where, orderBy, limit, documentId } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { initMenu } from "./menu.js";
+
+    // CÁC HÀM HELPER TOÀN CỤC
+    // ===== XỬ LÝ NHẬP SỐ KIỂU VIỆT NAM (LOGIC CŨ) =====
+        function parseDisplayValue(str) {
+            if (!str) return NaN;
+            str = String(str).replace(/\./g, '').replace(',', '.').trim();
+            const num = parseFloat(str);
+            return isNaN(num) ? NaN : num;
+        }
+
+        function formatNumberForDisplay(num) {
+            if (num == null || isNaN(num)) return '';
+            return new Intl.NumberFormat('vi-VN', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 1
+            }).format(num);
+        }
+        const getVal = (id) => document.getElementById(id)?.value || "";
+        // KẾT THÚC HELPER
+
+        // ===== TÍNH TOÁN TỰ ĐỘNG (LOGIC CŨ) =====
+        function calculateSum(startIds, endIds, resultId) {
+            const resultSpan = document.getElementById(resultId);
+            let total = 0;
+            const isElectric = (startIds.length === 3 && endIds.length === 3);
+
+            if (isElectric) {
+                for (let i = 0; i < 3; i++) {
+                    const startVal = parseDisplayValue(document.getElementById(startIds[i])?.value);
+                    const endVal = parseDisplayValue(document.getElementById(endIds[i])?.value);
+                    if (isNaN(startVal) || isNaN(endVal) || endVal < startVal) {
+                        resultSpan.textContent = 'Lỗi!'; resultSpan.style.color = 'red'; return;
+                    }
+                    total += (endVal - startVal);
+                }
+            } else {
+                let startTotal = 0, endTotal = 0;
+                startIds.forEach(id => startTotal += parseDisplayValue(document.getElementById(id)?.value));
+                endIds.forEach(id => endTotal += parseDisplayValue(document.getElementById(id)?.value));
+                if (isNaN(startTotal) || isNaN(endTotal) || endTotal < startTotal) {
+                     resultSpan.textContent = 'Lỗi!'; resultSpan.style.color = 'red'; return;
+                }
+                total = endTotal - startTotal;
+            }
+            resultSpan.textContent = formatNumberForDisplay(total);
+            resultSpan.style.color = '';
+        }
+        function getChemicalsData() {
+            const data = [];
+            document.querySelectorAll('#chemicals-table tbody tr').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length === 2) {
+                    const name = inputs[0].value;
+                    const quantity = inputs[1].value;
+                    if (name || quantity) { 
+                        data.push({ chemicalName: name, quantity: quantity });
+                    }
+                }
+            });
+            return data;
+        }
+
+        function getBioData() {
+            const data = [];
+            document.querySelectorAll('#bio-table tbody tr').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length === 7) {
+                    data.push({
+                        time: inputs[0].value,
+                        do_anoxic: inputs[1].value,
+                        do_aero1: inputs[2].value,
+                        do_aero2: inputs[3].value,
+                        sv30_anoxic: inputs[4].value,
+                        sv30_aero1: inputs[5].value,
+                        sv30_aero2: inputs[6].value,
+                    });
+                }
+            });
+            return data;
+        }
+
+        function getOutputData() {
+            const data = [];
+            document.querySelectorAll('#output-table tbody tr').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if (inputs.length === 6) {
+                    data.push({
+                        time: inputs[0].value,
+                        ph: inputs[1].value,
+                        cod: inputs[2].value,
+                        n: inputs[3].value,
+                        tss: inputs[4].value,
+                        clo: inputs[5].value,
+                    });
+                }
+            });
+            return data;
+        }
+        /**
+         * HELPER 9.1: Chuyển đổi URL Google Drive View thành URL Thumbnail
+         */
+        function getDriveThumbnailUrl(viewUrl) {
+            try {
+                // Trích xuất ID file từ URL dạng ".../d/FILE_ID/view..."
+                const match = viewUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    return `https://drive.google.com/thumbnail?id=${fileId}`;
+                }
+                // Nếu không khớp, trả về URL gốc (có thể là định dạng khác)
+                return viewUrl; 
+            } catch (e) {
+                console.error("Lỗi chuyển đổi URL Drive:", e, viewUrl);
+                return viewUrl; // Trả về gốc nếu lỗi
+            }
+        }
+        /**
+         * HELPER 9.2: Chuyển đổi URL Google Drive View thành URL xem trực tiếp (Độ phân giải cao)
+         */
+        function getDriveDirectUrl(viewUrl) {
+            try {
+                // Trích xuất ID file từ URL dạng ".../d/FILE_ID/view..."
+                const match = viewUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    // Dùng "uc" (user content) để lấy link trực tiếp
+                    return `https://drive.google.com/uc?id=${fileId}`;
+                }
+                return viewUrl; // Trả về gốc nếu không khớp
+            } catch (e) {
+                return viewUrl;
+            }
+        }
+        /**
+         * HELPER 9.3: Lấy ảnh thumbnail KÍCH THƯỚC LỚN (để xem)
+         */
+        function getDriveLargePreviewUrl(viewUrl, width = 1200) {
+            try {
+                // Trích xuất ID file
+                const match = viewUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    const fileId = match[1];
+                    // Thêm tham số &sz=w[width] để yêu cầu ảnh rộng [width] pixel
+                    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${width}`;
+                }
+                return viewUrl; // Trả về gốc nếu không khớp
+            } catch (e) {
+                return viewUrl;
+            }
+        }
+        // --- KẾT THÚC HÀM MỚI ---
+
+    // 2. TẢI CÁC THÀNH PHẦN GIAO DIỆN CHUNG
+    fetch("menu.html").then(r => r.text()).then(h => {
+        document.getElementById("menu-placeholder").innerHTML = h;
+        initMenu();        
+    });
+    fetch("modal.html").then(r => r.text()).then(h => {
+        document.getElementById("loading-placeholder").innerHTML = h;
+    });
+    fetch("footer.html").then(r => r.text()).then(h => {
+        document.getElementById("footer-placeholder").innerHTML = h;
+    });
+    
+    const notLogged = document.getElementById("notLogged");
+    const pageContent = document.getElementById("pageContent");
+
+    let userRole = "user"; // Biến lưu vai trò
+    let allReportShifts = []; // Biến lưu trữ tất cả các ca báo cáo
+    const shiftConfigDiv = document.getElementById("shiftConfig");
+
+    let autoplanTimes = new Set(); // Stores unique 'HH:MM' times from autoplan
+    let allPatternsData = [];
+    let allStaffNames = [];
+    let allShiftRules = [];
+    let refDate = null;
+
+
+    // 3. KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP (ĐÃ CẬP NHẬT)
+    onAuth(async (user) => {
+        if (!user) {
+            notLogged.style.display = "flex";
+            pageContent.style.display = "none";
+            document.getElementById("footer-placeholder").style.display = "block";
+            // Không cần hideLoading() ở đây vì chúng ta chưa bật nó
+            return;
+        }
+
+        // 1. Ẩn thông báo lỗi "chưa đăng nhập"
+        notLogged.style.display = "none"; 
+
+        // 2. Hiển thị nội dung trang và footer
+        pageContent.style.display = "block";
+        document.getElementById("footer-placeholder").style.display = "block";
+
+        // 3. Lấy vai trò của user và hiển thị phần của admin (nếu có)
+        // ⭐️ Tải song song Role và WorkPatterns ⭐️
+        const [role, patternsResult] = await Promise.all([
+            getRole(user.email),
+            loadWorkPatterns() // Gọi hàm tải ở đây
+        ]);
+
+        userRole = role; // Gán vai trò
+        if (userRole === "admin") {
+            shiftConfigDiv.classList.add("admin-visible");
+        }
+
+        // Chạy các hàm khởi tạo (truyền 'true' để báo hiệu patterns đã được tải)
+        initializeReportPage(true); 
+        setupShiftAdminListeners();
+    });
+
+    // ===================================================================
+    // HÀM KHỞI TẠO CHÍNH CỦA TRANG BÁO CÁO
+    // ===================================================================
+    async function initializeReportPage(patternsLoaded = false) {
+        document.querySelectorAll('.number-input').forEach(input => {
+            input.addEventListener('focus', e => {
+                const raw = parseDisplayValue(e.target.value);
+                e.target.value = !isNaN(raw) ? String(raw).replace('.', ',') : '';
+            });
+            input.addEventListener('blur', e => {
+                const val = parseDisplayValue(e.target.value);
+                e.target.value = isNaN(val) ? '' : formatNumberForDisplay(val);
+                e.target.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+        
+        
+        
+        // ===== CÀI ĐẶT BAN ĐẦU (LOGIC CŨ) =====
+        function setupPage() {
+            //document.getElementById('reportDate').valueAsDate = new Date();
+            const currentHour = new Date().getHours();
+            //document.getElementById('shiftSelect').value = (currentHour >= 6 && currentHour < 18) ? 'ngay' : 'dem';
+            updatePrintMargins();
+        }
+        
+        // --- CHẠY CÁC HÀM KHỞI TẠO ---
+        setupPage();
+        // Chỉ tải nếu 'onAuth' chưa tải
+        if (!patternsLoaded) {
+            await loadWorkPatterns(); 
+        }
+        populateStaffDropdowns();
+        
+        
+
+        // Gắn sự kiện
+        document.getElementById('reportDate').addEventListener('change', onShiftOrDateChange);
+        document.getElementById('shiftSelect').addEventListener('change', onShiftOrDateChange);
+
+        //document.getElementById('save-report-btn').addEventListener('click', saveReport);
+
+        document.addEventListener('change', function(e) {
+            const target = e.target;
+            if (target.classList.contains('calc-dien')) {
+                 calculateSum(['dien-bt-dau', 'dien-cd-dau', 'dien-td-dau'], ['dien-bt-cuoi', 'dien-cd-cuoi', 'dien-td-cuoi'], 'dien-sl');
+            } else if (target.classList.contains('calc-nuoc')) {
+                calculateSum(['nuoc-dau'], ['nuoc-cuoi'], 'nuoc-sl');
+            } else if (target.classList.contains('calc-flow-in')) {
+                calculateSum(['flow-in-start'], ['flow-in-end'], 'flow-in-total');
+            } else if (target.classList.contains('calc-flow-out')) {
+                calculateSum(['flow-out-start'], ['flow-out-end'], 'flow-out-total');
+            }
+        });
+    }
+    // ===== 5 HÀM (updatePrintMargins, loadWorkPatterns, ...)
+    function updatePrintMargins() {
+                const shift = document.getElementById('shiftSelect').value;
+                const styleElement = document.getElementById('print-styles');
+                styleElement.innerHTML = (shift === 'ngay')
+                    ? '@page { margin: 0.5cm 1cm 0.5cm 2.5cm; }'
+                    : '@page { margin: 0.5cm 2.5cm 0.5cm 1cm; }';
+    }
+            
+    // ===== LOGIC MỚI: LIÊN KẾT DỮ LIỆU TỪ AUTOPLAN =====
+        
+        async function loadWorkPatterns() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "work_patterns"));
+            allPatternsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Lọc và tính toán trước dữ liệu xoay ca
+            allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+            if (allShiftRules.length > 0) {
+                 const sortedAllRules = [...allShiftRules].sort(sortShiftRules);
+                 refDate = new Date(sortedAllRules[0].patternStartDate + 'T00:00:00');
+            }
+
+            const staffNameSet = new Set(allPatternsData.map(p => p.displayName).filter(Boolean));
+            allStaffNames = Array.from(staffNameSet).sort((a, b) => a.localeCompare(b));
+            // --- MÃ MỚI: Thu thập các mốc giờ từ Autoplan ---
+            autoplanTimes.clear(); // Xóa cũ trước khi tải lại
+            allPatternsData.forEach(pattern => {
+                if (pattern.startTime) autoplanTimes.add(pattern.startTime);
+                if (pattern.endTime) autoplanTimes.add(pattern.endTime);
+            });
+            // --- KẾT THÚC MÃ MỚI ---
+        } catch (error) {
+                console.error("Lỗi khi tải dữ liệu work_patterns:", error);
+                showSwal("error", "Lỗi Tải Dữ Liệu", "Không thể tải được lịch làm việc của nhân viên.");
+            }
+        }
+
+        function populateStaffDropdowns() {
+            const staffSelects = document.querySelectorAll('.staff-select');
+            let optionsHtml = '<option value="">--- Chọn nhân viên ---</option>';
+            allStaffNames.forEach(name => {
+                optionsHtml += `<option value="${name}">${name}</option>`;
+            });
+            staffSelects.forEach(select => { select.innerHTML = optionsHtml; });
+        }
+        
+        // ===== HÀM LOGIC MỚI (V5.1: BỎ LỌC V6, CHỈ DÙNG OVERLAP) =====
+        async function updateStaffForSelectedShift() {
+            const selectedDate = new Date(document.getElementById('reportDate').value + "T00:00:00");
+            const selectedShiftId = document.getElementById('shiftSelect').value;
+
+            if (!selectedDate || !selectedShiftId || allReportShifts.length === 0 || allPatternsData.length === 0) {
+                return; // Chưa đủ dữ liệu
+            }
+
+            const nextDay = new Date(selectedDate);
+            nextDay.setDate(selectedDate.getDate() + 1);
+
+            // 1. TÌM KHUNG GIỜ CA GIAO (CA ĐƯỢC CHỌN)
+            const currentReportShift = allReportShifts.find(s => s.id === selectedShiftId);
+            if (!currentReportShift) return;
+            const Khung_Giao = getReportShiftTimeRange(currentReportShift, selectedDate);
+
+            // 2. TÌM KHUNG GIỜ CA NHẬN (CA KẾ TIẾP)
+            const { shift: nextReportShift, isForNextDay } = findNextReportShift(currentReportShift, allReportShifts);
+            let Khung_Nhan = null;
+            if (nextReportShift) {
+                const nhanDate = isForNextDay ? nextDay : selectedDate;
+                Khung_Nhan = getReportShiftTimeRange(nextReportShift, nhanDate);
+            }
+
+            // 3. TÌM NHÂN VIÊN
+            const handoverStaff = new Set();
+            const receivingStaff = new Set();
+
+            const yesterday = new Date(selectedDate);
+            yesterday.setDate(selectedDate.getDate() - 1);
+            
+            // Mở rộng cửa sổ phân tích 4 ngày để bắt ca 24h
+            const dayBeforeYesterday = new Date(selectedDate);
+            dayBeforeYesterday.setDate(selectedDate.getDate() - 2);
+            
+            const datesToAnalyze = [dayBeforeYesterday, yesterday, selectedDate, nextDay];
+
+            for (const pattern of allPatternsData) {
+                // Lặp qua 4 ngày để tìm tất cả các ca làm việc của nhân viên này
+                for (const date of datesToAnalyze) {
+                    const personalShift = getPersonalShiftForDate(pattern, date, allShiftRules, refDate);
+                    
+                    if (personalShift) {
+                        // So sánh với ca GIAO
+                        if (Khung_Giao && checkOverlap(personalShift, Khung_Giao)) {
+                            handoverStaff.add(pattern.displayName);
+                        }
+                        // So sánh với ca NHẬN (Logic V5 đơn giản)
+                        if (Khung_Nhan && checkOverlap(personalShift, Khung_Nhan)) {
+                            receivingStaff.add(pattern.displayName);
+                        }
+                    }
+                }
+            } // Hết vòng lặp pattern
+
+            // 4. Lọc trùng lặp và điền vào dropdown
+            const finalHandover = Array.from(handoverStaff);
+            const finalReceiving = Array.from(receivingStaff);
+
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`handover-staff-${i}`).value = finalHandover[i - 1] || "";
+                document.getElementById(`receiving-staff-${i}`).value = finalReceiving[i - 1] || "";
+            });
+        }
+        /**
+         * HÀM XỬ LÝ CHÍNH KHI ĐỔI NGÀY HOẶC CA
+         */
+        async function onShiftOrDateChange() {
+            clearForm();
+            // 1. Cập nhật UI phụ
+            const shiftSelect = document.getElementById('shiftSelect');
+            updatePrintMargins(); //
+
+            // 2. Cập nhật danh sách nhân viên
+            await updateStaffForSelectedShift(); //
+
+            // 3. Chạy Smart Auto-fill
+            const reportDate = document.getElementById('reportDate').value;
+            const shiftId = shiftSelect.value;
+            // --- THÊM 2 DÒNG MỚI NÀY ---
+            const selectedOption = shiftSelect.options[shiftSelect.selectedIndex];
+            const shiftStartTime = selectedOption.dataset.start || "00:00";
+            // --- KẾT THÚC DÒNG MỚI ---
+            const currentShift = allReportShifts.find(s => s.id === shiftId);
+            const currentDate = new Date(reportDate + "T00:00:00");
+            
+
+            if(reportDate && shiftId && currentShift) {
+            const reportId = `${reportDate}_${shiftStartTime}_${shiftId}`; // <-- ID MỚI
+            await smartAutoFill(reportId, currentShift, currentDate); // Chờ auto-fill xong
+            }
+        }
+    // ===================================================================
+    // HÀM MỚI: LẮNG NGHE, HIỂN THỊ, VÀ QUẢN LÝ CÁC CA BÁO CÁO (LOGIC V4)
+    // ===================================================================
+    let shiftListener = null; // ⭐️ Biến lưu unsubscribe function
+    
+    function setupShiftAdminListeners() {
+        const shiftSelect = document.getElementById('shiftSelect');
+        const shiftListBody = document.getElementById('shift-list-body');
+
+        // ⭐️ HỦY LISTENER CŨ (nếu có) trước khi tạo mới
+        if (shiftListener) {
+            shiftListener();
+            shiftListener = null;
+        }
+
+        // Lắng nghe collection 'report_shifts' - ⭐️ CHỈ LOAD 1 LẦN
+        shiftListener = onSnapshot(collection(db, "report_shifts"), (snapshot) => {
+            allReportShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sắp xếp các ca theo giờ bắt đầu
+            allReportShifts.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+            // Xóa sạch 2 danh sách (user và admin)
+            shiftSelect.innerHTML = '<option value="">--- Chọn ca báo cáo ---</option>';
+            shiftListBody.innerHTML = '';
+
+            allReportShifts.forEach(shift => {
+                const shiftLabel = `${shift.name} (${shift.startTime} - ${shift.endTime}${shift.isNextDay ? " *" : ""})`;
+
+                // 1. Điền vào Dropdown của User
+                const option = document.createElement('option');
+                option.value = shift.id;
+                option.textContent = shiftLabel;
+                option.dataset.start = shift.startTime;
+                option.dataset.end = shift.endTime;
+                option.dataset.nextday = shift.isNextDay;
+                shiftSelect.appendChild(option);
+
+                // 3. Điền vào Bảng của Admin (nếu là admin)
+                if (userRole === 'admin') {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="text-align: left;">${shift.name}</td>
+                        <td>${shift.startTime}</td>
+                        <td>${shift.endTime}${shift.isNextDay ? " (hôm sau)" : ""}</td>
+                        <td><button data-id="${shift.id}" class="delete-shift-btn" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button></td>
+                    `;
+                    shiftListBody.appendChild(tr);
+                }
+            });
+
+            // --- LOGIC TỰ ĐỘNG CHỌN CA VỪA KẾT THÚC (V4) ---
+            const now = new Date(); // Giờ hiện tại
+            let selectedShiftId = null;
+            let selectedDate = null; // Ngày bắt đầu của ca được chọn
+
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const dayBeforeYesterday = new Date(today);
+            dayBeforeYesterday.setDate(today.getDate() - 2);
+
+            // Chúng ta cần kiểm tra các ca bắt đầu từ 2 ngày trước
+            const datesToTest = [dayBeforeYesterday, yesterday, today];
+            let potentialShifts = []; // Danh sách các ca đã kết thúc
+
+            for (const shift of allReportShifts) {
+                // Lặp qua các ca đã cài đặt
+                for (const date of datesToTest) {
+                    // Tạo khung giờ thực tế của ca (vd: Ca 2 ngày 19/10)
+                    const range = getReportShiftTimeRange(shift, date);
+
+                    // --- LOGIC V4.1 (Mở cửa sổ báo cáo sớm 1 giờ) ---
+                    
+                    // Tính thời điểm bắt đầu cho phép báo cáo (1 giờ trước khi ca kết thúc)
+                    // (1 giờ = 60 phút * 60 giây * 1000 ms = 3600000 ms)
+                    const reportingStartTime = new Date(range.end.getTime() - 3600000); 
+
+                    // Kiểm tra xem 'now' có nằm trong cửa sổ báo cáo không
+                    // (tức là sau khi được phép báo cáo)
+                    if (now >= reportingStartTime) {
+                        potentialShifts.push({
+                            id: shift.id,
+                            date: date, // Ngày bắt đầu của ca
+                            end: range.end // Thời điểm kết thúc thực tế
+                        });
+                    }
+                }
+            }
+
+            // Tìm ca vừa kết thúc gần đây nhất
+            if (potentialShifts.length > 0) {
+                // Sắp xếp các ca đã kết thúc theo thời gian kết thúc giảm dần
+                potentialShifts.sort((a, b) => b.end - a.end);
+                
+                // Chọn ca đầu tiên (ca kết thúc gần nhất)
+                selectedShiftId = potentialShifts[0].id;
+                selectedDate = potentialShifts[0].date;
+            }
+            // --- KẾT THÚC LOGIC V4 ---
+
+            // Xử lý nút xóa của Admin (với SweetAlert2)
+            document.querySelectorAll('.delete-shift-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.target.dataset.id;
+
+                    // ⭐️ BƯỚC 1: LẤY THÔNG TIN CA BỊ XÓA ⭐️
+                    const shiftToDelete = allReportShifts.find(s => s.id === id);
+                    const shiftName = shiftToDelete ? shiftToDelete.name : "Không rõ";
+                    const shiftTime = shiftToDelete ? `${shiftToDelete.startTime}-${shiftToDelete.endTime}` : "N/A";
+                    
+                    Swal.fire({
+                        title: `Bạn có chắc chắn muốn xóa "${shiftName}"?`, // Cập nhật tiêu đề
+                        text: "Bạn sẽ không thể hoàn tác hành động này!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Vâng, xóa nó!',
+                        cancelButtonText: 'Hủy'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            const userEmail = auth.currentUser ? auth.currentUser.email : "admin_unknown";
+                            try {
+                                await deleteDoc(doc(db, "report_shifts", id));
+                                
+                                // ⭐️ BƯỚC 2: GỬI LOG ĐẦY ĐỦ ⭐️
+                                addLog("admin_delete_shift_success", { 
+                                    shiftId: id,
+                                    shiftName: shiftName, // <-- THÊM TÊN
+                                    time: shiftTime,    // <-- THÊM GIỜ
+                                    email: userEmail 
+                                });
+                                showSwal("success", "Đã xóa ca.");
+                            } catch (error) {
+                                // ⭐️ BƯỚC 2 (LỖI): GỬI LOG LỖI ĐẦY ĐỦ ⭐️
+                                addLog("admin_delete_shift_failure", { 
+                                    shiftId: id, 
+                                    shiftName: shiftName, // <-- THÊM TÊN
+                                    error: error.message,
+                                    email: userEmail 
+                                });
+                                showSwal("error", "Lỗi khi xóa ca", error.message);
+                            }
+                        }
+                    });
+                });
+            });
+
+            // --- CẬP NHẬT GIAO DIỆN ---
+            // 1. Cập nhật NGÀY trước
+            if (selectedDate) {
+                // Chuyển Date object về định dạng YYYY-MM-DD
+                document.getElementById('reportDate').value = selectedDate.toLocaleDateString('en-CA');
+            } else {
+                // Nếu không có ca nào kết thúc, dùng ngày hôm nay
+                document.getElementById('reportDate').valueAsDate = new Date();
+            }
+
+            // 2. Cập nhật CA
+            if (selectedShiftId) {
+                shiftSelect.value = selectedShiftId;
+            } else if (allReportShifts.length > 0) {
+                 // Nếu không tìm thấy, chọn ca đầu tiên
+                shiftSelect.value = allReportShifts[0].id;
+            }
+
+            // Kích hoạt hàm xử lý chính để tải nhân viên VÀ auto-fill
+            onShiftOrDateChange();
+        });
+
+        // Xử lý nút "Lưu" của Admin (Nâng cấp V5 - Cảnh báo mâu thuẫn)
+        document.getElementById('save-shift-btn').addEventListener('click', async () => {
+            const data = {
+                name: document.getElementById('shift-name').value,
+                startTime: document.getElementById('shift-start-time').value,
+                endTime: document.getElementById('shift-end-time').value,
+                isNextDay: document.getElementById('shift-is-next-day').checked
+            };
+
+            if (!data.name || !data.startTime || !data.endTime) {
+                return showSwal("error", "Thiếu thông tin", "Vui lòng nhập Tên, Giờ bắt đầu và Giờ kết thúc.");
+            }
+
+            // --- LOGIC VALIDATION (GIẢI PHÁP 2) ---
+            let warnings = [];
+
+            // 1. Kiểm tra startTime
+            if (!autoplanTimes.has(data.startTime)) {
+                const closestStart = findClosestTime(data.startTime, autoplanTimes);
+                warnings.push(`Giờ bắt đầu '<b>${data.startTime}</b>' không khớp với lịch autoplan (gần nhất là '<b>${closestStart}</b>').`);
+            }
+            // 2. Kiểm tra endTime
+            if (!autoplanTimes.has(data.endTime)) {
+                const closestEnd = findClosestTime(data.endTime, autoplanTimes);
+                warnings.push(`Giờ kết thúc '<b>${data.endTime}</b>' không khớp với lịch autoplan (gần nhất là '<b>${closestEnd}</b>').`);
+            }
+
+            // Hàm lưu (tách ra để gọi lại)
+            const saveAction = async () => {
+                const userEmail = auth.currentUser ? auth.currentUser.email : "admin_unknown";
+                try {
+                    // Sửa: Lấy docRef để có ID
+                    const docRef = await addDoc(collection(db, "report_shifts"), data);
+                    
+                    // ⭐️ VỊ TRÍ CHÈN LOG ⭐️
+                        addLog("admin_create_shift_success", { 
+                        shiftId: docRef.id, 
+                        shiftName: data.name, 
+                        time: `${data.startTime}-${data.endTime}`,
+                        email: userEmail 
+                    });
+
+                    showSwal("success", "Đã lưu ca.");
+                    // Xóa trống form
+                    document.getElementById('shift-name').value = '';
+                    document.getElementById('shift-start-time').value = '';
+                    document.getElementById('shift-end-time').value = '';
+                    document.getElementById('shift-is-next-day').checked = false;
+                } catch (error) {
+                    // ⭐️ VỊ TRÍ CHÈN LOG LỖI ⭐️
+                     addLog("admin_create_shift_failure", { 
+                        shiftName: data.name, 
+                        error: error.message,
+                        email: userEmail 
+                    });
+                    showSwal("error", "Lỗi khi lưu ca", error.message);
+                }
+            };
+
+            // 3. Hiển thị cảnh báo nếu có
+            if (warnings.length > 0) {
+                Swal.fire({
+                    title: '⚠️ Cảnh báo Mâu thuẫn!',
+                    html: `
+                        <p>Các mốc thời gian bạn nhập có thể gây lỗi điền tên nhân viên:</p>
+                        <ul style="text-align: left; margin-left: 20px;">
+                            ${warnings.map(w => `<li>${w}</li>`).join('')}
+                        </ul>
+                        <p style="margin-top: 15px;">Bạn có chắc chắn muốn lưu?</p>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Vẫn Lưu',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        saveAction(); // Vẫn lưu
+                    }
+                });
+            } else {
+                saveAction(); // Không có cảnh báo, lưu luôn
+            }
+            // --- KẾT THÚC VALIDATION ---
+        });
+    }
+    //
+    /**
+         * Helper 1: Kiểm tra quy tắc còn hiệu lực
+         */
+        const isRuleActiveOnDate = (rule, date) => {
+            const startDate = new Date(rule.patternStartDate + 'T00:00:00');
+            const endDate = rule.patternEndDate ? new Date(rule.patternEndDate + 'T00:00:00') : null;
+            if (date < startDate) return false;
+            if (endDate && date > endDate) return false;
+            return true;
+        };
+        
+        /**
+         * Helper 2 (MỚI): Logic sắp xếp xoay ca 3 cấp
+         * Ưu tiên 1: Ngày bắt đầu (sớm nhất trước)
+         * Ưu tiên 2: Giờ bắt đầu (sớm nhất trước)
+         * Ưu tiên 3: Tên A-Z
+         */
+        const sortShiftRules = (a, b) => {
+            // 1. So sánh Ngày
+            const dateA = new Date(a.patternStartDate);
+            const dateB = new Date(b.patternStartDate);
+            if (dateA - dateB !== 0) {
+                return dateA - dateB;
+            }
+
+            // 2. So sánh Giờ (nếu Ngày trùng)
+            const timeA = a.startTime || "00:00";
+            const timeB = b.startTime || "00:00";
+            if (timeA.localeCompare(timeB) !== 0) {
+                return timeA.localeCompare(timeB);
+            }
+
+            // 3. So sánh Tên (nếu cả Ngày và Giờ trùng)
+            return (a.displayName || "").localeCompare(b.displayName || "");
+        };
+
+        function getDaysDifference(date1, date2) {
+            const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+            const d2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+            return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+        }
+    // ===================================================================
+    // HÀM HELPER CHO LOGIC MỚI
+    // ===================================================================
+
+    /**
+     * HELPER 1: Kiểm tra 2 khung giờ (Date object) có chồng lấn (overlap) không.
+     * Logic: A bắt đầu TRƯỚC khi B kết thúc VÀ A kết thúc SAU khi B bắt đầu.
+     */
+    function checkOverlap(rangeA, rangeB) {
+        if (!rangeA || !rangeB) return false;
+        return rangeA.start < rangeB.end && rangeA.end > rangeB.start;
+    }
+
+    /**
+     * HELPER 2: "Trình thông dịch" (Interpreter)
+     * Sao chép từ autoplan.html và điều chỉnh.
+     * Trả về khung giờ làm việc CÁ NHÂN (Date object) của 1 người vào 1 ngày cụ thể.
+     */
+    function getPersonalShiftForDate(userPattern, dateToCheck, allShiftRules, refDate) {
+        // 1. Kiểm tra quy tắc còn hiệu lực không
+        const startDate = new Date(userPattern.patternStartDate + 'T00:00:00');
+        const endDate = userPattern.patternEndDate ? new Date(userPattern.patternEndDate + 'T23:59:59') : null;
+
+        // Chuẩn hóa dateToCheck về đầu ngày
+        const checkDate = new Date(dateToCheck.getFullYear(), dateToCheck.getMonth(), dateToCheck.getDate());
+
+        if (checkDate < startDate) return null;
+        if (endDate && checkDate > endDate) return null;
+
+        const shiftStart = new Date(checkDate);
+        const shiftEnd = new Date(checkDate);
+        let isWorking = false;
+
+        // 2. Xử lý Lịch Cố định (administrative)
+        if (userPattern.type === "administrative") {
+            const dayOfWeek = checkDate.getDay() === 0 ? 8 : checkDate.getDay() + 1;
+            if (Array.isArray(userPattern.workDaysOfWeek) && userPattern.workDaysOfWeek.includes(dayOfWeek)) {
+                isWorking = true;
+                const [startH, startM] = (userPattern.startTime || "00:00").split(':').map(Number);
+                const [endH, endM] = (userPattern.endTime || "00:00").split(':').map(Number);
+
+                // === ĐOẠN MÃ MỚI (TỰ SUY LUẬN) ===
+                shiftStart.setHours(startH, startM, 0, 0);
+                shiftEnd.setHours(endH, endM, 0, 0);
+
+                // Tự động phát hiện ca gối đầu NẾU giờ kết thúc < giờ bắt đầu
+                // (ví dụ: 06:00 < 17:00)
+                if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                    shiftEnd.setDate(shiftEnd.getDate() + 1);
+                }
+                // Hoặc, TỰ ĐỘNG xử lý ca 24h (ví dụ: 07:30 -> 07:30)
+                else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+                    shiftEnd.setDate(shiftEnd.getDate() + 1);
+                }
+            }
+        }
+        // 3. Xử lý Lịch Xoay Vòng (shift_rotation)
+        else if (userPattern.type === "shift_rotation") {
+            // Xác định nhóm ca của nhân viên này
+            const groupName = userPattern.shiftGroup || "Vận hành";
+            
+            // Lọc ra CÁC QUY TẮC CÙNG NHÓM
+            const groupRules = allShiftRules.filter(r => (r.shiftGroup || "Vận hành") === groupName).sort(sortShiftRules);
+            const groupRefDate = groupRules.length > 0 ? new Date(groupRules[0].patternStartDate + 'T00:00:00') : null;
+
+            if (groupRefDate) {
+                // Lọc ra các quy tắc CÒN HIỆU LỰC vào ngày checkDate trong nhóm này
+                const membersToday = groupRules.filter(rule => {
+                    const rStart = new Date(rule.patternStartDate + 'T00:00:00');
+                    const rEnd = rule.patternEndDate ? new Date(rule.patternEndDate + 'T23:59:59') : null;
+                    if (checkDate < rStart) return false;
+                    if (rEnd && checkDate > rEnd) return false;
+                    return true;
+                });
+
+                if (membersToday.length > 0) {
+                    // Sắp xếp lại danh sách CÒN HIỆU LỰC
+                    membersToday.sort(sortShiftRules);
+
+                    const n_today = membersToday.length;
+                    const daysSinceToday = getDaysDifference(checkDate, groupRefDate); 
+                    const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                    const workerToday = membersToday[workerIndexToday];
+
+                    if (workerToday && workerToday.displayName === userPattern.displayName) {
+                        isWorking = true;
+                        const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+                        const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+
+                        // === ĐOẠN MÃ MỚI (TỰ SUY LUẬN) ===
+                        shiftStart.setHours(startH, startM, 0, 0);
+                        shiftEnd.setHours(endH, endM, 0, 0);
+
+                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                            shiftEnd.setDate(shiftEnd.getDate() + 1);
+                        } else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+                            shiftEnd.setDate(shiftEnd.getDate() + 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isWorking) {
+            return { start: shiftStart, end: shiftEnd };
+        }
+        return null;
+    }
+
+    /**
+     * HELPER 3: Tìm ca báo cáo liền trước (Previous Reporting Shift)
+     * Logic "Tìm kiếm Thông minh"
+     */
+    function findPreviousReportShift(currentShift, allShifts) {
+        if (allShifts.length < 2) return { shift: null, isForPreviousDay: false }; // Không có ca trước
+
+        // Sắp xếp các ca theo giờ bắt đầu
+        const sortedShifts = [...allShifts].sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+        // Tìm index của ca hiện tại
+        const currentIndex = sortedShifts.findIndex(s => s.id === currentShift.id);
+
+        if (currentIndex > 0) {
+            // Ca trước là ca ở index-1 của CÙNG NGÀY
+            return { shift: sortedShifts[currentIndex - 1], isForPreviousDay: false };
+        } else {
+            // Ca hiện tại là ca đầu tiên trong ngày (index 0)
+            // Vậy ca trước là ca CUỐI CÙNG (sortedShifts.length - 1) của NGÀY HÔM TRƯỚC
+            return { shift: sortedShifts[sortedShifts.length - 1], isForPreviousDay: true };
+        }
+    }
+    /**
+     * HELPER 3.5: Tìm ca báo cáo liền KẾ TIẾP
+     */
+    function findNextReportShift(currentShift, allShifts) {
+        if (allShifts.length < 2) return { shift: null, isForNextDay: false };
+
+        // Sắp xếp các ca theo giờ bắt đầu
+        const sortedShifts = [...allShifts].sort((a, b) => a.startTime.localeCompare(b.startTime));
+        
+        // Tìm index của ca hiện tại
+        const currentIndex = sortedShifts.findIndex(s => s.id === currentShift.id);
+
+        if (currentIndex < (sortedShifts.length - 1)) {
+            // Ca kế tiếp là ca ở index+1 của CÙNG NGÀY
+            return { shift: sortedShifts[currentIndex + 1], isForNextDay: false };
+        } else {
+            // Ca hiện tại là ca cuối cùng trong ngày (index cuối)
+            // Vậy ca kế tiếp là ca ĐẦU TIÊN (index 0) của NGÀY HÔM SAU
+            return { shift: sortedShifts[0], isForNextDay: true };
+        }
+    }
+
+    /**
+     * HELPER 4: Hàm tạo khung giờ Date object từ Ca Báo Cáo
+     */
+    function getReportShiftTimeRange(reportShift, referenceDate) {
+        const [startH, startM] = reportShift.startTime.split(':').map(Number);
+        const [endH, endM] = reportShift.endTime.split(':').map(Number);
+
+        const startDate = new Date(referenceDate);
+        startDate.setHours(startH, startM, 0, 0);
+
+        const endDate = new Date(referenceDate);
+        endDate.setHours(endH, endM, 0, 0);
+
+        // --- LOGIC MỚI (TỰ SUY LUẬN) ---
+        // Tự động phát hiện ca gối đầu NẾU giờ kết thúc < giờ bắt đầu
+        // (ví dụ: 07:30 < 17:00 là SAI, 06:00 < 17:00 là ĐÚNG)
+        if ( (endH < startH) || (endH === startH && endM < startM) ) {
+             endDate.setDate(endDate.getDate() + 1);
+        }
+        // Hoặc, TỰ ĐỘNG xử lý ca 24h (ví dụ: 07:30 -> 07:30)
+        else if (startH === endH && startM === endM && (startH !== 0 || startM !== 0)) {
+             endDate.setDate(endDate.getDate() + 1);
+        }
+        // --- KẾT THÚC LOGIC MỚI ---
+
+        return { start: startDate, end: endDate };
+    }
+    /**
+     * HELPER 5: Tìm thời gian gần nhất
+     * (Chuyển đổi 'HH:MM' sang phút để so sánh)
+     */
+    function timeToMins(timeStr) { // "HH:MM"
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    function findClosestTime(targetTime, timeSet) {
+        if (timeSet.size === 0) return "không rõ";
+
+        const targetMins = timeToMins(targetTime);
+        let closestTime = "";
+        let minDiff = Infinity;
+
+        for (const time of timeSet) {
+            const diff = Math.abs(timeToMins(time) - targetMins);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestTime = time;
+            }
+        }
+        return closestTime;
+    }
+    /**
+     * HELPER 6: Kiểm tra dữ liệu 2 CHIỀU (Logic "LAI" V10 - Vá lỗi Gáp & Chống hỏng dữ liệu)
+     */
+    async function saveReport() {
+        showLoading("Đang kiểm tra dữ liệu..."); 
+
+        const reportDate = getVal('reportDate');
+        const shiftId = getVal('shiftSelect');
+        const shiftSelectEl = document.getElementById('shiftSelect');
+        const selectedOption = shiftSelectEl.options[shiftSelectEl.selectedIndex];
+        const currentShiftStartTime = selectedOption.dataset.start || "00:00";
+
+        // --- (Các kiểm tra cơ bản giữ nguyên) ---
+        if (!reportDate || !shiftId) {
+            hideLoading();
+            return showSwal("error", "Thiếu thông tin", "Vui lòng chọn Ngày và Ca trực trước khi lưu.");
+        }
+        const notes = document.querySelector('.notes-section textarea').value.trim();
+        if (!notes) {
+            hideLoading();
+            return showSwal("error", "Thiếu Nội dung Ca trực", "Vui lòng ghi lại nội dung ca trực và những điều chỉnh công nghệ (nếu có) trước khi lưu.");
+        }
+        const newFilesCount = document.getElementById('report-images').files.length;
+        const existingImagesCount = document.querySelectorAll('#existing-images > div').length;
+        const totalImages = newFilesCount + existingImagesCount;
+        if (totalImages === 0) {
+            hideLoading();
+            return showSwal("error", "Thiếu Hình ảnh Đính kèm", "Báo cáo bắt buộc phải có ít nhất một hình ảnh.");
+        }
+        
+        const currentReportId = `${reportDate}_${currentShiftStartTime}_${shiftId}`;
+        
+        // --- BẮT ĐẦU LOGIC VALIDATION (V10) ---
+        
+        // 1. Lấy thông tin ca hiện tại
+        const currentShift = allReportShifts.find(s => s.id === shiftId);
+        const currentDate = new Date(reportDate + "T00:00:00");
+
+        // 2. TÌM LÙI (Cả 2 cách)
+        const { shift: prevShift, isForPreviousDay } = findPreviousReportShift(currentShift, allReportShifts);
+        let expectedPrevId = null;
+        if (prevShift) {
+            const prevDate = new Date(currentDate);
+            if (isForPreviousDay) prevDate.setDate(prevDate.getDate() - 1);
+            const prevReportDateStr = prevDate.toLocaleDateString('en-CA');
+            const prevShiftStartTime = prevShift.startTime || "00:00";
+            expectedPrevId = `${prevReportDateStr}_${prevShiftStartTime}_${prevShift.id}`;
+        }
+        // Truy vấn tìm "gần nhất" (fallback)
+        const q_prev_nearest = query(collection(db, "shift_reports"), 
+                                where(documentId(), "<", currentReportId), 
+                                orderBy(documentId(), "desc"),
+                                limit(1));
+        
+        // 3. TÌM TIẾN (Cả 2 cách)
+        const { shift: nextShift, isForNextDay } = findNextReportShift(currentShift, allReportShifts);
+        let expectedNextId = null;
+        if (nextShift) {
+            const nextDate = new Date(currentDate);
+            if (isForNextDay) nextDate.setDate(nextDate.getDate() + 1);
+            const nextReportDateStr = nextDate.toLocaleDateString('en-CA');
+            const nextShiftStartTime = nextShift.startTime || "00:00";
+            expectedNextId = `${nextReportDateStr}_${nextShiftStartTime}_${nextShift.id}`;
+        }
+        // Truy vấn tìm "gần nhất" (fallback)
+        const q_next_nearest = query(collection(db, "shift_reports"), 
+                                where(documentId(), ">", currentReportId), 
+                                orderBy(documentId(), "asc"),
+                                limit(1));
+
+        let issues = [];
+
+        try {
+            // 4. Chạy 4 truy vấn song song
+            const [
+                theoreticalPrevSnap, // Ca liền kề (Lý thuyết)
+                nearestPrevSnap,     // Ca gần nhất (Thực tế)
+                theoreticalNextSnap, // Ca liền kề (Lý thuyết)
+                nearestNextSnap      // Ca gần nhất (Thực tế)
+            ] = await Promise.all([
+                (expectedPrevId ? getDoc(doc(db, "shift_reports", expectedPrevId)) : Promise.resolve(null)),
+                getDocs(q_prev_nearest),
+                (expectedNextId ? getDoc(doc(db, "shift_reports", expectedNextId)) : Promise.resolve(null)),
+                getDocs(q_next_nearest)
+            ]);
+            
+            // 5. Hàm kiểm tra LÙI (với chế độ 'strict' và 'loose')
+            const checkMeterBackwards = (currentId, prevValueStr, name, mode) => {
+                const currentVal = parseDisplayValue(getVal(currentId));
+                const prevVal = parseDisplayValue(prevValueStr);
+                if (isNaN(currentVal) || isNaN(prevVal)) return;
+
+                if (mode === 'strict' && currentVal !== prevVal) {
+                    const diff = currentVal - prevVal;
+                    issues.push(`⚠️ **${name} (Đầu ca)** (${formatNumberForDisplay(currentVal)}) không khớp **Cuối ca liền kề** (${formatNumberForDisplay(prevVal)}) (Chênh lệch: ${formatNumberForDisplay(diff)})`);
+                
+                } else if (mode === 'loose' && currentVal < prevVal) {
+                    issues.push(`❌ **${name} (Đầu ca)** (${formatNumberForDisplay(currentVal)}) nhỏ hơn **Cuối ca gần nhất** (${formatNumberForDisplay(prevVal)}) (Phát hiện báo cáo trống)`);
+                }
+            };
+            
+            // 6. Logic LÙI (V10)
+            if (theoreticalPrevSnap && theoreticalPrevSnap.exists()) {
+                // *** CASE 1: KHÔNG CÓ GÁP ***
+                // Tìm thấy ca liền kề (Ca 2, Ngày 25). Phải so sánh NGHIÊM NGẶT (strict).
+                const prevMeters = theoreticalPrevSnap.data().meters;
+                checkMeterBackwards('dien-bt-dau', prevMeters.dien_bt_cuoi, 'Điện BT', 'strict');
+                checkMeterBackwards('dien-cd-dau', prevMeters.dien_cd_cuoi, 'Điện CĐ', 'strict');
+                checkMeterBackwards('dien-td-dau', prevMeters.dien_td_cuoi, 'Điện TĐ', 'strict');
+                checkMeterBackwards('nuoc-dau', prevMeters.nuoc_cuoi, 'Nước cấp', 'strict');
+                checkMeterBackwards('flow-in-start', prevMeters.flow_in_end, 'Đầu vào', 'strict');
+                checkMeterBackwards('flow-out-start', prevMeters.flow_out_end, 'Đầu ra', 'strict');
+
+            } else if (nearestPrevSnap && !nearestPrevSnap.empty) {
+                // *** CASE 2: CÓ GÁP (Trường hợp của bạn) ***
+                // KHÔNG tìm thấy ca liền kề (Ca 2, Ngày 25), 
+                // NHƯNG tìm thấy ca gần nhất (Ca 2, Ngày 24).
+                // Chỉ so sánh LỎNG (loose) (>=).
+                const nearestMeters = nearestPrevSnap.docs[0].data().meters;
+                checkMeterBackwards('dien-bt-dau', nearestMeters.dien_bt_cuoi, 'Điện BT', 'loose');
+                checkMeterBackwards('dien-cd-dau', nearestMeters.dien_cd_cuoi, 'Điện CĐ', 'loose');
+                checkMeterBackwards('dien-td-dau', nearestMeters.dien_td_cuoi, 'Điện TĐ', 'loose');
+                checkMeterBackwards('nuoc-dau', nearestMeters.nuoc_cuoi, 'Nước cấp', 'loose');
+                checkMeterBackwards('flow-in-start', nearestMeters.flow_in_end, 'Đầu vào', 'loose');
+                checkMeterBackwards('flow-out-start', nearestMeters.flow_out_end, 'Đầu ra', 'loose');
+            }
+            // (Nếu không rơi vào 2 case trên, tức là báo cáo đầu tiên, không cần kiểm tra)
+
+            // 7. Hàm kiểm tra TIẾN (Tương tự)
+            const checkMeterForwards = (currentId, nextValueStr, name, mode) => {
+                const currentVal = parseDisplayValue(getVal(currentId));
+                const nextVal = parseDisplayValue(nextValueStr);
+                if (isNaN(currentVal) || isNaN(nextVal)) return;
+
+                if (mode === 'strict' && currentVal !== nextVal) {
+                    const diff = nextVal - currentVal;
+                    issues.push(`⚠️ **${name} (Cuối ca)** (${formatNumberForDisplay(currentVal)}) không khớp **Đầu ca liền kề** (${formatNumberForDisplay(nextVal)}) (Chênh lệch: ${formatNumberForDisplay(diff)})`);
+                
+                } else if (mode === 'loose' && currentVal > nextVal) {
+                    issues.push(`❌ **${name} (Cuối ca)** (${formatNumberForDisplay(currentVal)}) lớn hơn **Đầu ca gần nhất** (${formatNumberForDisplay(nextVal)}) (Phát hiện báo cáo trống)`);
+                }
+            };
+            
+            // 8. Logic TIẾN (V10)
+            if (theoreticalNextSnap && theoreticalNextSnap.exists()) {
+                // *** CASE 3: KHÔNG CÓ GÁP (TIẾN) ***
+                const nextMeters = theoreticalNextSnap.data().meters;
+                checkMeterForwards('dien-bt-cuoi', nextMeters.dien_bt_dau, 'Điện BT', 'strict');
+                checkMeterForwards('dien-cd-cuoi', nextMeters.dien_cd_dau, 'Điện CĐ', 'strict');
+                checkMeterForwards('dien-td-cuoi', nextMeters.dien_td_dau, 'Điện TĐ', 'strict');
+                checkMeterForwards('nuoc-cuoi', nextMeters.nuoc_dau, 'Nước cấp', 'strict');
+                checkMeterForwards('flow-in-end', nextMeters.flow_in_start, 'Đầu vào', 'strict');
+                checkMeterForwards('flow-out-end', nextMeters.flow_out_start, 'Đầu ra', 'strict');
+
+            } else if (nearestNextSnap && !nearestNextSnap.empty) {
+                // *** CASE 4: CÓ GÁP (TIẾN) ***
+                const nearestMeters = nearestNextSnap.docs[0].data().meters;
+                checkMeterForwards('dien-bt-cuoi', nearestMeters.dien_bt_dau, 'Điện BT', 'loose');
+                checkMeterForwards('dien-cd-cuoi', nearestMeters.dien_cd_dau, 'Điện CĐ', 'loose');
+                checkMeterForwards('dien-td-cuoi', nearestMeters.dien_td_dau, 'Điện TĐ', 'loose');
+                checkMeterForwards('nuoc-cuoi', nearestMeters.nuoc_dau, 'Nước cấp', 'loose');
+                checkMeterForwards('flow-in-end', nearestMeters.flow_in_start, 'Đầu vào', 'loose');
+                checkMeterForwards('flow-out-end', nearestMeters.flow_out_start, 'Đầu ra', 'loose');
+            }
+
+        } catch (error) {
+            hideLoading();
+            console.error("Lỗi khi truy vấn so sánh:", error);
+            showSwal("error", "Lỗi truy vấn", "Không thể kiểm tra dữ liệu. Vui lòng thử lại. " + error.message);
+            return;
+        }
+        
+        hideLoading(); // Tắt loading sau khi kiểm tra xong
+
+
+        // 9. Xử lý kết quả kiểm tra (ĐÃ TÍCH HỢP KIỂM TRA NỘI BỘ)
+        const internalIssues = []; // Khai báo mảng lỗi nội bộ
+        // Hàm kiểm tra nội bộ (cuối >= đầu)
+        const checkInternalConsistency = (startId, endId, name) => {
+            const startVal = parseDisplayValue(getVal(startId));
+            const endVal = parseDisplayValue(getVal(endId));
+            // Chỉ thêm lỗi nếu cuối < đầu VÀ cả hai đều là số hợp lệ
+            if (!isNaN(startVal) && !isNaN(endVal) && endVal < startVal) {
+                internalIssues.push(`❌ **${name}:** Cuối ca (${formatNumberForDisplay(endVal)}) < Đầu ca (${formatNumberForDisplay(startVal)})`);
+            }
+            // (Tùy chọn) Thêm kiểm tra nếu một trong hai giá trị bị thiếu/không hợp lệ
+            // else if (isNaN(startVal) || isNaN(endVal)) {
+            //     internalIssues.push(`❓ **${name}:** Thiếu chỉ số đầu hoặc cuối ca.`);
+            // }
+        };
+
+        // Thực hiện kiểm tra nội bộ cho tất cả các cặp
+        checkInternalConsistency('dien-bt-dau', 'dien-bt-cuoi', 'Điện BT');
+        checkInternalConsistency('dien-cd-dau', 'dien-cd-cuoi', 'Điện CĐ');
+        checkInternalConsistency('dien-td-dau', 'dien-td-cuoi', 'Điện TĐ');
+        checkInternalConsistency('nuoc-dau', 'nuoc-cuoi', 'Nước cấp');
+        checkInternalConsistency('flow-in-start', 'flow-in-end', 'Đầu vào');
+        checkInternalConsistency('flow-out-start', 'flow-out-end', 'Đầu ra');
+
+        // Gộp cả hai loại lỗi: lỗi so sánh với ca liền kề (issues) và lỗi nội bộ (internalIssues)
+        const allIssues = [...issues, ...internalIssues];
+
+        // Kiểm tra xem có bất kỳ lỗi nào không (từ cả hai nguồn)
+        if (allIssues.length > 0) {
+            // --- Hiển thị hộp thoại xác nhận ---
+            let swalTitle = '⚠️ Cảnh báo số liệu!';
+            let swalHtml = '';
+            let swalIcon = 'warning'; // Mặc định là cảnh báo
+
+            // Điều chỉnh tiêu đề, nội dung và icon dựa trên loại lỗi
+            if (internalIssues.length > 0) {
+                swalTitle = '🚫 Lỗi Số liệu Nhập!';
+                swalIcon = 'error'; // Nâng lên thành lỗi nếu có 'cuối < đầu'
+                swalHtml += `Phát hiện chỉ số cuối ca nhỏ hơn đầu ca:<br>
+                           <div style="text-align: left; margin-top: 5px; padding-left: 15px; max-height: 100px; overflow-y: auto; background: #ffebee; border: 1px solid #e57373; padding: 5px; border-radius: 4px;">
+                           ${internalIssues.join('<br>')}
+                           </div>`;
+                 if (issues.length > 0) { // Nếu có cả hai loại lỗi
+                     swalTitle = '🚫 Lỗi & Cảnh báo Số liệu!'; // Tiêu đề kết hợp
+                     swalHtml += `<br>Đồng thời có mâu thuẫn với ca liền kề/gần nhất:<br>
+                                <div style="text-align: left; margin-top: 5px; padding-left: 15px; max-height: 100px; overflow-y: auto; background: #fff9e6; border: 1px solid #ffcc80; padding: 5px; border-radius: 4px;">
+                                ${issues.join('<br>')}
+                                </div>`;
+                 }
+            } else { // Chỉ có lỗi 'issues' (so sánh liền kề)
+                swalHtml += `Phát hiện mâu thuẫn với ca liền kề hoặc gần nhất:<br>
+                           <div style="text-align: left; margin-top: 10px; padding-left: 20px; max-height: 150px; overflow-y: auto;">
+                           ${issues.join('<br>')}
+                           </div>`;
+            }
+
+            // Thêm câu hỏi xác nhận vào cuối
+            swalHtml += `<br><b>Bạn có chắc chắn muốn lưu?</b>
+                        <br><small>(Chỉ xác nhận nếu đã thay thế/sửa chữa đồng hồ hoặc số liệu là chính xác).</small>`;
+
+            // Gọi Swal.fire với thông tin đã chuẩn bị
+            const result = await Swal.fire({
+                title: swalTitle,
+                html: swalHtml,
+                icon: swalIcon,
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6', // Đổi màu nút xác nhận nếu cần
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Vẫn Lưu',
+                cancelButtonText: 'Hủy'
+            });
+
+            // Xử lý kết quả xác nhận
+            if (result.isConfirmed) {
+                // (Tùy chọn) Có thể giữ lại kiểm tra cuối ca ở đây để thêm một lớp an toàn,
+                // nhưng nếu checkInternalConsistency đã đủ thì không cần.
+                const flowInEndVal = getVal('flow-in-end');
+                if (!flowInEndVal || isNaN(parseDisplayValue(flowInEndVal))) { // Kiểm tra NaN chặt chẽ hơn
+                    hideLoading();
+                    return showSwal("error", "Thiếu dữ liệu Cuối ca", "Vui lòng nhập chỉ số cuối ca hợp lệ cho Đồng hồ Đầu vào.");
+                }
+                proceedToSave(); // Lưu nếu người dùng xác nhận
+            }
+             // Nếu nhấn Hủy, không làm gì cả (hàm sẽ kết thúc)
+
+        } else {
+            // --- Không có lỗi nào ---
+            // Kiểm tra các trường bắt buộc khác (nếu cần) và lưu
+            const flowInEndVal = getVal('flow-in-end'); // Ví dụ kiểm tra 1 trường
+            if (!flowInEndVal || isNaN(parseDisplayValue(flowInEndVal))) {
+                hideLoading();
+                return showSwal("error", "Thiếu dữ liệu Cuối ca", "Vui lòng nhập chỉ số cuối ca hợp lệ cho Đồng hồ Đầu vào.");
+            }
+            proceedToSave(); // Lưu khi không có lỗi
+        }
+    }
+
+    /**
+     * HELPER 6.5: Tiến hành lưu (Phiên bản ĐÃ SỬA LỖI xử lý ảnh)
+     */
+    async function proceedToSave() {
+        showLoading("Đang xử lý báo cáo..."); 
+
+        // --- 1. LẤY ID VÀ CHUẨN BỊ (Giữ nguyên) ---
+        const reportDate = getVal('reportDate');
+        const shiftId = getVal('shiftSelect');
+        const shiftSelectEl = document.getElementById('shiftSelect');
+        const selectedOption = shiftSelectEl.options[shiftSelectEl.selectedIndex];
+        const shiftStartTime = selectedOption.dataset.start || "00:00";
+        const reportId = `${reportDate}_${shiftStartTime}_${shiftId}`;
+        
+        const docRef = doc(db, "shift_reports", reportId);
+        
+        // Buộc tính toán lại tổng (Giữ nguyên)
+        calculateSum(['dien-bt-dau', 'dien-cd-dau', 'dien-td-dau'], ['dien-bt-cuoi', 'dien-cd-cuoi', 'dien-td-cuoi'], 'dien-sl');
+        calculateSum(['nuoc-dau'], ['nuoc-cuoi'], 'nuoc-sl');
+        calculateSum(['flow-in-start'], ['flow-in-end'], 'flow-in-total');
+        calculateSum(['flow-out-start'], ['flow-out-end'], 'flow-out-total');
+        
+        let newUploadedFiles = []; // Mảng chứa file VỪA TẢI LÊN (để rollback)
+        let oldImageIdsFromDb = []; // Đổi tên: Đây là các ID ảnh gốc từ DB
+
+        const rootFolderId = "1Q_LmzYCD-NWRtmba02SSqVSzhMEIHEpo"; // ID THƯ MỤC GỐC 
+        const subFolderId = await ensureReportFolderOnGAS(reportId, rootFolderId);
+
+        try {
+            // --- 2. THU THẬP DỮ LIỆU (Tạm thời) (Giữ nguyên) ---
+            const reportData = {
+                reportDate: reportDate,
+                shiftId: shiftId,
+                shiftName: selectedOption.text,
+                shiftStartTime: shiftStartTime,
+                handoverStaff: [getVal('handover-staff-1'), getVal('handover-staff-2'), getVal('handover-staff-3')],
+                receivingStaff: [getVal('receiving-staff-1'), getVal('receiving-staff-2'), getVal('receiving-staff-3')],
+                meters: {
+                    dien_bt_dau: getVal('dien-bt-dau'), dien_cd_dau: getVal('dien-cd-dau'), dien_td_dau: getVal('dien-td-dau'),
+                    dien_bt_cuoi: getVal('dien-bt-cuoi'), dien_cd_cuoi: getVal('dien-cd-cuoi'), dien_td_cuoi: getVal('dien-td-cuoi'),
+                    dien_sl: document.getElementById('dien-sl').textContent,
+                    nuoc_dau: getVal('nuoc-dau'), nuoc_cuoi: getVal('nuoc-cuoi'), nuoc_sl: document.getElementById('nuoc-sl').textContent,
+                    flow_in_start: getVal('flow-in-start'), flow_in_end: getVal('flow-in-end'), flow_in_total: document.getElementById('flow-in-total').textContent,
+                    flow_out_start: getVal('flow-out-start'), flow_out_end: getVal('flow-out-end'), flow_out_total: document.getElementById('flow-out-total').textContent,
+                },
+                chemicals: getChemicalsData(),
+                bioSystem: getBioData(),
+                outputWater: getOutputData(),
+                notes: document.querySelector('.notes-section textarea').value,
+                // KHÔNG thêm images/imageIds ở đây
+            };
+
+            // --- 3. BƯỚC UPLOAD (Nguyên tử) (Giữ nguyên) ---
+            const files = document.getElementById('report-images').files;
+
+            if (files.length > 0) {
+
+
+                // Bước 2: Upload song song vào ID thư mục con đó (subFolderId đã có)
+                const uploadPromises = [];
+            for (let file of files) {
+                // Ép nén từng file nếu thỏa điều kiện > 4MB
+                try {
+                    file = await compressImage(file, 4, 0.9);
+                } catch (e) {
+                    console.warn("Bỏ qua lỗi nén ảnh, sử dụng ảnh gốc:", e);
+                }
+                
+                    uploadPromises.push(
+                        uploadFileToGAS_Report(file, subFolderId) 
+                    );
+                }
+                newUploadedFiles = await Promise.all(uploadPromises);
+            }
+            
+            // --- 4. BƯỚC LẤY ẢNH CŨ VÀ ẢNH CÒN GIỮ LẠI (*** PHẦN SỬA LỖI ***) ---
+            
+            // 4a. Lấy danh sách ID ảnh cũ từ DB (để so sánh dọn dẹp)
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                oldImageIdsFromDb = docSnap.data().imageIds || [];
+            }
+
+            // 4b. Lấy danh sách ảnh người dùng MUỐN GIỮ LẠI từ giao diện
+            const keptImages = [];
+            document.querySelectorAll('#existing-images > div').forEach(imgDiv => {
+                // Chỉ lấy những ảnh còn tồn tại trên giao diện
+                if (imgDiv.dataset.id && imgDiv.dataset.url) {
+                    keptImages.push({
+                        id: imgDiv.dataset.id,
+                        url: imgDiv.dataset.url
+                    });
+                }
+            });
+
+            // --- 5. LƯU VÀO FIRESTORE (Ghi đè) (*** PHẦN SỬA LỖI ***) ---
+            
+            // 5a. Kết hợp ảnh CŨ (đã giữ) và ảnh MỚI
+            const finalImages = [...keptImages, ...newUploadedFiles];
+
+            // 5b. Thêm mảng file TỔNG HỢP vào data
+            reportData.images = finalImages.map(f => f.url);
+            reportData.imageIds = finalImages.map(f => f.id);
+            reportData.lastSaved = serverTimestamp();
+
+            await setDoc(docRef, reportData); // Ghi đè toàn bộ với danh sách ảnh ĐÚNG
+
+            // ⭐️ VỊ TRÍ CHÈN LOG LƯU THÀNH CÔNG ⭐️
+            const isUpdate = docSnap.exists(); // Biến này đã được lấy ở (4a)
+            const userEmail = auth.currentUser ? auth.currentUser.email : "unknown";
+            addLog(
+                isUpdate ? "report_update_success" : "report_create_success", 
+                { 
+                    reportId: reportId, 
+                    date: reportDate,
+                    shift: shiftId,
+                    receivingStaff: reportData.receivingStaff.filter(name => name),
+                    email: userEmail 
+                }
+            );
+
+            // ⭐️ VỊ TRÍ CHÈN LOGIC LƯU FILE HTML (MỚI) ⭐️
+            const printReadyHTML = prepareHtmlForSaving(); 
+            generateReportFile(reportId, subFolderId, printReadyHTML, "html");
+
+            // --- 6. DỌN DẸP CUỐI CÙNG (*** PHẦN SỬA LỖI ***) ---
+            
+            // 6a. Tạo Set các ảnh CÒN GIỮ LẠI (để tra cứu nhanh)
+            const finalImageIdSet = new Set(reportData.imageIds);
+
+            // 6b. Tìm các ảnh cần xóa (ảnh có trong DB cũ NHƯNG KHÔNG có trong danh sách cuối cùng)
+            const idsToDelete = oldImageIdsFromDb.filter(oldId => !finalImageIdSet.has(oldId));
+
+            if (idsToDelete.length > 0) {
+                const deletePromises = [];
+                for (const idToDel of idsToDelete) {
+                    // Dùng Helper 11
+                    deletePromises.push(deleteFileFromGAS_Report(idToDel));
+                }
+                // Chạy dọn dẹp, không cần chờ (hoặc dùng allSettled để log lỗi)
+                Promise.allSettled(deletePromises).then(results => {
+                    results.forEach((res, idx) => {
+                        if (res.status === 'rejected') {
+                            console.warn(`Lỗi dọn dẹp file cũ ${idsToDelete[idx]}:`, res.reason);
+                        }
+                    });
+                });
+            }
+
+            // --- 7. THÀNH CÔNG ---
+            hideLoading();
+            showSwal("success", "Đã lưu thành công!", `Đã lưu báo cáo cho ${reportData.shiftName} ngày ${reportDate}.`);
+            document.getElementById('report-images').value = null; // Xóa file input
+
+            // --- BỔ SUNG (QUAN TRỌNG): TẢI LẠI FORM VỀ CHẾ ĐỘ CHỈ XEM ---
+            // Việc này sẽ xóa ảnh cũ, vẽ lại danh sách ảnh ĐÚNG và khóa form
+            populateFormWithData(reportData, 'read-only');
+
+
+        } catch (error) {
+            // --- 8. XỬ LÝ LỖI (ROLLBACK) (Giữ nguyên) ---
+            console.error("Lỗi nghiêm trọng khi lưu báo cáo:", error);
+            // ⭐️ VỊ TRÍ CHÈN LOG LƯU THẤT BẠI ⭐️
+            addLog(
+                "report_save_failure", 
+                { 
+                    reportId: reportId, 
+                    error: error.message,
+                    hasNewFiles: newUploadedFiles.length > 0 // Để biết có rollback không
+                }
+            );
+            
+            if (newUploadedFiles.length > 0) {
+                hideLoading();
+                showLoading(`Lỗi! Đang rollback (xóa ${newUploadedFiles.length} file rác)...`);
+                
+                const deletePromises = [];
+                for (const file of newUploadedFiles) {
+                    deletePromises.push(deleteFileFromGAS_Report(file.id)); // Helper 11
+                }
+                
+                await Promise.allSettled(deletePromises); // Chờ xóa xong
+                
+                hideLoading();
+                showSwal("error", "Lưu báo cáo thất bại!", `Đã xảy ra lỗi: ${error.message}. Các file vừa tải lên đã được dọn dẹp.`);
+            
+            } else {
+                // Lỗi xảy ra ngay lúc upload (hoặc trước đó)
+                hideLoading();
+                showSwal("error", "Lưu báo cáo thất bại!", error.message);
+            }
+        }
+    }
+    /**
+     * HELPER 7 (Nâng cấp v9): Auto-fill "thông minh" (Đã vá lỗi UX cho Lỗ hổng Gáp)
+     */
+    async function smartAutoFill(currentReportId, currentShift, currentDate, modeEditing = false) { 
+        showLoading("Đang tải dữ liệu báo cáo...");
+
+        // 1. Tìm ID ca trước và sau (Logic này rất nhanh, không cần await)
+        const { shift: prevShift, isForPreviousDay } = findPreviousReportShift(currentShift, allReportShifts);
+        let expectedPrevId = null;
+        let prevShiftName = "N/A";
+        if (prevShift) {
+            const prevDate = new Date(currentDate);
+            if (isForPreviousDay) prevDate.setDate(prevDate.getDate() - 1);
+            const prevReportDateStr = prevDate.toLocaleDateString('en-CA');
+            const prevShiftStartTime = prevShift.startTime || "00:00";
+            expectedPrevId = `${prevReportDateStr}_${prevShiftStartTime}_${prevShift.id}`;
+            prevShiftName = `${prevShift.name} (${prevReportDateStr})`;
+        }
+        
+        const { shift: nextShift, isForNextDay } = findNextReportShift(currentShift, allReportShifts);
+        let expectedNextId = null;
+        let nextShiftName = "N/A";
+        if (nextShift) {
+            const nextDate = new Date(currentDate);
+            if (isForNextDay) nextDate.setDate(nextDate.getDate() + 1);
+            const nextReportDateStr = nextDate.toLocaleDateString('en-CA');
+            const nextShiftStartTime = nextShift.startTime || "00:00";
+            expectedNextId = `${nextReportDateStr}_${nextShiftStartTime}_${nextShift.id}`;
+            nextShiftName = `${nextShift.name} (${nextReportDateStr})`;
+        }
+
+        // 2. Khai báo 3 biến chứa kết quả
+        let reportSnap = null;
+        let prevSnap = null;
+        let nextSnap = null;
+
+        try {
+            // 3. Tải song song CẢ 3 báo cáo
+            const promises = [
+                getDoc(doc(db, "shift_reports", currentReportId)) // (Index 0: Ca hiện tại)
+            ];
+
+            if (expectedPrevId) {
+                promises.push(getDoc(doc(db, "shift_reports", expectedPrevId))); // (Index 1: Ca trước)
+            } else {
+                promises.push(Promise.resolve(null)); // Đẩy null vào để giữ vị trí
+            }
+
+            if (expectedNextId) {
+                promises.push(getDoc(doc(db, "shift_reports", expectedNextId))); // (Index 2: Ca sau)
+            } else {
+                promises.push(Promise.resolve(null)); // Đẩy null vào để giữ vị trí
+            }
+
+            // 4. Chờ 1 lần duy nhất cho cả 3
+            [reportSnap, prevSnap, nextSnap] = await Promise.all(promises);
+
+        } catch (error) {
+            hideLoading();
+            console.error("Lỗi khi truy vấn kẹp (song song):", error);
+            showSwal("error", "Lỗi truy vấn", "Không thể tìm dữ liệu ca. " + error.message);
+            return;
+        }
+
+        // 5. Xử lý kết quả (Code này giống hệt code cũ)
+        if (reportSnap.exists() && modeEditing !== 'meter-fill-only') {
+            // Chế độ MẶC ĐỊNH (read-only): Tải toàn bộ form
+            const data = reportSnap.data();
+            const userEmail = auth.currentUser ? auth.currentUser.email : "unknown";
+            addLog("report_view_existing", {
+                reportId: currentReportId,
+                date: data.reportDate,
+                shift: data.shiftId,
+                email: userEmail
+            });
+            populateFormWithData(data, 'read-only'); 
+            hideLoading();
+            showSwal("info", "Đã tải báo cáo", "Đã tải dữ liệu của ca này từ cơ sở dữ liệu.");
+            return;
+        }
+
+        // --- KẾT THÚC CODE MỚI THAY THẾ ---
+
+        // 6. Xử lý kết quả (LOGIC V9)
+        const hasPrevData = prevSnap && prevSnap.exists();
+        const hasNextData = nextSnap && nextSnap.exists();
+        let dataToFill = { meters: {} };
+        let fillMode = 'auto-fill'; 
+        let swalTitle = "Đã tải ca mới";
+        let swalMessage = "Vui lòng nhập số liệu.";
+        let swalIcon = "info";
+
+        // 7. Xử lý điền dữ liệu
+        if (hasPrevData) {
+            // CÓ TÌM THẤY CA TRƯỚC -> Tự động điền đầu ca
+            const prevMeters = prevSnap.data().meters;
+            dataToFill.meters.dien_bt_dau = prevMeters.dien_bt_cuoi;
+            dataToFill.meters.dien_cd_dau = prevMeters.dien_cd_cuoi;
+            dataToFill.meters.dien_td_dau = prevMeters.dien_td_cuoi;
+            dataToFill.meters.nuoc_dau = prevMeters.nuoc_cuoi;
+            dataToFill.meters.flow_in_start = prevMeters.flow_in_end;
+            dataToFill.meters.flow_out_start = prevMeters.flow_out_end;
+            
+            swalTitle = "Đã tự động điền";
+            swalMessage = "Các chỉ số đầu ca đã được lấy từ ca trước.";
+            swalIcon = "success";
+
+        } else if (expectedPrevId) {
+            // CÓ CA TRƯỚC VỀ MẶT LÝ THUYẾT, NHƯNG KHÔNG TÌM THẤY DỮ LIỆU
+            // ⭐️ ĐÂY LÀ PHẦN SỬA LỖI UX ⭐️
+            swalTitle = "Báo cáo bị thiếu!";
+            swalMessage = `Không tìm thấy dữ liệu của ca liền kề (${prevShiftName}). Vui lòng nhập chỉ số đầu ca thủ công.`;
+            swalIcon = "warning";
+        
+        } else {
+            // Không có ca trước về mặt lý thuyết
+            swalTitle = "Ca mới";
+            swalMessage = "Không có ca trước, vui lòng nhập chỉ số đầu ca thủ công.";
+            swalIcon = "info";
+        }
+
+        if (hasNextData) {
+            // CÓ TÌM THẤY CA SAU -> Tự động điền cuối ca
+            const nextMeters = nextSnap.data().meters;
+            dataToFill.meters.dien_bt_cuoi = nextMeters.dien_bt_dau;
+            dataToFill.meters.dien_cd_cuoi = nextMeters.dien_cd_dau;
+            dataToFill.meters.dien_td_cuoi = nextMeters.dien_td_dau;
+            dataToFill.meters.nuoc_cuoi = nextMeters.nuoc_dau;
+            dataToFill.meters.flow_in_end = nextMeters.flow_in_start;
+            dataToFill.meters.flow_out_end = nextMeters.flow_out_start;
+
+            fillMode = 'sandwich-fill'; // ⭐️ SỬA V9: Chuyển sang sandwich-fill
+            
+            if (hasPrevData) {
+                // Trường hợp kẹp đủ (có cả trước và sau)
+                swalTitle = "Báo cáo bổ sung (Kẹp)";
+                swalMessage = "Đã tự động điền và khóa chỉ số đầu/cuối ca.";
+                swalIcon = "success";
+
+            } else {
+                // Bị kẹp nhưng thiếu ca trước (VÍ DỤ CỦA BẠN)
+                swalTitle = "Báo cáo bổ sung (Thiếu)";
+                swalMessage = `Đã khóa chỉ số cuối ca (từ ca sau), nhưng ca trước (${prevShiftName}) bị thiếu. Vui lòng nhập đầu ca.`;
+                swalIcon = "warning"; // ⭐️ SỬA V9: Cảnh báo
+            }
+        }
+
+        // 8. Gọi hàm populate
+        populateFormWithData(dataToFill, fillMode); 
+        
+        hideLoading();
+        // 9. Chỉ thông báo nếu không ở chế độ sửa
+        if (modeEditing !== 'meter-fill-only') {
+            // Gọi hàm với một đối tượng options
+            showSwal(swalIcon, swalTitle, {
+                html: swalMessage,  // ⭐️ Truyền nội dung vào thuộc tính 'html'
+                timer: 4000         // ⭐️ Cho 4 giây để đọc
+            });
+        }
+    }
+    /**
+     * HELPER 8: Dọn dẹp (reset) toàn bộ biểu mẫu
+     */
+    function clearForm() {
+        // Kích hoạt lại các ô (phòng khi đang ở chế độ "chỉ xem")
+        document.querySelectorAll('.container input, .container select, .container textarea').forEach(el => {
+            el.disabled = false;
+        });
+        // Dọn dẹp các ô input mét
+        const meterInputs = ['dien-bt-dau', 'dien-cd-dau', 'dien-td-dau', 'dien-bt-cuoi', 'dien-cd-cuoi', 'dien-td-cuoi', 'nuoc-dau', 'nuoc-cuoi', 'flow-in-start', 'flow-in-end', 'flow-out-start', 'flow-out-end'];
+        meterInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+
+        // Dọn dẹp các ô span tính toán
+        const spanOutputs = ['dien-sl', 'nuoc-sl', 'flow-in-total', 'flow-out-total'];
+        spanOutputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '0';
+        });
+
+        // Dọn dẹp các bảng động (chỉ dọn nội dung, giữ 2 dòng mẫu)
+        ['bio-table', 'output-table'].forEach(tableId => {
+            document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+                row.querySelectorAll('input').forEach(input => input.value = '');
+            });
+        });
+        // Dọn bảng hóa chất
+        document.querySelectorAll('#chemicals-table tbody tr').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            if(inputs[0] && inputs[0].placeholder.includes("khác")) {
+                inputs[0].value = ''; // Chỉ xóa dòng "khác"
+            }
+            if(inputs[1]) inputs[1].value = ''; // Luôn xóa số lượng
+        });
+
+        // Dọn ghi chú
+        const notesTextArea = document.querySelector('.notes-section textarea');
+        if (notesTextArea) notesTextArea.value = '';
+
+        document.getElementById('existing-images').innerHTML = '';
+
+        // RESET NÚT LƯU VỀ TRẠNG THÁI BAN ĐẦU
+        const saveBtn = document.getElementById('save-report-btn');
+        saveBtn.textContent = '💾 Lưu Báo cáo';
+        saveBtn.style.display = 'block';
+        saveBtn.onclick = saveReport; // ⭐️ LUÔN GÁN LẠI HÀM saveReport ⭐️
+    }
+    /**
+     * HELPER 9: Đổ dữ liệu (populate) - Chế độ CHỈ XEM thực sự
+     * mode: 'read-only' | 'sandwich-fill' | 'auto-fill'
+     * (Đã sửa logic khóa 'sandwich-fill' để xử lý ca bị thiếu)
+     */
+    function populateFormWithData(data, mode = 'read-only') {
+        const isReadOnlyMode = (mode === 'read-only');
+        // Hàm helper để set giá trị
+        const setAndBlur = (id, value) => {
+            const el = document.getElementById(id);
+            // ⭐️ SỬA 2: Cho phép điền chuỗi rỗng ("")
+            if (el && value != null) { 
+                el.value = value;
+                // Gửi cả sự kiện blur VÀ change
+                el.dispatchEvent(new Event('blur', { bubbles: true })); 
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
+        // Danh sách TẤT CẢ các ô mét
+        const meterInputIds = [
+            'dien-bt-dau', 'dien-cd-dau', 'dien-td-dau', 'dien-bt-cuoi', 'dien-cd-cuoi', 'dien-td-cuoi',
+            'nuoc-dau', 'nuoc-cuoi', 'flow-in-start', 'flow-in-end', 'flow-out-start', 'flow-out-end'
+        ];
+
+        // 1. LUÔN LUÔN điền các chỉ số mét (nếu có trong dataToFill)
+        // Áp dụng cho cả 3 chế độ
+        if (data.meters) {
+            Object.keys(data.meters).forEach(key => {
+                const id = key.replace(/_/g, '-'); 
+                const el = document.getElementById(id);
+                if (el && el.tagName === 'INPUT') {
+                    setAndBlur(id, data.meters[key]);
+                } else if (el && el.tagName === 'SPAN') {
+                    // Cập nhật các ô span tính toán (nếu là read-only)
+                    if (mode === 'read-only') el.textContent = data.meters[key];
+                }
+            });
+        }
+
+        // --- 2. XỬ LÝ KHÓA Ô (ĐÃ SỬA LOGIC V9) ---
+        meterInputIds.forEach(id => { // Mở khóa tất cả trước
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+        
+        // ⭐️ BẮT ĐẦU SỬA LỖI ⭐️
+        if (mode === 'sandwich-fill') { // Khóa khi là sandwich
+            
+            // LOGIC MỚI: Chỉ khóa những ô CÓ DỮ LIỆU.
+            // Điều này cho phép trường hợp "kẹp thiếu" (ví dụ: thiếu ca trước)
+            // khóa "cuối ca" (đã điền) nhưng vẫn mở "đầu ca" (bị trống).
+            meterInputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (el.value) { // Chỉ khóa nếu ô CÓ giá trị
+                        el.disabled = true;
+                    } else {
+                        el.disabled = false; // Để mở nếu ô rỗng
+                    }
+                }
+            });
+            // ⭐️ KẾT THÚC SỬA LỖI ⭐️
+
+            // Tính toán lại tổng (vẫn giữ nguyên)
+            calculateSum(['dien-bt-dau', 'dien-cd-dau', 'dien-td-dau'], ['dien-bt-cuoi', 'dien-cd-cuoi', 'dien-td-cuoi'], 'dien-sl');
+            calculateSum(['nuoc-dau'], ['nuoc-cuoi'], 'nuoc-sl');
+            calculateSum(['flow-in-start'], ['flow-in-end'], 'flow-in-total');
+            calculateSum(['flow-out-start'], ['flow-out-end'], 'flow-out-total');
+        }
+
+        // --- 3. ĐIỀN PHẦN CÒN LẠI VÀ KHÓA (NẾU LÀ READ-ONLY) ---
+        const existingImagesContainer = document.getElementById('existing-images');
+        if (mode === 'read-only') {
+            existingImagesContainer.innerHTML = '';
+            // Điền Nhân viên
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`handover-staff-${i}`).value = (data.handoverStaff && data.handoverStaff[i - 1]) || "";
+                document.getElementById(`receiving-staff-${i}`).value = (data.receivingStaff && data.receivingStaff[i - 1]) || "";
+            });
+
+            // Hóa chất
+            if (data.chemicals) {
+                const rows = document.querySelectorAll('#chemicals-table tbody tr');
+                data.chemicals.forEach((chem, index) => {
+                    if (rows[index]) {
+                        rows[index].querySelectorAll('input')[0].value = chem.chemicalName;
+                        rows[index].querySelectorAll('input')[1].value = chem.quantity;
+                    }
+                });
+            }
+            // Sinh học
+            if (data.bioSystem) {
+                const rows = document.querySelectorAll('#bio-table tbody tr');
+                data.bioSystem.forEach((bio, index) => {
+                    if (rows[index]) {
+                        const inputs = rows[index].querySelectorAll('input');
+                        inputs[0].value = bio.time;
+                        inputs[1].value = bio.do_anoxic;
+                        inputs[2].value = bio.do_aero1;
+                        inputs[3].value = bio.do_aero2;
+                        inputs[4].value = bio.sv30_anoxic;
+                        inputs[5].value = bio.sv30_aero1;
+                        inputs[6].value = bio.sv30_aero2;
+                    }
+                });
+            }
+            // Nước đầu ra
+            if (data.outputWater) {
+                const rows = document.querySelectorAll('#output-table tbody tr');
+                data.outputWater.forEach((out, index) => {
+                    if (rows[index]) {
+                        const inputs = rows[index].querySelectorAll('input');
+                        inputs[0].value = out.time;
+                        inputs[1].value = out.ph;
+                        inputs[2].value = out.cod;
+                        inputs[3].value = out.n;
+                        inputs[4].value = out.tss;
+                        inputs[5].value = out.clo;
+                    }
+                });
+            }
+
+            // Ghi chú
+            const notesTextArea = document.querySelector('.notes-section textarea');
+            if (notesTextArea && data.notes) {
+                notesTextArea.value = data.notes;
+            }
+
+            // *** HIỂN THỊ ẢNH ĐÍNH KÈM HIỆN CÓ (ĐÃ SỬA LỖI XEM ẢNH) ***
+            
+            if (data.images && data.imageIds && data.images.length === data.imageIds.length) {
+                
+                data.images.forEach((imageUrl, index) => {
+                    const imageId = data.imageIds[index];
+                    
+                    const imgDiv = document.createElement('div');
+                    imgDiv.style.border = '1px solid #ccc';
+                    imgDiv.style.padding = '3px';
+                    imgDiv.style.borderRadius = '4px';
+                    imgDiv.dataset.id = imageId; // Vẫn lưu ID
+                    imgDiv.dataset.url = imageUrl; // Vẫn lưu URL
+
+                    // --- BỎ THẺ A, THÊM SỰ KIỆN ONCLICK ĐỂ MỞ MODAL ---
+                    const img = document.createElement('img');
+                    img.src = getDriveThumbnailUrl(imageUrl); // Dùng thumbnail cho nhanh
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.display = 'block';
+                    img.style.cursor = 'pointer'; // Thêm con trỏ chuột
+                    img.title = "Nhấn để xem ảnh"; // Thêm gợi ý
+
+                    // Thêm sự kiện onclick để mở SweetAlert2 (ĐÃ SỬA LỖI IFRAME - V6)
+                    img.onclick = () => {
+                        // 1. SỬ DỤNG HELPER ĐÃ CÓ để lấy link ảnh trực tiếp
+                        const directImageUrl = getDriveLargePreviewUrl(imageUrl, 1200); 
+
+                        Swal.fire({
+                            width: '90vw', 
+                            padding: '0.25em',
+                            // 2. SỬ DỤNG <img> thay vì <iframe>
+                            html: `
+                                <img 
+                                    src="${directImageUrl}" 
+                                    style="
+                                        width: 100%;          /* Tự động lấp đầy chiều rộng modal */
+                                        max-height: 85vh;     /* Giới hạn chiều cao */
+                                        object-fit: contain;  /* Đảm bảo xem được toàn bộ ảnh, không bị cắt */
+                                    "
+                                />
+                            `,
+                            showConfirmButton: false,
+                            showCloseButton: true,
+                            backdrop: `rgba(0,0,0,0.7)`
+                        });
+                    };
+                    imgDiv.appendChild(img); // Đưa thẳng img vào div
+                    
+                    // KHÔNG THÊM NÚT XÓA Ở CHẾ ĐỘ NÀY
+
+                    existingImagesContainer.appendChild(imgDiv);
+                });
+            }
+
+            // *** CHUYỂN SANG CHẾ ĐỘ "CHỈ XEM" (KHÓA MỌI THỨ) ***
+            document.querySelectorAll('.container input, .container select, .container textarea').forEach(el => {
+                // KHÔNG khóa input file để họ có thể CHỌN file mới KHI nhấn Sửa
+                if (el.id !== 'report-images') { 
+                    el.disabled = true;
+                }
+            });
+            // Kích hoạt lại các nút điều khiển chính
+            document.getElementById('reportDate').disabled = false;
+            document.getElementById('shiftSelect').disabled = false;
+            
+            // *** ĐỔI NÚT LƯU THÀNH NÚT SỬA ***
+            const saveBtn = document.getElementById('save-report-btn');
+            saveBtn.textContent = '📝 Sửa Báo cáo';
+            saveBtn.style.display = 'block'; 
+            // Gắn sự kiện để kích hoạt chế độ sửa (sẽ làm ở bước sau)
+            saveBtn.onclick = enableEditMode; 
+        }
+    }
+    /**
+     * HELPER 9.5: Kích hoạt chế độ sửa báo cáo
+     * Logic: Mở khóa form, thêm nút xóa ảnh, và gọi auto-fill CHỈ cho chỉ số mét.
+     */
+    async function enableEditMode() { 
+        
+        // ⭐️ SỬA LỖI: Chuyển 4 dòng khai báo này TỪ CUỐI HÀM LÊN ĐÂY ⭐️
+        const reportDate = document.getElementById('reportDate').value;
+        const shiftSelectEl = document.getElementById('shiftSelect');
+        const shiftId = shiftSelectEl.value;
+        const selectedOption = shiftSelectEl.options[shiftSelectEl.selectedIndex];
+
+        // ⭐️ VỊ TRÍ CHÈN LOG (Giờ đã an toàn) ⭐️        
+        if (selectedOption && shiftId) {
+            const shiftStartTime = selectedOption.dataset.start || "00:00";
+            const currentReportId = `${reportDate}_${shiftStartTime}_${shiftId}`;
+                
+            const userEmail = auth.currentUser ? auth.currentUser.email : "unknown";
+            addLog("report_edit_initiated", { 
+                reportId: currentReportId,
+                date: reportDate,
+                shift: shiftId,
+                email: userEmail
+            });
+        }       
+        
+        // 1. Mở khóa tất cả các ô input/select/textarea (trừ Ngày và Ca)
+        document.querySelectorAll('.container input, .container select, .container textarea').forEach(el => {
+            if (el.id !== 'reportDate' && el.id !== 'shiftSelect') {
+                el.disabled = false;
+            }
+        });
+
+        // 2. Thêm nút xóa (🗑️) vào các ảnh hiện có (Giữ nguyên)
+        document.querySelectorAll('#existing-images > div').forEach(imgDiv => {
+            if (!imgDiv.querySelector('.remove-image-btn')) {
+                imgDiv.style.position = 'relative';
+                 const removeBtn = document.createElement('button');
+                 removeBtn.textContent = '🗑️';
+                 removeBtn.className = 'remove-image-btn'; 
+                 removeBtn.style.position = 'absolute';
+                 removeBtn.style.top = '0px';
+                 removeBtn.style.right = '0px';
+                 removeBtn.style.background = 'rgba(255, 0, 0, 0.7)';
+                 removeBtn.style.color = 'white';
+                 removeBtn.style.border = 'none';
+                 removeBtn.style.borderRadius = '0 3px 0 3px';
+                 removeBtn.style.cursor = 'pointer';
+                 removeBtn.style.fontSize = '14px';
+                 removeBtn.style.lineHeight = '1';
+                 removeBtn.onclick = () => {
+                     imgDiv.remove();
+                 };
+                 imgDiv.appendChild(removeBtn);
+            }
+        });
+
+        // 3. Đổi nút "Sửa" thành nút "Lưu Thay Đổi" và gán lại sự kiện saveReport
+        const saveBtn = document.getElementById('save-report-btn');
+        saveBtn.textContent = '💾 Lưu Thay Đổi';
+        saveBtn.onclick = saveReport; // Gán lại hàm saveReport gốc
+        
+        // 4. Kích hoạt logic Auto-fill CHỈ cho chỉ số mét
+        
+        // ⭐️ SỬA LỖI: Xóa 4 dòng 'const' ở đây vì chúng đã được chuyển lên trên
+        
+        if (reportDate && shiftId) { // Bây giờ chỉ cần dùng lại biến
+            const currentReportId = `${reportDate}_${selectedOption.dataset.start || "00:00"}_${shiftId}`; // Đơn giản hóa
+            const currentShift = allReportShifts.find(s => s.id === shiftId);
+            const currentDate = new Date(reportDate + "T00:00:00");
+            
+            // ⭐️ SỬA ĐỔI QUAN TRỌNG: Dùng 'meter-fill-only' để KHÔNG xóa/vẽ lại ảnh ⭐️
+            await smartAutoFill(currentReportId, currentShift, currentDate, 'meter-fill-only');
+        }
+    }
+
+    // Lấy URL của Google Apps Script (từ script.js)
+    const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
+
+    /**
+     * HELPER 10: Tải 1 file (đã sửa)
+     * Gửi file lên GAS vào một ID thư mục con cụ thể.
+     */
+    async function uploadFileToGAS_Report(file, targetFolderId) { // <-- Sửa tham số
+        const user = auth.currentUser;
+        if (!user) throw new Error("Chưa đăng nhập");
+
+        const idToken = await user.getIdToken();
+
+        // Hàm toBase64 (giữ nguyên)
+        const toBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result.split(",")[1]);
+            reader.onerror = (error) => reject(error);
+        });
+
+        const base64 = await toBase64(file);
+
+        // Chuẩn bị dữ liệu gửi đi (SỬA LẠI)
+        const body = new URLSearchParams();
+        body.append("idToken", idToken);
+        body.append("action", "uploadReportImage"); // Action cũ
+        body.append("file", base64);
+        body.append("name", file.name); 
+        body.append("type", file.type);
+        body.append("targetFolderId", targetFolderId); // ⭐️ Gửi ID thư mục con
+        // (Xóa 2 dòng "folderId" và "reportId" cũ)
+
+        const res = await fetch(DRIVE_API_URL, { method: "POST", body });
+        const result = await res.json();
+
+        if (result.error) {
+            addLog("report_upload_failure", { email: user.email, file: file.name, error: result.error });
+            throw new Error(result.error);
+        }
+
+        addLog("report_upload_success", { email: user.email, file: file.name, fileId: result.id });
+        return { url: result.link, id: result.id };
+    }
+    /**
+     * HELPER 10.5: Gọi GAS để "Đảm bảo thư mục tồn tại"
+     * Sẽ chạy 1 lần, dùng LockService an toàn trên server.
+     */
+    async function ensureReportFolderOnGAS(reportId, rootFolderId) {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Chưa đăng nhập");
+        const idToken = await user.getIdToken();
+
+        const body = new URLSearchParams();
+        body.append("idToken", idToken);
+        body.append("action", "ensureReportFolder"); // ⭐️ ACTION MỚI
+        body.append("folderId", rootFolderId);     // Thư mục gốc
+        body.append("reportId", reportId);         // Tên báo cáo
+
+        const res = await fetch(DRIVE_API_URL, { method: "POST", body });
+        const result = await res.json();
+
+        if (result.error || !result.success) {
+            throw new Error(result.error || "Không thể tạo thư mục báo cáo");
+        }
+
+        return result.id; // Trả về ID thư mục con
+    }
+    /**
+     * HELPER 11: Xóa 1 file (tùy biến cho Báo Cáo Ca)
+     * Gọi action "delete" trên Google Apps Script (gs7.txt)
+     */
+    async function deleteFileFromGAS_Report(fileId) {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Chưa đăng nhập");
+
+        const idToken = await user.getIdToken();
+        
+        const body = new URLSearchParams();
+        body.append("idToken", idToken);
+        body.append("action", "delete"); // ⭐️ Dùng action "delete" đã có
+        body.append("fileId", fileId);
+
+        const res = await fetch(DRIVE_API_URL, { method: "POST", body });
+        const result = await res.json();
+        
+        if (result.error) {
+            addLog("report_delete_failure", { email: user.email, fileId, error: result.error });
+            throw new Error(result.error);
+        }
+        
+        addLog("report_delete_success", { email: user.email, fileId });
+        return result;
+    }
+    /**
+     * HELPER 12: Gọi GAS để tạo và lưu file HTML/TEXT lưu trữ
+     */
+    async function generateReportFile(reportId, folderId, content, fileType = "html") {
+        const user = auth.currentUser;
+        if (!user) return console.error("Lỗi lưu file: Chưa đăng nhập.");
+
+        try {
+            const idToken = await user.getIdToken();
+
+            const body = new URLSearchParams();
+            body.append("idToken", idToken);
+            body.append("action", "createReportFile"); // ⭐️ ACTION MỚI TRÊN GAS
+            body.append("reportId", reportId);
+            body.append("folderId", folderId);
+            body.append("content", content); // Nội dung file
+            body.append("fileType", fileType); // Loại file (HTML)
+            
+            // Chạy fetch không cần chờ kết quả (tối ưu tốc độ)
+            const res = await fetch(DRIVE_API_URL, { method: "POST", body });
+            const result = await res.json();
+
+            if (result.error || !result.success) {
+                console.error("Lỗi GAS khi tạo file lưu trữ:", result.error || "Lỗi không xác định");
+                addLog("file_creation_failure", { reportId, error: result.error, email: user.email });
+            } else {
+                 console.log(`Đã tạo và lưu file lưu trữ: ${result.link}`);
+                 addLog("file_creation_success", { reportId, fileId: result.id, email: user.email });
+            }
+
+        } catch (error) {
+            console.error("Lỗi kết nối khi tạo file lưu trữ:", error);
+            addLog("file_creation_connection_error", { reportId, error: error.message, email: user.email });
+        }
+    }
+    /**
+     * HELPER X: Chuẩn bị HTML bằng cách áp dụng CSS In (onbeforeprint) cho mục đích lưu file.
+     * Tái cấu trúc để tối ưu bố cục văn bản cho file lưu trữ.
+     */
+    function prepareHtmlForSaving() {
+        
+        // 1. CHẠY LOGIC ONBEFOREPRINT (tạo các span thay thế cho input, ẩn các phần tử không cần thiết)
+        window.onbeforeprint(); 
+
+        // 2. LẤY NỘI DUNG HTML ĐÃ THAY ĐỔI
+        const contentDiv = document.getElementById('pageContent');
+        let htmlContent = contentDiv.outerHTML; 
+
+        // 3. HOÀN TÁC ONBEFOREPRINT NGAY LẬP TỨC
+        window.onafterprint(); 
+
+        // 4. TRẢ VỀ CHUỖI HTML TỐI GIẢN VÀ CÓ BỐ CỤC (ĐÃ CẮT ĐÔI THẺ ĐÓNG)
+        // Đây là nơi áp dụng các quy tắc CSS để tạo bố cục thuận mắt
+        const shiftName = document.getElementById('shiftSelect').options[document.getElementById('shiftSelect').selectedIndex].text;
+        
+        return `
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+                <meta charset="UTF-8">
+                <title>Báo cáo ${getVal('reportDate')} - ${shiftName}</title>
+                <style>
+                    /* --- CSS CƠ BẢN ĐỂ THUẬN MẮT --- */
+                    body { 
+                        font-family: 'Times New Roman', Times, serif; 
+                        font-size: 12pt; /* Kích thước chữ chuẩn văn bản */
+                        line-height: 1.3;
+                        margin: 0; padding: 0; 
+                    }
+
+                    /* ⭐️ SỬA 1: CANH GIỮA TIÊU ĐỀ ⭐️ */
+                    header { 
+                        text-align: center; 
+                        margin-bottom: 10px; /* Giảm margin cho gọn */
+                    }
+                    header h2 {
+                        text-align: center; 
+                        font-size: 18px; 
+                    }
+                    
+                    /* ⭐️ KHẮC PHỤC LỖI CĂN CHỈNH HEADER ⭐️ */
+                    .header-info { 
+                        display: flex; /* Bật Flexbox để xếp ngang */
+                        justify-content: space-between; /* Đẩy "Ngày" và "Ca trực" ra hai bên */
+                        align-items: flex-start; /* Căn trên cùng */
+                        margin-bottom: 10px;
+                        padding: 0 5px;
+                        font-weight: bold; /* Thêm font-weight vì nó bị mất khi ẩn input */
+                    }
+                    .header-info div {
+                        /* Đảm bảo các khối con không chiếm toàn bộ chiều rộng */
+                        display: inline-flex; /* Dùng inline-flex cho các khối Ngày/Ca trực */
+                        gap: 8px; /* Giữ khoảng cách giữa label và giá trị */
+                    }
+                    
+                    /* ⭐️ KHẮC PHỤC LỖI CĂN CHỈNH BẢNG STAFF ⭐️ */
+                    .staff-section {
+                        display: flex; /* Bật Flexbox để xếp 2 bảng ngang nhau */
+                        gap: 10px;      /* Khoảng cách giữa 2 bảng */
+                        margin-bottom: 10px;
+                    }
+                    .staff-table {
+                        flex: 1; /* Cho phép mỗi bảng chiếm 50% */
+                        table-layout: auto; /* Tự động điều chỉnh độ rộng cột */
+                    }
+
+                    /* ⭐️ SỬA 2: VIỀN LIỀN CHO Ô KÝ TÊN ⭐️ */
+                    .staff-table td:last-child { 
+                        border: 1px solid #000 !important; /* Áp dụng viền liền cho ô */
+                        border-bottom: 1px solid #000 !important; 
+                        height: 30px; 
+                    }
+
+                    /* ⭐️ KHẮC PHỤC LỖI QUAN TRỌNG: Ẩn input gốc, hiện span ⭐️ */
+                    .container input, 
+                    .container select, 
+                    .container textarea {
+                        display: none !important; /* Ẩn toàn bộ input/select/textarea gốc */
+                    }
+                    .print-only-span { 
+                        display: block !important; 
+                        color: #000 !important;
+                        padding: 0; /* Đã có ở dưới, nhưng thêm ở đây để ưu tiên */
+                    }
+                    /* Cần sửa lại cho các ô header */
+                    .header-info .print-only-span {
+                        display: inline !important; /* Đảm bảo giá trị xếp ngang hàng với label */
+                        width: auto !important;
+                    }
+                    
+                    /* --- CÁC QUY TẮC BẢNG VÀ KHUNG --- */
+                    @page { 
+                        size: A4; 
+                        margin: 2.5cm 2cm 2.5cm 2.5cm; /* Căn lề chuẩn A4 */
+                    }
+                    .main-container, .container, #pageContent {
+                        width: 100%; max-width: 750px; 
+                        margin: 0 auto; padding: 10px;
+                        box-shadow: none; border: none; background: #fff;
+                    }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; table-layout: fixed; }
+                    th, td { border: 1px solid #000; padding: 5px; text-align: center; vertical-align: top; }
+                    th { background-color: #f0f0f0; }
+
+                    /* Điều chỉnh các phần tử đã chuyển thành SPAN */
+                    .staff-table td:last-child { border: none; border-bottom: 1px dotted #000; height: 30px; }
+
+                    /* ẨN TOÀN BỘ CÁC PHẦN TỬ GIAO DIỆN KHÔNG CẦN THIẾT */
+                    .print-button, #menu-placeholder, #footer-placeholder, #shiftConfig, 
+                    #image-title, #existing-images, #report-images, .action-row, .form-group {
+                        display: none !important; 
+                    }
+                    .notes-section .print-only-span {
+                        min-height: 100px;
+                        border: 1px solid #999;
+                        padding: 5px;
+                        text-align: left;
+                        white-space: pre-wrap; 
+                    }
+                </style>
+            </head>
+            <body>
+                ${htmlContent}
+            </body` + `>
+            </html` + `>
+        `;
+    }
+
+// --- BỔ SUNG LOGIC IN ẤN (V4 - GIẢI PHÁP TẠO SPAN) ---
+    
+    // Hàm này sẽ xóa các span "chỉ-để-in"
+    function removePrintSpans() {
+        document.querySelectorAll('.print-only-span').forEach(span => span.remove());
+    }
+
+    window.onbeforeprint = function() {
+        
+        // 1. Dọn dẹp cũ (nếu có)
+        removePrintSpans(); 
+        
+        // 2. Mở khóa tạm thời (vẫn cần thiết cho chế độ "chỉ xem")
+        let disabledElements = [];
+        document.querySelectorAll('.container input:disabled, .container select:disabled, .container textarea:disabled').forEach(el => {
+            el.disabled = false;
+            disabledElements.push(el); 
+        });
+
+        // 3. Tạo SPAN cho INPUT và TEXTAREA (Đã sửa định dạng ngày)
+        document.querySelectorAll('.container input, .container textarea').forEach(el => {
+            let val = el.value || '...'; // Lấy giá trị mặc định
+
+            // --- BẮT ĐẦU SỬA LỖI ĐỊNH DẠNG NGÀY IN ---
+            if (el.id === 'reportDate' && el.value) {
+                try {
+                    const parts = el.value.split('-'); // ["2025", "10", "23"]
+                    val = `${parts[2]}/${parts[1]}/${parts[0]}`; // "23/10/2025"
+                } catch (e) {
+                    val = el.value; // Nếu lỗi, giữ nguyên
+                }
+            }
+            // --- KẾT THÚC SỬA LỖI ---
+
+            const span = document.createElement('span');
+            span.textContent = val;
+            span.className = 'print-only-span'; // Đặt class để CSS
+            
+            // Căn lề cho SPAN dựa trên class của INPUT
+            if (el.classList.contains('number-input')) {
+                span.style.textAlign = 'right';
+            } else if (el.classList.contains('input-small')) {
+                span.style.textAlign = 'center';
+            }
+            
+            // Chèn span vào ngay sau input/textarea
+            el.parentNode.insertBefore(span, el.nextSibling);
+        });
+        
+        // 4. Tạo SPAN cho SELECT (Đã sửa lỗi "Chọn nhân viên")
+        document.querySelectorAll('.container select').forEach(el => {
+            let val = ''; // Mặc định là chuỗi rỗng
+
+            // Chỉ lấy text nếu value KHÔNG RỖNG (tức là không phải "--- Chọn nhân viên ---")
+            if (el.value !== "" && el.selectedIndex >= 0 && el.options[el.selectedIndex]) { 
+                 val = el.options[el.selectedIndex].text;
+            }
+            
+            const span = document.createElement('span');
+            span.textContent = val; // Sẽ là "" nếu không chọn
+            span.className = 'print-only-span';
+            span.style.textAlign = 'left';
+            span.style.paddingLeft = '5px';
+            el.parentNode.insertBefore(span, el.nextSibling);
+        });
+
+        // 5. Khóa lại các ô đã mở
+        disabledElements.forEach(el => el.disabled = true);
+        
+    };
+
+    // 6. Dọn dẹp SAU KHI IN
+    window.onafterprint = function() {
+        removePrintSpans(); // Xóa tất cả các span đã tạo
+    };
+    // --- KẾT THÚC LOGIC IN ẤN V4 ---
+    

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biểu đồ Thống kê</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <!-- Thêm thư viện Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .chart-container {
+      position: relative;
+      height: 60vh;
+      width: 100%;
+      margin-top: 20px;
+      background: var(--surface-color);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    @media (max-width: 768px) {
+      .chart-container {
+        height: 50vh;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+  <div id="alert-placeholder"></div>   
+  <div id="notLogged" style="display:none;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <h2>📈 Biểu đồ Lưu lượng Xả thải</h2>
+
+    <div class="card-body">
+      <div class="filter-box">
+        <label><span class="mobile-hide-text">Từ ngày: </span><input type="date" id="fromDate"></label>
+        <label><span class="mobile-hide-text">Đến ngày: </span><input type="date" id="toDate"></label>
+        <label class="mobile-hide-label">Năm:
+          <select id="yearSelect">
+            <option value="">--Chọn năm--</option>
+          </select>
+        </label>
+        <button id="applyFilter">Áp dụng</button>
+      </div>
+      
+      <div class="chart-container">
+        <canvas id="usageChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="bieudo.js"></script>
+</body>
+</html>

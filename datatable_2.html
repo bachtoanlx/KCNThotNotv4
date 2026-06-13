@@ -53,12 +53,12 @@
     }
     
     /* Tối ưu nút xóa cho compact mode */
-    .delBtn {
-        padding: 2px 8px !important;
-        font-size: 12px !important;
-        height: 24px !important;
-        line-height: 1 !important;
-        min-height: 0 !important;
+    body .delBtn {
+        padding: 2px 8px;
+        font-size: 12px;
+        height: 24px;
+        line-height: 1;
+        min-height: 0;
     }
     
     .clickable-cell {
@@ -80,48 +80,8 @@
         display: none;
     }
 
-    .admin-visible {
-        display: table-cell !important;
-    }
-
-    /* --- CSS MỚI CHO THANH TÌM KIẾM VÀ CHECKBOX NẰM NGANG --- */
-    .search-row {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-    .special-filter-label {
-        background: #fff3cd;
-        padding: 0 12px;
-        height: 35px;
-        display: flex;
-        align-items: center;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: bold;
-        white-space: nowrap;
-        color: #856404;
-        margin: 0;
-        cursor: pointer;
-        border: 1px solid #ffeeba;
-        box-sizing: border-box;
-        transition: all 0.2s;
-    }
-    .special-filter-label:hover {
-        background: #ffe8a1;
-    }
-    .special-filter-label input {
-        margin: 0 6px 0 0 !important;
-        width: 15px;
-        height: 15px;
-        accent-color: #d35400;
-        cursor: pointer;
-    }
-
-    @media (min-width: 769px) {
-        .special-text-long { display: inline; }
-        .special-text-short { display: none; }
+    body .admin-visible {
+        display: table-cell;
     }
 
     /* RESPONSIVE MOBILE */
@@ -130,55 +90,55 @@
       
       /* Khóa cuộn toàn bộ trang */
       html, body, html.swal2-height-auto, body.swal2-height-auto {
-        height: 100vh !important;
-        height: 100dvh !important;
-        overflow: hidden !important;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
       }
       
       /* Bật cuộn độc lập cho phần nội dung chính */
-      body #pageContent {
-        display: block !important; /* Ghi đè display: flex từ JS để cuộn dọc hoạt động đúng */
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
-        -webkit-overflow-scrolling: touch !important;
+      body #pageContent:not([style*="none"]) {
+        display: block !important; /* Ghi đè JS để cuộn dọc đúng, nhưng tôn trọng trạng thái Ẩn */
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1 1 auto;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
         padding: 0 8px; /* Đồng bộ padding ngang */
       }
       
       /* Cố định Menu và Footer */
-      #menu-placeholder,
-      #footer-placeholder {
-        flex: 0 0 auto !important;
-        z-index: 100 !important;
+      body #menu-placeholder,
+      body #footer-placeholder {
+        flex: 0 0 auto;
+        z-index: 100;
       }
 
       /* Khắc phục lỗi overflow của các thẻ bọc ngăn cản sticky và cuộn */
-      .card-body, .card {
-          display: block !important;
-          overflow: visible !important;
-          padding-top: 0 !important;
+      body .card-body, body .card {
+          display: block;
+          overflow: visible;
+          padding-top: 0;
       }
 
-      .table-container {
-          display: block !important;
-          overflow-x: auto !important;
-          overflow-y: visible !important;
-          -webkit-overflow-scrolling: touch !important;
+      body .table-container {
+          display: block;
+          overflow-x: auto;
+          overflow-y: visible;
+          -webkit-overflow-scrolling: touch;
           margin-top: 5px; /* Thêm khoảng cách để không bị dính vào search-row */
       }
       
       /* 1. Cố định Tiêu đề "Bảng dữ liệu" */
       #pageContent > h2 {
-          position: -webkit-sticky !important;
-          position: sticky !important;
-          top: 0 !important;
-          z-index: 62 !important;
-          background-color: #f8fafc !important;
-          padding: 10px 5px 5px 5px !important;
-          margin: 0 -8px !important; /* Bù lại padding của #pageContent */
-          width: calc(100% + 16px) !important;
-          box-sizing: border-box !important;
+          position: -webkit-sticky;
+          position: sticky;
+          top: 0;
+          z-index: 62;
+          background-color: var(--bg-color);
+          padding: 10px 5px 5px 5px;
+          margin: 0 -8px; /* Bù lại padding của #pageContent */
+          width: calc(100% + 16px);
+          box-sizing: border-box;
           -webkit-transform: translate3d(0,0,0);
           transform: translate3d(0,0,0);
       }
@@ -280,71 +240,55 @@
         text-overflow: clip !important;
       }
       
-        .search-row {
-            gap: 6px;
-            margin-bottom: 6px;
-        }
-        .special-filter-label {
-            height: 27px; /* Cân đối với chiều cao ô tìm kiếm trên mobile */
-            padding: 0 8px;
-            font-size: 11px;
-        }
-        .special-filter-label input {
-            width: 12px;
-            height: 12px;
-            margin-right: 4px !important;
-        }
-        .special-text-long { display: none; }
-        .special-text-short { display: inline; }
 
       /* --- SỬA LỖI CĂN CHỈNH BỘ LỌC TRÊN MOBILE --- */
-      .filter-box {
+      body .filter-box {
         width: 100%; /* Đảm bảo container chiếm toàn bộ chiều rộng */
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 40px !important; /* Giảm khoảng cách với tiêu đề h2 */
-        z-index: 61 !important;
-        background-color: #f8fafc !important;
-        margin: 0 -8px !important;
-        padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
-        width: calc(100% + 16px) !important;
-        box-sizing: border-box !important;
-        box-shadow: 0 -10px 0 0 #f8fafc !important; /* Lấp khoảng hở với h2 */
+        position: -webkit-sticky;
+        position: sticky;
+        top: 40px; /* Giảm khoảng cách với tiêu đề h2 */
+        z-index: 61;
+        background-color: var(--bg-color);
+        margin: 0 -8px;
+        padding: 4px 8px; /* Giảm padding dọc, đồng bộ padding ngang */
+        width: calc(100% + 16px);
+        box-sizing: border-box;
+        box-shadow: 0 -10px 0 0 var(--bg-color); /* Lấp khoảng hở với h2 */
         -webkit-transform: translate3d(0,0,0);
         transform: translate3d(0,0,0);
       }
 
-      .search-row {
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 75px !important; /* 40px (h2) + 35px (filter-box height) */
-        z-index: 60 !important;
-        background-color: #f8fafc !important;
-        margin: 0 -8px !important;
-        padding: 4px 8px !important; /* Giảm padding dọc, đồng bộ padding ngang */
-        width: calc(100% + 16px) !important;
-        box-sizing: border-box !important;
-        box-shadow: 0 -10px 0 0 #f8fafc, 0 4px 6px -4px rgba(0,0,0,0.1) !important; /* Lấp khoảng hở với filter-box và đổ bóng dưới */
+      body .search-row {
+        position: -webkit-sticky;
+        position: sticky;
+        top: 75px; /* 40px (h2) + 35px (filter-box height) */
+        z-index: 60;
+        background-color: var(--bg-color);
+        margin: 0 -8px;
+        padding: 4px 8px; /* Giảm padding dọc, đồng bộ padding ngang */
+        width: calc(100% + 16px);
+        box-sizing: border-box;
+        box-shadow: 0 -10px 0 0 var(--bg-color), 0 4px 6px -4px rgba(0,0,0,0.1); /* Lấp khoảng hở với filter-box và đổ bóng dưới */
         -webkit-transform: translate3d(0,0,0);
         transform: translate3d(0,0,0);
       }
       /* Ẩn label của select năm đi */
-      .filter-box label:has(#yearSelect) {
+      body .filter-box label:has(#yearSelect) {
           display: none;
       }
       /* Cho các thành phần còn lại co giãn lấp đầy */
-      .filter-box > label,
-      .filter-box > button#applyFilter {
+      body .filter-box > label,
+      body .filter-box > button#applyFilter {
           flex: 1; /* Chia đều không gian */
           min-width: 0; /* Cho phép co lại */
-          margin: 0 !important; /* Xóa lề thừa */
+          margin: 0; /* Xóa lề thừa */
       }
-      .filter-box > label {
-          gap: 0 !important; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
+      body .filter-box > label {
+          gap: 0; /* Triệt tiêu khoảng trống ảo do chữ bị ẩn gây ra */
       }
       /* Ghi đè lại input bên trong để nó chiếm 100% label cha */
-      .filter-box label input[type="date"] {
-          width: 100% !important; /* Quan trọng: Ghi đè width: 90px từ styles.css */
+      body .filter-box label input[type="date"] {
+          width: 100%; /* Quan trọng: Ghi đè width: 90px từ styles.css */
           box-sizing: border-box; /* Đảm bảo padding không làm tràn */
       }
     }
@@ -364,79 +308,71 @@
     }
 
     /* Giảm khoảng cách dưới menu */
-    nav.navbar {
-        margin-bottom: 5px !important;
+    body nav.navbar {
+        margin-bottom: 5px;
     }
-    
-    /* --- TỐI ƯU HÓA KHÔNG GIAN (COMPACT MODE) --- */
-    h2 {
-        margin: 2px 0 5px 0 !important;
-        font-size: 1.3rem !important;
-    }
-    
-    .filter-box {
-        margin: 0 5 5px 0 !important;
-        gap: 5px !important;
-    }
-    
-    .filter-box input, .filter-box select, .filter-box button {
-        height: 28px !important;
-        padding: 2px 8px !important;
-        font-size: 13px !important;
-    }
-    
-    .search-container {
-        margin-bottom: 5px !important;
-    }
-    /* --------------------------------------------- */
 
     /* --- BẢN SỬA LỖI HIỂN THỊ FOOTER & CUỘN BẢNG (CHỈ ÁP DỤNG DESKTOP) --- */
     @media (min-width: 769px) {
+        /* --- TỐI ƯU HÓA KHÔNG GIAN (COMPACT MODE) CHỈ DÀNH CHO DESKTOP --- */
+        body h2 {
+            margin: 2px 0 5px 0;
+            font-size: 1.3rem;
+        }
+        
+        body .filter-box {
+            margin: 0 5px 5px 0;
+            gap: 5px;
+        }
+        
+        body .search-container {
+            margin-bottom: 5px;
+        }
+
         html, body {
-            width: 100% !important;
-            height: 100% !important;
-            height: 100dvh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
         }
         
         body {
-            display: flex !important;
-            flex-direction: column !important;
-            padding: 4px !important;
-            box-sizing: border-box !important;
+            display: flex;
+            flex-direction: column;
+            padding: 4px;
+            box-sizing: border-box;
         }
         
-        #menu-placeholder, #footer-placeholder {
-            flex: 0 0 auto !important;
+        body #menu-placeholder, body #footer-placeholder {
+            flex: 0 0 auto;
             width: 100%;
             z-index: 100;
         }
 
-        #pageContent {
-            flex: 1 1 auto !important; 
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-            min-height: 0 !important;
-            width: 100%;
-        }
-
-        .card-body {
+        body #pageContent:not([style*="none"]) {
             flex: 1 1 auto !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-            min-height: 0 !important;
-            padding: 0 !important;
+            display: flex !important; /* Tôn trọng trạng thái Ẩn trước khi đăng nhập */
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
             width: 100%;
         }
 
-        .table-container {
-            flex: 1 1 auto !important; 
-            min-height: 0 !important; 
-            overflow: auto !important; 
+        body .card-body {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+            width: 100%;
+        }
+
+        body .table-container {
+            flex: 1 1 auto; 
+            min-height: 0; 
+            overflow: auto; 
             -webkit-overflow-scrolling: touch; 
             width: 100%;
         }
@@ -449,7 +385,7 @@
   <div id="alert-placeholder"></div>
 
   <div id="notLogged" style="display:none;">
-    ❌ Bạn cần đăng nhập để truy cập trang này.
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
   </div>
 
   <div id="pageContent" style="display:none;">
@@ -493,554 +429,14 @@
           <tbody></tbody>
         </table>
         <div style="text-align: center; margin-top: 15px; padding-bottom: 20px;">
-            <button id="loadMoreBtn" style="display: none; background: #273668; color: white; padding: 8px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">⬇️ Cuộn để tải thêm...</button>
+            <button id="loadMoreBtn" class="btn-action btn-primary" style="display: none; padding: 8px 20px;">⬇️ Cuộn để tải thêm...</button>
         </div>
         </div>
     </div>
   </div>
-<div id="footer-placeholder" style="display:none;"></div>
+<div id="footer-placeholder"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-  <script type="module">
-    // === 1. IMPORT ===
-    import { auth, onAuth, deleteReport, getRole, showLoading, hideLoading, showSwal, showConfirmSwal, 
-             getReportsByDate, db } from "./script.js";
-    import { collection, query, where, orderBy, getDocs, limit, doc, getDoc, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-    import { initMenu } from "./menu.js";
-
-    // === 2. TẢI GIAO DIỆN CHUNG ===
-    fetch("menu.html").then(r => r.text()).then(h => {
-      document.getElementById("menu-placeholder").innerHTML = h;
-      initMenu();
-    });
-    fetch("modal.html").then(r => r.text()).then(h => {
-      document.getElementById("loading-placeholder").innerHTML = h;
-    });
-    
-    // (Footer sẽ được tải bên trong onAuth)
-
-    // === 3. THAM CHIẾU DOM VÀ BIẾN TOÀN CỤC ===
-    const notLogged = document.getElementById("notLogged");
-    const content   = document.getElementById("pageContent");
-    const footer = document.getElementById("footer-placeholder");
-    const tbody     = document.querySelector("#dataTable tbody");
-    const searchInput = document.getElementById("searchInput");
-    const fromInput = document.getElementById("fromDate");
-    const toInput = document.getElementById("toDate");
-    const yearSelect = document.getElementById("yearSelect");
-    const applyFilterBtn = document.getElementById("applyFilter");
-    const specialWorkdayFilterInput = document.getElementById("specialWorkdayFilter"); 
-    const loadMoreBtn = document.getElementById("loadMoreBtn");
-    
-    let currentFilter = { from: null, to: null };
-    let initialLoad = true;
-    let allSearchData = [];
-    let userRole = null;
-    let highlightTimeout = null; // Biến debounce cho highlight
-    
-    let lastDoc1 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 1
-    let lastDoc2 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 2
-    let hasMore1 = true;
-    let hasMore2 = true;
-    const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
-    let isFetching = false; // Khóa để tránh tải trùng lặp
-    let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
-    const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
-
-    // === 4. CÁC HÀM TIỆN ÍCH ===
-    function formatISODate(d) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
-    function getRecordDate(record) {
-        return record.ngay_nghi || record.ngay_lam_db;
-    }
-    const formatTimestamp = (timestamp) => {
-        if (!timestamp) return "";
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        return date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '/');
-    };
-    
-    // === 5. CÁC HÀM RENDER VÀ SỰ KIỆN ===
-    const attachDeleteEventListeners = () => {
-      document.querySelectorAll(".delBtn").forEach(btn => {
-          btn.addEventListener("click", async () => {
-              const id = btn.dataset.id;
-              const isConfirmed = await showConfirmSwal(
-                  "Xác nhận xóa báo cáo",
-                  "Bạn có chắc muốn **Xóa vĩnh viễn** không? Hành động này không thể hoàn tác.",
-                  "Có, xóa báo cáo", "Không, hủy bỏ", "error"
-              );
-              if (isConfirmed) {
-                  showLoading("Đang xóa dữ liệu...");
-                  try {
-                      await deleteReport("reports_2", id); 
-                      showSwal("success", "Đã xóa báo cáo!");
-                      await fetchAndRenderData(false); // Tải lại data sau khi xóa
-                  } catch (err) {
-                      console.error("Lỗi khi xóa báo cáo:", err);
-                      showSwal("error", "Lỗi khi xóa", "Không thể xóa báo cáo. Vui lòng thử lại.");
-                  } finally {
-                      hideLoading();
-                  }
-              }
-          });
-      });
-    };
-
-    const filterAndRenderData = (data, query) => {
-        const isSpecialWorkdayFilterActive = specialWorkdayFilterInput ? specialWorkdayFilterInput.checked : false;
-        let fromDate = null;
-        let toDate = null;
-        const now = new Date();
-        const currentYearStart = formatISODate(new Date(now.getFullYear(), 0, 1)); 
-        if (currentFilter.from) fromDate = new Date(currentFilter.from); 
-        else fromDate = new Date(currentYearStart); 
-        if (currentFilter.to) toDate = new Date(currentFilter.to);
-        else toDate = now; 
-        toDate.setHours(23,59,59,999);
-        
-        // Lọc theo checkbox
-        let filteredByDate = data.filter(r => {
-            const dateString = getRecordDate(r); 
-            if (!dateString) return false; 
-            const d = new Date(dateString);
-            if (isNaN(d)) return false; 
-            
-            if (isSpecialWorkdayFilterActive && !r.isSpecialWorkday) {
-                return false;
-            }
-            // (Lọc theo ngày đã được Firebase xử lý, không cần lọc lại)
-            return true;
-        });
-        
-        // Lọc theo tìm kiếm
-        const lowerCaseQuery = query.toLowerCase().trim();
-        const isAdmin = userRole === "admin";
-        const filteredData = filteredByDate.filter(item => { 
-            const searchString = [
-                item.createdBy, item.company, item.ghi_chu, getRecordDate(item)
-            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
-            return searchString.includes(lowerCaseQuery);
-        });
-        
-        // Sắp xếp
-        filteredData.sort((a, b) => {
-            const dateA = new Date(getRecordDate(a) || 0);
-            const dateB = new Date(getRecordDate(b) || 0);
-            return dateB - dateA; // Mới nhất lên đầu
-        });
-        
-        // ⭐️ BỎ LOGIC slice VÌ ĐÃ LIMIT Ở FIREBASE
-        let finalData = filteredData;
-
-        // Render
-        tbody.innerHTML = ""; // ⭐️ Xóa nội dung cũ trước khi render
-
-        // Xóa timeout cũ nếu có (debounce)
-        if (highlightTimeout) {
-            clearTimeout(highlightTimeout);
-            highlightTimeout = null;
-        }
-        // Xóa class highlight cũ nếu đang chạy dở
-        document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
-        
-        if (finalData.length === 0) {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `<td colspan="8" style="text-align: center; color: #cc0000; font-style: italic; padding: 20px;">
-                Dữ liệu đang tìm không có hoặc nằm ngoài vùng hiển thị, hãy điều chỉnh để có kết quả tìm chính xác hơn.
-            </td>`;
-            tbody.appendChild(tr);
-            
-            // Hiệu ứng nhắc nhở người dùng
-            highlightTimeout = setTimeout(() => {
-                const filterBox = document.querySelector('.filter-box');
-                if (filterBox) {
-                    filterBox.classList.add('highlight-area');
-                    setTimeout(() => {
-                        filterBox.classList.remove('highlight-area');
-                        if (loadMoreBtn) {
-                            loadMoreBtn.classList.add('highlight-area');
-                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
-                        }
-                    }, 2000);
-                }
-            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
-            return;
-        }
-
-        let html = "";
-        let sttCounter = 1; 
-        finalData.forEach(r => {
-            const fileLink = r.fileUrl ? `<a href="${r.fileUrl}" target="_blank">Link</a>` : "";
-            const formattedTime = formatTimestamp(r.updatedAt || r.createdAt);
-            let combinedGhiChu = r.ghi_chu || "";
-            let displayGhiChu = combinedGhiChu;
-            
-            if (r.ngay_lam_db) {
-                combinedGhiChu += `<br><b>(Ngày làm ĐB: ${r.ngay_lam_db})</b>`; 
-                displayGhiChu += ` (Ngày làm ĐB: ${r.ngay_lam_db})`;
-            }
-            
-            // Xử lý loại bỏ thẻ <br> để hiển thị 1 dòng trên bảng
-            displayGhiChu = displayGhiChu.replace(/<br\s*\/?>/gi, " | ");
-
-            const displayDate = r.ngay_nghi || ""; 
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                    <td>${sttCounter++}</td> 
-                    <td class="admin-only">${r.createdBy || ""}</td>
-                    <td>${r.company || ""}</td>
-                    <td>${displayDate}</td> 
-                    <td><div class="clickable-cell" title="Nhấn xem chi tiết">${displayGhiChu}</div></td> 
-                    <td>${fileLink}</td>
-                    <td class="admin-only">${formattedTime}</td>
-                    <td class="admin-only"><button type="button" data-id="${r.id}" class="delBtn">Xóa</button></td>`;
-            
-            const noteCell = tr.querySelector('.clickable-cell');
-            if (noteCell) {
-                noteCell._fullContent = combinedGhiChu || "Không có ghi chú";
-                noteCell._previewContent = displayGhiChu;
-
-                noteCell.addEventListener('click', function(e) {
-                    const currentDiv = e.currentTarget;
-                    const isExpanded = currentDiv.classList.contains('expanded');
-
-                    // 1. Thu gọn tất cả các dòng khác đang mở
-                    document.querySelectorAll('.clickable-cell.expanded').forEach(div => {
-                        if (div !== currentDiv) {
-                            div.classList.remove('expanded');
-                            div.innerHTML = div._previewContent;
-                            div.title = "Nhấn xem chi tiết";
-                        }
-                    });
-
-                    // 2. Toggle dòng hiện tại
-                    if (isExpanded) {
-                        currentDiv.classList.remove('expanded');
-                        currentDiv.innerHTML = currentDiv._previewContent;
-                        currentDiv.title = "Nhấn xem chi tiết";
-                    } else {
-                        currentDiv.classList.add('expanded');
-                        currentDiv.innerHTML = currentDiv._fullContent;
-                        currentDiv.title = "Nhấn để thu gọn";
-                    }
-                });
-            }
-            
-            tbody.appendChild(tr);
-        });
-        // tbody.innerHTML = html;
-        attachDeleteEventListeners();
-        document.querySelectorAll("#dataTable th.admin-only, #dataTable td.admin-only").forEach(el => {
-            el.style.display = isAdmin ? "table-cell" : "none";
-        });
-    };
-
-    // === 6. HÀM TẢI DỮ LIỆU MỚI ===
-    async function fetchAndRenderData(isLoadMore = false) {
-        if (isFetching) return;
-        isFetching = true;
-        
-        // Tự động điền ngày mặc định nếu trống và không chọn năm
-        if (!yearSelect.value) {
-            if (!fromInput.value) {
-                const currentYear = new Date().getFullYear();
-                fromInput.value = `${currentYear}-01-01`;
-            }
-            if (!toInput.value) {
-                const now = new Date();
-                toInput.value = formatISODate(now);
-            }
-        }
-
-        // 1. Lấy ngày
-        const fromVal = fromInput.value;
-        const toVal = toInput.value;
-        const yearVal = yearSelect.value;
-        
-        let startDate, endDate;
-        const todayISO = formatISODate(new Date());
-        const currentYearStart = new Date().getFullYear() + '-01-01';
-
-        if (yearVal) {
-            startDate = `${yearVal}-01-01`;
-            const currentYear = new Date().getFullYear();
-            if (parseInt(yearVal) === currentYear) {
-                endDate = todayISO;
-            } else {
-                endDate = `${yearVal}-12-31`;
-            }
-            currentFilter.from = startDate;
-            currentFilter.to = endDate;
-            // Cập nhật UI
-            fromInput.value = startDate;
-            toInput.value = endDate;
-        } else if (fromVal && toVal) {
-            startDate = fromVal;
-            endDate = toVal;
-            currentFilter.from = startDate;
-            currentFilter.to = endDate;
-        } else if (toVal) {
-            startDate = currentYearStart;
-            endDate = toVal;
-            currentFilter.from = startDate;
-            currentFilter.to = endDate;
-        } else if (fromVal) {
-            startDate = fromVal;
-            endDate = todayISO;
-            currentFilter.from = startDate;
-            currentFilter.to = endDate;
-        } else {
-            startDate = currentFilter.from || currentYearStart;
-            endDate = currentFilter.to || todayISO;
-            // Cập nhật lại filter toàn cục
-            currentFilter.from = startDate;
-            currentFilter.to = endDate;
-        }
-        
-        if (!isLoadMore) {
-            lastDoc1 = null; 
-            lastDoc2 = null; 
-            hasMore1 = true;
-            hasMore2 = true;
-            autoLoadCount = 0; 
-        }
-
-        if (loadMoreBtn && isLoadMore) {
-            loadMoreBtn.textContent = "⏳ Đang tải...";
-        }
-
-        if (!isLoadMore) showLoading("Đang tải dữ liệu...");
-        
-        try {
-            let promises = [];
-            let snap1 = null, snap2 = null;
-
-            if (hasMore1) {
-                let q1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", startDate), where("ngay_nghi", "<=", endDate), orderBy("ngay_nghi", "desc"), limit(LIMIT_PER_PAGE));
-                if (isLoadMore && lastDoc1) q1 = query(q1, startAfter(lastDoc1));
-                promises.push(getDocs(q1).then(s => { snap1 = s; }));
-            }
-
-            if (hasMore2) {
-                let q2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", startDate), where("ngay_lam_db", "<=", endDate), orderBy("ngay_lam_db", "desc"), limit(LIMIT_PER_PAGE));
-                if (isLoadMore && lastDoc2) q2 = query(q2, startAfter(lastDoc2));
-                promises.push(getDocs(q2).then(s => { snap2 = s; }));
-            }
-            
-            await Promise.all(promises);
-
-            let newReports = [];
-
-            if (snap1) {
-                if (snap1.empty) {
-                    hasMore1 = false;
-                } else {
-                    lastDoc1 = snap1.docs[snap1.docs.length - 1];
-                    newReports.push(...snap1.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    if (snap1.docs.length < LIMIT_PER_PAGE) hasMore1 = false;
-                }
-            }
-
-            if (snap2) {
-                if (snap2.empty) {
-                    hasMore2 = false;
-                } else {
-                    lastDoc2 = snap2.docs[snap2.docs.length - 1];
-                    newReports.push(...snap2.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    if (snap2.docs.length < LIMIT_PER_PAGE) hasMore2 = false;
-                }
-            }
-
-            if (isLoadMore) {
-                const combinedMap = new Map();
-                allSearchData.forEach(item => combinedMap.set(item.id, item));
-                newReports.forEach(item => combinedMap.set(item.id, item));
-                allSearchData = Array.from(combinedMap.values());
-            } else {
-                const combinedMap = new Map();
-                newReports.forEach(item => combinedMap.set(item.id, item));
-                allSearchData = Array.from(combinedMap.values());
-            }
-
-            if (loadMoreBtn) {
-                loadMoreBtn.style.background = "#273668"; 
-                if (!hasMore1 && !hasMore2) {
-                    loadMoreBtn.style.display = 'none';
-                } else {
-                    loadMoreBtn.style.display = 'inline-block';
-                    loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
-                }
-            }
-            
-            filterAndRenderData(allSearchData, searchInput.value);
-        } catch (err) {
-             console.error("Lỗi khi tải reports_2:", err);
-             showSwal("error", "Lỗi tải dữ liệu", err.message);
-             if (!isLoadMore) allSearchData = [];
-        } finally {
-             if (!isLoadMore) hideLoading();
-             isFetching = false; 
-        }
-    }
-    
-    // === 7. BỘ XỬ LÝ SỰ KIỆN LỌC ===
-    function resetYearSelectIfEditingDates() {
-      if (yearSelect && yearSelect.value !== "") yearSelect.value = "";
-    }
-    [fromInput, toInput].forEach(el => {
-      if (!el) return;
-      el.addEventListener("focus", resetYearSelectIfEditingDates);
-      el.addEventListener("input", resetYearSelectIfEditingDates);
-      el.addEventListener("change", resetYearSelectIfEditingDates);
-    });
-
-    if(applyFilterBtn) {
-        applyFilterBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await fetchAndRenderData(false);
-            hideLoading();
-        });
-    }
-
-    if(yearSelect) {
-        yearSelect.addEventListener("change", async (e) => {
-            await fetchAndRenderData(false);
-            hideLoading(); 
-        });
-    }
-
-    if (specialWorkdayFilterInput) {
-        specialWorkdayFilterInput.addEventListener("change", () => {
-            // Chỉ render lại, không tải lại
-            filterAndRenderData(allSearchData, searchInput.value);
-        });
-    }
-
-    // === 8. HÀM ON AUTH (ĐÃ SỬA LỖI FOOTER VÀ TẢI NĂM) ===
-    onAuth(async (user) => {
-        if (user) {
-            notLogged.style.display = "none";
-            
-            // Tải footer nhưng chưa hiển thị
-            fetch("footer.html").then(r => r.text()).then(h => {
-                if (footer) footer.innerHTML = h;
-            });
-            
-            showLoading("Đang tải cấu hình..."); 
-            
-            try {
-                // 1. Cài đặt UI Admin
-                userRole = await getRole(user.email);
-                const isAdmin = userRole === "admin";
-                document.querySelectorAll("#dataTable th.admin-only").forEach(th => {
-                    th.style.display = isAdmin ? "table-cell" : "none";
-                });
-
-                // --- 2. TẢI DANH SÁCH NĂM TỰ ĐỘNG (CÁCH ĐƠN GIẢN HƠN) ---
-                let years = [];
-                // ⭐️ TỐI ƯU HÓA: Tạo danh sách năm tự động từ 2024 đến năm hiện tại (0 Lượt đọc)
-                const currentYear = new Date().getFullYear();
-                for (let y = currentYear; y >= 2024; y--) {
-                    years.push(y.toString());
-                }
-                
-                const ys = document.getElementById("yearSelect");
-                if(ys) {
-                    ys.innerHTML = `<option value="">--Chọn năm--</option>`;
-                    years.forEach(y => {
-                        ys.innerHTML += `<option value="${y}">${y}</option>`;
-                    });
-                }
-                // --- KẾT THÚC TẢI NĂM ---
-
-                // 3. Thiết lập bộ lọc mặc định
-                if(initialLoad) {
-                    const currentYear = new Date().getFullYear().toString();
-                    if (years.includes(currentYear) && ys) {
-                      const todayISO = formatISODate(new Date());
-                      const currentYearStart = currentYear + '-01-01';
-                      fromInput.value = currentYearStart;
-                      toInput.value = todayISO;
-                      currentFilter.from = currentYearStart;
-                      currentFilter.to = todayISO; 
-                      ys.value = currentYear;
-                    } else if (years.length > 0) {
-                        fromInput.value = `${years[0]}-01-01`;
-                        toInput.value = `${years[0]}-12-31`;
-                        currentFilter.from = `${years[0]}-01-01`;
-                        currentFilter.to = `${years[0]}-12-31`;
-                        ys.value = years[0];
-                    }
-                    initialLoad = false;
-                }
-
-                // 4. Tải dữ liệu chính (Lần đầu)
-                // (Hàm này sẽ bật loading, nhưng không tắt nó)
-                await fetchAndRenderData(); 
-                
-                // 5. HIỂN THỊ NỘI DUNG VÀ FOOTER
-                content.style.display = "flex"; 
-                if (footer) footer.style.display = "block";
-
-            } catch (err) {
-                 showSwal("error", "Lỗi tải dữ liệu", err.message);
-                 console.error("Lỗi onAuth:", err); 
-                 if (footer) footer.style.display = "none";
-            } finally {
-                // 6. Luôn tắt loading TỔNG ở cuối cùng
-                hideLoading(); 
-            }
-            
-            // 7. Gắn listener
-            searchInput.addEventListener("input", () => {
-                filterAndRenderData(allSearchData, searchInput.value);
-            });
-            
-            // MỚI: Xử lý click nút tải thêm (phòng khi Intersection Observer không nhạy)
-            if (loadMoreBtn) {
-                loadMoreBtn.addEventListener('click', () => {
-                    autoLoadCount = 0; // Reset lại bộ đếm, cấp "quota" cho 5 lần cuộn tự động tiếp theo
-                    loadMoreBtn.style.background = "#273668";
-                    fetchAndRenderData(true);
-                });
-            }
-
-            // MỚI: Intersection Observer cho Infinite Scroll (Cuộn tới đâu tải tới đó)
-            if (loadMoreBtn) {
-                const handleIntersection = (entries) => {
-                    // Nếu nút xuất hiện trên màn hình và không phải đang tải dở
-                    if (entries[0].isIntersecting && !isFetching && loadMoreBtn.style.display !== 'none') {
-                        if (autoLoadCount < MAX_AUTO_LOADS) {
-                            autoLoadCount++;
-                            fetchAndRenderData(true); // Gửi cờ 'true' để nối thêm data
-                        } else {
-                            loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
-                            loadMoreBtn.style.background = "#d35400"; // Đổi sang màu cam cảnh báo
-                        }
-                    }
-                };
-                
-                // Theo dõi cuộn trong vùng chứa bảng (Desktop)
-                const observer = new IntersectionObserver(handleIntersection, { root: document.querySelector('.table-container'), rootMargin: "100px", threshold: 0.1 });
-                observer.observe(loadMoreBtn);
-                
-                // Theo dõi cuộn toàn trang (Mobile)
-                const windowObserver = new IntersectionObserver(handleIntersection, { root: null, rootMargin: "100px", threshold: 0.1 });
-                windowObserver.observe(loadMoreBtn);
-            }
-
-        } else {
-            notLogged.style.display = "block";
-            content.style.display = "none";
-            if (footer) footer.style.display = "none"; 
-            hideLoading(); 
-        }
-    });
-  </script>
+  <script type="module" src="datatable_2.js"></script>
 </body>
 </html>

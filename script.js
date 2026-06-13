@@ -60,7 +60,6 @@ export const db = initializeFirestore(app, {
 });
 export const messaging = getMessaging(app);
 
-
 // ====== AUTH ======
 export function onAuth(callback) {
   onAuthStateChanged(auth, callback);
@@ -1793,6 +1792,7 @@ export function showSwal(type, title, options = {}) { // Đổi 'message' thành
     title: title, // Dùng title (Tiêu đề)
     
     html: options.html || null, 
+    heightAuto: false, // Chống giật trang
 
     width: options.width || '400px',
     showConfirmButton: options.showConfirmButton || false,
@@ -1829,6 +1829,7 @@ export async function showConfirmSwal(
         cancelButtonText: cancelText,   // Tên nút Hủy tùy chỉnh
         allowOutsideClick: false,
         allowEscapeKey: false,
+        heightAuto: false, // Chống giật trang
     });
     
     return result.isConfirmed; // Trả về true nếu nút confirm (OK/Có) được nhấn

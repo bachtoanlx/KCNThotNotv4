@@ -3,6 +3,18 @@ import { auth, db, onAuth, logout, addLog, showSwal, getRole, initAutoLogout, re
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
+// Hàm khóa cuộn trang, chống giật UI
+function toggleBodyScroll(disable) {
+  if (disable) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.paddingRight = scrollbarWidth + "px";
+      document.body.style.overflow = "hidden";
+  } else {
+      document.body.style.paddingRight = "";
+      document.body.style.overflow = "";
+  }
+}
+
 export function initMenu() {
   const userEmailEl = document.getElementById("userEmail");
   const loginBtn = document.getElementById("loginBtn");
@@ -79,7 +91,13 @@ export function initMenu() {
 
       const role = await getRole(user.email);
       if (role === "admin") {
-        adminOnly.forEach((el) => (el.style.display = "inline-block"));
+        adminOnly.forEach((el) => {
+          if (el.closest('.dropdown-content')) {
+            el.style.display = "block";
+          } else {
+            el.style.display = "inline-block";
+          }
+        });
       } else {
         adminOnly.forEach((el) => (el.style.display = "none"));
       }
@@ -112,14 +130,21 @@ export function initMenu() {
   // 🔥 Nút đăng nhập (mở modal)
   loginBtn.addEventListener("click", () => {
     modal.style.display = "block";
+    toggleBodyScroll(true);
   });
 
   // 🔥 Đóng modal
   if (closeBtn) {
-    closeBtn.onclick = () => (modal.style.display = "none");
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+      toggleBodyScroll(false);
+    };
   }
   window.onclick = (e) => {
-    if (e.target === modal) modal.style.display = "none";
+    if (e.target === modal) {
+      modal.style.display = "none";
+      toggleBodyScroll(false);
+    }
   };
 
   // 🔥 Form đăng nhập
@@ -129,6 +154,7 @@ export function initMenu() {
       const email = form.email.value;
       const password = form.password.value;
       modal.style.display = "none";
+      toggleBodyScroll(false);
 
       try {
         await signInWithEmailAndPassword(auth, email, password);

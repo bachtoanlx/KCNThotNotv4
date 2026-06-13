@@ -1,5 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* ===== BIẾN CSS (AN TOÀN - KHÔNG LÀM VỠ LAYOUT) ===== */
+:root {
+  --primary-color: #273668;
+  --primary-hover: #1e293b;
+  --bg-color: #f8fafc;
+  --text-color: #334155;
+  --border-color: #e2e8f0;
+  --danger-color: #e74c3c;
+  --focus-color: #3b82f6;
+  --border-input: #cbd5e1;
+  --success-color: #2ecc71;
+  --info-color: #3498db;
+  
+  /* --- Biến CSS bổ sung cho bề mặt --- */
+  --surface-color: #ffffff;
+  --surface-hover: #f1f5f9;
+  --input-bg: #ffffff;
+}
+
 /* Reset cơ bản */
 * {
   margin: 0;
@@ -9,8 +28,8 @@
 }
 
 body {
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-color);
+  color: var(--text-color);
   line-height: 1.5;
   padding: 2px;
   min-height: 100vh;
@@ -20,9 +39,100 @@ body {
   overflow-x: hidden;
 }
 
+/* Ẩn khung nội dung mặc định để chống lộ form trong thời gian chờ Firebase xác thực */
+#pageContent, #content-container {
+  display: none;
+}
+
 html {
   overflow-x: hidden;
 }
+
+/* ===== COMPONENT CLASSES (DÙNG CHUNG CHO MODAL & FORM) ===== */
+.modal-title {
+  color: var(--primary-color);
+  margin-top: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.modal-label {
+  font-weight: 500;
+  min-width: 100px;
+  display: inline-block;
+}
+
+.modal-input {
+  padding: 6px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+.modal-input[readonly] {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.check-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-color);
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+/* ===== NÚT BẤM (BUTTONS) ===== */
+.btn-action { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
+.btn-action:hover { opacity: 0.85; }
+.btn-danger { background: var(--danger-color); color: white; }
+.btn-secondary { background: #95a5a6; color: white; }
+.btn-success { background: #2ecc71; color: white; font-weight: bold; }
+.btn-primary { background: var(--primary-color); color: white; font-weight: bold; }
+.btn-warning { background: #f39c12; color: white; }
+.btn-info { background: #3498db; color: white; }
+
+/* Nút thêm nhanh công việc Admin */
+.quick-add-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+.quick-add-btn:hover { 
+    background-color: var(--primary-hover); 
+}
+
+/* ===== UTILITY CLASSES (DỌN DẸP INLINE STYLE) ===== */
+.d-flex { display: flex; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-5 { gap: 5px; }
+.gap-10 { gap: 10px; }
+.mb-0 { margin-bottom: 0; }
+.mb-10 { margin-bottom: 10px; }
+.mb-15 { margin-bottom: 15px; }
+.mt-10 { margin-top: 10px; }
+.mt-15 { margin-top: 15px; }
+.mt-20 { margin-top: 20px; }
+.ml-10 { margin-left: 10px; }
+.flex-1 { flex: 1; }
+.w-100 { width: 100%; }
 
 /* === Khóa cuộn dọc và ép nội dung vừa màn hình trên Desktop === */
 @media (min-width: 769px) {
@@ -30,16 +140,58 @@ html {
     height: 100vh; /* Cố định chiều cao bằng 100% viewport */
     overflow: hidden; /* Ẩn toàn bộ thanh cuộn (ngang & dọc) ở cấp trang */
   }
+  
+  /* Ghi đè SweetAlert2 để không làm mất height 100vh gây giật trang khi mở Modal */
+  html.swal2-height-auto, body.swal2-height-auto {
+    height: 100vh !important;
+  }
+}
+
+/* ================= CSS ĐỒNG BỘ SWEETALERT GIỐNG MODAL HỆ THỐNG ================= */
+.system-swal-modal {
+    font-family: 'Inter', sans-serif !important;
+    border-radius: 8px !important;
+    border: 1px solid #888 !important;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19) !important;
+    padding: 0 0 20px 0 !important;
+    background-color: #fefefe !important;
+}
+.system-swal-modal .swal2-title {
+    color: var(--primary-color) !important;
+    font-size: 1.5rem !important; 
+    font-weight: bold !important;
+    margin: 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 20px 20px 10px 20px !important;
+    text-align: left !important;
+    display: block !important;
+}
+.system-swal-modal .swal2-html-container {
+    margin: 15px 0 0 0 !important;
+    padding: 0 20px !important;
+    text-align: left !important;
+    font-size: 14px !important;
+    color: var(--text-color) !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+}
+.system-swal-modal .swal2-actions {
+    padding: 0 20px !important;
+    margin: 20px 0 0 0 !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 10px !important;
 }
 
 /* ===== Thanh menu trên cùng ===== */
 nav.navbar {
-  background-color: #1e293b;
+  background-color: var(--primary-hover);
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.15), transparent 50%), /* Ánh sáng hắt từ trên xuống */
     url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='rgba(255,255,255,0.06)' stroke-width='1' fill='none'%3E%3Cpath d='M50 25 L54 42 L70 30 L60 46 L75 50 L60 54 L70 70 L54 58 L50 75 L46 58 L30 70 L40 54 L25 50 L40 46 L30 30 L46 42 Z' fill='rgba(255,255,255,0.02)'/%3E%3Ccircle cx='50' cy='50' r='32'/%3E%3Ccircle cx='50' cy='50' r='36' stroke-dasharray='2 3'/%3E%3Ccircle cx='50' cy='50' r='42'/%3E%3Cpath d='M 15 25 C 25 15, 30 20, 35 25 C 25 30, 20 30, 15 25 Z' fill='rgba(255,255,255,0.04)'/%3E%3Cpath d='M 85 25 C 75 15, 70 20, 65 25 C 75 30, 80 30, 85 25 Z' fill='rgba(255,255,255,0.04)'/%3E%3Cpath d='M 15 75 C 25 85, 30 80, 35 75 C 25 70, 20 70, 15 75 Z' fill='rgba(255,255,255,0.04)'/%3E%3Cpath d='M 85 75 C 75 85, 70 80, 65 75 C 75 70, 80 70, 85 75 Z' fill='rgba(255,255,255,0.04)'/%3E%3C/g%3E%3C/svg%3E"), /* Lớp trống lớn */
     url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='rgba(255,255,255,0.04)' stroke-width='1' fill='none'%3E%3Cpath d='M50 25 L54 42 L70 30 L60 46 L75 50 L60 54 L70 70 L54 58 L50 75 L46 58 L30 70 L40 54 L25 50 L40 46 L30 30 L46 42 Z' fill='rgba(255,255,255,0.02)'/%3E%3Ccircle cx='50' cy='50' r='32'/%3E%3Ccircle cx='50' cy='50' r='36' stroke-dasharray='2 3'/%3E%3Ccircle cx='50' cy='50' r='42'/%3E%3C/g%3E%3C/svg%3E"), /* Lớp trống nhỏ, xen kẽ */
-    linear-gradient(135deg, #1e293b, #273668); /* Màu nền dải gradient */
+    linear-gradient(135deg, var(--primary-hover), var(--primary-color)); /* Màu nền dải gradient */
   background-size: 100% 100%, 350px 350px, 180px 180px, 100% 100%;
   background-position: center top, -50px -150px, 100px 10px, center center;
   background-repeat: no-repeat, repeat-x, repeat-x, no-repeat;
@@ -109,7 +261,7 @@ nav.navbar {
   position: absolute;
   top: 100%;
   margin-top: 5px;
-  background-color: #1e293b;
+  background-color: var(--primary-hover);
   min-width: 200px;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3), 0 8px 10px -6px rgba(0,0,0,0.1);
@@ -166,7 +318,7 @@ nav.navbar {
 #loginBtn,
 #logoutBtn {
   background: #fff;
-  color: #273668;
+  color: var(--primary-color);
   border: none;
   padding: 8px 14px;
   border-radius: 6px;
@@ -196,13 +348,13 @@ nav.navbar {
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--surface-color);
   margin: 10% auto;
   padding: 20px;
   width: 320px;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
 }
 
 @media (max-width: 768px) {
@@ -213,17 +365,17 @@ nav.navbar {
     padding: 15px;
   }
   
-  .modal-content-config {
-    width: 95% !important;
-    margin: 2% auto !important;
-    max-height: 95vh !important;
-    padding: 15px !important;
+  body .modal-content-config {
+    width: 95%;
+    margin: 2% auto;
+    max-height: 95vh;
+    padding: 15px;
   }
 }
 
 .modal-content h2 {
   margin-bottom: 15px;
-  color: #273668;
+  color: var(--primary-color);
   text-align: center;
 }
 
@@ -231,13 +383,15 @@ nav.navbar {
   width: 100%;
   padding: 8px 10px;
   margin: 6px 0;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-color);
   transition: all 0.2s ease;
 }
 
 .modal-content input:focus {
-  border-color: #3b82f6;
+  border-color: var(--focus-color);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   outline: none;
 }
@@ -246,7 +400,7 @@ nav.navbar {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
-  background: #273668;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 6px;
@@ -255,7 +409,7 @@ nav.navbar {
 }
 
 .modal-content button:hover {
-  background: #1e293b;
+  background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
@@ -269,16 +423,22 @@ nav.navbar {
 /* ===== Tiêu đề trang ===== */
 h2 {
   margin-bottom: 10px;
-  color: #273668;
+  color: var(--primary-color);
+}
+
+/* Đồng bộ lề tiêu đề trang khớp với lề của bảng dữ liệu */
+#pageContent > h2 {
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 /* ===== Form ===== */
 form {
-  background: #ffffff;
+  background: var(--surface-color);
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   max-width: 100%;
 }
 
@@ -292,8 +452,10 @@ input[type="password"],
 input[type="file"] {
   width: 100%;
   padding: 6px 10px; /* Giảm padding từ 8px xuống 6px cho gọn */
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-color);
   transition: all 0.2s ease;
 }
 
@@ -301,13 +463,13 @@ input[type="text"]:focus,
 input[type="email"]:focus,
 input[type="password"]:focus,
 input[type="file"]:focus {
-  border-color: #3b82f6;
+  border-color: var(--focus-color);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
   outline: none;
 }
 
 button {
-  background: #273668;
+  background: var(--primary-color);
   color: #fff;
   border: none;
   padding: 8px 16px;
@@ -317,7 +479,7 @@ button {
 }
 
 button:hover {
-  background: #1e293b;
+  background: var(--primary-hover);
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
@@ -335,14 +497,14 @@ table {
   border-spacing: 0;
   margin-top: 10px;
   min-width: 800px; /* Đảm bảo bảng có độ rộng tối thiểu */
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
 }
 th, td {
   border: none;
-  border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0; /* Thêm đường kẻ dọc mờ để phân tách cột */
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color); /* Thêm đường kẻ dọc mờ để phân tách cột */
   padding: 10px;
   text-align: left;
 }
@@ -350,9 +512,9 @@ th:last-child, td:last-child {
   border-right: none; /* Bỏ đường kẻ dọc ở cột cuối cùng để tránh viền kép với khung bảng */
 }
 th {
-  background: #f1f5f9; /* Làm đậm màu nền tiêu đề bảng lên một chút để dễ nhận diện */
+  background: var(--surface-hover); /* Làm đậm màu nền tiêu đề bảng lên một chút để dễ nhận diện */
   font-weight: 600;
-  color: #475569;
+  color: var(--text-color);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
@@ -362,7 +524,7 @@ th {
   z-index: 10;
 }
 tr:hover {
-  background: #f1f5f9;
+  background: var(--surface-hover);
 }
 tr:last-child td {
   border-bottom: none;
@@ -392,9 +554,24 @@ tr:last-child td {
 
 /* ===== Khối thông báo login ===== */
 #notLogged {
-  color: #b00;
+  color: var(--danger-color);
   font-weight: bold;
+  font-size: 1.2rem;
   margin-bottom: 15px;
+  padding: 20px 15px;
+  flex: 1; /* Ép khối này phình to chiếm hết khoảng trống, đẩy footer xuống đáy */
+  justify-content: flex-start; /* Căn dòng thông báo lên trên cùng */
+  align-items: flex-start; /* Căn dòng thông báo sang góc trái */
+  flex-direction: column;
+}
+
+#notLogged a {
+  color: inherit; /* Giữ nguyên màu đỏ (danger-color) của khối cha */
+  text-decoration: none; /* Bỏ gạch chân mặc định */
+}
+
+#notLogged a:hover {
+  text-decoration: underline; /* Thêm gạch chân khi rê chuột vào để báo hiệu có thể click */
 }
 
 /* ===== Modal Loading ===== */
@@ -414,7 +591,7 @@ tr:last-child td {
 
 .loading-spinner {
   border: 6px solid #f3f3f3;
-  border-top: 6px solid #273668;
+  border-top: 6px solid var(--primary-color);
   border-radius: 50%;
   width: 50px; height: 50px;
   animation: spin 1s linear infinite;
@@ -438,7 +615,7 @@ tr:last-child td {
 }
 
 .alert-box {
-  background: #fff;
+  background: var(--surface-color);
   padding: 20px;
   border-radius: 8px;
   width: 320px;
@@ -466,7 +643,7 @@ tr:last-child td {
 .alert-error h3 { color: red; }
 
 .alert-box button {
-  background: #273668;
+  background: var(--primary-color);
   color: #fff;
 }
 
@@ -479,8 +656,8 @@ tr:last-child td {
 .card-body {
     padding-top: 0rem;   /* Chỉnh khoảng cách phía trên */
     padding-bottom: 0.5rem; /* Giảm khoảng cách phía dưới */
-    padding-left: 1.5rem;  /* Giữ nguyên khoảng cách bên trái */
-    padding-right: 1.5rem; /* Giữ nguyên khoảng cách bên phải */
+    padding-left: 8px;  /* Thu hẹp lề trái đồng bộ toàn hệ thống */
+    padding-right: 8px; /* Thu hẹp lề phải đồng bộ toàn hệ thống */
 }
 .form-field {
     margin-bottom: 0.3rem; /* Thu hẹp khoảng cách giữa các khối nhập liệu */
@@ -499,15 +676,17 @@ tr:last-child td {
     font-size: 1rem;
     line-height: 1.0;
     width: 100%;
+    background-color: var(--input-bg);
+    color: var(--text-color);
     transition: all 0.3s ease;
 }
 .form-field .form-control:focus, .form-field .form-control-file:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: var(--focus-color);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
     outline: none;
 }
 .submit-btn {
-    background-color: #007bff;
+    background-color: var(--primary-color);
     color: #fff;
     border: none;
     border-radius: 0.5rem;
@@ -519,34 +698,103 @@ tr:last-child td {
     width: 100%;
 }
 .submit-btn:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-hover);
     transform: translateY(-2px);
 }
 .submit-btn:active {
-    background-color: #004085;
+    background-color: var(--primary-hover);
     transform: translateY(0);
 }
 
 /* Các quy tắc CSS riêng cho Form 1 */
 .form-style-1 h2 {
-    color: #273668; /* Tiêu đề màu */
+    color: var(--primary-color); /* Tiêu đề màu */
     text-align: center;
 }
 .form-style-1 .submit-btn {
-    background-color: #28a745; /* Nút Gửi màu xanh lá */
+    background-color: var(--success-color); 
+}
+.form-style-1 .submit-btn:hover {
+    background-color: #27ae60; 
 }
 
 /* Các quy tắc CSS riêng cho Form 2 */
 .form-style-2 h2 {
-    color: #273668; /* Tiêu đề màu */
+    color: var(--primary-color); /* Tiêu đề màu */
     text-align: center;
 }
 .form-style-2 .form-field .form-control {
     border-width: 2px; /* Đường viền dày hơn */
 }
 .form-style-2 .submit-btn {
-    background-color: #17a2b8; /* Nút Gửi màu xanh lam */
+    background-color: var(--info-color);
 }
+.form-style-2 .submit-btn:hover {
+    background-color: #2980b9;
+}
+
+/* ===== COMPONENT BẢNG DỮ LIỆU ĐẶC BIỆT ===== */
+.clickable-cell {
+    cursor: pointer;
+    color: var(--focus-color);
+}
+.clickable-cell:hover {
+    text-decoration: underline;
+    background-color: #f0f8ff;
+}
+.clickable-cell.expanded {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    background-color: #f0f8ff;
+}
+
+.search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.search-row input[type="text"] {
+    height: 33px;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.special-filter-label {
+    background: #fff3cd;
+    padding: 0 12px;
+    height: 33px; /* Đồng bộ chiều cao với ô tìm kiếm trên desktop */
+    display: flex;
+    align-items: center;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+    color: #856404;
+    margin: 0;
+    cursor: pointer;
+    border: 1px solid #ffeeba;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+.special-filter-label:hover {
+    background: #ffe8a1;
+}
+
+.special-filter-label input {
+    margin: 0 6px 0 0 !important;
+    width: 15px;
+    height: 15px;
+    accent-color: #d35400;
+    cursor: pointer;
+}
+
+/* Mặc định trên Desktop: Ẩn chữ ngắn, Hiện chữ dài */
+.special-text-short { display: none; }
+.special-text-long { display: inline; }
+
 
 /* ================= CSS MỚI CHO MODAL THÔNG TIN CẤU HÌNH ================= */
 .modal {
@@ -562,7 +810,7 @@ tr:last-child td {
 }
 
 .modal-content-config {
-    background-color: #fefefe;
+    background-color: var(--surface-color);
     margin: 5% auto; /* 5% từ trên và căn giữa */
     padding: 20px;
     border: 1px solid #888;
@@ -622,7 +870,8 @@ tr:last-child td {
 .modal-section th { border-top: 1px solid #ddd; background-clip: padding-box; }
 
 .modal-section th {
-    background-color: #f2f2f2;
+    background-color: var(--surface-hover);
+    color: var(--text-color);
     font-weight: bold;
 }
 .modal-section ul {
@@ -636,8 +885,8 @@ tr:last-child td {
 
 /* === FOOTER STYLES === */
 .site-footer {
-  background-color: #f2f2f2; /* Màu nền xám nhạt */
-  color: #555; /* Màu chữ tối */
+  background-color: var(--surface-hover); 
+  color: var(--text-color);
   padding: 1px 0; /* Khoảng đệm trên và dưới */
   text-align: center; /* Căn giữa nội dung */
   border-top: 1px solid #dddddda8; /* Một đường kẻ mỏng ở trên */
@@ -645,6 +894,12 @@ tr:last-child td {
   
   /* Thuộc tính này sẽ tạo khoảng trống với nội dung chính của trang */
   margin-top: 1px; 
+}
+
+/* Ép buộc khối bọc footer tự động rớt xuống đáy trang nhờ Flexbox */
+#footer-placeholder {
+  margin-top: auto;
+  width: 100%;
 }
 
 .site-footer .footer-content {
@@ -725,7 +980,7 @@ tr:last-child td {
 
     flex-direction: column;
     width: calc(100% + 30px);
-    background-color: #273668;
+    background-color: var(--primary-color);
     border-radius: 6px;
     position: absolute;
     top: 100%;
@@ -877,7 +1132,8 @@ tr:last-child td {
   line-height: 1;
   border-radius: 6px;
   border: 1px solid #ccc;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text-color);
   box-sizing: border-box;
   vertical-align: middle;
 }
@@ -934,15 +1190,16 @@ tr:last-child td {
   }
   
   /* Tìm kiếm input */
-  .search-container {
-    margin-bottom: 6px !important;
+  body .search-container {
+    margin-bottom: 6px;
   }
   
-  #searchInput {
-    width: 100% !important;
-    height: 25px !important;
-    padding: 4px 8px !important;
-    font-size: 11px !important;
+  body #searchInput {
+    width: 100%;
+    height: 25px; /* Giảm xuống 25px */
+    padding: 2px 8px;
+    font-size: 11px; /* Giảm font-size cho gọn */
+    box-sizing: border-box;
   }
   
   button {
@@ -969,30 +1226,49 @@ tr:last-child td {
     flex-shrink: 1;
   }
   
-  .filter-box input[type="date"] {
-    width: 90px !important;
-    font-size: 11px !important;
-    padding: 4px 2px !important;
-    height: 27px !important;
+  body .filter-box input[type="date"] {
+    width: 90px;
+    font-size: 11px;
+    padding: 2px 4px;
+    height: 25px; /* Giảm xuống 25px */
     border: 1px solid #ccc;
     border-radius: 4px;
+    box-sizing: border-box;
   }
   
-  .filter-box select {
-    display: none !important;
+  body .filter-box select {
+    display: none;
   }
   
-  .filter-box button,
-  .filter-box button#applyFilter {
-    flex: 0 !important;
-    width: 50px !important;
-    min-width: 50px !important;
-    max-width: 50px !important;
-    font-size: 11px !important;
-    padding: 4px !important;
-    height: 27px !important;
-    white-space: nowrap !important;
+  body .filter-box button,
+  body .filter-box button#applyFilter {
+    flex: 0;
+    width: auto;
+    min-width: 60px;
+    max-width: none;
+    font-size: 11px;
+    padding: 2px 8px;
+    height: 25px; /* Giảm xuống 25px */
+    white-space: nowrap;
+    box-sizing: border-box;
   }
+
+  body .search-row {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  body .special-filter-label {
+    height: 25px; /* Đồng bộ 25px */
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  body .special-filter-label input {
+    width: 12px;
+    height: 12px;
+    margin-right: 4px !important;
+  }
+  body .special-text-long { display: none; }
+  body .special-text-short { display: inline; }
   
   /* Form field mobile */
   .form-field {
@@ -1004,25 +1280,25 @@ tr:last-child td {
     margin-bottom: 2px; /* Kéo label sát input trên mobile */
   }
   
-  .form-control,
-  .form-control-file {
-    font-size: 16px !important;
-    padding: 8px 10px !important; /* Thu gọn chiều cao ô nhập trên mobile */
+  body .form-control,
+  body .form-control-file {
+    font-size: 16px;
+    padding: 8px 10px; /* Thu gọn chiều cao ô nhập trên mobile */
   }
   
   /* Controls row mobile */
-  .controls-row {
-    flex-direction: row !important;
-    justify-content: space-between !important;
+  body .controls-row {
+    flex-direction: row;
+    justify-content: space-between;
     gap: 8px;
-    align-items: center !important;
+    align-items: center;
     margin-top: 8px;
   }
   
-  .left-controls,
-  .right-controls {
-    flex-direction: row !important;
-    width: auto !important;
+  body .left-controls,
+  body .right-controls {
+    flex-direction: row;
+    width: auto;
     gap: 6px;
     align-items: center;
   }
@@ -1037,11 +1313,11 @@ tr:last-child td {
     white-space: nowrap;
   }
   
-  .right-controls select {
-    width: 75px !important;
-    font-size: 12px !important;
-    padding: 4px !important;
-    height: 24px !important;
+  body .right-controls select {
+    width: 75px;
+    font-size: 12px;
+    padding: 4px;
+    height: 24px;
   }
   
   /* Table mobile - scroll horizontal */
@@ -1064,58 +1340,58 @@ tr:last-child td {
   }
   
   /* Tối ưu độ rộng các cột cho mobile */
-  #dataTable th:nth-child(1),
-  #dataTable td:nth-child(1) {
-    width: 30px !important;
-    min-width: 30px !important;
-    max-width: 30px !important;
+  body #dataTable th:nth-child(1),
+  body #dataTable td:nth-child(1) {
+    width: 30px;
+    min-width: 30px;
+    max-width: 30px;
   }
   
-  #dataTable th:nth-child(3),
-  #dataTable td:nth-child(3) {
-    width: 100px !important;
-    min-width: 100px !important;
-    max-width: 100px !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
+  body #dataTable th:nth-child(3),
+  body #dataTable td:nth-child(3) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    white-space: normal;
+    word-wrap: break-word;
   }
   
-  #dataTable th:nth-child(4),
-  #dataTable td:nth-child(4) {
-    width: 55px !important;
-    min-width: 55px !important;
-    text-align: center !important;
+  body #dataTable th:nth-child(4),
+  body #dataTable td:nth-child(4) {
+    width: 55px;
+    min-width: 55px;
+    text-align: center;
   }
   
-  #dataTable th:nth-child(5),
-  #dataTable td:nth-child(5) {
-    width: 75px !important;
-    min-width: 75px !important;
-    max-width: 75px !important;
+  body #dataTable th:nth-child(5),
+  body #dataTable td:nth-child(5) {
+    width: 75px;
+    min-width: 75px;
+    max-width: 75px;
   }
   
-  #dataTable th:nth-child(6),
-  #dataTable td:nth-child(6) {
-    width: 130px !important;
-    min-width: 130px !important;
-    max-width: 130px !important;
-    white-space: normal !important;
-    word-wrap: break-word !important;
+  body #dataTable th:nth-child(6),
+  body #dataTable td:nth-child(6) {
+    width: 130px;
+    min-width: 130px;
+    max-width: 130px;
+    white-space: normal;
+    word-wrap: break-word;
   }
   
-  #dataTable th:nth-child(7),
-  #dataTable td:nth-child(7) {
-    width: 40px !important;
-    min-width: 40px !important;
-    max-width: 40px !important;
-    font-size: 10px !important;
+  body #dataTable th:nth-child(7),
+  body #dataTable td:nth-child(7) {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    font-size: 10px;
   }
   
   /* Alert box */
-  .alert-box {
-    width: 90% !important;
+  body .alert-box {
+    width: 90%;
     max-width: 320px;
-    padding: 15px !important;
+    padding: 15px;
   }
   
   /* Card body */
@@ -1124,30 +1400,30 @@ tr:last-child td {
   }
   
   /* Note text */
-  .note {
-    font-size: 11px !important;
-    font-style: italic !important;
-    color: #444 !important;
-    margin-bottom: 4px !important;
-    margin-top: 4px !important;
+  body .note {
+    font-size: 11px;
+    font-style: italic;
+    color: #444;
+    margin-bottom: 4px;
+    margin-top: 4px;
   }
   
   /* Submit button */
-  .submit-btn {
-    font-size: 16px !important;
-    padding: 10px !important;
+  body .submit-btn {
+    font-size: 16px;
+    padding: 10px;
   }
   
   /* Ẩn tất cả các phần admin trên mobile (trừ menu admin-only) */
-  .admin-settings,
-  .rule-box,
-  #defaultHolidaySettings,
-  #adminSettings,
-  #workPatternConfig,
-  #holidayRuleConfig,
-  #quotaConfig,
-  #shiftConfig {
-    display: none !important;
+  body .admin-settings,
+  body .rule-box,
+  body #defaultHolidaySettings,
+  body #adminSettings,
+  body #workPatternConfig,
+  body #holidayRuleConfig,
+  body #quotaConfig,
+  body #shiftConfig {
+    display: none;
   }
   
   /* Cho phép hiển thị link menu admin-only (như Nhật ký) */
@@ -1156,10 +1432,10 @@ tr:last-child td {
   }
   
   /* Fix cuộn trang và che footer trên mobile */
-  #pageContent, #content-container {
-    overflow-y: visible !important; 
-    flex: 1 0 auto !important; 
-    display: block !important; /* Đổi về block để các khối xếp chồng tự nhiên */
-    min-height: auto !important; 
+  body #pageContent, body #content-container {
+    overflow-y: visible; 
+    flex: 1 0 auto; 
+    /* display: block; <-- Xóa dòng này để JS tự quyền quyết định hiển thị block hay flex */
+    min-height: auto; 
   }
 }

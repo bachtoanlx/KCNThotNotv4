@@ -53,8 +53,8 @@
 
 @media (max-width: 768px) {
   .rule-box input[type="text"] {
-    min-width: 0 !important;
-    width: 100% !important;
+    min-width: 0;
+    width: 100%;
   }
 }
 
@@ -128,10 +128,11 @@
   white-space: normal;
   text-overflow: ellipsis;
   overflow: hidden;
+  font-size: 14px;
 }
 
 .rule-box table td:first-child {
-  text-align: left;
+  text-align: center;
   padding-left: 10px;
 }
 
@@ -235,9 +236,11 @@
 }
 
 @media (max-width: 768px) {
-  #scheduleTable th,
-  #scheduleTable td {
-    min-width: 0 !important;
+  /* Cân bằng độ ưu tiên với lệnh :nth-child ở trên máy tính */
+  #scheduleTable th:nth-child(1), #scheduleTable td:nth-child(1),
+  #scheduleTable th:nth-child(2), #scheduleTable td:nth-child(2),
+  #scheduleTable th:nth-child(3), #scheduleTable td:nth-child(3) {
+    min-width: 0;
   }
 }
 
@@ -255,30 +258,35 @@
   box-sizing: border-box !important;
 }
 
-/* ======= MODAL XEM LỊCH CÁ NHÂN ======= */
-#personalScheduleModal {
+/* Căn lề cho Tiêu đề trang khớp với card-body (không dùng !important) */
+.autoplan-page #pageContent > div:first-child {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* ======= MODAL CHUNG & LỊCH CÁ NHÂN ======= */
+.modal-overlay {
   display: none; 
   position: fixed; 
-  z-index: 1000; 
+  z-index: 1001; 
   left: 0;
   right: 0;
   top: 0;
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: rgba(0,0,0,0.4); 
+  background-color: rgba(0,0,0,0.5); 
   box-sizing: border-box;
   padding: 0;
 }
 
-#personalScheduleModal .personal-schedule-content {
+.personal-schedule-content {
   background-color: #fefefe;
   margin: 10vh auto;
   padding: 20px;
   border: 1px solid #888;
   width: 100%;
-  max-width: 900px; 
-  border-radius: 10px;
+  border-radius: 8px;
   box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
   box-sizing: border-box;
   position: relative;
@@ -287,7 +295,17 @@
   flex-direction: column;
 }
 
-#personalScheduleModal .close {
+.modal-sm { max-width: 500px; }
+.modal-md { max-width: 600px; }
+.modal-lg { max-width: 750px; }
+.modal-xl { max-width: 900px; }
+
+.month-schedule-content {
+  margin: 50px auto;
+  width: 95%;
+}
+
+.personal-schedule-content .close {
   color: #aaa;
   font-size: 28px;
   font-weight: bold;
@@ -352,148 +370,150 @@
   #adminTabsContainer.admin-visible {
       display: block !important;
   }
+  
+  /* Áp dụng chung cho TẤT CẢ các modal popup trên Mobile */
   .personal-schedule-content {
-    width: 95% !important;
-    max-width: 100% !important;
-    margin: 80px auto 20px auto !important; /* Tăng khoảng cách phía trên lên 60px để dịch modal xuống */
-    padding: 15px 12px !important;
-    max-height: calc(100vh - 100px) !important; /* Trừ đi phần margin mới để modal không bị tràn đáy màn hình */
-    border-radius: 12px !important;
-    box-sizing: border-box !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    width: 95%;
+    max-width: 100%;
+    margin: 80px auto 20px auto; 
+    padding: 15px 12px;
+    max-height: calc(100vh - 100px); 
+    border-radius: 12px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
-  .personal-schedule-content h2 {
-    font-size: 1.1rem !important;
-    margin-bottom: 10px !important;
-    margin-top: 0 !important;
-    padding-right: 30px !important;
-    word-wrap: break-word !important;
-    line-height: 1.3 !important;
+  .personal-schedule-content h2, .personal-schedule-content .modal-title {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    margin-top: 0;
+    padding-right: 30px;
+    word-wrap: break-word;
+    line-height: 1.3;
   }
-  .personal-schedule-content hr { margin: 8px 0 !important; }
+  .personal-schedule-content hr { margin: 8px 0; }
   .personal-schedule-content .close {
-    font-size: 32px !important;
-    right: 15px !important;
-    top: 15px !important;
-    padding: 0 !important;
-    width: 30px !important;
-    height: 30px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
-    position: absolute !important;
+    font-size: 32px;
+    right: 15px;
+    top: 15px;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    position: absolute;
   }
   .personal-schedule-content .input-row {
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    gap: 10px !important;
-    margin-bottom: 15px !important;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
   }
   .personal-schedule-content .input-row > label {
-    flex: 1 1 100% !important;
-    margin: 0 !important;
-    font-size: 13px !important;
+    flex: 1 1 100%;
+    margin: 0;
+    font-size: 13px;
     color: #444;
   }
   .personal-schedule-content .input-row > label:has(input[type="checkbox"]) {
-    flex: 1 1 auto !important;
-    display: inline-flex !important;
-    width: auto !important;
-    font-size: 14px !important;
-    padding: 6px 0 !important;
+    flex: 1 1 auto;
+    display: inline-flex;
+    width: auto;
+    font-size: 14px;
+    padding: 6px 0;
   }
   .personal-schedule-content .input-row > input[type="text"],
   .personal-schedule-content .input-row > input[type="date"],
   .personal-schedule-content .input-row > input[type="time"],
   .personal-schedule-content .input-row > select {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-    box-sizing: border-box !important;
-    height: 42px !important;
-    font-size: 14px !important;
-    border-radius: 6px !important;
+    width: 100%;
+    flex: 1 1 100%;
+    box-sizing: border-box;
+    height: 42px;
+    font-size: 14px;
+    border-radius: 6px;
   }
   #addJobFormContainer .input-row:nth-of-type(2) > select,
   #addJobFormContainer .input-row:nth-of-type(2) > input[type="time"],
   #editRuleModal .input-row:nth-of-type(2) > select,
   #editRuleModal .input-row:nth-of-type(2) > input[type="time"] {
-    flex: 1 1 calc(50% - 5px) !important;
-    width: calc(50% - 5px) !important;
+    flex: 1 1 calc(50% - 5px);
+    width: calc(50% - 5px);
   }
-  #exactDate, #editRuleExactDate { flex: 1 1 100% !important; }
+  #exactDate, #editRuleExactDate { flex: 1 1 100%; }
   #dayCheckboxes, #editDayCheckboxes {
-    flex-direction: row !important;
-    width: 100% !important;
-    gap: 6px !important;
+    flex-direction: row;
+    width: 100%;
+    gap: 6px;
   }
   #dayCheckboxes label, #editDayCheckboxes label {
-    flex: 1 1 calc(25% - 6px) !important;
-    justify-content: center !important;
-    padding: 8px 4px !important;
-    font-size: 13px !important;
+    flex: 1 1 calc(25% - 6px);
+    justify-content: center;
+    padding: 8px 4px;
+    font-size: 13px;
   }
   .action-buttons {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    margin-top: 15px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
   }
-  .action-buttons > div { display: none !important; }
+  .action-buttons > div { display: none; }
   .action-buttons button {
-    width: 100% !important;
-    padding: 10px !important;
-    font-size: 14px !important;
-    margin: 0 !important;
-    border-radius: 8px !important;
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    margin: 0;
+    border-radius: 8px;
   }
   .action-buttons button[id^="save"] { order: 1; }
   .action-buttons button[id^="cancel"] { 
       order: 2; 
-      background: #ecf0f1 !important; 
-      color: #333 !important; 
+      background: #ecf0f1; 
+      color: #333; 
   }
   .action-buttons button[id^="delete"] { 
       order: 3; 
-      margin-top: 15px !important; 
-      background: #fff !important; 
-      color: #e74c3c !important; 
-      border: 1px solid #e74c3c !important; 
+      margin-top: 15px; 
+      background: #fff; 
+      color: #e74c3c; 
+      border: 1px solid #e74c3c; 
   }
   #personalScheduleDetails {
-    font-size: 12px !important;
-    margin-top: 8px !important;
-    overflow-x: hidden !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 0 !important;
+    font-size: 12px;
+    margin-top: 8px;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
   }
   #personalScheduleDetails table {
-    font-size: 12px !important;
-    width: 100% !important;
-    table-layout: fixed !important;
-    word-break: break-word !important;
+    font-size: 12px;
+    width: 100%;
+    table-layout: fixed;
+    word-break: break-word;
   }
   #personalScheduleDetails th, #personalScheduleDetails td {
-    padding: 4px 4px !important;
-    white-space: normal !important;
+    padding: 4px 4px;
+    white-space: normal;
   }
   #personalScheduleDetails table th:first-child:not([style*="width"]) {
-    width: 55% !important;
+    width: 55%;
   }
   /* Ép cột thứ 2 (Hạn/Trạng thái) bỏ width 270px cố định trên mobile */
   #personalScheduleDetails table th:first-child:not([style*="width"]) + th {
-    width: 45% !important;
+    width: 45%;
   }
   #closeModalBottom {
-    width: 100% !important;
-    padding: 8px !important;
-    font-size: 13px !important;
-    margin-top: 8px !important;
-    box-sizing: border-box !important;
-    border-radius: 4px !important;
+    width: 100%;
+    padding: 8px;
+    font-size: 13px;
+    margin-top: 8px;
+    box-sizing: border-box;
+    border-radius: 4px;
   }
   .admin-tabs {
     display: grid !important;
@@ -548,6 +568,12 @@
     min-width: unset !important;
     table-layout: fixed !important; 
   }
+  #ruleList th, #ruleList td,
+  #patternList th, #patternList td,
+  #swapList th, #swapList td {
+    font-size: 12px !important;
+    padding: 6px 4px !important;
+  }
   #ruleList th:not(:first-child):not(:last-child), #ruleList td:not(:first-child):not(:last-child),
   #patternList th:not(:first-child):not(:last-child), #patternList td:not(:first-child):not(:last-child),
   #adminTaskList th:not(:first-child):not(:last-child), #adminTaskList td:not(:first-child):not(:last-child) {
@@ -586,6 +612,26 @@
   }
 }
 
+/* === CSS CHO TÍNH NĂNG GOM NHÓM CÔNG VIỆC === */
+.rule-group-header {
+    background-color: #f8fafc !important;
+    transition: background-color 0.2s;
+}
+.rule-group-header:hover {
+    background-color: #e2e8f0 !important;
+}
+.rule-child-row td:first-child {
+    padding-left: 30px !important;
+    position: relative;
+}
+.rule-child-row td:first-child::before {
+    content: "└";
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+    font-weight: bold;
+}
+
 /* === CSS CHO DANH SÁCH ẨN/HIỆN === */
 .list-header {
     display: flex;
@@ -620,22 +666,28 @@
     box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
-#ruleList { table-layout: fixed; min-width: 800px; }
-#ruleList th:nth-child(1) { width: 31%; }
-#ruleList th:nth-child(2) { width: 8%; }
-#ruleList th:nth-child(3) { width: 8%; }
-#ruleList th:nth-child(4) { width: 45%; }
-#ruleList th:nth-child(5) { width: 8%; }
+#ruleList { table-layout: fixed; min-width: 900px; }
+#ruleList th:nth-child(1) { width: 40%; } /* Công việc */
+#ruleList th:nth-child(2) { width: 5%; }  /* Giờ */
+#ruleList th:nth-child(3) { width: 9%; } /* Ngày cụ thể */
+#ruleList th:nth-child(4) { width: 9%; } /* Ngày kết thúc */
+#ruleList th:nth-child(5) { width: 30%; } /* Định kỳ */
+#ruleList th:nth-child(6) { width: 7%; }  /* Hành động */
+
+/* Canh trái cột Công việc trong bảng DS Công việc */
+#ruleList td:first-child {
+  text-align: left;
+}
 
 #adminTaskList { table-layout: fixed; min-width: 900px; }
-#adminTaskList th:nth-child(1) { width: 33%; }
-#adminTaskList th:nth-child(2) { width: 14%; }
-#adminTaskList th:nth-child(3) { width: 14%; }
-#adminTaskList th:nth-child(4) { width: 21%; }
-#adminTaskList th:nth-child(5) { width: 18%; }
+#adminTaskList th:nth-child(1) { width: 45%; }
+#adminTaskList th:nth-child(2) { width: 11%; }
+#adminTaskList th:nth-child(3) { width: 11%; }
+#adminTaskList th:nth-child(4) { width: 18%; }
+#adminTaskList th:nth-child(5) { width: 15%; }
 
 #patternList { table-layout: fixed; min-width: 1000px; }
-#patternList th:nth-child(1) { width: 12%; }
+#patternList th:nth-child(1) { width: 13%; }
 #patternList th:nth-child(2) { width: 14%; }
 #patternList th:nth-child(3) { width: 8%; }
 #patternList th:nth-child(4) { width: 26%; }
@@ -643,15 +695,15 @@
 #patternList th:nth-child(6) { width: 10%; }
 #patternList th:nth-child(7) { width: 6%; }
 #patternList th:nth-child(8) { width: 6%; }
-#patternList th:nth-child(9) { width: 8%; }
+#patternList th:nth-child(9) { width: 7%; }
 
 #swapList { table-layout: fixed; min-width: 900px; }
-#swapList th:nth-child(1) { width: 12%; }
+#swapList th:nth-child(1) { width: 11%; }
 #swapList th:nth-child(2) { width: 18%; }
 #swapList th:nth-child(3) { width: 18%; }
-#swapList th:nth-child(4) { width: 29%; }
+#swapList th:nth-child(4) { width: 31%; }
 #swapList th:nth-child(5) { width: 15%; }
-#swapList th:nth-child(6) { width: 8%; }
+#swapList th:nth-child(6) { width: 7%; }
 
 /* === CSS LÀM NỔI BẬT KẾT QUẢ TÌM KIẾM === */
 #scheduleTable tr.highlight {
@@ -792,58 +844,64 @@
     flex: 0 0 auto !important;
     z-index: 100 !important;
   }
-  #scheduleTable {
-    table-layout: auto !important;
-    width: 100% !important;
-    min-width: unset !important;
-    border: none !important; /* Xóa đường viền của khung lớn bao ngoài */
-    border-radius: 0 !important; /* Bỏ bo góc của khung ngoài */
-    background: transparent !important; /* Bỏ màu nền trắng của khung ngoài */
+  body.autoplan-page #scheduleTable {
+    table-layout: auto;
+    width: 100%;
+    min-width: unset;
+    border: none; 
+    border-radius: 0; 
+    background: transparent; 
   }
-  #scheduleTable th, #scheduleTable td {
-    width: auto !important;
-    min-width: unset !important;
-    max-width: none !important;
+  body.autoplan-page #scheduleTable th, 
+  body.autoplan-page #scheduleTable td {
+    width: auto;
+    min-width: unset;
+    max-width: none;
   }
-  #scheduleTable, #scheduleTable thead, #scheduleTable tbody, #scheduleTable th, #scheduleTable td, #scheduleTable tr {
+  body.autoplan-page #scheduleTable, 
+  body.autoplan-page #scheduleTable thead, 
+  body.autoplan-page #scheduleTable tbody, 
+  body.autoplan-page #scheduleTable th, 
+  body.autoplan-page #scheduleTable td, 
+  body.autoplan-page #scheduleTable tr {
     display: block;
     width: 100%;
   }
-  #scheduleTable thead {
+  body.autoplan-page #scheduleTable thead {
     display: none;
   }
-  #scheduleTable tr {
+  body.autoplan-page #scheduleTable tr {
     background: #fff;
     border: 1px solid #e0e0e0;
     border-radius: 12px;
     margin-bottom: 16px;
     padding: 12px 16px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    box-sizing: border-box !important;
+    box-sizing: border-box;
   }
-  #scheduleTable tbody td {
+  body.autoplan-page #scheduleTable tbody td {
     display: flex;
     flex-direction: column;
-    border: none !important;
-    border-bottom: 1px dashed #eaeaea !important;
-    padding: 10px 0 !important;
+    border: none;
+    border-bottom: 1px dashed #eaeaea;
+    padding: 10px 0;
     font-size: 14px;
     text-align: left;
     line-height: 1.5em;
     white-space: normal;
   }
-  #scheduleTable tbody td:last-child {
-    border-bottom: none !important;
-    padding-bottom: 0 !important;
+  body.autoplan-page #scheduleTable tbody td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
   }
-  #scheduleTable tbody td:first-child {
-    padding-top: 0 !important;
+  body.autoplan-page #scheduleTable tbody td:first-child {
+    padding-top: 0;
   }
   #scheduleTable td::before {
     content: attr(data-label);
     font-weight: 600;
     margin-bottom: 4px;
-    color: #273668;
+    color: var(--primary-color);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -878,43 +936,43 @@
   }
   #scheduleTable td[data-label="Người làm"]::before { content: "👤 " attr(data-label); }
   #scheduleTable td[data-label="Công việc"]::before { content: "💼 " attr(data-label); }
-  #scheduleTable td.hide-empty-mobile { display: none !important; }
+  body.autoplan-page #scheduleTable td.hide-empty-mobile { display: none; }
   
-  #weekNavigator {
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 5px !important;
-    padding: 6px 2px !important;
-    overflow: visible !important;
-    align-items: center !important;
-    justify-content: center !important;
+  .autoplan-page #weekNavigator {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 5px;
+    padding: 6px 2px;
+    overflow: visible;
+    align-items: center;
+    justify-content: center;
   }
-  #todayWeekBtn {
-    order: 0 !important;
-    font-size: 11px !important;
-    padding: 5px 10px !important;
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-    margin: 0 4px !important;
+  .autoplan-page #todayWeekBtn {
+    order: 0;
+    font-size: 11px;
+    padding: 5px 10px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    margin: 0 4px;
   }
-  .week-nav-group { display: contents !important; }
-  #firstWeekBtn { order: -2 !important; }
-  #prevWeekBtn { order: -1 !important; }
-  #nextWeekBtn { order: 1 !important; }
-  #lastWeekBtn { order: 2 !important; }
-  #weekNavigator button {
-    font-size: 11px !important;
-    padding: 5px 6px !important;
-    flex-shrink: 0 !important;
-    min-width: 28px !important;
+  .autoplan-page .week-nav-group { display: contents; }
+  .autoplan-page #firstWeekBtn { order: -2; }
+  .autoplan-page #prevWeekBtn { order: -1; }
+  .autoplan-page #nextWeekBtn { order: 1; }
+  .autoplan-page #lastWeekBtn { order: 2; }
+  .autoplan-page #weekNavigator button {
+    font-size: 11px;
+    padding: 5px 6px;
+    flex-shrink: 0;
+    min-width: 28px;
   }
-  #weekNumberDisplay { display: none !important; }
+  .autoplan-page #weekNumberDisplay { display: none; }
 }
 
 /* === CSS CHO TABS ADMIN === */
 .admin-tabs {
     display: flex;
-    border-bottom: 2px solid #273668;
+    border-bottom: 2px solid var(--primary-color);
     gap: 5px;
     overflow-x: auto;
     margin-top: 20px;
@@ -937,8 +995,8 @@
 
 .admin-tab-btn.active {
     background: #fff;
-    color: #273668;
-    border: 2px solid #273668;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
     border-bottom: 2px solid #fff;
     margin-bottom: -2px;
     z-index: 1;
@@ -957,7 +1015,7 @@
   border: 1px solid #ccc;
 }
 .calendar-header {
-  background-color: #273668;
+  background-color: var(--primary-color);
   color: white;
   font-weight: bold;
   text-align: center;
@@ -1007,9 +1065,9 @@
 /* --- TỐI ƯU MOBILE CHO LỊCH THÁNG --- */
 @media (max-width: 768px) {
   #monthScheduleModal .personal-schedule-content {
-    margin: 15px auto !important;
-    padding: 10px !important;
-    width: 96% !important;
+    margin: 15px auto;
+    padding: 10px;
+    width: 96%;
     max-height: 95vh;
     overflow-y: auto;
   }
@@ -1098,19 +1156,6 @@
 }
 .highlight-task-row {
     animation: blinkTaskRow 1s ease-in-out 3;
-}
-
-/* === CỐ ĐỊNH FOOTER LUÔN NẰM DƯỚI CÙNG TRÊN MỌI THIẾT BỊ === */
-.autoplan-page #footer-placeholder {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    z-index: 1000 !important;
-}
-
-body.autoplan-page {
-    padding-bottom: 60px !important; /* Đẩy nội dung lên để không bị footer che khuất khi cuộn đến cuối */
 }
 
 /* Chỉ fix lỗi SweetAlert2 trên desktop, tránh làm cắt trang và nảy scroll trên mobile */

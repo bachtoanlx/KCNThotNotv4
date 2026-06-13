@@ -20,8 +20,9 @@
       <div class="dropdown">
         <button class="dropbtn">Tác vụ ▼</button>
         <div class="dropdown-content">
-          <a href="index.html">📤 Gửi Báo cáo</a>
-          <a href="index_2.html">📤 Gửi Thông báo</a>
+          <a href="index.html">📤 Gửi Số đồng hồ</a>
+          <a href="index_2.html">📤 Gửi Thông báo nghỉ</a>
+          <a href="baocao.html">📤 Gửi Báo cáo ca</a>
           <a href="datatable.html">📋 DL Đồng hồ</a>
           <a href="datatable_2.html">📋 DL Ngày nghỉ</a>
           
@@ -31,8 +32,9 @@
         <button class="dropbtn">Thống kê ▼</button>
         <div class="dropdown-content">
           <a href="autoplan.html">Lịch làm việc</a>
-          <a href="baocao.html">Báo cáo ca</a>
-          <a href="thongke.html">Thống kê báo cáo</a>
+          <a href="admin_tasks.html" class="admin-only" style="display: none;">Việc của admin</a>
+          <a href="bieudo.html">Biểu đồ thống kê</a>
+          <a href="thongke.html">Thống kê báo cáo</a>   
           <a href="statistics.html">Thống kê lưu lượng</a>
         </div>
       </div>
@@ -54,8 +56,11 @@
       <span class="close">&times;</span>
       <h2>Đăng nhập</h2>
       <form id="loginForm">
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="password" name="password" placeholder="Mật khẩu" required>
+        <input type="email" name="email" placeholder="Email" required autocomplete="username">
+        <div style="position: relative; margin: 6px 0;">
+          <input type="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password" style="margin: 0; padding-right: 35px;">
+          <span onclick="const p=this.previousElementSibling; p.type=p.type==='password'?'text':'password'; this.textContent=p.type==='password'?'👁️':'👀';" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; opacity: 0.6; font-size: 16px; transition: opacity 0.2s;" title="Hiện/Ẩn mật khẩu">👁️</span>
+        </div>
         <button type="submit">Đăng nhập</button>
       </form>
     </div>
