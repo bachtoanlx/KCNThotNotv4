@@ -40,7 +40,6 @@
     let initialLoad = true;
     let allSearchData = []; // Mảng này giờ sẽ lưu kết quả đã lọc
     let userRole = null;
-    let highlightTimeout = null; // Biến debounce cho highlight
     
     let lastDoc = null; // Lưu vị trí bản ghi cuối cùng để phân trang
     const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
@@ -51,7 +50,6 @@
     // === STATE VÀ HÀM CHO DEEP SEARCH ===
     let isDeepSearchMode = false;
     let deepSearchQuery = "";
-    let deepSearchCursor = null;
     let deepSearchResults = [];
     let searchDebounceTimer = null; // Biến hẹn giờ cho chức năng tìm kiếm tự động
     let savedStartDate = ""; // Lưu lại ngày bắt đầu trước khi tìm kiếm
@@ -59,7 +57,7 @@
 
     // Hàm làm mờ/khóa UI bộ lọc
     function toggleFiltersUI(disable) {
-        const filterElements = [fromInput, toInput, yearSelect, applyFilterBtn, meterResetFilterInput];
+        const filterElements = [fromInput, toInput, yearSelect, applyFilterBtn];
         filterElements.forEach(el => {
             if (el) {
                 el.disabled = disable;
@@ -178,7 +176,7 @@
 
             allSearchData = deepSearchResults;
             if (loadMoreBtn) loadMoreBtn.style.display = 'none';
-            filterAndRenderData(allSearchData, deepSearchQuery, true);
+            filterAndRenderData(allSearchData, deepSearchQuery);
             
         } catch (err) {
             console.error("Lỗi tìm kiếm sâu:", err);
@@ -234,8 +232,8 @@
       });
     };
 
-    // Hàm render (Giữ nguyên, không thay đổi)
-    const filterAndRenderData = (data, queryText, isDeepSearchContext = false) => {
+    // Hàm render
+    const filterAndRenderData = (data, queryText) => {
         const isMeterResetFilterActive = meterResetFilterInput ? meterResetFilterInput.checked : false;
         let fromDate = null;
         let toDate = null;
@@ -289,14 +287,6 @@
 
         tbody.innerHTML = ""; // ⭐️ Xóa nội dung cũ trước khi render
 
-        // Xóa timeout cũ nếu có (debounce)
-        if (highlightTimeout) {
-            clearTimeout(highlightTimeout);
-            highlightTimeout = null;
-        }
-        // Xóa class highlight cũ nếu đang chạy dở
-        document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
-        
         if (finalData.length === 0) {
             const tr = document.createElement("tr");
             tr.innerHTML = `<td colspan="9" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
@@ -304,20 +294,6 @@
             </td>`;
             tbody.appendChild(tr);
             
-            // Hiệu ứng nhắc nhở người dùng
-            highlightTimeout = setTimeout(() => {
-                const filterBox = document.querySelector('.filter-box');
-                if (filterBox) {
-                    filterBox.classList.add('highlight-area');
-                    setTimeout(() => {
-                        filterBox.classList.remove('highlight-area');
-                        if (loadMoreBtn) {
-                            loadMoreBtn.classList.add('highlight-area');
-                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
-                        }
-                    }, 2000);
-                }
-            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
             return;
         }
 
@@ -530,9 +506,10 @@
     const handleFilterChange = (e) => {
         if (e) e.preventDefault();
         const q = searchInput.value.trim();
+        const isSpecialChecked = meterResetFilterInput ? meterResetFilterInput.checked : false;
         
-        if (q !== "") {
-            // Có từ khóa -> Quét RAM luôn
+        if (q !== "" || isSpecialChecked) {
+            // Có từ khóa HOẶC chọn lọc đặc biệt -> Quét RAM luôn toàn bộ lịch sử
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang lọc dữ liệu...</td></tr>`;
             performDeepSearch(q);
         } else {

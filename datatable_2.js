@@ -35,7 +35,6 @@
     let initialLoad = true;
     let allSearchData = [];
     let userRole = null;
-    let highlightTimeout = null; // Biến debounce cho highlight
     
     let lastDoc1 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 1
     let lastDoc2 = null; // Lưu vị trí bản ghi cuối cùng của truy vấn 2
@@ -56,7 +55,7 @@
 
     // Hàm làm mờ/khóa UI bộ lọc
     function toggleFiltersUI(disable) {
-        const filterElements = [fromInput, toInput, yearSelect, applyFilterBtn, specialWorkdayFilterInput];
+        const filterElements = [fromInput, toInput, yearSelect, applyFilterBtn];
         filterElements.forEach(el => {
             if (el) {
                 el.disabled = disable;
@@ -263,14 +262,6 @@
         // Render
         tbody.innerHTML = ""; // ⭐️ Xóa nội dung cũ trước khi render
 
-        // Xóa timeout cũ nếu có (debounce)
-        if (highlightTimeout) {
-            clearTimeout(highlightTimeout);
-            highlightTimeout = null;
-        }
-        // Xóa class highlight cũ nếu đang chạy dở
-        document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
-        
         if (finalData.length === 0) {
             const tr = document.createElement("tr");
             tr.innerHTML = `<td colspan="8" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
@@ -278,20 +269,6 @@
             </td>`;
             tbody.appendChild(tr);
             
-            // Hiệu ứng nhắc nhở người dùng
-            highlightTimeout = setTimeout(() => {
-                const filterBox = document.querySelector('.filter-box');
-                if (filterBox) {
-                    filterBox.classList.add('highlight-area');
-                    setTimeout(() => {
-                        filterBox.classList.remove('highlight-area');
-                        if (loadMoreBtn) {
-                            loadMoreBtn.classList.add('highlight-area');
-                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
-                        }
-                    }, 2000);
-                }
-            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
             return;
         }
 
@@ -528,9 +505,10 @@
     const handleFilterChange = (e) => {
         if (e) e.preventDefault();
         const q = searchInput.value.trim();
+        const isSpecialChecked = specialWorkdayFilterInput ? specialWorkdayFilterInput.checked : false;
         
-        if (q !== "") {
-            // Có từ khóa -> Quét RAM luôn
+        if (q !== "" || isSpecialChecked) {
+            // Có từ khóa HOẶC chọn lọc đặc biệt -> Quét RAM luôn toàn bộ lịch sử
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang lọc dữ liệu...</td></tr>`;
             performDeepSearch(q);
         } else {

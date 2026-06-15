@@ -40,7 +40,6 @@ import { initMenu } from "./menu.js";
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
   let allLogs = []; 
   let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
-  let highlightTimeout = null; // Biến debounce cho highlight
   
   let lastDoc = null; // Lưu vị trí bản ghi cuối cùng để phân trang
   const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
@@ -213,14 +212,6 @@ import { initMenu } from "./menu.js";
 
           tbody.innerHTML = "";
 
-          // Xóa timeout cũ nếu có (debounce)
-          if (highlightTimeout) {
-              clearTimeout(highlightTimeout);
-              highlightTimeout = null;
-          }
-          // Xóa class highlight cũ nếu đang chạy dở
-          document.querySelectorAll('.highlight-area').forEach(el => el.classList.remove('highlight-area'));
-          
           if (finalData.length === 0) {
             const tr = document.createElement("tr");
             tr.innerHTML = `<td colspan="4" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
