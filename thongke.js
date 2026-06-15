@@ -2,6 +2,7 @@
     import { db, onAuth, getRole, showLoading, hideLoading, showSwal } from "./script.js";
     import { collection, getDocs, query, orderBy, where, limit  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
+    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime } from "./localDB.js";
 
     // --- TẢI GIAO DIỆN CHUNG ---
     fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
@@ -1081,29 +1082,62 @@ function toggleBodyScroll(disable) {
         newTableBody.innerHTML = tableHtml;
     }
     // --- HÀM MỚI: Tải dữ liệu báo cáo cho một khoảng thời gian ---
-    async function fetchReportsForPeriod(startDateStr, endDateStr) {
-        showLoading("Đang tải dữ liệu...");
+    async function fetchReportsForPeriod(startDateStr, endDateStr, collectionName = "shift_reports") {
+        showLoading("Đang đồng bộ và tải dữ liệu...");
         try {
-            // Tạo truy vấn với điều kiện where và orderBy
-            const q = query(
-                collection(db, "shift_reports"),
-                where("reportDate", ">=", startDateStr), // Lớn hơn hoặc bằng ngày bắt đầu
-                where("reportDate", "<=", endDateStr),   // Nhỏ hơn hoặc bằng ngày kết thúc
-                orderBy("reportDate"),                   // Vẫn sắp xếp để tính toán
-                orderBy("shiftStartTime")
-            );
-            const querySnapshot = await getDocs(q);
-            const reports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log(`Đã tải ${reports.length} báo cáo cho kỳ ${startDateStr} - ${endDateStr}.`);
-            return reports; // Trả về mảng báo cáo đã lọc
+            const lastSync = await getLastSyncTime(collectionName);
+
+            // 1. Sync Deletes (Tombstone) - Bỏ qua vì chưa có cơ chế xóa shift_reports
+
+            // 2. Sync Upserts (New/Modified)
+            let newRecords = [];
+            if (lastSync === 0) {
+                const qAll = query(collection(db, collectionName));
+                const snapAll = await getDocs(qAll);
+                newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            } else {
+                // Dùng updatedAt (được đổi từ lastSaved) để bắt cả Sửa và Thêm mới
+                const qUpdated = query(collection(db, collectionName), where("updatedAt", ">", new Date(lastSync)));
+                const snapU = await getDocs(qUpdated);
+                newRecords = snapU.docs.map(d => ({id: d.id, ...d.data()}));
+            }
+
+            if (newRecords.length > 0) {
+                const parsedRecords = newRecords.map(data => ({
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                }));
+                await saveToLocalDB(collectionName, parsedRecords);
+            }
+            await setLastSyncTime(collectionName, Date.now());
+
+            // 3. Get all data from IndexedDB
+            const allLocalData = await getAllFromLocalDB(collectionName);
+            
+            // 4. Filter in-memory
+            const periodReports = allLocalData.filter(r => {
+                const reportDate = r.reportDate;
+                return reportDate && reportDate >= startDateStr && reportDate <= endDateStr;
+            });
+
+            // 5. Sort in-memory
+            periodReports.sort((a, b) => {
+                if (a.reportDate !== b.reportDate) {
+                    return a.reportDate.localeCompare(b.reportDate);
+                }
+                return (a.shiftStartTime || "").localeCompare(b.shiftStartTime || "");
+            });
+
+            console.log(`Đã tải ${periodReports.length} báo cáo từ IndexedDB cho kỳ ${startDateStr} - ${endDateStr}.`);
+            return periodReports;
+
         } catch (error) {
-            console.error("Lỗi khi tải dữ liệu theo kỳ:", error);
+            console.error("Lỗi khi tải dữ liệu từ IndexedDB:", error);
             showSwal("error", "Lỗi tải dữ liệu", error.message);
-            // Quan trọng: Ném lỗi ra ngoài để hàm gọi nó (onAuth, applyDateFilter) biết và dừng lại
-            throw error; // Hoặc return []; nếu bạn muốn tiếp tục dù lỗi
+            throw error;
         } finally {
-            // Tắt loading sẽ do hàm gọi nó (calculateAndRenderSummary) thực hiện
-            // hideLoading(); // Không nên gọi ở đây
+            // Tắt loading sẽ do hàm gọi nó thực hiện
         }
     }
     // --- HÀM CHÍNH KHI ĐĂNG NHẬP (ĐÃ SỬA LẠI VỊ TRÍ LISTENER) ---

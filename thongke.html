@@ -113,6 +113,20 @@
     #summaryTable th {
         background-color: #f2f2f2;
     }
+
+    /* --- ĐỊNH DẠNG HEADER THỐNG KÊ --- */
+    .thongke-header-group {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+    .view-details-label {
+        margin-left: auto !important;
+    }
+
     /* In nghiêng tên hóa chất chuẩn */
     #summaryTable .chemical-sub-item td:first-child {
         font-weight: normal; /* Bỏ in đậm */
@@ -141,12 +155,28 @@
         
         /* Đã xóa các CSS cũ của filter-box vì sẽ dùng chung với styles.css để đồng bộ */
         
-        /* Riêng nút phân tích của admin cho rớt xuống dòng nếu cần */
-        body .filter-box button#openAnalysisModal {
-            flex: 1 1 100% !important;
-            height: 32px !important;
-            font-size: 13px !important;
-            margin-top: 4px !important;
+        /* --- GIAO DIỆN MOBILE CHO HEADER THỐNG KÊ --- */
+        .thongke-header-group {
+            gap: 6px !important;
+        }
+        .thongke-header-group .filter-box {
+            width: 100% !important;
+            order: 1;
+            margin-bottom: 0 !important;
+        }
+        .thongke-header-group .view-details-label {
+            flex: 1 1 0% !important;
+            margin-left: 0 !important;
+            order: 2;
+            justify-content: center;
+        }
+        .thongke-header-group button#openAnalysisModal {
+            flex: 1 1 0% !important;
+            order: 3;
+            height: 27px !important;
+            padding: 4px 6px !important;
+            font-size: 12px !important;
+            margin: 0 !important;
         }
         
         /* Bảng responsive */
@@ -190,10 +220,6 @@
         body #accuracyWarning {
           font-size: 11px;
         }
-        
-        body label:has(#viewDetailsCheckbox) {
-          font-size: 11px;
-        }
      }
 
   </style>
@@ -211,24 +237,29 @@
     <h2>📈 Thống Kê Báo Cáo Ca Trực</h2>
     <div class="card-body">
 
-    <div class="filter-box thongke-page">
-      <label>Từ ngày: <input type="date" id="fromDate"></label>
-      <label>Đến ngày: <input type="date" id="toDate"></label>
-      <label>Năm nhanh:
-        <select id="yearSelect">
-          <option value="">--Chọn năm--</option>
-          </select>
-      </label>
-      <button id="applyFilter" type="button" class="btn-action btn-primary">📊 Xem Thống Kê</button>
-      <button type="button" id="openAnalysisModal" class="btn-action btn-info admin-only" style="display:none;">⚙️ Phân tích Báo cáo</button>
+    <div class="thongke-header-group">
+        <div class="filter-box thongke-page" style="margin: 0;">
+          <label>Từ ngày: <input type="date" id="fromDate"></label>
+          <label>Đến ngày: <input type="date" id="toDate"></label>
+          <label>Năm nhanh:
+            <select id="yearSelect">
+              <option value="">--Chọn năm--</option>
+              </select>
+          </label>
+          <button id="applyFilter" type="button" class="btn-action btn-primary">📊 Xem Thống Kê</button>
+        </div>
+
+        <button type="button" id="openAnalysisModal" class="btn-action btn-info admin-only" style="display:none;">⚙️ Phân tích Báo cáo</button>
+
+        <label class="special-filter-label view-details-label">
+            <input type="checkbox" id="viewDetailsCheckbox"> 
+            <span class="special-text-long">Xem chi tiết</span>
+            <span class="special-text-short">Chi tiết</span>
+        </label>
     </div>
 
-    <div class="d-flex justify-between align-center mb-0">
-        <div id="accuracyWarning" class="flex-1" style="display:none; color: var(--danger-color); font-style: italic; padding: 5px; margin-right: 15px;">
-            ⚠️ Dữ liệu có thể thiếu chính xác.
-        </div>
-        <label style="flex-shrink: 0;"> <input type="checkbox" id="viewDetailsCheckbox"> Xem chi tiết
-        </label>
+    <div id="accuracyWarning" style="display:none; color: var(--danger-color); font-style: italic; padding: 5px; margin-bottom: 10px;">
+        ⚠️ Dữ liệu có thể thiếu chính xác.
     </div>
 
     <div class="table-container">

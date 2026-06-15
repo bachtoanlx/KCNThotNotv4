@@ -1,6 +1,6 @@
 // localDB.js
 const DB_NAME = 'KCN_LocalDB';
-const DB_VERSION = 2; // Tăng phiên bản để cập nhật cấu trúc DB
+const DB_VERSION = 3; // Tăng phiên bản để cập nhật cấu trúc DB
 
 // Khởi tạo DB
 export function initLocalDB() {
@@ -20,6 +20,9 @@ export function initLocalDB() {
             }
             if (!db.objectStoreNames.contains('reports_2')) {
                 db.createObjectStore('reports_2', { keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('shift_reports')) {
+                db.createObjectStore('shift_reports', { keyPath: 'id' });
             }
         };
 

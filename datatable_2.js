@@ -610,9 +610,10 @@
             // 7. Gắn listener
             searchInput.addEventListener("input", () => {
                 const q = searchInput.value.trim();
+                const isSpecialChecked = specialWorkdayFilterInput ? specialWorkdayFilterInput.checked : false;
                 if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
 
-                if (q === "") {
+                if (q === "" && !isSpecialChecked) {
                     const wasDeepSearch = isDeepSearchMode;
                     isDeepSearchMode = false;
                     toggleFiltersUI(false);

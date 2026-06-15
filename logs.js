@@ -783,11 +783,14 @@ import { initMenu } from "./menu.js";
 
           searchInput.addEventListener("input", () => {
             const q = searchInput.value.trim();
+            const actionVal = actionFilter ? actionFilter.value : '';
+            const userVal = userFilter ? userFilter.value : '';
+            const isManualFilter = actionVal !== '' || userVal !== '';
             
             // Hủy bộ đếm giờ cũ nếu người dùng vẫn đang gõ liên tục
             if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             
-            if (q === "") {
+            if (q === "" && !isManualFilter) {
                 const wasDeepSearch = isDeepSearchMode;
                 isDeepSearchMode = false;
                 

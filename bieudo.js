@@ -1,6 +1,8 @@
-import { onAuth, getRole, showLoading, hideLoading, showSwal, getReportsByDate } from "./script.js";
+import { onAuth, getRole, showLoading, hideLoading, showSwal, getReportsByDate, db } from "./script.js";
 import { formatISODate, findLatestReadingBeforeOrOnMark } from "./core-calculator.js";
 import { initMenu } from "./menu.js";
+import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
+import { collection, query, where, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // Tải giao diện chung
 fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
@@ -30,10 +32,61 @@ function resetYearSelectIfEditingDates() {
 });
 
 async function loadChartData(fromDate, toDate) {
-    showLoading("Đang tải dữ liệu biểu đồ...");
+    showLoading("Đang đồng bộ và tải dữ liệu biểu đồ...");
     try {
-        // Tải dữ liệu Chỉ số (reports_1) - Giống trang statistics.js
-        allReports = await getReportsByDate("reports_1", "ngay_ghi", fromDate, toDate, "all");
+        // 1. Sync `reports_1` data with IndexedDB
+        const collectionName = "reports_1";
+        const lastSync = await getLastSyncTime(collectionName);
+
+        // 1a. Sync Deletes (Tombstone)
+        if (lastSync > 0) {
+            const qDel = query(collection(db, "sync_deletes"), 
+                where("deletedAt", ">", new Date(lastSync))
+            );
+            const snapDel = await getDocs(qDel);
+            if (!snapDel.empty) {
+                const idsToDelete = snapDel.docs
+                    .map(d => d.data())
+                    .filter(data => data.collectionName === collectionName)
+                    .map(data => data.docId);
+                if (idsToDelete.length > 0) {
+                    await deleteFromLocalDB(collectionName, idsToDelete);
+                }
+            }
+        }
+
+        // 1b. Sync Upserts (New/Modified)
+        let newRecords = [];
+        if (lastSync === 0) {
+            const qAll = query(collection(db, collectionName));
+            const snapAll = await getDocs(qAll);
+            newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        } else {
+            const qCreated = query(collection(db, collectionName), where("createdAt", ">", new Date(lastSync)));
+            const qUpdated = query(collection(db, collectionName), where("updatedAt", ">", new Date(lastSync)));
+            const [snapC, snapU] = await Promise.all([getDocs(qCreated), getDocs(qUpdated)]);
+            const map = new Map();
+            snapC.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            snapU.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            newRecords = Array.from(map.values());
+        }
+
+        if (newRecords.length > 0) {
+            const parsedRecords = newRecords.map(data => ({
+                ...data,
+                _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+            }));
+            await saveToLocalDB(collectionName, parsedRecords);
+        }
+        await setLastSyncTime(collectionName, Date.now());
+
+        // 2. Get all data from IndexedDB and filter in-memory
+        const allLocalData = await getAllFromLocalDB(collectionName);
+        allReports = allLocalData.filter(r => {
+            const reportDate = r.ngay_ghi;
+            return reportDate && reportDate >= fromDate && reportDate <= toDate;
+        });
         
         // Khởi tạo năm cho dropdown nếu chưa có
         if (yearSelect && yearSelect.options.length <= 1) {
@@ -45,7 +98,7 @@ async function loadChartData(fromDate, toDate) {
         
         renderChart(fromDate, toDate);
     } catch (e) {
-        console.error("Lỗi tải dữ liệu biểu đồ:", e);
+        console.error("Lỗi tải dữ liệu biểu đồ từ IndexedDB:", e);
         showSwal("error", "Lỗi tải dữ liệu", e.message);
     } finally {
         hideLoading();
