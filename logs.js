@@ -1,5 +1,5 @@
 import { initMenu } from "./menu.js";
-    import { db, onAuth, getRole } from "./script.js";
+    import { db, onAuth, getRole, showSwal } from "./script.js";
     import {
       collection,
       query,
@@ -10,6 +10,7 @@ import { initMenu } from "./menu.js";
       limit,
       startAfter
     } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime } from "./localDB.js";
 
     // Load menu
     fetch("menu.html")
@@ -45,36 +46,167 @@ import { initMenu } from "./menu.js";
   const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
   let isFetching = false; // Khóa để tránh tải trùng lặp
   let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
+  let globalLoadCount = 0; // MỚI: Đếm tổng số lần cuộn để hiển thị tiến trình liên tục
   const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
 
-    const filterAndRenderLogs = (logs, query) => {
-        const lowerCaseQuery = query.toLowerCase().trim();
+  // MỚI: State cho Deep Search
+  let isDeepSearchMode = false;
+  let deepSearchQuery = "";
+  let deepSearchCursor = null;
+  let deepSearchResults = [];
+  
+  let searchDebounceTimer = null; // MỚI: Biến hẹn giờ cho chức năng tìm kiếm tự động
+  let savedStartDate = ""; // MỚI: Lưu lại ngày bắt đầu trước khi tìm kiếm
+  let savedEndDate = ""; // MỚI: Lưu lại ngày kết thúc trước khi tìm kiếm
+
+  // HÀM MỚI: Chuẩn hóa tiếng Việt không dấu để tìm kiếm thông minh hơn
+  function normalizeForSearch(str) {
+      if (!str) return "";
+      return str.toString().toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d");
+  }
+
+  // Hàm hỗ trợ tạo chuỗi tìm kiếm chuẩn xác cho mỗi log
+  function buildLogSearchString(log) {
+      const fields = [
+          log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString('vi-VN') : "",
+          log.email, log.action, log.company, log.chi_so, log.ngay_ghi, log.ghi_chu,
+          log.fileId, log.error_code, log.userAgent, log.job, log.note,
+          log.displayName, log.user, log.deletedRule?.job, log.deletedJob?.job,
+          log.deletedPattern?.displayName, log.updateData?.job, log.updateData?.displayName,
+          log.targetName, log.changes ? Object.values(log.changes).map(c => `${c.label} ${c.old} ${c.new}`).join(" ") : "",
+          // Bổ sung các trường dữ liệu còn thiếu
+          log.date, log.patternStartDate, log.patternEndDate, log.reason, log.details, 
+          log.shiftName, log.time, log.user1, log.user2, log.reportId, log.error, log.targetUser
+      ];
+            return fields.map(field => {
+          if (!field) return "";
+          const str = field.toString();
+          let variants = "";
+          
+          // Tìm TẤT CẢ các chuỗi YYYY-MM-DD nằm xen kẽ trong mọi câu văn dài
+          const dateMatches = str.match(/(\d{4})-(\d{2})-(\d{2})/g);
+          if (dateMatches) {
+              dateMatches.forEach(match => {
+                  const parts = match.match(/(\d{4})-(\d{2})-(\d{2})/);
+                  if (parts) {
+                      const y = parts[1], m = parts[2], d = parts[3];
+                      const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
+                      variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`;
+                  }
+              });
+          }
+          return normalizeForSearch(str + variants);
+      }).join(" ");
+  }
+
+
+  // MỚI: Hàm thực hiện Deep Search
+  async function performDeepSearch(queryText, isLoadMore = false) {
+      if (isFetching) return;
+      isFetching = true;
+      
+      isDeepSearchMode = true;
+      deepSearchQuery = queryText;
+      
+      try {
+          // 1. Cập nhật dữ liệu mới từ Firestore về IndexedDB
+          const lastSync = await getLastSyncTime("logs");
+          let q;
+          if (lastSync === 0) {
+              q = query(collection(db, "logs"), orderBy("createdAt", "desc"));
+          } else {
+              q = query(collection(db, "logs"), where("createdAt", ">", new Date(lastSync)), orderBy("createdAt", "desc"));
+          }
+          
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+              const newLogs = snapshot.docs.map(doc => {
+                  const data = doc.data();
+                  return {
+                      id: doc.id,
+                      ...data,
+                      // Giữ lại số mili-giây để Serialize xuống IndexedDB
+                      _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now()
+                  };
+              });
+              await saveToLocalDB("logs", newLogs);
+              await setLastSyncTime("logs", Date.now());
+          }
+
+          // 2. Lấy toàn bộ từ IndexedDB và khôi phục định dạng Timestamp ảo
+          const allLocalLogs = await getAllFromLocalDB("logs");
+          allLocalLogs.sort((a, b) => b._createdAtMillis - a._createdAtMillis);
+          const parsedLogs = allLocalLogs.map(log => ({
+              ...log,
+              createdAt: { toDate: () => new Date(log._createdAtMillis) }
+          }));
+
+          // 3. Tìm kiếm toàn bộ trên RAM cực nhanh
+          const lowerCaseQuery = normalizeForSearch(deepSearchQuery).trim();
+          const actionVal = actionFilter ? actionFilter.value : '';
+          const userVal = userFilter ? userFilter.value : '';
+
+          deepSearchResults = parsedLogs.filter(log => {
+              if (actionVal && log.action !== actionVal) return false;
+              if (userVal && log.email !== userVal) return false;
+              
+              // Chỉ tìm text nếu ô tìm kiếm không trống
+              if (lowerCaseQuery !== "") {
+                  if (!buildLogSearchString(log).includes(lowerCaseQuery)) return false;
+              }
+              return true;
+          });
+          
+          // 4. MỚI: Cập nhật và khóa 2 ô thời gian theo khoảng dữ liệu tìm thấy
+          if (deepSearchResults.length > 0) {
+              const newestDate = deepSearchResults[0].createdAt.toDate();
+              const oldestDate = deepSearchResults[deepSearchResults.length - 1].createdAt.toDate();
+              
+              const formatYMD = (date) => {
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, '0');
+                  const d = String(date.getDate()).padStart(2, '0');
+                  return `${y}-${m}-${d}`;
+              };
+              
+              if (startDateInput) {
+                  startDateInput.value = formatYMD(oldestDate);
+                  startDateInput.disabled = true;
+                  startDateInput.style.opacity = "0.5";
+                  startDateInput.style.cursor = "not-allowed";
+              }
+              if (endDateInput) {
+                  endDateInput.value = formatYMD(newestDate);
+                  endDateInput.disabled = true;
+                  endDateInput.style.opacity = "0.5";
+                  endDateInput.style.cursor = "not-allowed";
+              }
+          } else {
+              // Nếu không có kết quả, vẫn khóa
+              if (startDateInput) { startDateInput.disabled = true; startDateInput.style.opacity = "0.5"; startDateInput.style.cursor = "not-allowed"; }
+              if (endDateInput) { endDateInput.disabled = true; endDateInput.style.opacity = "0.5"; endDateInput.style.cursor = "not-allowed"; }
+          }
+
+          allLogs = deepSearchResults;
+          if (loadMoreBtn) loadMoreBtn.style.display = 'none'; // Không cần phân trang thủ công khi đã nạp hết vào RAM
+          filterAndRenderLogs(allLogs, deepSearchQuery, true);
+          
+      } catch (err) {
+          console.error("Lỗi tìm kiếm sâu:", err);
+          showSwal('error', 'Lỗi tìm kiếm', 'Không thể tìm kiếm dữ liệu lúc này.');
+          isDeepSearchMode = false;
+      } finally {
+          isFetching = false;
+      }
+  }
+
+    const filterAndRenderLogs = (logs, query, isDeepSearchContext = false) => {
+        const lowerCaseQuery = normalizeForSearch(query).trim();
         const filteredLogs = logs.filter(log => {
-            const searchContent = [
-                log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString() : "",
-                log.email,
-                log.action,
-                log.company,
-                log.chi_so,
-                log.ngay_ghi,
-                log.ghi_chu,
-                log.fileId,
-                log.error_code,
-                log.userAgent,
-                log.job,
-                log.note,
-                log.displayName,
-                log.user, 
-                log.deletedRule?.job,
-                log.deletedJob?.job,
-                log.deletedPattern?.displayName,
-                log.updateData?.job,
-                log.updateData?.displayName,
-                log.targetName,
-                log.changes ? Object.values(log.changes).map(c => `${c.label} ${c.old} ${c.new}`).join(" ") : ""
-            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
-            
-            return searchContent.includes(lowerCaseQuery);
+            return buildLogSearchString(log).includes(lowerCaseQuery);
         });
         
         let finalData = filteredLogs;
@@ -91,29 +223,14 @@ import { initMenu } from "./menu.js";
           
           if (finalData.length === 0) {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td colspan="4" style="text-align: center; color: #cc0000; font-style: italic; padding: 20px;">
-                Dữ liệu đang tìm không có hoặc nằm ngoài vùng hiển thị, hãy điều chỉnh để có kết quả tìm chính xác hơn.
+            tr.innerHTML = `<td colspan="4" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
+                Không tìm thấy dữ liệu nào khớp với từ khóa của bạn.
             </td>`;
             tbody.appendChild(tr);
             
-            // Hiệu ứng nhắc nhở người dùng
-            highlightTimeout = setTimeout(() => {
-                const filterBox = document.querySelector('.filter-box');
-                if (filterBox) {
-                    filterBox.classList.add('highlight-area');
-                    setTimeout(() => {
-                        filterBox.classList.remove('highlight-area');
-                        if (loadMoreBtn) {
-                            loadMoreBtn.classList.add('highlight-area');
-                            setTimeout(() => loadMoreBtn.classList.remove('highlight-area'), 2000);
-                        }
-                    }, 2000);
-                }
-            }, 1500); // Đợi 1.5s sau khi dừng gõ mới nháy
             return;
-          }
-
-          finalData.forEach(log => {
+          } else {
+            finalData.forEach(log => {
             const time = log.createdAt?.toDate
                 ? log.createdAt.toDate().toLocaleString('vi-VN')
                 : "";
@@ -431,6 +548,7 @@ import { initMenu } from "./menu.js";
             
             tbody.appendChild(tr);
         });
+          }
     };
 
     onAuth(async user => {
@@ -499,11 +617,8 @@ import { initMenu } from "./menu.js";
 
             if (!isLoadMore) {
                 lastDoc = null; // Reset con trỏ Firebase nếu đây là đợt tải (lọc) mới
-                autoLoadCount = 0; // Reset lại bộ đếm cuộn tự động
-            }
-
-            if (loadMoreBtn && isLoadMore) {
-                loadMoreBtn.textContent = "⏳ Đang tải...";
+                autoLoadCount = 1; // Reset lại bộ đếm cuộn
+                globalLoadCount = 1;
             }
 
             try {
@@ -514,6 +629,7 @@ import { initMenu } from "./menu.js";
                     if (loadMoreBtn) loadMoreBtn.style.display = 'none';
                     if (!isLoadMore) {
                         rawLogs = [];
+                    if (isDeepSearchMode) return; // Nếu đang deep search thì không ghi đè
                         populateFilterOptions(rawLogs);
                         applyLocalFilters();
                     }
@@ -531,12 +647,17 @@ import { initMenu } from "./menu.js";
                 }
                 
                 if (loadMoreBtn) {
-                    loadMoreBtn.style.background = "var(--primary-color)"; // Reset màu gốc
                     if (snapshot.docs.length < LIMIT_PER_PAGE) {
                         loadMoreBtn.style.display = 'none'; // Hết dữ liệu thì ẩn nút
                     } else {
                         loadMoreBtn.style.display = 'inline-block';
-                        loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
+                        if (autoLoadCount >= MAX_AUTO_LOADS) {
+                            loadMoreBtn.style.background = "#d35400"; // Màu cam cảnh báo
+                            loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
+                        } else {
+                            loadMoreBtn.style.background = "var(--primary-color)";
+                            loadMoreBtn.textContent = `⬇️ Cuộn để tải thêm... (${globalLoadCount * LIMIT_PER_PAGE})`;
+                        }
                     }
                 }
                 
@@ -607,16 +728,53 @@ import { initMenu } from "./menu.js";
           }
           
           // Sự kiện thay đổi ngày -> Fetch lại dữ liệu Firestore
-          startDateInput.addEventListener('change', () => fetchLogsByDate(false));
-          endDateInput.addEventListener('change', () => fetchLogsByDate(false));
+          startDateInput.addEventListener('change', () => { isDeepSearchMode = false; fetchLogsByDate(false); });
+          endDateInput.addEventListener('change', () => { isDeepSearchMode = false; fetchLogsByDate(false); });
 
-          // Sự kiện thay đổi bộ lọc -> Lọc local ngay lập tức
-          actionFilter.addEventListener('change', applyLocalFilters);
-          userFilter.addEventListener('change', applyLocalFilters);
+          // Sự kiện thay đổi bộ lọc -> Lọc local ngay lập tức HOẶC lọc chéo trên RAM nếu đang tìm kiếm
+          const handleSelectFilterChange = () => {
+              // 1. Cập nhật giao diện nút Bỏ lọc / Áp dụng
+              const actionVal = actionFilter ? actionFilter.value : '';
+              const userVal = userFilter ? userFilter.value : '';
+              const isManualFilter = actionVal !== '' || userVal !== '' || startDateInput.value !== '' || endDateInput.value !== '';
+              
+              if (toggleFilterBtn) {
+                  if (isManualFilter) {
+                      toggleFilterBtn.textContent = 'Bỏ lọc';
+                      toggleFilterBtn.style.background = '#6c757d';
+                  } else {
+                      toggleFilterBtn.textContent = 'Áp dụng';
+                      toggleFilterBtn.style.background = '#3498db';
+                  }
+              }
+
+              // 2. Lọc dữ liệu
+              const q = searchInput.value.trim();
+              if (q !== "" || isManualFilter) {
+                  // Có từ khóa HOẶC Có chọn bộ lọc -> Quét toàn bộ DB lịch sử không cần phân trang
+                  tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang lọc dữ liệu...</td></tr>`;
+                  performDeepSearch(q);
+              } else {
+                  // Xóa sạch bộ lọc -> Khôi phục mẻ 15 dòng mặc định
+                  isDeepSearchMode = false;
+                  applyLocalFilters();
+                  if (loadMoreBtn && lastDoc) loadMoreBtn.style.display = 'inline-block';
+              }
+          };
+
+          actionFilter.addEventListener('change', handleSelectFilterChange);
+          userFilter.addEventListener('change', handleSelectFilterChange);
           
           // Sự kiện nút Áp dụng / Bỏ lọc
           if (toggleFilterBtn) {
               toggleFilterBtn.addEventListener('click', () => {
+                  isDeepSearchMode = false;
+                  searchInput.value = ""; // MỚI: Xóa text tìm kiếm khi thao tác với nút bộ lọc
+                  
+                  // Khôi phục khóa UI
+                  if (startDateInput) { startDateInput.disabled = false; startDateInput.style.opacity = "1"; startDateInput.style.cursor = ""; }
+                  if (endDateInput) { endDateInput.disabled = false; endDateInput.style.opacity = "1"; endDateInput.style.cursor = ""; }
+
                   if (toggleFilterBtn.textContent === 'Bỏ lọc') {
                       actionFilter.value = '';
                       userFilter.value = '';
@@ -633,15 +791,62 @@ import { initMenu } from "./menu.js";
           // Note: selects (action/user) do NOT auto-apply; user must click Áp dụng to activate filters.
 
           searchInput.addEventListener("input", () => {
-            filterAndRenderLogs(allLogs, searchInput.value);
+            const q = searchInput.value.trim();
+            
+            // Hủy bộ đếm giờ cũ nếu người dùng vẫn đang gõ liên tục
+            if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+            
+            if (q === "") {
+                const wasDeepSearch = isDeepSearchMode;
+                isDeepSearchMode = false;
+                
+                // Khôi phục UI bộ lọc thời gian
+                if (startDateInput) { startDateInput.disabled = false; startDateInput.style.opacity = "1"; startDateInput.style.cursor = ""; }
+                if (endDateInput) { endDateInput.disabled = false; endDateInput.style.opacity = "1"; endDateInput.style.cursor = ""; }
+
+                if (wasDeepSearch) {
+                    // Trả lại ngày đã lưu trước khi tìm kiếm
+                    if (startDateInput) startDateInput.value = savedStartDate;
+                    if (endDateInput) endDateInput.value = savedEndDate;
+                    fetchLogsByDate(false); // Gọi tải lại dữ liệu ban đầu
+                } else {
+                    if (loadMoreBtn && lastDoc) {
+                        loadMoreBtn.style.display = 'inline-block';
+                        loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
+                        loadMoreBtn.style.background = "var(--primary-color)";
+                    }
+                    applyLocalFilters();
+                }
+            } else {
+                // Lưu lại ngày trước khi bắt đầu deep search
+                if (!isDeepSearchMode) {
+                    savedStartDate = startDateInput ? startDateInput.value : "";
+                    savedEndDate = endDateInput ? endDateInput.value : "";
+                }
+
+                // Hiện thông báo đang tìm kiếm lập tức
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang tìm kiếm toàn bộ dữ liệu...</td></tr>`;
+                if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                
+                // Hẹn giờ 500ms sau khi ngừng gõ mới thực hiện quét DB
+                searchDebounceTimer = setTimeout(() => {
+                    performDeepSearch(q);
+                }, 500);
+            }
           });
 
           // MỚI: Xử lý click nút tải thêm (phòng khi Intersection Observer không nhạy)
           if (loadMoreBtn) {
               loadMoreBtn.addEventListener('click', () => {
-                  autoLoadCount = 0; // Reset lại bộ đếm, cấp "quota" cho 5 lần cuộn tự động tiếp theo
+                  if (autoLoadCount >= MAX_AUTO_LOADS) {
+                      autoLoadCount = 1; // Khởi động mẻ quét mới
+                  } else {
+                      autoLoadCount++; // Tính luôn click thủ công vào quota
+                  }
+                  globalLoadCount++;
+                  loadMoreBtn.textContent = `⏳ Đang tải... (${globalLoadCount * LIMIT_PER_PAGE})`;
                   loadMoreBtn.style.background = "var(--primary-color)";
-                  fetchLogsByDate(true);
+                  if (!isDeepSearchMode) fetchLogsByDate(true);
               });
           }
 
@@ -652,10 +857,10 @@ import { initMenu } from "./menu.js";
                   if (entries[0].isIntersecting && !isFetching && loadMoreBtn.style.display !== 'none') {
                       if (autoLoadCount < MAX_AUTO_LOADS) {
                           autoLoadCount++;
-                          fetchLogsByDate(true); // Gửi cờ 'true' để nối thêm data
-                      } else {
-                          loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
-                          loadMoreBtn.style.background = "#d35400"; // Đổi sang màu cam cảnh báo
+                          globalLoadCount++;
+                          loadMoreBtn.textContent = `⏳ Đang tải... (${globalLoadCount * LIMIT_PER_PAGE})`;
+                          loadMoreBtn.style.background = "var(--primary-color)";
+                          if (!isDeepSearchMode) fetchLogsByDate(true);
                       }
                   }
               };

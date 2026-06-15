@@ -1031,7 +1031,9 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
         const isSearching = searchInputEl && searchInputEl.value.trim().length > 0;
 
         // 1. Lọc và Tính toán trạng thái hết hạn cho toàn bộ danh sách trước
-        const processedRules = [];
+        const activeRules = [];
+        const hiddenRules = [];
+
         rulesToRender.forEach(d => {
             let isExpired = false;
             let endDateDisplay = "-";
@@ -1043,13 +1045,33 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
                     isExpired = true;
                 }
             }
+
+            if (d.exactDate) {
+                const exactObj = new Date(d.exactDate + 'T00:00:00');
+                if (todayForCheck > exactObj) {
+                    isExpired = true;
+                }
+                if (!isExpired) {
+                    endDateDisplay = d.exactDate.split('-').reverse().join('/');
+                } else if (!d.ruleEndDate) {
+                    endDateDisplay = d.exactDate.split('-').reverse().join('/');
+                }
+            }
             
             if (hideExpired && isExpired) return; // Nếu bật bộ lọc thì ẩn luôn dòng đã qua
-            processedRules.push({ ...d, isExpired, endDateDisplay });
+            const processed = { ...d, isExpired, endDateDisplay };
+            
+            // CHỈ những quy tắc luân phiên có ngày kết thúc mới được phép nằm ở nhóm Hết hiệu lực
+            if (d.isHidden && !d.exactDate && d.ruleEndDate) {
+                hiddenRules.push(processed);
+            } else {
+                processed.isHidden = false; // Ép bỏ trạng thái ẩn nếu dữ liệu cũ không hợp lệ
+                activeRules.push(processed);
+            }
         });
 
-        if (processedRules.length === 0) {
-            ruleListBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; color: #888; font-style: italic; text-align: center;">Tất cả công việc đã bị ẩn do ngày kết thúc đã qua.</td></tr>`;
+        if (activeRules.length === 0 && hiddenRules.length === 0) {
+            ruleListBody.innerHTML = `<tr><td colspan="6" style="padding: 20px; color: #888; font-style: italic; text-align: center;">Không có quy tắc công việc nào.</td></tr>`;
             if (scrollContainer) { scrollContainer.style.minHeight = ""; scrollContainer.scrollTop = tableScrollTop; }
             if (document.getElementById("pageContent")) { document.getElementById("pageContent").scrollTop = pageScrollTop; }
             return;
@@ -1066,8 +1088,8 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
             return base.trim() === "" ? name : base.trim();
         };
 
-        // 3. Tiến hành gom nhóm thông minh (Bao gồm nhóm theo Tiền tố)
-        const tempProcessed = processedRules.map(d => ({
+        // 3. Tiến hành gom nhóm thông minh CHO CÁC CÔNG VIỆC ACTIVE
+        const tempProcessed = activeRules.map(d => ({
             ...d,
             cleanNameLower: getCleanName(d.job).toLowerCase(),
             cleanNameDisplay: getCleanName(d.job)
@@ -1120,7 +1142,7 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
         let groupIdCounter = 0;
 
         // Helper: Hàm Render 1 hàng dữ liệu
-        const renderRow = (d, colorClass, isChild, parentId, forceShow = false) => {
+        const renderRow = (d, colorClass, isChild, parentId, forceShow = false, isHiddenRow = false) => {
             const tr = document.createElement("tr");
             tr.className = colorClass;
             
@@ -1130,15 +1152,35 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
                 tr.style.display = forceShow ? "table-row" : "none"; // Các hàng con mặc định bị ẩn
             }
             
-            if (d.isExpired) {
+            if (isHiddenRow) {
+                tr.classList.add("hidden-job-row");
+                tr.style.display = isSearching ? "table-row" : "none";
+                tr.style.opacity = "0.7";
+            }
+            
+            if (d.isExpired && !isHiddenRow) {
                 tr.style.color = "#999";
                 tr.style.opacity = "0.7";
             }
 
             const noteDisplay = (d.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
+            
+            const hideIcon = d.isHidden ? "🙈" : "👁️";
+            const hideTitle = d.isHidden ? "Khôi phục ra bảng" : "Cất vào nhóm Hết hiệu lực";
+            
+            // Chỉ hiện con mắt cho quy tắc luân phiên (không có exactDate) có ngày kết thúc
+            let showHideBtn = false;
+            if (!d.exactDate && d.ruleEndDate && (d.isHidden || d.isExpired)) {
+                showHideBtn = true;
+            }
+            
+            const hideButtonHtml = showHideBtn ? `<button class="btn-toggle-hide" data-id="${d.id}" data-hidden="${d.isHidden ? 'true' : 'false'}" style="padding: 2px 6px; font-size: 12px; border-radius:4px; cursor:pointer;" title="${hideTitle}">${hideIcon}</button>` : "";
 
             tr.innerHTML = `
-                <td style="${d.isExpired ? 'text-decoration: line-through;' : ''}">${d.job}${noteDisplay ? `<br><span style="font-size: 0.85em; color: #7f8c8d; text-decoration: none; display: inline-block;">${noteDisplay}</span>` : ""}</td>
+                <td style="position: relative; padding-right: ${showHideBtn ? '36px' : '10px'};">
+                    <span>${d.job}</span>${noteDisplay ? `<br><span style="font-size: 0.85em; color: #7f8c8d; text-decoration: none; display: inline-block;">${noteDisplay}</span>` : ""}
+                    ${hideButtonHtml}
+                </td>
                 <td>${d.time || "-"}</td>
                 <td style="color: #d35400; font-weight:bold;">${d.exactDate ? d.exactDate.split('-').reverse().join('/') : "-"}</td>
                 <td style="color: #c0392b;">${d.endDateDisplay}</td>
@@ -1155,6 +1197,20 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
                 const ruleData = allRulesData.find(r => r.id === d.id);
                 if (ruleData) openEditRuleModal(ruleData);
             });
+
+            const toggleHideBtn = tr.querySelector(".btn-toggle-hide");
+            if (toggleHideBtn) {
+                toggleHideBtn.addEventListener("click", async (e) => {
+                    const ruleId = e.currentTarget.dataset.id;
+                    const currentStatus = e.currentTarget.dataset.hidden === 'true';
+                    try {
+                        await updateDoc(doc(db, "work_rules", ruleId), { isHidden: !currentStatus });
+                    } catch (err) {
+                        console.error("Lỗi khi ẩn/hiện công việc:", err);
+                        showSwal("error", "Lỗi", "Không thể thực hiện thao tác này.");
+                    }
+                });
+            }
 
             ruleListBody.appendChild(tr);
         };
@@ -1215,6 +1271,33 @@ import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, 
                 group.rules.forEach(d => renderRow(d, colorClass, true, groupId, isSearching));
             }
         });
+
+        // 6. Thêm nhóm "Quy tắc hết hiệu lực" ở cuối bảng
+        if (hiddenRules.length > 0) {
+            const hiddenGroupTr = document.createElement("tr");
+            hiddenGroupTr.className = `rule-group-header rule-group-hidden`;
+            
+            const toggleIcon = isSearching ? '▼' : '▶';
+            
+            hiddenGroupTr.innerHTML = `
+                <td colspan="6" style="text-align: left; padding: 10px; cursor: pointer; border-bottom: 1px solid #ccc; background-color: #f8fafc;">
+                    <span class="group-toggle-btn" style="display:inline-block; width: 22px; color: #94a3b8; font-size: 12px; font-weight: bold;">${toggleIcon}</span>
+                    <b style="color: #64748b;">Quy tắc hết hiệu lực</b> 
+                    <span style="font-weight:normal; color:#94a3b8; font-size: 0.85em; background: #fff; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px;">${hiddenRules.length} quy tắc</span>
+                </td>
+            `;
+            
+            hiddenGroupTr.addEventListener('click', function() {
+                const hiddenRows = ruleListBody.querySelectorAll('.hidden-job-row');
+                const toggleBtn = this.querySelector('.group-toggle-btn');
+                const isClosed = toggleBtn.textContent.trim() === '▶';
+                hiddenRows.forEach(row => row.style.display = isClosed ? 'table-row' : 'none');
+                toggleBtn.textContent = isClosed ? '▼' : '▶';
+            });
+            
+            ruleListBody.appendChild(hiddenGroupTr);
+            hiddenRules.forEach(d => renderRow(d, 'group-color-a', false, null, isSearching, true));
+        }
 
         // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
         if (scrollContainer) {
@@ -1862,9 +1945,10 @@ function renderPatternList(patternsToRender) {
         const todayForCheck = new Date();
         todayForCheck.setHours(0, 0, 0, 0);
         
+        const activePatterns = [];
+        const expiredPatterns = [];
+
         patternsToRender.forEach(d => {
-            let detail = "", startTime = d.startTime || "-", endTime = "-";
-            
             let isExpired = false;
             if (d.patternEndDate) {
                 const endDateObj = new Date(d.patternEndDate + 'T00:00:00');
@@ -1872,8 +1956,21 @@ function renderPatternList(patternsToRender) {
                     isExpired = true;
                 }
             }
-            const nameStyle = isExpired ? 'text-decoration: line-through; color: #999;' : '';
+            const processed = { ...d, isExpired };
+            if (isExpired) {
+                expiredPatterns.push(processed);
+            } else {
+                activePatterns.push(processed);
+            }
+        });
 
+        const searchInputEl = document.getElementById('globalSearchInput');
+        const isSearching = searchInputEl && searchInputEl.value.trim().length > 0;
+
+        const renderRow = (d, isHiddenRow = false) => {
+            let detail = "", startTime = d.startTime || "-", endTime = "-";
+            const nameStyle = d.isExpired && !isHiddenRow ? 'text-decoration: line-through; color: #999;' : '';
+            
             if (d.type === 'administrative') {
                 const mapDay = {2:"T2",3:"T3",4:"T4",5:"T5",6:"T6",7:"T7",8:"CN"};
             // SỬA LỖI: Đảm bảo workDaysOfWeek là một mảng trước khi gọi .map()
@@ -1901,6 +1998,15 @@ function renderPatternList(patternsToRender) {
                                 endTime += " *";
             }
             const tr = document.createElement("tr");
+            
+            if (isHiddenRow) {
+                tr.classList.add("hidden-pattern-row");
+                tr.style.display = isSearching ? "table-row" : "none";
+                tr.style.opacity = "0.7";
+            } else if (d.isExpired) {
+                tr.style.opacity = "0.7";
+            }
+            
             tr.innerHTML = `
                 <td style="${nameStyle}">${d.user}</td>
                 <td style="${nameStyle}">${d.displayName || "-"}</td>
@@ -1911,7 +2017,7 @@ function renderPatternList(patternsToRender) {
                 <td>${startTime}</td>
                 <td>${endTime}</td>
                 <td style="white-space: nowrap; text-align: center;">
-                    <button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12; padding: 4px 10px;">✏️ Sửa</button>
+                    <button class="editPatternBtn" data-id="${d.id}" style="background:#f39c12; padding: 4px 10px; border:none; border-radius:4px; color:white; cursor:pointer;">✏️ Sửa</button>
                 </td>`;
 
             // Gắn sự kiện cho nút Sửa mở Modal
@@ -1923,7 +2029,36 @@ function renderPatternList(patternsToRender) {
                 }
             });
             tbody.appendChild(tr);
-        });
+        };
+
+        activePatterns.forEach(d => renderRow(d, false));
+
+        // Thêm nhóm "Quy tắc hết hiệu lực" ở cuối bảng
+        if (expiredPatterns.length > 0) {
+            const hiddenGroupTr = document.createElement("tr");
+            hiddenGroupTr.className = `rule-group-header rule-group-hidden`;
+            
+            const toggleIcon = isSearching ? '▼' : '▶';
+            
+            hiddenGroupTr.innerHTML = `
+                <td colspan="9" style="text-align: left; padding: 10px; cursor: pointer; border-bottom: 1px solid #ccc; background-color: #f8fafc;">
+                    <span class="group-toggle-btn" style="display:inline-block; width: 22px; color: #94a3b8; font-size: 12px; font-weight: bold;">${toggleIcon}</span>
+                    <b style="color: #64748b;">Quy tắc hết hiệu lực</b> 
+                    <span style="font-weight:normal; color:#94a3b8; font-size: 0.85em; background: #fff; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 12px; margin-left: 5px;">${expiredPatterns.length} nhân viên</span>
+                </td>
+            `;
+            
+            hiddenGroupTr.addEventListener('click', function() {
+                const hiddenRows = tbody.querySelectorAll('.hidden-pattern-row');
+                const toggleBtn = this.querySelector('.group-toggle-btn');
+                const isClosed = toggleBtn.textContent.trim() === '▶';
+                hiddenRows.forEach(row => row.style.display = isClosed ? 'table-row' : 'none');
+                toggleBtn.textContent = isClosed ? '▼' : '▶';
+            });
+            
+            tbody.appendChild(hiddenGroupTr);
+            expiredPatterns.forEach(d => renderRow(d, true));
+        }
 
         // --- KHÔI PHỤC VỊ TRÍ CUỘN ---
         if (scrollContainer) {

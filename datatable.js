@@ -6,6 +6,8 @@
              
     // Import các hàm GỐC (native) của Firebase SDK
     import { collection, query, where, orderBy, getDocs, limit, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    // Import IndexedDB
+    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
     
     // Import menu
     import { initMenu } from "./menu.js";
@@ -45,6 +47,148 @@
     let isFetching = false; // Khóa để tránh tải trùng lặp
     let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
     const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
+
+    // === STATE VÀ HÀM CHO DEEP SEARCH ===
+    let isDeepSearchMode = false;
+    let deepSearchQuery = "";
+    let deepSearchCursor = null;
+    let deepSearchResults = [];
+    let searchDebounceTimer = null; // Biến hẹn giờ cho chức năng tìm kiếm tự động
+    let savedStartDate = ""; // Lưu lại ngày bắt đầu trước khi tìm kiếm
+    let savedEndDate = ""; // Lưu lại ngày kết thúc trước khi tìm kiếm
+
+    // Hàm làm mờ/khóa UI bộ lọc
+    function toggleFiltersUI(disable) {
+        const filterElements = [fromInput, toInput, yearSelect, applyFilterBtn, meterResetFilterInput];
+        filterElements.forEach(el => {
+            if (el) {
+                el.disabled = disable;
+                // Làm mờ cả thẻ label chứa nó nếu có
+                if (el.parentElement && el.parentElement.tagName === "LABEL") {
+                    el.parentElement.style.opacity = disable ? "0.4" : "1";
+                } else {
+                    el.style.opacity = disable ? "0.4" : "1";
+                }
+                el.style.cursor = disable ? "not-allowed" : "";
+            }
+        });
+    }
+
+    // Trình thông dịch ngày tháng
+    function buildReportSearchString(item) {
+        const fields = [
+            item.createdBy, item.company, item.ghi_chu, item.ngay_ghi, item.chi_so ? item.chi_so.toString() : ""
+        ];
+        return fields.map(field => {
+            if (!field) return "";
+            const str = field.toString();
+            const dateMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateMatch) {
+                const y = dateMatch[1], m = dateMatch[2], d = dateMatch[3];
+                const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
+                return `${str} ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`.toLowerCase();
+            }
+            return str.toLowerCase();
+        }).join(" ");
+    }
+
+    async function performDeepSearch(queryText) {
+        if (isFetching) return;
+        isFetching = true;
+        
+        isDeepSearchMode = true;
+        deepSearchQuery = queryText;
+        
+        try {
+            // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
+            const lastSync = await getLastSyncTime("reports_1");
+            if (lastSync > 0) {
+                const qDel = query(collection(db, "sync_deletes"), 
+                    where("deletedAt", ">", new Date(lastSync))
+                );
+                const snapDel = await getDocs(qDel);
+                if (!snapDel.empty) {
+                    const idsToDelete = snapDel.docs
+                        .map(d => d.data())
+                        .filter(data => data.collectionName === "reports_1")
+                        .map(data => data.docId);
+                    if (idsToDelete.length > 0) {
+                        await deleteFromLocalDB("reports_1", idsToDelete);
+                    }
+                }
+            }
+
+            // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
+            let newRecords = [];
+            if (lastSync === 0) {
+                // Lần đầu tải toàn bộ
+                const qAll = query(collection(db, "reports_1"));
+                const snapAll = await getDocs(qAll);
+                newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
+            } else {
+                // Tải dữ liệu thay đổi. Dùng song song 2 truy vấn để bắt cả mới và sửa
+                const qCreated = query(collection(db, "reports_1"), where("createdAt", ">", new Date(lastSync)));
+                const qUpdated = query(collection(db, "reports_1"), where("updatedAt", ">", new Date(lastSync)));
+                const [snapC, snapU] = await Promise.all([getDocs(qCreated), getDocs(qUpdated)]);
+                const map = new Map();
+                snapC.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+                snapU.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+                newRecords = Array.from(map.values());
+            }
+
+            if (newRecords.length > 0) {
+                const parsedRecords = newRecords.map(data => ({
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                }));
+                await saveToLocalDB("reports_1", parsedRecords);
+            }
+            await setLastSyncTime("reports_1", Date.now());
+
+            // 3. Nạp dữ liệu lên RAM và tìm kiếm
+            const allLocalData = await getAllFromLocalDB("reports_1");
+            // Sắp xếp ngày ghi mới nhất lên đầu
+            allLocalData.sort((a, b) => new Date(b.ngay_ghi || 0).getTime() - new Date(a.ngay_ghi || 0).getTime());
+
+            const lowerCaseQuery = queryText.toLowerCase().trim();
+            deepSearchResults = allLocalData.filter(item => {
+                // Cắt lọc theo từ khóa
+                if (lowerCaseQuery !== "" && !buildReportSearchString(item).includes(lowerCaseQuery)) return false;
+                
+                // Lọc theo checkbox Chỉ số Đặc biệt (nếu có check)
+                const isMeterResetFilterActive = meterResetFilterInput ? meterResetFilterInput.checked : false;
+                if (isMeterResetFilterActive) {
+                    const isReset = item.isMeterReset === true;
+                    const isAutoInit = item.ghi_chu === "Chi so khoi tao tu dong (Auto-Init)";
+                    if (!isReset && !isAutoInit) return false;
+                }
+                return true;
+            });
+
+            // 4. Cập nhật giao diện tự động (Khóa UI Thời gian)
+            if (deepSearchResults.length > 0) {
+                const newestDate = deepSearchResults[0].ngay_ghi;
+                const oldestDate = deepSearchResults[deepSearchResults.length - 1].ngay_ghi;
+                if (fromInput) { fromInput.value = oldestDate; toggleFiltersUI(true); }
+                if (toInput) { toInput.value = newestDate; toggleFiltersUI(true); }
+            } else {
+                toggleFiltersUI(true);
+            }
+
+            allSearchData = deepSearchResults;
+            if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+            filterAndRenderData(allSearchData, deepSearchQuery, true);
+            
+        } catch (err) {
+            console.error("Lỗi tìm kiếm sâu:", err);
+            showSwal('error', 'Lỗi tìm kiếm', 'Không thể tải dữ liệu: ' + err.message);
+            isDeepSearchMode = false;
+            toggleFiltersUI(false);
+        } finally {
+            isFetching = false;
+        }
+    }
 
     // === 4. CÁC HÀM TIỆN ÍCH (Giữ nguyên) ===
     function formatISODate(d) {
@@ -91,7 +235,7 @@
     };
 
     // Hàm render (Giữ nguyên, không thay đổi)
-    const filterAndRenderData = (data, query) => {
+    const filterAndRenderData = (data, queryText, isDeepSearchContext = false) => {
         const isMeterResetFilterActive = meterResetFilterInput ? meterResetFilterInput.checked : false;
         let fromDate = null;
         let toDate = null;
@@ -125,14 +269,11 @@
             return d >= fromDate && d <= toDate; 
         });
         
-        const lowerCaseQuery = query.toLowerCase().trim();
+        const lowerCaseQuery = queryText.toLowerCase().trim();
         const isAdmin = userRole === "admin";
 
         const filteredData = filteredByDate.filter(item => { 
-            const searchString = [
-                item.createdBy, item.company, item.ghi_chu, getRecordDate(item), item.chi_so ? item.chi_so.toString() : ""
-            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
-            return searchString.includes(lowerCaseQuery);
+            return buildReportSearchString(item).includes(lowerCaseQuery);
         });
         
         // Sắp xếp đã được Firebase orderBy lo, nhưng sort lại an toàn
@@ -158,8 +299,8 @@
         
         if (finalData.length === 0) {
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td colspan="9" style="text-align: center; color: #cc0000; font-style: italic; padding: 20px;">
-                Dữ liệu đang tìm không có hoặc nằm ngoài vùng hiển thị, hãy điều chỉnh để có kết quả tìm chính xác hơn.
+            tr.innerHTML = `<td colspan="9" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
+                Không tìm thấy dữ liệu nào khớp với từ khóa của bạn.
             </td>`;
             tbody.appendChild(tr);
             
@@ -386,24 +527,37 @@
       el.addEventListener("change", resetYearSelectIfEditingDates);
     });
 
-    if(applyFilterBtn) {
-        applyFilterBtn.addEventListener("click", (e) => {
-            e.preventDefault();
+    const handleFilterChange = (e) => {
+        if (e) e.preventDefault();
+        const q = searchInput.value.trim();
+        
+        if (q !== "") {
+            // Có từ khóa -> Quét RAM luôn
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang lọc dữ liệu...</td></tr>`;
+            performDeepSearch(q);
+        } else {
+            // Không có từ khóa -> Lấy dữ liệu mặc định theo Filter
+            isDeepSearchMode = false;
+            toggleFiltersUI(false);
             fetchAndRenderData(false);
+        }
+    };
+
+    if(applyFilterBtn) {
+        applyFilterBtn.addEventListener("click", () => {
+            searchInput.value = ""; // Xóa từ khóa khi bấm Lọc thủ công
+            handleFilterChange();
         });
     }
 
-    if(yearSelect) {
-        yearSelect.addEventListener("change", (e) => {
-            // Tự động tải lại khi chọn năm
-            fetchAndRenderData(false); 
-        });
-    }
+    if(yearSelect) yearSelect.addEventListener("change", () => {
+        searchInput.value = ""; // Xóa từ khóa khi đổi năm
+        handleFilterChange();
+    });
 
     if (meterResetFilterInput) {
         meterResetFilterInput.addEventListener("change", () => {
-            // Chỉ render lại, không tải lại
-            filterAndRenderData(allSearchData, searchInput.value);
+            handleFilterChange();
         });
     }
 
@@ -499,17 +653,44 @@
                  hideLoading(); 
             }
             
-            // 6. Gắn listener (Giữ nguyên)
             searchInput.addEventListener("input", () => {
-                    filterAndRenderData(allSearchData, searchInput.value);
+                const q = searchInput.value.trim();
+                if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+
+                if (q === "") {
+                    const wasDeepSearch = isDeepSearchMode;
+                    isDeepSearchMode = false;
+                    toggleFiltersUI(false);
+                    
+                    if (wasDeepSearch) {
+                        if (fromInput) fromInput.value = savedStartDate;
+                        if (toInput) toInput.value = savedEndDate;
+                        fetchAndRenderData(false); // Reload gốc
+                    } else {
+                        if (loadMoreBtn && lastDoc) {
+                            loadMoreBtn.style.display = 'inline-block';
+                            loadMoreBtn.textContent = "⬇️ Cuộn để tải thêm...";
+                        }
+                        filterAndRenderData(allSearchData, q);
+                    }
+                } else {
+                    if (!isDeepSearchMode) {
+                        savedStartDate = fromInput ? fromInput.value : "";
+                        savedEndDate = toInput ? toInput.value : "";
+                    }
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang tìm kiếm toàn bộ dữ liệu...</td></tr>`;
+                    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                    
+                    searchDebounceTimer = setTimeout(() => performDeepSearch(q), 500);
+                }
             });
                 
                 // MỚI: Xử lý click nút tải thêm (phòng khi Intersection Observer không nhạy)
                 if (loadMoreBtn) {
                     loadMoreBtn.addEventListener('click', () => {
                         autoLoadCount = 0; // Reset lại bộ đếm, cấp "quota" cho 5 lần cuộn tự động tiếp theo
-                    loadMoreBtn.style.background = "var(--primary-color)";
-                        fetchAndRenderData(true);
+                        loadMoreBtn.style.background = "var(--primary-color)";
+                        if (!isDeepSearchMode) fetchAndRenderData(true);
                     });
                 }
     
@@ -520,7 +701,7 @@
                         if (entries[0].isIntersecting && !isFetching && loadMoreBtn.style.display !== 'none') {
                             if (autoLoadCount < MAX_AUTO_LOADS) {
                                 autoLoadCount++;
-                                fetchAndRenderData(true); // Gửi cờ 'true' để nối thêm data
+                                if (!isDeepSearchMode) fetchAndRenderData(true); // Gửi cờ 'true' để nối thêm data
                             } else {
                                 loadMoreBtn.textContent = "⚠️ Bạn đã xem khá nhiều. Bấm để tải tiếp...";
                                 loadMoreBtn.style.background = "#d35400"; // Đổi sang màu cam cảnh báo

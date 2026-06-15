@@ -30,7 +30,8 @@ import {
   getDoc,
   setDoc,
   where,
-  limit 
+  limit,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // Firebase Cloud Messaging
@@ -577,6 +578,7 @@ async function addReportDoc(data = {}, collectionName) {
     ...data,
     createdBy: userEmail,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp() // MỚI: Thêm updatedAt để đồng bộ IndexedDB khi có dữ liệu mới
   };
 
   try {
@@ -1691,8 +1693,13 @@ export async function deleteReport(collectionName, id) {
         }
     }
 
-    // Bước 4: Xóa bản ghi khỏi Firestore
-    await deleteDoc(docRef);
+    // Bước 4: Xóa bản ghi + Lập Bia mộ (Tombstone) để đồng bộ IndexedDB
+    const batch = writeBatch(db);
+    batch.delete(docRef); // Xóa báo cáo thật
+    batch.set(doc(collection(db, "sync_deletes")), { // Ghi sổ xóa
+        docId: id, collectionName: collectionName, deletedAt: serverTimestamp()
+    });
+    await batch.commit();
 
   } catch (err) {
     console.error("Lỗi khi xóa báo cáo:", err);
@@ -1792,7 +1799,7 @@ export function showSwal(type, title, options = {}) { // Đổi 'message' thành
     title: title, // Dùng title (Tiêu đề)
     
     html: options.html || null, 
-    heightAuto: false, // Chống giật trang
+    // heightAuto: false, // Chống giật trang (Thuộc tính này không dùng chung với toasts)
 
     width: options.width || '400px',
     showConfirmButton: options.showConfirmButton || false,
@@ -1973,6 +1980,13 @@ export async function deleteRule(id) {
 }
 
 //
+// 🟠 Ẩn/Hiện quy tắc công việc
+export async function toggleHideRule(id, currentStatus) {
+  const docRef = doc(db, "job", id);
+  await setDoc(docRef, { isHidden: !currentStatus }, { merge: true });
+}
+
+//
 export async function getAllRules() {
   const rules = [];
   try {
@@ -1985,7 +1999,8 @@ export async function getAllRules() {
         dayOfWeek: data.dayOfWeek ?? null,
         dayOfMonth: data.dayOfMonth ?? null,
         createdBy: data.createdBy || "",
-        createdAt: data.createdAt || null
+        createdAt: data.createdAt || null,
+        isHidden: data.isHidden || false
       });
     });
     return rules;
@@ -2010,6 +2025,7 @@ export function listenRulesRealtime(callback) {
         dayOfMonth: data.dayOfMonth ?? null,
         createdBy: data.createdBy || "",
         createdAt: data.createdAt || null,
+        isHidden: data.isHidden || false
       };
     });
 

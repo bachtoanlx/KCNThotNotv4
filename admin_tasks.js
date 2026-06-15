@@ -141,6 +141,19 @@ if (filterToDateInput) filterToDateInput.addEventListener("change", resetQuickFi
 if (adminTaskSearchInput) {
     adminTaskSearchInput.addEventListener("input", (e) => {
         currentSearchQuery = e.target.value.toLowerCase().trim();
+        
+        // --- UX: Làm mờ và vô hiệu hóa bộ lọc thời gian khi đang tìm kiếm ---
+        const isSearching = currentSearchQuery.length > 0;
+        const filterElements = [filterFromDateInput, filterToDateInput, quickFilterSelect, applyFilterBtn];
+        
+        filterElements.forEach(el => {
+            if (el) {
+                el.disabled = isSearching;
+                el.style.opacity = isSearching ? "0.4" : "1";
+                el.style.cursor = isSearching ? "not-allowed" : "";
+            }
+        });
+
         renderAdminTaskList(allAdminRulesData);
     });
 }
@@ -268,7 +281,8 @@ function renderAdminTaskList(rulesToRender) {
             };
         };
 
-        if (currentFilter.from && currentFilter.to) {
+        // --- LOGIC: Bỏ qua bộ lọc thời gian nếu đang có từ khóa tìm kiếm (Global Search) ---
+        if (currentFilter.from && currentFilter.to && !currentSearchQuery) {
             // MỞ RỘNG: Chế độ Lọc theo khoảng ngày
             const startDate = new Date(currentFilter.from + "T00:00:00");
             const endDate = new Date(currentFilter.to + "T00:00:00");

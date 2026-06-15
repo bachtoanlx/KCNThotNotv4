@@ -517,9 +517,9 @@
   }
   .admin-tabs {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(6, 1fr) !important;
     border-bottom: none !important;
-    gap: 10px !important;
+    gap: 5px !important;
     padding-bottom: 15px !important;
     width: 100% !important;
     overflow: visible !important;
@@ -528,10 +528,10 @@
     min-width: 0 !important;
     width: auto !important;
     height: auto !important;
-    min-height: 48px !important;
-    padding: 8px !important;
-    font-size: 13px !important;
-    border-radius: 8px !important;
+    min-height: 40px !important;
+    padding: 4px !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
     border: 1px solid #ccc !important;
     margin-bottom: 0 !important;
     text-align: center !important;
@@ -542,6 +542,13 @@
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .admin-tab-btn:nth-child(1),
+  .admin-tab-btn:nth-child(2) {
+    grid-column: span 3 !important;
+  }
+  .admin-tab-btn:nth-child(n+3) {
+    grid-column: span 2 !important;
   }
   .admin-tab-btn.active {
     border: 2px solid #273668 !important;
@@ -630,6 +637,29 @@
     left: 12px;
     color: #94a3b8;
     font-weight: bold;
+}
+
+/* === NÚT ẨN/HIỆN & NHÓM HOÀN THÀNH === */
+.rule-box table button.btn-toggle-hide {
+    background-color: transparent;
+    border: none;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    font-size: 14px !important;
+    padding: 0 !important;
+}
+.rule-box table button.btn-toggle-hide:hover {
+    background-color: transparent;
+    transform: translateY(-50%) scale(1.2);
+    transition: transform 0.2s;
+}
+.rule-group-hidden {
+    background-color: #f8fafc !important;
+    color: #94a3b8;
+    font-style: italic;
 }
 
 /* === CSS CHO DANH SÁCH ẨN/HIỆN === */
@@ -897,7 +927,7 @@
   body.autoplan-page #scheduleTable tbody td:first-child {
     padding-top: 0;
   }
-  #scheduleTable td::before {
+  body.autoplan-page #scheduleTable tbody td::before {
     content: attr(data-label);
     font-weight: 600;
     margin-bottom: 4px;
@@ -911,31 +941,35 @@
     border-color: #bbd6fe;
     box-shadow: 0 4px 12px rgba(39, 54, 104, 0.08);
   }
-  #scheduleTable td + td { margin-top: 0px; }
-  #scheduleTable td[data-label="Ngày"] br { display: none; }
-  #scheduleTable td[data-label="Ngày"] {
+  body.autoplan-page #scheduleTable tbody td + td { margin-top: 0px; }
+  body.autoplan-page #scheduleTable tbody td[data-label="Ngày"] br { display: none; }
+  body.autoplan-page #scheduleTable tbody td[data-label="Ngày"] {
     flex-direction: row;
-    align-items: baseline;
+    align-items: center;
     flex-wrap: wrap;
     font-size: 15px;
     color: #e74c3c;
     font-weight: bold;
+    padding-bottom: 4px;
+    line-height: 1.2;
   }
-  #scheduleTable td[data-label="Ngày"] .week-label {
-    display: inline-block;
-    margin-left: 8px;
+  body.autoplan-page #scheduleTable tbody td[data-label="Ngày"] .week-label {
+    flex-basis: 100%;
+    margin-left: 24px;
+    margin-top: 2px;
+    margin-top: 0px;
     font-size: 12px;
     color: #888;
     font-weight: normal;
   }
-  #scheduleTable td[data-label="Ngày"]::before {
+  body.autoplan-page #scheduleTable tbody td[data-label="Ngày"]::before {
     content: "📅 \00a0";
     font-size: 15px;
     color: #333;
     margin-bottom: 0;
   }
-  #scheduleTable td[data-label="Người làm"]::before { content: "👤 " attr(data-label); }
-  #scheduleTable td[data-label="Công việc"]::before { content: "💼 " attr(data-label); }
+  body.autoplan-page #scheduleTable tbody td[data-label="Người làm"]::before { content: "👤 " attr(data-label); }
+  body.autoplan-page #scheduleTable tbody td[data-label="Công việc"]::before { content: "💼 " attr(data-label); }
   body.autoplan-page #scheduleTable td.hide-empty-mobile { display: none; }
   
   .autoplan-page #weekNavigator {
