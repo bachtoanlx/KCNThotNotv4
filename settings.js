@@ -702,6 +702,7 @@ let allWorkRules = [];
 let allWorkPatterns = [];
 let allShiftSwaps = [];
 let allKnownEmails = new Set();
+let scheduleSearchDebounceTimer = null; // Biến chống giật khi gõ tìm kiếm
 
 function setupScheduleManagement() {
     initScheduleModalsUI();
@@ -711,9 +712,12 @@ function setupScheduleManagement() {
     const searchInput = document.getElementById('scheduleSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
-            renderRuleList();
-            renderPatternList();
-            renderSwapList();
+            if (scheduleSearchDebounceTimer) clearTimeout(scheduleSearchDebounceTimer);
+            scheduleSearchDebounceTimer = setTimeout(() => {
+                renderRuleList();
+                renderPatternList();
+                renderSwapList();
+            }, 300); // Đợi 300ms sau khi ngừng gõ mới render 3 bảng
         });
     }
 }
@@ -724,6 +728,27 @@ function normalizeForSearch(str) {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d");
+}
+
+// Trình thông dịch ngày tháng cho trang Settings
+function buildSettingSearchString(fields) {
+    return fields.map(field => {
+        if (!field) return "";
+        const str = field.toString();
+        let variants = "";
+        const dateMatches = str.match(/(\d{4})-(\d{2})-(\d{2})/g);
+        if (dateMatches) {
+            dateMatches.forEach(match => {
+                const parts = match.match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (parts) {
+                    const y = parts[1], m = parts[2], d = parts[3];
+                    const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
+                    variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`;
+                }
+            });
+        }
+        return normalizeForSearch(str + variants);
+    }).join(" ");
 }
 
 function getScheduleSearchQuery() {
@@ -1047,8 +1072,7 @@ function renderRuleList() {
     if (query) {
         rulesToRender = allWorkRules.filter(r => {
             const fields = [r.job, r.note, r.exactDate, r.targetGroup, r.time, r.dom, r.day, r.week, r.month, r.ruleEndDate];
-            const str = fields.join(" ");
-            return normalizeForSearch(str).includes(query);
+            return buildSettingSearchString(fields).includes(query);
         });
     }
     
@@ -1264,8 +1288,7 @@ function renderPatternList() {
         patternsToRender = allWorkPatterns.filter(p => {
             const typeStr = p.type === "administrative" ? "Cố định hành chính" : "Xoay Vòng theo ca";
             const fields = [p.user, p.displayName, p.shiftGroup, p.note, p.patternStartDate, p.patternEndDate, p.startTime, p.endTime, typeStr];
-            const str = fields.join(" ");
-            return normalizeForSearch(str).includes(query);
+            return buildSettingSearchString(fields).includes(query);
         });
     }
     
@@ -1378,8 +1401,7 @@ function renderSwapList() {
         swapsToRender = allShiftSwaps.filter(s => {
             const createdAtStr = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleString('vi-VN') : "";
             const fields = [s.date, s.user1, s.user2, s.reason, createdAtStr];
-            const str = fields.join(" ");
-            return normalizeForSearch(str).includes(query);
+            return buildSettingSearchString(fields).includes(query);
         });
     }
     

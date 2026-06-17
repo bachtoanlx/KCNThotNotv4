@@ -10,7 +10,7 @@ import { initMenu } from "./menu.js";
       limit,
       startAfter
     } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime } from "./localDB.js";
+    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
 
     // Load menu
     fetch("menu.html")
@@ -111,10 +111,25 @@ import { initMenu } from "./menu.js";
       deepSearchQuery = queryText;
       
       try {
-          // 1. Cập nhật dữ liệu mới từ Firestore về IndexedDB
+          // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
           const lastSync = await getLastSyncTime("logs");
+          if (lastSync > 0) {
+              const qDel = query(collection(db, "sync_deletes"), 
+                  where("deletedAt", ">", new Date(lastSync))
+              );
+              const snapDel = await getDocs(qDel);
+              if (!snapDel.empty) {
+                  const idsToDelete = snapDel.docs
+                      .map(d => d.data())
+                      .filter(data => data.collectionName === "logs")
+                      .map(data => data.docId);
+                  if (idsToDelete.length > 0) {
+                      await deleteFromLocalDB("logs", idsToDelete);
+                  }
+              }
+          }
           let q;
-          if (lastSync === 0) {
+          if (lastSync === 0) { // Lần đầu tải toàn bộ
               q = query(collection(db, "logs"), orderBy("createdAt", "desc"));
           } else {
               q = query(collection(db, "logs"), where("createdAt", ">", new Date(lastSync)), orderBy("createdAt", "desc"));
@@ -135,7 +150,7 @@ import { initMenu } from "./menu.js";
               await setLastSyncTime("logs", Date.now());
           }
 
-          // 2. Lấy toàn bộ từ IndexedDB và khôi phục định dạng Timestamp ảo
+          // 2. Nạp dữ liệu lên RAM và tìm kiếm
           const allLocalLogs = await getAllFromLocalDB("logs");
           allLocalLogs.sort((a, b) => b._createdAtMillis - a._createdAtMillis);
           const parsedLogs = allLocalLogs.map(log => ({

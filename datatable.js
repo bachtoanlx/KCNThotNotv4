@@ -72,6 +72,15 @@
         });
     }
 
+    // Hàm chuẩn hóa tiếng Việt không dấu
+    function normalizeForSearch(str) {
+        if (!str) return "";
+        return str.toString().toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d");
+    }
+
     // Trình thông dịch ngày tháng
     function buildReportSearchString(item) {
         const fields = [
@@ -80,13 +89,19 @@
         return fields.map(field => {
             if (!field) return "";
             const str = field.toString();
-            const dateMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (dateMatch) {
-                const y = dateMatch[1], m = dateMatch[2], d = dateMatch[3];
-                const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
-                return `${str} ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`.toLowerCase();
+            let variants = "";
+            const dateMatches = str.match(/(\d{4})-(\d{2})-(\d{2})/g);
+            if (dateMatches) {
+                dateMatches.forEach(match => {
+                    const parts = match.match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (parts) {
+                        const y = parts[1], m = parts[2], d = parts[3];
+                        const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
+                        variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`;
+                    }
+                });
             }
-            return str.toLowerCase();
+            return normalizeForSearch(str + variants);
         }).join(" ");
     }
 
@@ -149,7 +164,7 @@
             // Sắp xếp ngày ghi mới nhất lên đầu
             allLocalData.sort((a, b) => new Date(b.ngay_ghi || 0).getTime() - new Date(a.ngay_ghi || 0).getTime());
 
-            const lowerCaseQuery = queryText.toLowerCase().trim();
+            const lowerCaseQuery = normalizeForSearch(queryText).trim();
             deepSearchResults = allLocalData.filter(item => {
                 // Cắt lọc theo từ khóa
                 if (lowerCaseQuery !== "" && !buildReportSearchString(item).includes(lowerCaseQuery)) return false;
@@ -170,6 +185,8 @@
                 const oldestDate = deepSearchResults[deepSearchResults.length - 1].ngay_ghi;
                 if (fromInput) { fromInput.value = oldestDate; toggleFiltersUI(true); }
                 if (toInput) { toInput.value = newestDate; toggleFiltersUI(true); }
+                currentFilter.from = oldestDate;
+                currentFilter.to = newestDate;
             } else {
                 toggleFiltersUI(true);
             }
@@ -267,7 +284,7 @@
             return d >= fromDate && d <= toDate; 
         });
         
-        const lowerCaseQuery = queryText.toLowerCase().trim();
+        const lowerCaseQuery = normalizeForSearch(queryText).trim();
         const isAdmin = userRole === "admin";
 
         const filteredData = filteredByDate.filter(item => { 
@@ -428,6 +445,8 @@
             // Nếu không có gì được chọn, dùng mặc định
             startDate = currentFilter.from || currentYearStart;
             endDate = currentFilter.to || todayISO;
+            currentFilter.from = startDate;
+            currentFilter.to = endDate;
         }
 
         if (!isLoadMore) {
@@ -643,6 +662,8 @@
                     if (wasDeepSearch) {
                         if (fromInput) fromInput.value = savedStartDate;
                         if (toInput) toInput.value = savedEndDate;
+                        currentFilter.from = savedStartDate;
+                        currentFilter.to = savedEndDate;
                         fetchAndRenderData(false); // Reload gốc
                     } else {
                         if (loadMoreBtn && lastDoc) {

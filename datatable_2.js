@@ -70,6 +70,39 @@
         });
     }
 
+    // Hàm chuẩn hóa tiếng Việt không dấu
+    function normalizeForSearch(str) {
+        if (!str) return "";
+        return str.toString().toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/đ/g, "d");
+    }
+
+    // Trình thông dịch ngày tháng
+    function buildReportSearchString(item) {
+        const fields = [
+            item.createdBy, item.company, item.ghi_chu, getRecordDate(item)
+        ];
+        return fields.map(field => {
+            if (!field) return "";
+            const str = field.toString();
+            let variants = "";
+            const dateMatches = str.match(/(\d{4})-(\d{2})-(\d{2})/g);
+            if (dateMatches) {
+                dateMatches.forEach(match => {
+                    const parts = match.match(/(\d{4})-(\d{2})-(\d{2})/);
+                    if (parts) {
+                        const y = parts[1], m = parts[2], d = parts[3];
+                        const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
+                        variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`;
+                    }
+                });
+            }
+            return normalizeForSearch(str + variants);
+        }).join(" ");
+    }
+
     async function performDeepSearch(queryText) {
         if (isFetching) return;
         isFetching = true;
@@ -129,17 +162,14 @@
             // Sắp xếp ngày ghi mới nhất lên đầu
             allLocalData.sort((a, b) => new Date(getRecordDate(b) || 0).getTime() - new Date(getRecordDate(a) || 0).getTime());
 
-            const lowerCaseQuery = queryText.toLowerCase().trim();
+            const lowerCaseQuery = normalizeForSearch(queryText).trim();
             const isSpecialWorkdayFilterActive = specialWorkdayFilterInput ? specialWorkdayFilterInput.checked : false;
 
             deepSearchResults = allLocalData.filter(item => {
                 if (isSpecialWorkdayFilterActive && !item.isSpecialWorkday) return false;
                 
                 if (lowerCaseQuery !== "") {
-                    const searchString = [
-                        item.createdBy, item.company, item.ghi_chu, getRecordDate(item)
-                    ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
-                    if (!searchString.includes(lowerCaseQuery)) return false;
+                    if (!buildReportSearchString(item).includes(lowerCaseQuery)) return false;
                 }
                 return true;
             });
@@ -240,13 +270,10 @@
         });
         
         // Lọc theo tìm kiếm
-        const lowerCaseQuery = query.toLowerCase().trim();
+        const lowerCaseQuery = normalizeForSearch(query).trim();
         const isAdmin = userRole === "admin";
         const filteredData = filteredByDate.filter(item => { 
-            const searchString = [
-                item.createdBy, item.company, item.ghi_chu, getRecordDate(item)
-            ].map(field => field ? field.toString().toLowerCase() : "").join(" ");
-            return searchString.includes(lowerCaseQuery);
+            return buildReportSearchString(item).includes(lowerCaseQuery);
         });
         
         // Sắp xếp
