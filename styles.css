@@ -1175,10 +1175,10 @@ tr:last-child td {
     flex-wrap: nowrap;
   }
   
-  h2, body #pageContent > h2 {
-    font-size: 1.1rem;
-    margin-bottom: 8px;
-    padding: 0;
+  h2, body #pageContent > h2, body #pageContent h2 {
+    font-size: 1.1rem !important;
+    margin-bottom: 8px !important;
+    padding: 0 !important;
   }
   
   /* --- CƠ CHẾ NEO (STICKY) ĐỒNG BỘ TRÊN MOBILE DÀNH CHO TIÊU ĐỀ VÀ BỘ LỌC --- */
@@ -1520,5 +1520,90 @@ tr:last-child td {
     flex: 1 0 auto; 
     /* display: block; <-- Xóa dòng này để JS tự quyền quyết định hiển thị block hay flex */
     min-height: auto; 
+  }
+
+  /* Tối ưu UI trang Cài đặt (Settings) trên Mobile */
+  .settings-sidebar {
+    margin-top: 0 !important;
+    margin-bottom: 5px !important;
+  }
+
+  .settings-content h2 {
+    margin-top: 0 !important;
+  }
+
+  .settings-tabs,
+  div:has(> .settings-tab-btn) {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    border-bottom: none !important;
+    margin-bottom: 5px !important;
+  }
+  
+  .settings-tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+    padding: 6px !important;
+    min-height: 38px !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin: 0 !important;
+    border: 1px solid #ccc !important;
+    box-sizing: border-box !important;
+  }
+
+  .settings-tab-btn.active {
+    border: 2px solid var(--primary-color) !important;
+    background: #eef6ff !important;
+    color: var(--primary-color) !important;
+    font-weight: bold !important;
+  }
+
+  /* Tối ưu không gian: Loại bỏ các lớp bao bọc thừa (Padding/Border) bên trong Settings */
+  .settings-content,
+  .settings-content .card,
+  .settings-content .card-body,
+  .settings-tab-content,
+  .admin-tab-content,
+  .settings-main,
+  #settings-main,
+  .settings-container,
+  .settings-main .card,
+  .settings-main .card-body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  /* Làm phẳng các form hoặc div con chứa nội dung bên trong các Tab */
+  .settings-tab-content > div,
+  .settings-tab-content form,
+  .settings-main > div,
+  .settings-main form {
+    padding: 6px 0 !important; /* Chỉ giữ padding dọc, xóa padding ngang */
+    margin: 0 0 15px 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Cho phép bảng cài đặt tràn viền trái/phải để tối đa hóa không gian đọc */
+  .settings-tab-content table,
+  .settings-main table {
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
   }
 }

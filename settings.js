@@ -727,7 +727,8 @@ function normalizeForSearch(str) {
     return str.toString().toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .replace(/đ/g, "d");
+        .replace(/đ/g, "d")
+        .replace(/\s*([/-])\s*/g, "$1");
 }
 
 // Trình thông dịch ngày tháng cho trang Settings
@@ -743,7 +744,8 @@ function buildSettingSearchString(fields) {
                 if (parts) {
                     const y = parts[1], m = parts[2], d = parts[3];
                     const ms = parseInt(m, 10).toString(), ds = parseInt(d, 10).toString();
-                    variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds}`;
+                    const y2 = y.slice(-2);
+                    variants += ` ${d}/${m}/${y} ${d}/${m} ${d}-${m}-${y} ${d}-${m} ${ds}/${ms}/${y} ${ds}/${ms} ${ds}-${ms}-${y} ${ds}-${ms} ${ds}/${m} ${d}/${ms} ${ds}-${m} ${d}-${ms} ${y}/${m}/${d} ${y}/${ms}/${ds} ${y}-${ms}-${ds} ${m}/${y} ${ms}/${y} ${m}-${y} ${ms}-${y} ${m}/${y2} ${ms}/${y2} ${m}-${y2} ${ms}-${y2}`;
                 }
             });
         }
