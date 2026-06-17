@@ -1610,8 +1610,9 @@ tr:last-child td {
   .collapsible-content,
   .rule-box,
   #company-content-placeholder h4 + div {
-    border: none !important;
-    border-radius: 0 !important;
+    /* Khôi phục viền và bo góc cho khung chứa bảng */
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
     padding: 0 !important;
     background: transparent !important;
   }
@@ -1636,4 +1637,186 @@ tr:last-child td {
   .settings-tab-pane table th {
     border-top: none !important;
   }
+
+  /* =========================================================
+     GIÃN ĐỀU 2 NÚT TAB LỊCH TRỰC TRÊN MOBILE
+  ========================================================= */
+  /* Ép thẻ div bọc 2 nút này trải dài 100% chiều rộng */
+  #schedule-content-placeholder > div:first-child > div:nth-child(2) {
+    width: 100% !important;
+  }
+
+  /* Chia đều tỷ lệ 50/50 cho từng nút và căn giữa nội dung */
+  #btn-openAddModal,
+  #btn-openSwapModal {
+    flex: 1 1 0% !important;
+    padding: 8px 4px !important;
+    font-size: 13px !important; /* Giảm nhẹ font chữ để không bị rớt dòng */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+  }
+
+  /* =========================================================
+     GIÃN FULL MÀN HÌNH NÚT SAO LƯU & KHÔI PHỤC (MOBILE)
+  ========================================================= */
+  #btnBackupData {
+    width: 100% !important;
+    justify-content: center !important; /* Căn giữa chữ và icon */
+  }
+
+  /* Chọn thẻ div bọc bên ngoài nút Khôi phục để ép nó giãn 100% */
+  div:has(> #btnRestoreData) {
+    width: 100% !important;
+  }
+
+  #btnRestoreData {
+    width: 100% !important;
+    justify-content: center !important; /* Căn giữa chữ và icon */
+  }
+
+  /* =========================================================
+     ĐỒNG BỘ KÍCH THƯỚC NÚT PHÂN QUYỀN TRONG BẢNG
+  ========================================================= */
+  .change-role-btn {
+    width: 115px !important; /* Chốt cứng chiều ngang để 2 nút bằng y nhau */
+    text-align: center !important; /* Căn giữa chữ */
+    padding: 6px 4px !important; /* Tăng nhẹ vùng bấm (touch target) cho dễ chạm trên điện thoại */
+    white-space: nowrap !important; /* Ép không rớt dòng */
+    display: inline-block !important; 
+    box-sizing: border-box !important;
+  }
+
+  /* =========================================================
+     ĐIỀU CHỈNH KHỐI MỐC ĐỒNG HỒ BAN ĐẦU (MOBILE)
+  ========================================================= */
+  /* Ép 2 khối chứa input Ngày và Chỉ số chia đều 50/50 trên cùng 1 hàng */
+  div:has(> #csBaselineDate),
+  div:has(> #csBaselineIndex) {
+    flex: 1 1 calc(50% - 10px) !important; /* Trừ đi khoảng hở (gap) giữa 2 ô */
+    width: 100% !important;
+  }
+
+  /* Đảm bảo bản thân ô nhập liệu bên trong cũng giãn full phần diện tích được chia */
+  #csBaselineDate,
+  #csBaselineIndex {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ép khối chứa nút bấm rớt xuống hàng dưới và chiếm 100% chiều ngang */
+  div:has(> #csSaveBaselineBtn) {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+  }
+
+  /* Căn chỉnh lại giao diện của chính nút Cập nhật mốc */
+  #csSaveBaselineBtn {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important; /* Căn giữa nội dung chữ và icon */
+    align-items: center !important;
+  }
+
+  /* =========================================================
+     BỐ CỤC LẠI FORM THÊM/CẬP NHẬT CA BÁO CÁO (MOBILE)
+  ========================================================= */
+  /* Chuyển đổi khung chứa (Grid mặc định) sang Flexbox để dễ kiểm soát dòng */
+  #shifts-content-placeholder > div:first-child > div:last-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  /* Dòng 1: Tên Ca chiếm 100% */
+  div:has(> #shift-name) {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  /* Dòng 2: Giờ bắt đầu và Giờ kết thúc chia đôi 50/50 */
+  div:has(> #shift-start-time),
+  div:has(> #shift-end-time) {
+    flex: 1 1 calc(50% - 5px) !important; /* Trừ 5px khoảng hở gap ở giữa */
+  }
+
+  /* Đảm bảo ô nhập giờ giãn full khoảng trống được chia */
+  #shift-start-time, 
+  #shift-end-time {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Dòng 3: Khối Checkbox Vắt qua ngày hôm sau chiếm 100% */
+  div:has(label > #shift-is-next-day) {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    margin-top: 2px !important;
+  }
+
+  /* Dòng 4: Khối nút Lưu Ca chiếm 100% */
+  div:has(> #save-shift-btn) {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+  }
+
+  /* Căn giữa chữ cho nút Lưu ca */
+  #save-shift-btn {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  /* =========================================================
+     ÉP Ô "NGÀY BẮT ĐẦU ÁP DỤNG" CHIẾM 100% MÀN HÌNH (MOBILE)
+  ========================================================= */
+  div:has(> #csEffectiveDate) {
+    grid-column: 1 / -1 !important; /* Ép phần tử này tràn toàn bộ các cột trong Grid */
+    width: 100% !important;
+  }
+
+  /* =========================================================
+     MENU TAB DẠNG TRƯỢT NGANG (SLIDER) TRÊN MOBILE
+  ========================================================= */
+  /* =========================================================
+     CÁCH 1: MENU DẠNG VIÊN THUỐC TỰ DÀN HÀNG VÀ RỚT DÒNG
+  ========================================================= */
+  .settings-sidebar,
+  div:has(> .settings-tab-btn) {
+    display: flex !important;
+    flex-wrap: wrap !important; /* Mấu chốt: Cho phép rớt xuống dòng khi hết chỗ */
+    gap: 8px !important;
+    padding: 0 0 10px 0 !important;
+    overflow-x: visible !important; /* Tắt chế độ cuộn ngang */
+  }
+
+  .settings-tab-btn {
+    flex: 1 1 auto !important; /* Tự động co giãn để lấp đầy các khoảng trống */
+    width: auto !important;
+    white-space: nowrap !important; /* Ép chữ nằm gọn trên 1 dòng */
+    padding: 8px 12px !important; 
+    border-radius: 20px !important; /* Bo tròn hoàn toàn */
+    text-align: center !important;
+    font-size: 13px !important;
+  }
+
+  /* =========================================================
+     KÉO TIÊU ĐỀ H2 LẠI GẦN MENU TAB HƠN (MOBILE)
+  ========================================================= */
+  .settings-main {
+    padding-top: 5px !important; /* Giảm mạnh khoảng trống phía trên của khung nội dung chính (gốc đang là 15px) */
+  }
+
+  .settings-header {
+    margin-top: 0 !important; 
+  }
+
+  .settings-header h2 {
+    margin-top: 0 !important; /* Xóa lề trên mặc định của thẻ h2 */
+    line-height: 1.2 !important; /* Chỉnh khoảng cách các dòng chữ tiêu đề cho khít lại */
+  }
+
 }
