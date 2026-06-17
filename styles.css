@@ -1571,6 +1571,7 @@ tr:last-child td {
   .settings-content .card,
   .settings-content .card-body,
   .settings-tab-content,
+  .settings-tab-pane,
   .admin-tab-content,
   .settings-main,
   #settings-main,
@@ -1588,9 +1589,11 @@ tr:last-child td {
   /* Làm phẳng các form hoặc div con chứa nội dung bên trong các Tab */
   .settings-tab-content > div,
   .settings-tab-content form,
+  .settings-tab-pane > div,
+  .settings-tab-pane form,
   .settings-main > div,
   .settings-main form {
-    padding: 6px 0 !important; /* Chỉ giữ padding dọc, xóa padding ngang */
+    padding: 0 !important; /* Xóa hoàn toàn padding để table bám sát mép trên */
     margin: 0 0 15px 0 !important;
     border: none !important;
     box-shadow: none !important;
@@ -1598,12 +1601,39 @@ tr:last-child td {
     background: transparent !important;
   }
 
+  /* Loại bỏ viền và khoảng hở của div bọc bảng để tiêu đề không bị lọt thỏm */
+  .settings-main .table-container,
+  .settings-tab-pane .table-container,
+  .settings-tab-pane .table-responsive,
+  .settings-tab-pane .table-wrapper,
+  .admin-tab-content .table-container,
+  .collapsible-content,
+  .rule-box,
+  #company-content-placeholder h4 + div {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
   /* Cho phép bảng cài đặt tràn viền trái/phải để tối đa hóa không gian đọc */
   .settings-tab-content table,
+  .settings-tab-pane table,
+  .admin-tab-content table,
+  .collapsible-content table,
+  .rule-box table,
   .settings-main table {
-    border-left: none !important;
-    border-right: none !important;
+    border: none !important; /* Loại bỏ toàn bộ viền bảng bên ngoài */
     border-radius: 0 !important;
     width: 100% !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-collapse: collapse !important; /* Đảm bảo header không bị hở viền kép */
+  }
+
+  /* Xóa viền trên của tiêu đề để không bị vệt mờ */
+  .settings-main table th,
+  .settings-tab-pane table th {
+    border-top: none !important;
   }
 }

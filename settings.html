@@ -214,6 +214,26 @@
                 border-radius: 8px;
             }
         }
+        /* =========================================================
+        FIX LỖI BẢNG BỊ "LỌT THỎM" BÊN TRONG DIV.TABLE-CONTAINER
+        ========================================================= */
+
+        /* 1. Xóa bỏ viền kép và khoảng trống thừa của bảng khi nằm trong khung bọc */
+        .table-container table {
+            margin-top: 0 !important;
+            border: none !important; 
+            border-radius: 0 !important;
+        }
+
+        /* 2. Ép header bảng tràn màu nền kín viền, xóa khe hở trong suốt ở 2 mép */
+        .table-container th {
+            background-clip: border-box !important;
+        }
+
+        /* 3. Đảm bảo thẻ thead không bị đè màu nền sinh ra vệt viền lạ */
+        .table-container thead {
+            background-color: transparent !important;
+        }
     </style>
 </head>
 <body>
@@ -233,7 +253,7 @@
         <div class="settings-sidebar">
             <button class="settings-tab-btn active" data-target="tab-company">🏢 Cấu hình Công ty</button>
             <button class="settings-tab-btn" data-target="tab-shifts">🕒 Quản lý Ca Báo cáo</button>
-            <button class="settings-tab-btn" data-target="tab-schedule">📅 Quản lý Lịch trực</button>
+            <button class="settings-tab-btn" data-target="tab-schedule">📅 Quản lý Công việc</button>
             <button class="settings-tab-btn" data-target="tab-system">⚙️ Hệ thống</button>
         </div>
 
@@ -305,8 +325,8 @@
                         </div>
                     </div>
 
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📜 Lịch sử Quy tắc (Theo dòng thời gian)</h4>
-                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📜 Lịch sử Quy tắc</h4>
+                    <div class="table-container" style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
                         <table id="csHistoryTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                                 <tr>
@@ -428,7 +448,7 @@
             <!-- Tab 3: Quản lý Lịch trực -->
             <div id="tab-schedule" class="settings-tab-pane">
                 <div class="settings-header">
-                    <h2>Quản lý Lịch trực & Công việc</h2>
+                    <h2>Quản lý Công việc & Lịch trực</h2>
                     <p class="note">Thiết lập quy tắc xoay ca, công việc định kỳ, hoán đổi ca.</p>
                 </div>
                 <div id="schedule-content-placeholder">
@@ -444,7 +464,7 @@
                     </div>
 
                     <!-- Bảng 1: DS Công việc -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 1. DS Công việc <span id="ruleListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
+                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 I. Danh sách Công việc <span id="ruleListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
                     <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
                         <table id="ruleList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
                             <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
@@ -455,7 +475,7 @@
                     </div>
 
                     <!-- Bảng 2: DS Ngày làm -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🧭 2. DS Ngày làm <span id="patternListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
+                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🧭 II. Danh sách Ngày làm <span id="patternListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
                     <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
                         <table id="patternList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
                             <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
@@ -466,7 +486,7 @@
                     </div>
 
                     <!-- Bảng 3: DS Hoán đổi -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🔄 3. DS Hoán đổi ca <span id="swapListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
+                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🔄 III. Danh sách Hoán đổi ca <span id="swapListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
                     <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
                         <table id="swapList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
                             <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
