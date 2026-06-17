@@ -15,7 +15,9 @@
   <div id="notLogged" style="display:none;">
     <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
   </div>
-<div id="personalScheduleModal" class="modal-overlay">
+  
+  <!-- MODAL CÔNG VIỆC CÁ NHÂN -->
+  <div id="personalScheduleModal" class="modal-overlay">
     <div class="personal-schedule-content modal-xl">
         <span class="close" id="closeModal">&times;</span>
         <h2>Công việc Sắp tới của bạn</h2>
@@ -27,373 +29,7 @@
         <div style="text-align:center; margin-top: 20px;">
             <button id="closeModalBottom" class="btn-action btn-info">Đóng</button>
         </div>
-        
     </div>
-  </div>
-
-  <!-- MODAL CHỈNH SỬA QUY TẮC (EDIT PATTERN) -->
-  <div id="editPatternModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-md">
-          <span class="close" id="closeEditPatternModal">&times;</span>
-          <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc Ngày làm</h2>
-          
-          <input type="hidden" id="editPatternId">
-          
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Nhân viên:</label> <input type="text" id="editPatternUser" readonly class="modal-input flex-1" title="Không thể sửa Email/Mã User">
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Tên hiển thị:</label> <input type="text" id="editPatternDisplayName" class="modal-input flex-1">
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Ngày áp dụng:</label> <input type="date" id="editPatternStartDate" class="modal-input flex-1">
-              <label class="modal-label ml-10" style="min-width: unset;">Đến ngày:</label> <input type="date" id="editPatternEndDate" title="Để trống nếu áp dụng vô thời hạn" class="modal-input flex-1">
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Loại lịch:</label>
-              <select id="editPatternTypeSelect" class="modal-input flex-1">
-                  <option value="administrative">Lịch Cố định</option>
-                  <option value="shift_rotation">Lịch Theo Ca</option>
-              </select>
-          </div>
-
-          <div id="editAdministrativeInputs">
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                  <label class="modal-label">Nhóm ca:</label>
-                  <input type="text" id="editAdminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." class="modal-input flex-1" title="Tên nhóm ca (Mặc định: Hành chính)">
-              </div>
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                  <label class="modal-label">Thứ làm việc:</label>
-                  <div id="editDayCheckboxes" class="d-flex gap-5 flex-wrap flex-1">
-                      <label class="check-badge"><input type="checkbox" value="2">T2</label> <label class="check-badge"><input type="checkbox" value="3">T3</label> <label class="check-badge"><input type="checkbox" value="4">T4</label> <label class="check-badge"><input type="checkbox" value="5">T5</label> <label class="check-badge"><input type="checkbox" value="6">T6</label> <label class="check-badge"><input type="checkbox" value="7">T7</label> <label class="check-badge"><input type="checkbox" value="8">CN</label>
-                  </div>
-              </div>
-          </div>
-          <div id="editShiftRotationInputs" style="display:none;">
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                  <label class="modal-label">Nhóm ca:</label> <input type="text" id="editShiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." class="modal-input flex-1">
-              </div>
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Giờ Bắt đầu:</label> <input type="time" id="editStartTime" class="modal-input flex-1">
-              <label class="modal-label ml-10" style="min-width: unset;">Giờ Kết thúc:</label> <input type="time" id="editEndTime" class="modal-input flex-1">
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Thông báo:</label> 
-              <select id="editPatternNotifyTime" class="modal-input flex-1">
-                  <option value="">Không tự động thông báo</option>
-                  <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                  <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-              </select>
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <label class="modal-label">Ghi chú:</label> <input type="text" id="editPatternNote" class="modal-input flex-1">
-          </div>
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteEditPatternBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-              <div class="flex-1"></div>
-              <button id="cancelEditPatternBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveEditPatternBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-          </div>
-      </div>
-  </div>
-
-  <!-- MODAL CHỈNH SỬA QUY TẮC CÔNG VIỆC (MỤC 1) -->
-  <div id="editRuleModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-lg">
-          <span class="close" id="closeEditRuleModal">&times;</span>
-          <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc công việc</h2>
-          <input type="hidden" id="editRuleId">
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <input type="text" id="editRuleJobName" placeholder="Tên công việc" class="modal-input flex-1">
-              <label class="check-badge"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
-              <label class="check-badge"><input type="checkbox" id="editRuleIsCommonCheckbox"> #CV Chung</label>
-          </div>
-          
-          <!-- Bổ sung div Nhóm áp dụng & Thông báo cho Modal Sửa -->
-          <div id="editCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
-              <div class="input-row mb-10">
-                  <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
-                  <select id="editCommonJobTargetGroup" class="modal-input flex-1"></select>
-              </div>
-              <div class="input-row mb-0">
-                  <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
-                  <select id="editCommonJobNotifyTime" class="modal-input flex-1">
-                      <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
-                      <option value="">Không tự động thông báo</option>
-                      <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                      <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-                  </select>
-              </div>
-          </div>
-
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <input type="time" id="editRuleTime" title="Giờ hoàn thành" class="modal-input">
-              <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" class="modal-input flex-1" style="background-color: #eaf3ff;">
-              <select id="editRuleDom" class="modal-input">
-                  <!-- Options sẽ được gen bằng JavaScript -->
-              </select>
-              <select id="editRuleDay" class="modal-input">
-                  <option value="">--Thứ--</option>
-                  <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option>
-                  <option value="5">T5</option><option value="6">T6</option><option value="7">T7</option>
-                  <option value="8">CN</option><option value="all">Mọi ngày</option>
-              </select>
-              <select id="editRuleWeek" class="modal-input">
-                  <option value="">--Tuần--</option>
-                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
-              </select>
-              <select id="editRuleMonth" class="modal-input">
-                  <option value="">--Tháng--</option>
-                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                  <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
-              </select>
-          </div>
-          <div class="input-row d-flex align-center gap-10 mb-15">
-              <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
-              <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1" style="background-color: #fdf2e9;">
-          </div>
-          <div class="input-row d-flex mb-15">
-              <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
-          </div>
-          
-          <div id="editRuleCompletionFields" style="display: none; border-top: 1px dashed #ccc; padding-top: 15px; margin-bottom: 15px;">
-              <h4 style="margin-top: 0; margin-bottom: 10px; color: #555;">Thông tin Hoàn thành (Dành cho CV Admin)</h4>
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
-                  <label class="modal-label" style="min-width: 120px;">Kỳ hoàn thành:</label>
-                  <input type="date" id="editRuleLastCompletedDate" class="modal-input flex-1" title="Ngày chốt của kỳ báo cáo">
-              </div>
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
-                  <label class="modal-label" style="min-width: 120px;">Ngày xác nhận:</label>
-                  <input type="datetime-local" id="editRuleActualCompletedDate" class="modal-input flex-1" title="Thời gian thực tế bấm hoàn thành">
-              </div>
-              <div class="input-row d-flex flex-wrap gap-10 align-center">
-                  <label class="modal-label" style="min-width: 120px;">Lý do / Nội dung:</label>
-                  <select id="editRuleCompletedNoteSelect" class="modal-input flex-1">
-                      <option value="">-- Trống --</option>
-                      <option value="Đã hoàn thành">Đã hoàn thành</option>
-                      <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
-                      <option value="Không thể hoàn thành">Không thể hoàn thành</option>
-                      <option value="Loại bỏ">Loại bỏ</option>
-                      <option value="Khác">Khác...</option>
-                  </select>
-                  <input type="text" id="editRuleCompletedNoteCustom" placeholder="Nhập lý do tùy ý..." class="modal-input flex-1" style="display: none;">
-              </div>
-          </div>
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteEditRuleBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-              <div class="flex-1"></div>
-              <button id="cancelEditRuleBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveEditRuleBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-          </div>
-      </div>
-  </div>
-
-  <!-- MODAL THÊM QUY TẮC MỚI -->
-  <div id="addRuleModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-xl">
-          <span class="close" id="closeAddRuleModal">&times;</span>
-          <h2 class="modal-title">➕ Thêm, Sửa quy tắc công việc</h2>
-          
-          <div class="input-row d-flex gap-10 align-center mb-15">
-              <label class="modal-label">Loại quy tắc:</label>
-              <select id="addRuleTypeSelect" class="modal-input flex-1">
-                  <option value="job">Quy tắc công việc</option>
-                  <option value="pattern">Quy tắc ngày làm (Phân ca)</option>
-              </select>
-          </div>
-
-          <!-- CONTAINER CHO FORM CÔNG VIỆC -->
-          <div id="addJobFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
-            <input type="hidden" id="addJobRuleEditId">
-            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <input type="text" id="jobName" list="existingJobsList" placeholder="Tên công việc" class="modal-input flex-1" autocomplete="off">
-              <datalist id="existingJobsList"></datalist>
-              <label class="check-badge"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
-              <label class="check-badge"><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
-            </div>
-            
-            <!-- Bổ sung div Nhóm áp dụng & Thông báo cho Modal Thêm Mới -->
-            <div id="addCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
-                <div class="input-row mb-10">
-                    <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
-                    <select id="addCommonJobTargetGroup" class="modal-input flex-1"></select>
-                </div>
-                <div class="input-row mb-0">
-                    <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
-                    <select id="addCommonJobNotifyTime" class="modal-input flex-1">
-                        <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
-                        <option value="">Không tự động thông báo</option>
-                        <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                        <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-              <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc" class="modal-input">
-              <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" class="modal-input flex-1" style="background-color: #eaf3ff;">
-              <select id="domSelect" class="modal-input">
-                <!-- Options sẽ được gen bằng JavaScript -->
-              </select>
-              <select id="daySelect" class="modal-input">
-                <option value="">--Thứ--</option>
-                <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option><option value="5">T5</option><option value="6">T6</option><option value="7">T7</option><option value="8">CN</option><option value="all">Mọi ngày</option>
-              </select>
-              <select id="weekSelect" class="modal-input">
-                <option value="">--Tuần--</option>
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
-              </select>
-              <select id="monthSelect" class="modal-input">
-                <option value="">--Tháng--</option>
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
-              </select>
-            </div>
-            <div class="input-row d-flex align-center gap-10 mb-15">
-              <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
-              <input type="date" id="addRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1" style="background-color: #fdf2e9;">
-            </div>
-            <div class="input-row d-flex mb-15">
-              <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
-            </div>
-          </div>
-
-          <!-- CONTAINER CHO FORM NGÀY LÀM -->
-          <div id="addPatternFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
-            <div class="input-row">
-              <input type="text" id="patternUser" class="modal-input flex-1" list="systemUsersList" placeholder="Chọn Email/Mã từ danh sách..." autocomplete="off">
-              <datalist id="systemUsersList"></datalist>
-              <input type="text" id="patternDisplayName" class="modal-input flex-1" placeholder="Tên hiển thị trên lịch">
-              <input type="date" id="patternStartDate" class="modal-input flex-1" title="Ngày bắt đầu áp dụng quy tắc">
-              <select id="patternTypeSelect" class="modal-input">
-                <option value="administrative">1.Lịch Cố định</option>
-                <option value="shift_rotation">2.Lịch Theo Ca</option>
-              </select>
-            </div>
-
-            <div id="administrativeInputs">
-              <div class="input-row">
-                <label>Nhóm ca:</label>
-                <input type="text" id="adminShiftGroupName" class="modal-input" list="existingShiftGroups" placeholder="VD: Hành chính..." style="width: 160px; flex: none;" title="Tên nhóm ca (Mặc định: Hành chính)">
-              </div>
-              <div class="input-row">
-                <label>Thứ làm việc:</label>
-                <div id="dayCheckboxes">
-                  <label class="check-badge"><input type="checkbox" value="2">T2</label><label class="check-badge"><input type="checkbox" value="3">T3</label><label class="check-badge"><input type="checkbox" value="4">T4</label><label class="check-badge"><input type="checkbox" value="5">T5</label><label class="check-badge"><input type="checkbox" value="6">T6</label><label class="check-badge"><input type="checkbox" value="7">T7</label><label class="check-badge"><input type="checkbox" value="8">CN</label>
-                </div>
-                  <label class="ml-10">Giờ bắt đầu:</label> <input type="time" id="adminStartTime" class="modal-input">
-                  <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime" class="modal-input">
-              </div>
-            </div>
-
-            <div id="shiftRotationInputs" style="display:none;">
-                <div class="input-row">
-                    <label>Nhóm ca:</label>
-                    <input type="text" id="shiftGroupName" class="modal-input" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px; flex: none;" title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
-                    <datalist id="existingShiftGroups"></datalist>
-                    <label>Giờ bắt đầu ca:</label>
-                    <input type="time" id="shiftStartTime" class="modal-input">
-                    <label>Giờ kết thúc ca:</label>
-                    <input type="time" id="shiftEndTime" class="modal-input">
-                </div>
-            </div>
-
-            <div class="input-row d-flex flex-wrap gap-10 align-center mt-10 mb-15">
-                <label class="modal-label">Thông báo:</label> 
-                <select id="patternNotifyTime" class="modal-input flex-1">
-                    <option value="">Không tự động thông báo</option>
-                    <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                    <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-                </select>
-            </div>
-
-            <div class="input-row">
-                <input type="text" id="patternNote" class="modal-input flex-1" placeholder="Ghi chú (Tùy chọn)">
-            </div>
-          </div>
-
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteAddRuleBtn" class="btn-action btn-danger" style="display: none;">🗑️ Xóa vĩnh viễn</button>
-              <div id="addRuleSpacer" style="flex: 1; display: none;"></div>
-              <button id="cancelAddRuleBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveAsNewRuleBtn" class="btn-action btn-info" style="display: none;" title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm việc mới</button>
-              <button id="saveNewRuleBtn" class="btn-action btn-success">💾 Lưu quy tắc</button>
-          </div>
-      </div>
-  </div>
-
-  <!-- MODAL HOÁN ĐỔI CA -->
-  <div id="swapModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-sm">
-          <span class="close" id="closeSwapModal">&times;</span>
-          <h2 class="modal-title">🔄 Hoán đổi ca làm việc</h2>
-          
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
-              <input type="date" id="swapDate" class="modal-input w-100">
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
-              <select id="swapUser1" class="modal-input w-100"></select>
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
-              <select id="swapUser2" class="modal-input w-100"></select>
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
-              <input type="text" id="swapReason" class="modal-input w-100" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
-          </div>
-          
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="cancelSwapBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveSwapBtn" class="btn-action btn-success">💾 Lưu Hoán đổi</button>
-          </div>
-      </div>
-  </div>
-
-  <!-- MODAL CHỈNH SỬA HOÁN ĐỔI CA -->
-  <div id="editSwapModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-sm">
-          <span class="close" id="closeEditSwapModal">&times;</span>
-          <h2 class="modal-title">✏️ Chỉnh sửa hoán đổi ca</h2>
-          
-          <input type="hidden" id="editSwapId">
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
-              <input type="date" id="editSwapDate" class="modal-input w-100">
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
-              <select id="editSwapUser1" class="modal-input w-100"></select>
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
-              <select id="editSwapUser2" class="modal-input w-100"></select>
-          </div>
-          <div class="input-row mb-15">
-              <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
-              <input type="text" id="editSwapReason" class="modal-input w-100" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
-          </div>
-          
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteEditSwapBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-              <div class="flex-1"></div>
-              <button id="cancelEditSwapBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveEditSwapBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-          </div>
-      </div>
-  </div>
-
-  <div id="pageContent" style="display:none;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-      <h2 style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
-          <button id="monthViewBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; line-height: 1;" title="Xem lịch tháng">📆</button>
-          Lịch làm việc trong tuần
-      </h2>
-      <div style="display: flex; gap: 5px; align-items: center;">
-          <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
-      </div>
   </div>
 
   <!-- MODAL XEM LỊCH THÁNG -->
@@ -411,89 +47,49 @@
       </div>
   </div>
 
-  <div class="card-body" style="padding-top: 5px;">
-  <div class="search-container" style="margin-bottom: 8px; margin-top: 0;">
-      <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box; font-size: 14px;">
-  </div>
-
-  <div class="table-responsive-wrapper">
-  <table id="scheduleTable">
-    <thead>
-        <tr>
-        <th>Thứ & Ngày</th>
-        <th>Người làm</th>
-        <th>Công việc</th>
-        </tr>
-    </thead>
-    <tbody id="scheduleBody"></tbody>
-  </table>
-  </div>
-
-  <div id="weekNavigator">
-    <button id="todayWeekBtn">Tuần hiện tại</button>
-    
-    <div class="week-nav-group">
-      <button id="firstWeekBtn" title="Tuần đầu tiên của năm">|&lt;</button>
-      <button id="prevWeekBtn" title="Tuần trước">&lt;&lt;</button>
-      <span id="weekNumberDisplay"></span>
-      <button id="nextWeekBtn" title="Tuần kế tiếp">&gt;&gt;</button>
-      <button id="lastWeekBtn" title="Tuần cuối cùng của năm">&gt;|</button>
-    </div>
-  </div>
-
-  <!-- TABS CONTAINER CHO ADMIN -->
-  <div id="adminTabsContainer" class="admin-only" style="display: none;">
-      <div class="admin-tabs">
-          <button class="admin-tab-btn" id="btn-openAddModal" style="background: var(--primary-color); color: white;">➕ Thêm, Sửa quy tắc</button>
-          <button class="admin-tab-btn" id="btn-openSwapModal" style="background: #f39c12; color: white;">🔄 Hoán đổi ca</button>
-          <button class="admin-tab-btn active" id="tabBtn-adminConfig">📋 1. DS Công việc</button>
-          <button class="admin-tab-btn" id="tabBtn-workPatternConfig">📋 2. DS Ngày làm</button>
-          <button class="admin-tab-btn" id="tabBtn-swapConfig">📋 3. DS Hoán đổi</button>
+  <div id="pageContent" style="display:none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <h2 style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+              <button id="monthViewBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; line-height: 1;" title="Xem lịch tháng">📆</button>
+              Lịch làm việc trong tuần
+          </h2>
+          <div style="display: flex; gap: 5px; align-items: center;">
+              <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
+          </div>
       </div>
 
-  <div id="adminConfig" class="rule-box admin-tab-content active" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">⚙️ 1.Cài đặt quy tắc công việc (Admin)</h3>
-  <div class="collapsible-content">
-    <table id="ruleList">
-    <thead>
-      <tr>
-        <th>Công việc</th><th>Giờ</th><th>Ngày cụ thể</th><th>Ngày kết thúc</th><th>Định kỳ: Ngày/Thứ/Tuần/Tháng</th><th>Hành động</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-</div>
+      <div class="card-body" style="padding-top: 5px;">
+          <div class="search-container" style="margin-bottom: 8px; margin-top: 0;">
+              <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box; font-size: 14px;">
+          </div>
 
-<div id="workPatternConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">🧭 2.Cài đặt quy tắc ngày làm (Admin)</h3>
+          <div class="table-responsive-wrapper">
+              <table id="scheduleTable">
+                <thead>
+                    <tr>
+                    <th>Thứ & Ngày</th>
+                    <th>Người làm</th>
+                    <th>Công việc</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+              </table>
+          </div>
 
-  <div class="collapsible-content">
-    <table id="patternList">
-    <thead>
-      <tr><th>Nhân viên</th><th>Tên hiển thị</th><th>Kiểu</th><th>Chi tiết</th><th>Ngày Bắt đầu</th><th>Ngày Kết thúc</th><th>Giờ BĐ</th><th>Giờ KT</th><th>Hành động</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-</div>
+          <div id="weekNavigator">
+            <button id="todayWeekBtn">Tuần hiện tại</button>
+            <div class="week-nav-group">
+              <button id="firstWeekBtn" title="Tuần đầu tiên của năm">|&lt;</button>
+              <button id="prevWeekBtn" title="Tuần trước">&lt;&lt;</button>
+              <span id="weekNumberDisplay"></span>
+              <button id="nextWeekBtn" title="Tuần kế tiếp">&gt;&gt;</button>
+              <button id="lastWeekBtn" title="Tuần cuối cùng của năm">&gt;|</button>
+            </div>
+          </div>
+      </div>
+  </div> 
 
-<div id="swapConfig" class="rule-box admin-tab-content" style="margin-top: 0; border-top-left-radius: 0;">
-  <h3 style="display: none;">🔄 3.DS Hoán đổi ca (Admin)</h3>
-  <div class="collapsible-content">
-    <table id="swapList">
-    <thead>
-      <tr><th>Ngày đổi</th><th>Người xin đổi (A)</th><th>Người làm thay (B)</th><th>Lý do</th><th>Ngày tạo</th><th>Hành động</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-</div>
-  </div> <!-- End Tabs Container -->
-</div>
-</div> <!-- BỔ SUNG THẺ ĐÓNG BỊ THIẾU CỦA pageContent Ở ĐÂY -->
-
-<div id="footer-placeholder"></div>
+  <div id="footer-placeholder"></div>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module" src="autoplan.js"></script>
 

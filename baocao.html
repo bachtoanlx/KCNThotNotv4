@@ -263,55 +263,6 @@
             table-layout: auto;
         }
         
-        /* Fix cho bảng admin config */
-        #shiftConfig {
-            overflow-x: hidden;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        
-        #shift-list-table {
-            width: 100%;
-            max-width: 100%;
-            table-layout: fixed;
-            box-sizing: border-box;
-        }
-        
-        #shift-list-table th,
-        #shift-list-table td {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            padding: 6px 4px;
-            font-size: 13px;
-        }
-        
-        #shift-list-table th:nth-child(1),
-        #shift-list-table td:nth-child(1) {
-            width: 40%;
-        }
-        
-        #shift-list-table th:nth-child(2),
-        #shift-list-table td:nth-child(2),
-        #shift-list-table th:nth-child(3),
-        #shift-list-table td:nth-child(3) {
-            width: 18%;
-        }
-        
-        #shift-list-table th:nth-child(4),
-        #shift-list-table td:nth-child(4) {
-            width: 24%;
-        }
-        
-        #shift-list-table button {
-            font-size: 12px;
-            padding: 4px 6px;
-            white-space: nowrap;
-        }
-        
-        #shiftConfig > div {
-            max-width: 100%;
-            box-sizing: border-box;
-        }
 
 /* ----- CSS MỚI: ẨN SPAN TRÊN MÀN HÌNH ----- */
         .print-only-span {
@@ -348,7 +299,7 @@
             /* @page { margin: 0.5cm 1cm 0.5cm 2.5cm; } */
 
             /* ----- 2. ẨN CÁC THÀNH PHẦN THỪA ----- */
-            .print-button, #menu-placeholder, #footer-placeholder, #shiftConfig { 
+            .print-button, #menu-placeholder, #footer-placeholder { 
                 display: none; 
             }
             /* QUY TẮC MỚI ĐỂ ẨN HOÀN TOÀN PHẦN HÌNH ẢNH */
@@ -469,11 +420,6 @@
             /* SỬA LỖI 1: Cho 2 bảng nhân viên xếp dọc */
             .staff-section {
                 flex-direction: column;
-            }
-
-            /* SỬA LỖI 2: Cho hàng input của Admin tự xuống dòng */
-            #shiftConfig > div {
-                flex-wrap: wrap;
             }
 
             
@@ -779,33 +725,6 @@
                 <button id="save-report-btn" class="print-button" style="background-color: var(--success-color);">💾 Lưu Báo cáo</button>
                 
                 <button class="print-button" onclick="window.print()">🖨️ In Báo Cáo</button>
-            </div>
-        <br>
-            <div id="shiftConfig" class="admin-only" style="display: none; margin-bottom: 20px; padding: 15px; background: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px;">
-                <h3 style="margin-top: 0; color: #0056b3;">⚙️ Cài đặt Ca Báo Cáo (Admin)</h3>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-                    <input type="text" id="shift-name" placeholder="Tên ca (vd: Ca 1)" style="flex: 1; min-width: 120px;">
-                    <label>Từ:</label>
-                    <input type="time" id="shift-start-time" style="width: 100px;">
-                    <label>Đến:</label>
-                    <input type="time" id="shift-end-time" style="width: 100px;">
-                    <label style="display: flex; align-items: center; gap: 4px; background: #fff; padding: 5px 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <input type="checkbox" id="shift-is-next-day"> Kết thúc hôm sau
-                    </label>
-                    <button id="save-shift-btn" style="padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Lưu</button>
-                </div>
-                <table style="width: 100%;" id="shift-list-table">
-                    <thead>
-                        <tr>
-                            <th style="text-align: left;">Tên Ca</th>
-                            <th>Bắt đầu</th>
-                            <th>Kết thúc</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="shift-list-body">
-                        </tbody>
-                </table>
             </div>
         </div>
     </div>

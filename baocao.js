@@ -171,7 +171,6 @@
 
     let userRole = "user"; // Biến lưu vai trò
     let allReportShifts = []; // Biến lưu trữ tất cả các ca báo cáo
-    const shiftConfigDiv = document.getElementById("shiftConfig");
 
     let autoplanTimes = new Set(); // Stores unique 'HH:MM' times from autoplan
     let allPatternsData = [];
@@ -205,9 +204,6 @@
         ]);
 
         userRole = role; // Gán vai trò
-        if (userRole === "admin") {
-            shiftConfigDiv.classList.add("admin-visible");
-        }
 
         // Chạy các hàm khởi tạo (truyền 'true' để báo hiệu patterns đã được tải)
         initializeReportPage(true); 
@@ -416,7 +412,6 @@
     
     function setupShiftAdminListeners() {
         const shiftSelect = document.getElementById('shiftSelect');
-        const shiftListBody = document.getElementById('shift-list-body');
 
         // ⭐️ HỦY LISTENER CŨ (nếu có) trước khi tạo mới
         if (shiftListener) {
@@ -430,9 +425,8 @@
             // Sắp xếp các ca theo giờ bắt đầu
             allReportShifts.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-            // Xóa sạch 2 danh sách (user và admin)
+            // Xóa sạch danh sách dropdown
             shiftSelect.innerHTML = '<option value="">--- Chọn ca báo cáo ---</option>';
-            shiftListBody.innerHTML = '';
 
             allReportShifts.forEach(shift => {
                 const shiftLabel = `${shift.name} (${shift.startTime} - ${shift.endTime}${shift.isNextDay ? " *" : ""})`;
@@ -445,18 +439,6 @@
                 option.dataset.end = shift.endTime;
                 option.dataset.nextday = shift.isNextDay;
                 shiftSelect.appendChild(option);
-
-                // 3. Điền vào Bảng của Admin (nếu là admin)
-                if (userRole === 'admin') {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td style="text-align: left;">${shift.name}</td>
-                        <td>${shift.startTime}</td>
-                        <td>${shift.endTime}${shift.isNextDay ? " (hôm sau)" : ""}</td>
-                        <td><button data-id="${shift.id}" class="delete-shift-btn" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">🗑️</button></td>
-                    `;
-                    shiftListBody.appendChild(tr);
-                }
             });
 
             // --- LOGIC TỰ ĐỘNG CHỌN CA VỪA KẾT THÚC (V4) ---
@@ -509,53 +491,6 @@
             }
             // --- KẾT THÚC LOGIC V4 ---
 
-            // Xử lý nút xóa của Admin (với SweetAlert2)
-            document.querySelectorAll('.delete-shift-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const id = e.target.dataset.id;
-
-                    // ⭐️ BƯỚC 1: LẤY THÔNG TIN CA BỊ XÓA ⭐️
-                    const shiftToDelete = allReportShifts.find(s => s.id === id);
-                    const shiftName = shiftToDelete ? shiftToDelete.name : "Không rõ";
-                    const shiftTime = shiftToDelete ? `${shiftToDelete.startTime}-${shiftToDelete.endTime}` : "N/A";
-                    
-                    Swal.fire({
-                        title: `Bạn có chắc chắn muốn xóa "${shiftName}"?`, // Cập nhật tiêu đề
-                        text: "Bạn sẽ không thể hoàn tác hành động này!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Vâng, xóa nó!',
-                        cancelButtonText: 'Hủy'
-                    }).then(async (result) => {
-                        if (result.isConfirmed) {
-                            const userEmail = auth.currentUser ? auth.currentUser.email : "admin_unknown";
-                            try {
-                                await deleteDoc(doc(db, "report_shifts", id));
-                                
-                                // ⭐️ BƯỚC 2: GỬI LOG ĐẦY ĐỦ ⭐️
-                                addLog("admin_delete_shift_success", { 
-                                    shiftId: id,
-                                    shiftName: shiftName, // <-- THÊM TÊN
-                                    time: shiftTime,    // <-- THÊM GIỜ
-                                    email: userEmail 
-                                });
-                                showSwal("success", "Đã xóa ca.");
-                            } catch (error) {
-                                // ⭐️ BƯỚC 2 (LỖI): GỬI LOG LỖI ĐẦY ĐỦ ⭐️
-                                addLog("admin_delete_shift_failure", { 
-                                    shiftId: id, 
-                                    shiftName: shiftName, // <-- THÊM TÊN
-                                    error: error.message,
-                                    email: userEmail 
-                                });
-                                showSwal("error", "Lỗi khi xóa ca", error.message);
-                            }
-                        }
-                    });
-                });
-            });
 
             // --- CẬP NHẬT GIAO DIỆN ---
             // 1. Cập nhật NGÀY trước
@@ -577,93 +512,6 @@
 
             // Kích hoạt hàm xử lý chính để tải nhân viên VÀ auto-fill
             onShiftOrDateChange();
-        });
-
-        // Xử lý nút "Lưu" của Admin (Nâng cấp V5 - Cảnh báo mâu thuẫn)
-        document.getElementById('save-shift-btn').addEventListener('click', async () => {
-            const data = {
-                name: document.getElementById('shift-name').value,
-                startTime: document.getElementById('shift-start-time').value,
-                endTime: document.getElementById('shift-end-time').value,
-                isNextDay: document.getElementById('shift-is-next-day').checked
-            };
-
-            if (!data.name || !data.startTime || !data.endTime) {
-                return showSwal("error", "Thiếu thông tin", "Vui lòng nhập Tên, Giờ bắt đầu và Giờ kết thúc.");
-            }
-
-            // --- LOGIC VALIDATION (GIẢI PHÁP 2) ---
-            let warnings = [];
-
-            // 1. Kiểm tra startTime
-            if (!autoplanTimes.has(data.startTime)) {
-                const closestStart = findClosestTime(data.startTime, autoplanTimes);
-                warnings.push(`Giờ bắt đầu '<b>${data.startTime}</b>' không khớp với lịch autoplan (gần nhất là '<b>${closestStart}</b>').`);
-            }
-            // 2. Kiểm tra endTime
-            if (!autoplanTimes.has(data.endTime)) {
-                const closestEnd = findClosestTime(data.endTime, autoplanTimes);
-                warnings.push(`Giờ kết thúc '<b>${data.endTime}</b>' không khớp với lịch autoplan (gần nhất là '<b>${closestEnd}</b>').`);
-            }
-
-            // Hàm lưu (tách ra để gọi lại)
-            const saveAction = async () => {
-                const userEmail = auth.currentUser ? auth.currentUser.email : "admin_unknown";
-                try {
-                    // Sửa: Lấy docRef để có ID
-                    const docRef = await addDoc(collection(db, "report_shifts"), data);
-                    
-                    // ⭐️ VỊ TRÍ CHÈN LOG ⭐️
-                        addLog("admin_create_shift_success", { 
-                        shiftId: docRef.id, 
-                        shiftName: data.name, 
-                        time: `${data.startTime}-${data.endTime}`,
-                        email: userEmail 
-                    });
-
-                    showSwal("success", "Đã lưu ca.");
-                    // Xóa trống form
-                    document.getElementById('shift-name').value = '';
-                    document.getElementById('shift-start-time').value = '';
-                    document.getElementById('shift-end-time').value = '';
-                    document.getElementById('shift-is-next-day').checked = false;
-                } catch (error) {
-                    // ⭐️ VỊ TRÍ CHÈN LOG LỖI ⭐️
-                     addLog("admin_create_shift_failure", { 
-                        shiftName: data.name, 
-                        error: error.message,
-                        email: userEmail 
-                    });
-                    showSwal("error", "Lỗi khi lưu ca", error.message);
-                }
-            };
-
-            // 3. Hiển thị cảnh báo nếu có
-            if (warnings.length > 0) {
-                Swal.fire({
-                    title: '⚠️ Cảnh báo Mâu thuẫn!',
-                    html: `
-                        <p>Các mốc thời gian bạn nhập có thể gây lỗi điền tên nhân viên:</p>
-                        <ul style="text-align: left; margin-left: 20px;">
-                            ${warnings.map(w => `<li>${w}</li>`).join('')}
-                        </ul>
-                        <p style="margin-top: 15px;">Bạn có chắc chắn muốn lưu?</p>
-                    `,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Vẫn Lưu',
-                    cancelButtonText: 'Hủy'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        saveAction(); // Vẫn lưu
-                    }
-                });
-            } else {
-                saveAction(); // Không có cảnh báo, lưu luôn
-            }
-            // --- KẾT THÚC VALIDATION ---
         });
     }
     //

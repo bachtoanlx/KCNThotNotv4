@@ -220,7 +220,7 @@
   .report-header-controls {
     margin-top: 5px !important;
     margin-bottom: 5px !important;
-  }
+  } 
   
   .toggle-switch-container {
     display: grid !important;
@@ -554,7 +554,6 @@
       
       <button id="applyFilter">Áp dụng</button>
       <button type="button" id="exportPDF">Xuất BC - PDF</button>
-      <button type="button" id="openConfigModal" class="admin-only" style="display:none;">⚙️ Cấu hình</button>
     </div>
     
     <div class="report-header-controls">
@@ -624,131 +623,7 @@
   </div>
   </div>
 
-  <div id="adminSettings" class="admin-settings" style="border: none; padding: 0; background: transparent;">
-    
-    <div style="padding: 15px; background: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px; margin-bottom: 20px;">
-      <h3 style="margin-top: 0; color: #0056b3;">⚙️ Cài đặt ngày mốc</h3>
-      <p style="font-size: 13px; margin-bottom: 15px; color: #555;">Định cấu hình các mốc thời gian bắt đầu để tính toán báo cáo thống kê.</p>
-      
-      <div class="cs-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); align-items: end; gap: 15px;">
-        <div class="cs-form-group">
-          <label>Ngày đầu tuần:</label>
-          <select id="weekDayStart">
-            <option value="0">Chủ nhật</option>
-            <option value="1">Thứ 2</option>
-            <option value="2">Thứ 3</option>
-            <option value="3">Thứ 4</option>
-            <option value="4">Thứ 5</option>
-            <option value="5">Thứ 6</option>
-            <option value="6">Thứ 7</option>
-          </select>
-        </div>
-        <div class="cs-form-group">
-          <label>Ngày đầu tháng:</label>
-          <select id="monthDayStart"></select>
-        </div>
-        <div class="cs-form-group">
-          <label>Ngày đầu năm:</label>
-          <select id="yearDayStart"></select>
-        </div>
-        <div class="cs-form-group">
-          <button id="saveConfig" class="btn-action btn-primary w-100" style="padding: 8px 16px; font-size: 13px; height: 33px;">💾 Lưu Cài Đặt</button>
-        </div>
-      </div>
-    </div>
 
-    <div style="padding: 15px; background: #fff3cd; border: 1px solid #ffeeba; border-left: 4px solid #ffc107; border-radius: 8px;">
-        <h3 style="margin-top: 0; color: #856404;">⚙️ Cài đặt cấu hình Doanh nghiệp</h3>
-        <p style="font-size: 13px; margin-bottom: 15px;">Cho phép cài đặt Hệ số khoán, Nhóm và Ngày nghỉ theo mốc thời gian.</p>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="btnOpenCompanySettingsModal" style="background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">Mở Bảng Cài đặt Chi tiết</button>
-            <button id="btnSyncAutoInit" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;" title="Tự động sửa lỗi sai ngày của các bản ghi khởi tạo cũ">🔄 Đồng bộ Ngày Khởi tạo</button>
-        </div>
-    </div>
-  </div>
-
-<div id="configModal" class="modal">
-  <div class="modal-content-config">
-    <span class="close-btn">&times;</span>
-    <h2>Thông tin cấu hình</h2>
-    <div id="configModalContent">
-      <p>Đang tải dữ liệu...</p>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CÀI ĐẶT CÔNG TY NÂNG CAO -->
-<div id="companySettingsModal" class="modal" style="display: none;">
-    <div class="modal-content-config">
-        <span class="close-btn" id="closeCompanySettingsModal">&times;</span>
-        <h2 style="margin-top: 0; margin-bottom: 10px; color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 1.2rem;">⚙️ Quản lý Cấu hình Doanh nghiệp</h2>
-        
-        <div class="cs-form-grid">
-            <div class="cs-form-group">
-                <label>Chọn hoặc Nhập Công ty:</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="csCompanySelect" list="csCompanyList" placeholder="Chọn hoặc nhập tên công ty..." autocomplete="off" style="flex: 1;">
-                    <button id="csDeleteCompanyBtn" class="btn-action btn-danger" style="display: none; padding: 0 12px; font-size: 14px;" title="Xóa công ty khỏi hệ thống">🗑️</button>
-                </div>
-                <datalist id="csCompanyList"></datalist>
-            </div>
-            <div class="cs-form-group">
-                <label>Ngày bắt đầu áp dụng:</label>
-                <input type="date" id="csEffectiveDate" title="Cấu hình này sẽ có hiệu lực từ ngày này trở đi">
-            </div>
-            
-            <div class="cs-form-group">
-                <label>Nhóm Công ty:</label>
-                <select id="csGroupSelect">
-                    <option value="group1">Nhóm 1 (Đồng hồ)</option>
-                    <option value="group2">Nhóm 2 (Hóa đơn)</option>
-                    <option value="group3">Nhóm 3 (Khoán)</option>
-                </select>
-            </div>
-            <div class="cs-form-group">
-                <label>Hệ số Khoán (m³/ngày):</label>
-                <input type="number" id="csQuota" step="0.1" placeholder="Nhập hệ số khoán... (nếu có)">
-            </div>
-            <div class="cs-form-group">
-                <label>Ngày cuối kỳ phí (Bắt buộc):</label>
-                <input type="number" id="csBillingDay" min="1" max="31" placeholder="Nhập ngày trong khoảng từ 1-31" required>
-            </div>
-
-            <div class="cs-form-group" style="grid-column: 1 / -1;">
-                <label>Ngày nghỉ mặc định trong tuần:</label>
-                <div class="cs-checkbox-group" id="csHolidays">
-                    <label><input type="checkbox" value="1"> T2</label>
-                    <label><input type="checkbox" value="2"> T3</label>
-                    <label><input type="checkbox" value="3"> T4</label>
-                    <label><input type="checkbox" value="4"> T5</label>
-                    <label><input type="checkbox" value="5"> T6</label>
-                    <label><input type="checkbox" value="6"> T7</label>
-                    <label><input type="checkbox" value="0"> CN</label>
-                </div>
-            </div>
-            
-            <div class="cs-form-group" style="grid-column: 1 / -1;">
-                <label>Ghi chú:</label>
-                <div style="display: flex; gap: 10px; align-items: stretch;">
-                    <input type="text" id="csNote" placeholder="Nhập ghi chú (nếu có)..." style="flex: 1;">
-                    <button id="csSaveBtn" class="btn-action btn-primary" style="padding: 6px 16px; font-size: 13px; white-space: nowrap;">💾 Lưu Quy Tắc</button>
-                </div>
-            </div>
-        </div>
-
-        <h3 style="color: #034892; margin-top: 10px; margin-bottom: 8px; font-size: 1rem;">📜 Lịch sử Quy tắc</h3>
-        <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px;">
-            <table id="csHistoryTable" style="margin-top: 0; width: 100%;">
-                <thead>
-                    <tr><th>Ngày áp dụng</th><th>Nhóm</th><th>Hệ số Khoán</th><th>Kỳ phí</th><th>Ngày nghỉ</th><th>Ghi chú</th><th>Hành động</th></tr>
-                </thead>
-                <tbody id="csHistoryBody">
-                    <tr><td colspan="7" style="text-align:center; padding: 10px;">Vui lòng chọn công ty để xem lịch sử.</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
 </div> <!-- Đóng #pageContent bị thiếu -->
 
 <div id="footer-placeholder"></div>

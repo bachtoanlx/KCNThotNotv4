@@ -349,30 +349,77 @@ export async function promptForReAuth() {
   }
 
   const { value: password } = await Swal.fire({
-    title: "Xác thực hành động",
-    input: "password",
-    inputPlaceholder: "Nhập mật khẩu...",
-    showConfirmButton: false,   // bỏ nút xác nhận
-    showCancelButton: false,    // bỏ nút hủy
-    allowOutsideClick: true,    // click ra ngoài để thoát
-    allowEscapeKey: true,       // nhấn ESC để thoát
-    inputAttributes: {
-    autocapitalize: "off",
-    autocomplete: "new-password",  // 🚀 báo trình duyệt không lưu
-    style: "background:#fff; color:#000; border-radius:6px; padding:8px; width:450px; text-align:center;"
-    },
-    background: "rgba(255, 255, 255, 0.9)",   // 🚀 nền đen mờ 90%
+    title: "Xác thực Bảo mật",
+    html: `
+      <div style="text-align: center; margin-bottom: 15px;">
+        <div style="font-size: 48px; margin-bottom: 10px;">🛡️</div>
+        <p style="font-size: 14px; color: #555; line-height: 1.5;">Vui lòng nhập mật khẩu của tài khoản<br><b style="color: #273668;">${userEmail}</b><br>để tiếp tục thao tác quan trọng này.</p>
+      </div>
+      <!-- Các trường ẩn để "bẫy" trình duyệt tự động điền -->
+      <input type="text" name="username" style="position:absolute; top:-9999px; left:-9999px;">
+      <input type="password" name="password" style="position:absolute; top:-9999px; left:-9999px;">
+      
+      <!-- Ô mật khẩu thật với cơ chế chống Autofill mạnh nhất -->
+      <div style="position: relative; max-width: 260px; margin: 10px auto 0 auto;">
+          <input type="text" id="reAuthPassword" name="secure_pwd_${Date.now()}" class="swal2-input" placeholder="Mật khẩu..." autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-form-type="other" data-disguised="true" style="width: 100%; box-sizing: border-box; margin: 0; text-align: center; font-size: 16px; letter-spacing: 2px; padding-left: 35px; padding-right: 35px; -webkit-text-security: disc; text-security: disc;">
+          <span id="toggleReAuthPassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; opacity: 0.6; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; z-index: 2;">👁️</span>
+      </div> 
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận',
+    cancelButtonText: 'Hủy',
+    confirmButtonColor: '#273668',
+    cancelButtonColor: '#95a5a6',
+    allowOutsideClick: false,
+    allowEscapeKey: true,
     didOpen: () => {
-      const input = Swal.getInput();
+      const input = document.getElementById('reAuthPassword');
+      const toggle = document.getElementById('toggleReAuthPassword');
+
       if (input) {
         input.focus();
-        // Khi nhấn Enter thì đóng Swal
-        input.addEventListener("keyup", async (e) => {
+
+        // Chuyển sang type="password" khi người dùng bắt đầu gõ
+        const switchToPassword = () => {
+            if (input.dataset.disguised === 'true') {
+                input.dataset.disguised = 'false';
+                input.setAttribute('type', 'password');
+                // Bỏ style CSS đi để nút con mắt hoạt động đúng
+                input.style.webkitTextSecurity = 'none';
+                input.style.textSecurity = 'none';
+                input.style.removeProperty('-webkit-text-security');
+                input.style.removeProperty('text-security');
+                input.removeEventListener('input', switchToPassword);
+            }
+        };
+        
+        input.addEventListener('input', switchToPassword);
+
+        input.addEventListener("keyup", (e) => {
           if (e.key === "Enter") {
-            Swal.close();
+            Swal.clickConfirm();
           }
         });
       }
+      
+      if (toggle && input) {
+          toggle.addEventListener('click', () => {
+              if (input.dataset.disguised === 'true') {
+                  switchToPassword(); // Chạy hàm chuyển đổi
+              }
+              const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+              input.setAttribute('type', type);
+              toggle.textContent = type === 'password' ? '👁️' : '👀';
+          });
+      }
+    },
+    preConfirm: () => {
+      const input = document.getElementById('reAuthPassword');
+      if (!input || !input.value) {
+        Swal.showValidationMessage('Vui lòng nhập mật khẩu');
+        return false;
+      }
+      return input.value;
     }
   });
 

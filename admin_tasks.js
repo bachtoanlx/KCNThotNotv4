@@ -556,7 +556,14 @@ async function openProgressModal(task) {
                         const updatedHistory = [...task.currentHistory];
                         const deletedLog = updatedHistory.splice(idx, 1)[0];
                         let updatePayload = { [`progressHistory.${task.matchDateStr}`]: updatedHistory };
-                        if (deletedLog.status === 'Hoàn thành') { updatePayload.lastCompletedDate = null; updatePayload.actualCompletedDate = null; updatePayload.completedNote = null; }
+                        if (deletedLog.status === 'Hoàn thành') { 
+                            updatePayload.lastCompletedDate = null; 
+                            updatePayload.actualCompletedDate = null; 
+                            updatePayload.completedNote = null; 
+                            // Tự động xóa Ngày kết thúc nếu khôi phục lại công việc đơn lẻ
+                            const ruleData = allAdminRulesData.find(r => r.id === task.id);
+                            if (ruleData && ruleData.exactDate) { updatePayload.ruleEndDate = ""; }
+                        }
                         await updateDoc(doc(db, "work_rules", task.id), updatePayload);
                         closeProgressModalFn();
                         hideLoading(); showSwal("success", "Đã xóa!");
@@ -661,6 +668,12 @@ document.getElementById("saveProgressBtn").addEventListener("click", async () =>
             updatePayload.lastCompletedDate = task.matchDateStr; 
             updatePayload.actualCompletedDate = timeIso; 
             updatePayload.completedNote = note; 
+            
+            // Tự động đóng băng (kết thúc) công việc đơn lẻ bằng cách truyền ngày vào ruleEndDate
+            const ruleData = allAdminRulesData.find(r => r.id === task.id);
+            if (ruleData && ruleData.exactDate) {
+                updatePayload.ruleEndDate = timeInput.split('T')[0]; // Trích xuất định dạng YYYY-MM-DD
+            }
         }
         
         await updateDoc(doc(db, "work_rules", task.id), updatePayload);

@@ -75,6 +75,13 @@ html {
   cursor: not-allowed;
 }
 
+/* Làm mờ các ô bị khóa (Ví dụ: Các ô định kỳ khi đã chọn Ngày cụ thể) */
+.modal-input:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .check-badge {
   display: inline-flex;
   align-items: center;

@@ -639,23 +639,30 @@
     font-weight: bold;
 }
 
-/* === NÚT ẨN/HIỆN & NHÓM HOÀN THÀNH === */
-.rule-box table button.btn-toggle-hide {
-    background-color: transparent;
-    border: none;
+/* === MỚI: CSS THỤT LỀ CHO PHÂN CẤP SÂU HƠN TRONG NHÓM HOÀN THÀNH/HẾT HẠN === */
+/* Level 1: Các thư mục con hoặc công việc độc lập nằm trong Master Header */
+tr.completed-level-1 > td:first-child,
+tr.expired-recurring-row > td:first-child {
+    padding-left: 35px !important;
+    position: relative;
+}
+tr.completed-level-1 > td:first-child::before,
+tr.expired-recurring-row > td:first-child::before {
+    content: "└";
     position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    font-size: 14px !important;
-    padding: 0 !important;
+    left: 12px;
+    color: #94a3b8;
+    font-weight: bold;
 }
-.rule-box table button.btn-toggle-hide:hover {
-    background-color: transparent;
-    transform: translateY(-50%) scale(1.2);
-    transition: transform 0.2s;
+
+/* Level 2: Các công việc con sâu nhất nằm bên trong Thư mục con của nhóm Hoàn thành */
+tr.rule-child-row.completed-level-2 > td:first-child {
+    padding-left: 65px !important; /* Thụt vào sâu gấp đôi */
 }
+tr.rule-child-row.completed-level-2 > td:first-child::before {
+    left: 42px; /* Kéo biểu tượng L móc vào sâu tương ứng */
+}
+
 .rule-group-hidden {
     background-color: #f8fafc !important;
     color: #94a3b8;
