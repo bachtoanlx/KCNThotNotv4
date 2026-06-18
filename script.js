@@ -310,7 +310,7 @@ export async function notifyAdmins(title, body) {
 export function logout() {
   const userEmail = auth.currentUser?.email || "unknown";
   // ⭐️ BỔ SUNG LOG ⭐️
-  addLog("logout", { email: userEmail, status: "success" });
+  addLog("logout", { email: userEmail, status: "success", userAgent: navigator.userAgent });
   return signOut(auth);
 }
 
@@ -2028,6 +2028,7 @@ export async function saveRule(ruleData) {
     createdBy: user.email,
     createdAt: serverTimestamp()
   });
+  addLog("admin_create_manual_job", { email: user.email, job: content });
 }
 
 /**
@@ -2092,7 +2093,10 @@ export function listenJobData(collectionName, callback) {
 // 🟠 Xóa quy tắc công việc
 export async function deleteRule(id) {
   const docRef = doc(db, "job", id);
+  const snap = await getDoc(docRef);
+  const deletedData = snap.exists() ? snap.data() : {};
   await deleteDoc(docRef);
+  addLog("admin_delete_manual_job", { email: auth.currentUser?.email || "unknown", deletedJobId: id, deletedJob: deletedData });
   console.log("Đã xóa rule:", id);
 }
 
@@ -2100,7 +2104,10 @@ export async function deleteRule(id) {
 // 🟠 Ẩn/Hiện quy tắc công việc
 export async function toggleHideRule(id, currentStatus) {
   const docRef = doc(db, "job", id);
+  const snap = await getDoc(docRef);
+  const data = snap.exists() ? snap.data() : {};
   await setDoc(docRef, { isHidden: !currentStatus }, { merge: true });
+  addLog("admin_update_manual_job", { email: auth.currentUser?.email || "unknown", jobId: id, updateData: { job: data.content, isHidden: !currentStatus } });
 }
 
 //

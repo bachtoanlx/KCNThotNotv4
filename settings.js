@@ -94,6 +94,7 @@ document.getElementById("saveConfigBtn").addEventListener("click", async () => {
     showLoading("Đang lưu cài đặt..."); 
     try {
         await setDoc(doc(db, "config", "reportConfig"), newConfig, { merge: true });
+        addLog("system_config_update", { email: auth.currentUser?.email || "admin", config: newConfig });
         showSwal("success", "Đã lưu cài đặt!", "Các báo cáo sẽ được cập nhật lại mốc.");
     } catch (e) {
         showSwal("error", "Lỗi khi lưu cài đặt", e.message);
@@ -238,7 +239,10 @@ async function loadCompanyConfigHistory(company) {
         document.querySelectorAll('.del-config-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if(await showConfirmSwal("Xác nhận", "Bạn có chắc chắn muốn xóa quy tắc này?", "Xóa", "Hủy")) {
-                    await deleteDoc(doc(db, "company_configs", e.target.dataset.id));
+                    const configId = e.target.dataset.id;
+                    const configToDelete = currentCompanyConfigs.find(c => c.id === configId);
+                    addLog("system_config_update", { email: auth.currentUser?.email || "admin", action_detail: "delete_company_config", configId: configId, company: company, deletedConfig: configToDelete });
+                    await deleteDoc(doc(db, "company_configs", configId));
                     loadCompanyConfigHistory(company);
                 }
             });
@@ -273,6 +277,7 @@ document.getElementById("csSaveBtn").addEventListener("click", async () => {
         if (existingRule) await setDoc(doc(db, "company_configs", existingRule.id), payload, { merge: true });
         else await addDoc(collection(db, "company_configs"), payload);
         
+        addLog("system_config_update", { email: auth.currentUser?.email || "admin", action_detail: "save_company_config", company: company, date: effectiveDate });
         hideLoading();
         showSwal("success", "Thành công", "Đã lưu quy tắc cấu hình.");
         loadCompanyConfigHistory(company);
@@ -296,6 +301,7 @@ if (csDeleteCompanyBtn) {
                 await manageMasterCompany(company, 'remove');
                 const configsToDelete = allCompanyConfigs.filter(c => c.company === company);
                 for (const cfg of configsToDelete) await deleteDoc(doc(db, "company_configs", cfg.id));
+                addLog("system_config_update", { email: auth.currentUser?.email || "admin", action_detail: "delete_master_company", company: company, deletedConfigsCount: configsToDelete.length });
                 hideLoading();
                 showSwal("success", "Thành công", `Đã xóa công ty ${company}`);
                 csCompanySelect.value = "";
@@ -340,6 +346,7 @@ document.getElementById("csSaveBaselineBtn").addEventListener("click", async () 
             const newDoc = await addDoc(collection(db, "reports_1"), payload);
             document.getElementById("csBaselineDate").dataset.docId = newDoc.id;
         }
+        addLog("indicator_entry", { email: auth.currentUser?.email || "admin", action_detail: "save_baseline", company: company, chi_so: baselineIndex, ngay_ghi: baselineDate });
         hideLoading();
         showSwal("success", "Thành công", "Đã cập nhật Mốc Khởi Tạo.");
     } catch(e) {
@@ -1772,6 +1779,7 @@ function setupScheduleEventListeners() {
             try {
                 showLoading("Đang lưu...");
                 await addDoc(collection(db, "work_rules"), jobData);
+                addLog("admin_create_work_rule", { email: auth.currentUser?.email || "admin", job: jobNameVal, exactDate: exactDateVal });
                 hideLoading(); showSwal("success", "Thành công", "Đã lưu quy tắc!");
                 closeAddRuleModalFn();
             } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1817,6 +1825,7 @@ function setupScheduleEventListeners() {
             try {
                 showLoading("Đang lưu...");
                 await addDoc(collection(db, "work_patterns"), data);
+                addLog("admin_create_work_pattern", { email: auth.currentUser?.email || "admin", user: user, displayName: displayName, type: type });
                 hideLoading(); showSwal("success", "Thành công", "Đã lưu quy tắc phân ca!");
                 closeAddRuleModalFn();
             } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1865,6 +1874,7 @@ function setupScheduleEventListeners() {
         try {
             showLoading("Đang lưu...");
             await updateDoc(doc(db, "work_patterns", id), updateData);
+            addLog("admin_update_work_pattern", { email: auth.currentUser?.email || "admin", patternId: id, updateData: updateData });
             hideLoading(); showSwal("success", "Thành công", "Đã cập nhật quy tắc!");
             closeEditPatternModalFn();
         } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1920,6 +1930,7 @@ function setupScheduleEventListeners() {
         try {
             showLoading("Đang lưu...");
             await updateDoc(doc(db, "work_rules", id), updateData);
+            addLog("admin_update_work_rule", { email: auth.currentUser?.email || "admin", ruleId: id, updateData: updateData });
             hideLoading(); showSwal("success", "Thành công", "Đã cập nhật công việc!");
             closeEditRuleModalFn();
         } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1937,6 +1948,7 @@ function setupScheduleEventListeners() {
         try {
             showLoading("Đang lưu...");
             await addDoc(collection(db, "shift_swaps"), { date, user1, user2, reason, createdAt: serverTimestamp(), createdBy: auth.currentUser?.email || "admin" });
+            addLog("admin_create_shift_swap", { email: auth.currentUser?.email || "admin", date: date, user1: user1, user2: user2 });
             hideLoading(); showSwal("success", "Thành công", "Đã lưu hoán đổi!");
             closeSwapModalFn();
         } catch(e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1955,6 +1967,7 @@ function setupScheduleEventListeners() {
         try {
             showLoading("Đang lưu...");
             await updateDoc(doc(db, "shift_swaps", id), { date, user1, user2, reason, updatedAt: serverTimestamp() });
+            addLog("admin_update_shift_swap", { email: auth.currentUser?.email || "admin", swapId: id, date: date, user1: user1, user2: user2 });
             hideLoading(); showSwal("success", "Thành công", "Đã cập nhật hoán đổi!");
             closeEditSwapModalFn();
         } catch(e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1966,7 +1979,18 @@ function setupScheduleEventListeners() {
         if(await showConfirmSwal("Xác nhận Xóa", "Bạn có chắc chắn muốn xóa vĩnh viễn mục này?", "Xóa", "Hủy", "error")) {
             try {
                 showLoading("Đang xóa...");
+                const docSnap = await getDoc(doc(db, collName, id));
+                const data = docSnap.exists() ? docSnap.data() : {};
                 await deleteDoc(doc(db, collName, id));
+                let logData = { email: auth.currentUser?.email || "admin", deletedId: id };
+                if (collName === "work_rules") logData.deletedRule = data;
+                else if (collName === "work_patterns") logData.deletedPattern = data;
+                else if (collName === "shift_swaps") {
+                    logData.date = data.date;
+                    logData.user1 = data.user1;
+                    logData.user2 = data.user2;
+                }
+                addLog(`admin_delete_${collName}`, logData);
                 hideLoading(); showSwal("success", "Thành công", successMsg);
                 closeFn();
             } catch(e) { hideLoading(); showSwal("error", "Lỗi", e.message); }

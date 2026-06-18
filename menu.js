@@ -112,14 +112,7 @@ export function initMenu() {
   // 🔥 Nút đăng xuất
   logoutBtn.addEventListener("click", async () => {
     try {
-      const currentEmail = auth.currentUser?.email || "unknown";
       await logout();
-      await addLog("logout_success", {
-        email: currentEmail,
-        status: "success",
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-      });
       showSwal("info", "Đăng xuất thành công!");
     } catch (err) {
       console.error("Lỗi khi đăng xuất:", err);

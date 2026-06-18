@@ -1,5 +1,5 @@
 import { initMenu } from "./menu.js";
-    import { db, onAuth, getRole, showSwal } from "./script.js";
+    import { db, onAuth, getRole, showSwal, fetchAllUsers } from "./script.js";
     import {
       collection,
       query,
@@ -37,6 +37,131 @@ import { initMenu } from "./menu.js";
   const toggleFilterBtn = document.getElementById('toggleFilterBtn');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
 
+  // Từ điển chuyển đổi action -> tiếng Việt (Sử dụng toàn cục)
+  const actionTooltips = {
+      // Đăng nhập & Xác thực
+      "login_success": "Đăng nhập",
+      "login_failure": "Lỗi đăng nhập",
+      "logout": "Đăng xuất",
+      "logout_success": "Đăng xuất",
+      "auto_logout_inactivity": "Đăng xuất tự động",
+      "force_logout_requested": "Ép đăng xuất",
+      "forced_logout_executed": "Bị ép đăng xuất",
+      "reAuth_dismissed": "Hủy xác nhận lại mật khẩu",
+      "reAuth_success": "Xác thực lại thành công",
+      "reAuth_failure": "Lỗi xác thực lại",
+
+      // Quản lý quy tắc công việc
+      "admin_create_work_rule": "Thêm công việc",
+      "admin_update_work_rule": "Sửa công việc",
+      "admin_delete_work_rule": "Xóa công việc",
+      "admin_create_manual_job": "Thêm việc thủ công",
+      "admin_update_manual_job": "Sửa việc thủ công",
+      "admin_delete_manual_job": "Xóa việc thủ công",
+      "admin_create_work_pattern": "Thêm lịch phân ca",
+      "admin_update_work_pattern": "Sửa lịch phân ca",
+      "admin_delete_work_pattern": "Xóa lịch phân ca",
+      "apps_script_add_user_success": "Thêm User (GAS)",
+
+      // Báo cáo ca trực - Thao tác chính
+      "report_create_success": "Gửi báo cáo ca",
+      "report_update_success": "Sửa báo cáo ca",
+      "report_save_failure": "Lỗi lưu BC ca",
+      "report_view_existing": "Xem báo cáo ca",
+      "report_edit_initiated": "Mở sửa BC ca",
+      "report_skipped_exact_match": "Bỏ qua BC trùng",
+      "form_submit_canceled": "Hủy gửi báo cáo",
+      "form_submit_fatal_error": "Lỗi nghiêm trọng (BC)",
+      "form_unknown_id": "Lỗi form không hợp lệ",
+      "form2_validation_error": "Lỗi xác thực (Nghỉ/Làm ĐB)",
+
+      // Ghi đè / Thêm mới
+      "add_sameday_error": "Lỗi thêm BC (cùng ngày)",
+      "overwrite_sameday_error": "Lỗi ghi đè BC (cùng ngày)",
+      "overwrite_error": "Lỗi ghi đè BC",
+      "overwrite_skipped": "Bỏ qua ghi đè BC",
+      "overwrite_success": "Ghi đè BC thành công",
+      "updateFile": "Cập nhật file đính kèm",
+      "updateReport": "Cập nhật báo cáo",
+
+      // Báo cáo ca trực - Quản lý file
+      "report_upload_success": "Tải lên file (BC)",
+      "report_upload_failure": "Lỗi tải file (BC)",
+      "report_delete_success": "Xóa file (BC)",
+      "report_delete_failure": "Lỗi xóa file (BC)",
+      "file_creation_success": "Tạo HTML lưu trữ",
+      "file_creation_failure": "Lỗi tạo HTML",
+      "file_creation_connection_error": "Lỗi kết nối GAS",
+      "file_size_error": "Lỗi dung lượng file",
+      "drive_upload_success": "Tải lên Drive thành công",
+      "drive_upload_failure": "Lỗi tải lên Drive",
+      "drive_delete_failure": "Lỗi xóa file Drive",
+      "drive_delete_success": "Xóa file Drive",
+      "drive_delete_unauthorized": "Lỗi xóa Drive (Không quyền)",
+      "drive_cleanup_success": "Dọn dẹp Drive",
+      "drive_cleanup_fail": "Lỗi dọn Drive",
+
+      // Thao tác Database cấp thấp
+      "addDoc_failure": "Lỗi ghi Database",
+      "addDoc_success": "Ghi Database thành công",
+      "addDoc_unauthorized": "Lỗi DB (Không quyền)",
+      "getReportsByDate_failure": "Lỗi tải dữ liệu ngày",
+
+      // Quản lý ca làm việc
+      "admin_create_shift_success": "Thêm ca trực",
+      "admin_create_shift_failure": "Lỗi thêm ca",
+      "admin_delete_shift_success": "Xóa ca trực",
+      "admin_delete_shift_failure": "Lỗi xóa ca",
+
+      // Quản lý hoán đổi ca
+      "admin_create_shift_swap": "Thêm đổi ca",
+      "admin_update_shift_swap": "Sửa đổi ca",
+      "admin_delete_shift_swap": "Xóa đổi ca",
+      "admin_delete_work_rules": "Xóa công việc",
+      "admin_delete_work_patterns": "Xóa lịch phân ca",
+      "admin_delete_shift_swaps": "Xóa đổi ca",
+
+      // Quản lý dữ liệu chỉ số
+      "indicator_entry": "Nhập mốc chỉ số",
+      "indicator_edit": "Sửa chỉ số",
+      "indicator_delete": "Xóa chỉ số",
+      "deleteReport": "Xóa BC chỉ số",
+      "deleteReport_failure": "Lỗi xóa BC số",
+      "deleteReport_not_found": "Không thấy BC số",
+      "deleteReport_file_skipped": "Bỏ qua xóa file (số)",
+
+      // Đồng hồ nước
+      "meter_reset_confirmed": "Xác nhận đổi ĐH",
+      "meter_reset_canceled": "Hủy báo cáo đổi ĐH",
+      "meter_reset_canceled_sameday": "Hủy báo cáo ĐH (Cùng ngày)",
+      "duplicate_date_accepted": "Xác nhận gửi đè",
+
+      // Thông báo nghỉ & Đặc biệt
+      "form2_submit_success": "Gửi báo cáo nghỉ",
+      "form2_submit_partial_error": "Lỗi 1 phần gửi nghỉ",
+      "form2_submit_no_dates": "Lỗi gửi nghỉ (Thiếu ngày)",
+      "form2_submit_skipped_only": "Bỏ qua gửi nghỉ",
+      "form2_special_workday_meaningless": "Bản ghi nghỉ dư",
+      "overwrite_manual_holiday_success": "Ghi đè báo cáo nghỉ",
+      "overwrite_manual_holiday_error": "Lỗi ghi đè báo cáo nghỉ",
+      "overwrite_manual_holiday_skipped": "Bỏ qua ghi đè BC nghỉ",
+      "add_holiday_error": "Lỗi thêm ngày nghỉ",
+
+      // Cấu hình hệ thống
+      "system_config_update": "Sửa cấu hình HT",
+      "backup_created": "Sao lưu dữ liệu",
+      "restore_completed": "Khôi phục dữ liệu",
+
+      // Quản lý người dùng & GAS
+      "user_role_update": "Phân quyền",
+      "add_user_email": "Gửi email User",
+      "upload": "Tải lên file (GAS)",
+      "delete": "Xóa file (GAS)",
+      "create_report_file": "Tạo file lưu trữ (GAS)",
+      "hourly_schedule_sent": "Gửi lịch tự động",
+      "daily_schedule_failed": "Lỗi gửi lịch tự động"
+  };
+
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
   let allLogs = []; 
   let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
@@ -57,6 +182,11 @@ import { initMenu } from "./menu.js";
   let searchDebounceTimer = null; // MỚI: Biến hẹn giờ cho chức năng tìm kiếm tự động
   let savedStartDate = ""; // MỚI: Lưu lại ngày bắt đầu trước khi tìm kiếm
   let savedEndDate = ""; // MỚI: Lưu lại ngày kết thúc trước khi tìm kiếm
+  let allKnownUsers = new Set(); // MỚI: Lưu tất cả user trong hệ thống
+  let patternUsers = new Set(); // MỚI: Lưu user từ lịch làm việc
+  let adminUsers = new Set(); // MỚI: Lưu user admin
+  let userActionsMap = new Map(); // MỚI: Bản đồ lưu các hành động của từng user
+  let allKnownActions = new Set(); // MỚI: Lưu tất cả hành động đã từng xảy ra
 
   // HÀM MỚI: Chuẩn hóa tiếng Việt không dấu để tìm kiếm thông minh hơn
   function normalizeForSearch(str) {
@@ -70,16 +200,18 @@ import { initMenu } from "./menu.js";
 
   // Hàm hỗ trợ tạo chuỗi tìm kiếm chuẩn xác cho mỗi log
   function buildLogSearchString(log) {
+      const actionLabel = actionTooltips[log.action] || log.action || "";
       const fields = [
           log.createdAt?.toDate ? log.createdAt.toDate().toLocaleString('vi-VN') : "",
-          log.email, log.action, log.company, log.chi_so, log.ngay_ghi, log.ghi_chu,
+          log.email, log.action, actionLabel, log.company, log.chi_so, log.ngay_ghi, log.ghi_chu,
           log.fileId, log.error_code, log.userAgent, log.job, log.note,
           log.displayName, log.user, log.deletedRule?.job, log.deletedJob?.job,
           log.deletedPattern?.displayName, log.updateData?.job, log.updateData?.displayName,
           log.targetName, log.changes ? Object.values(log.changes).map(c => `${c.label} ${c.old} ${c.new}`).join(" ") : "",
           // Bổ sung các trường dữ liệu còn thiếu
           log.date, log.patternStartDate, log.patternEndDate, log.reason, log.details, 
-          log.shiftName, log.time, log.user1, log.user2, log.reportId, log.error, log.targetUser
+          log.shiftName, log.time, log.user1, log.user2, log.reportId, log.error, log.targetUser,
+          log.receivingStaff ? log.receivingStaff.join(', ') : "", log.deletedConfig?.effectiveDate, log.newRole, log.fileUrl, log.file
       ];
             return fields.map(field => {
           if (!field) return "";
@@ -132,7 +264,10 @@ import { initMenu } from "./menu.js";
           }
           let q;
           if (lastSync === 0) { // Lần đầu tải toàn bộ
-              q = query(collection(db, "logs"), orderBy("createdAt", "desc"));
+              // TỐI ƯU FIREBASE: Chỉ tải tối đa 60 ngày gần nhất cho bộ nhớ đệm (Tránh đốt Quota khi logs phình to)
+              const sixtyDaysAgo = new Date();
+              sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+              q = query(collection(db, "logs"), where("createdAt", ">=", sixtyDaysAgo), orderBy("createdAt", "desc"));
           } else {
               q = query(collection(db, "logs"), where("createdAt", ">", new Date(lastSync)), orderBy("createdAt", "desc"));
           }
@@ -243,78 +378,6 @@ import { initMenu } from "./menu.js";
                 ? log.createdAt.toDate().toLocaleString('vi-VN')
                 : "";
             
-            // Từ điển chuyển đổi action -> tiếng Việt
-            const actionTooltips = {
-                // Đăng nhập & Xác thực
-                "login_success": "Đăng nhập thành công",
-                "login_failure": "Đăng nhập thất bại",
-                "logout": "Đăng xuất khỏi hệ thống",
-                "logout_success": "Đăng xuất thành công",
-                "auto_logout_inactivity": "Tự động đăng xuất (Không hoạt động)",
-
-                // Quản lý quy tắc công việc
-                "admin_create_work_rule": "Admin tạo quy tắc công việc mới",
-                "admin_update_work_rule": "Admin cập nhật quy tắc công việc",
-                "admin_delete_work_rule": "Admin xóa quy tắc công việc",
-                "admin_create_manual_job": "Admin tạo công việc thủ công",
-                "admin_update_manual_job": "Admin cập nhật công việc thủ công",
-                "admin_delete_manual_job": "Admin xóa công việc thủ công",
-                "admin_create_work_pattern": "Admin tạo mẫu lịch làm việc",
-                "admin_update_work_pattern": "Admin cập nhật mẫu lịch làm việc",
-                "admin_delete_work_pattern": "Admin xóa mẫu lịch làm việc",
-                "apps_script_add_user_success": "Thêm người dùng qua Apps Script thành công",
-
-                // Báo cáo ca trực - Thao tác chính
-                "report_create_success": "Tạo báo cáo ca trực mới thành công",
-                "report_update_success": "Cập nhật báo cáo ca trực thành công",
-                "report_save_failure": "Lỗi khi lưu báo cáo ca trực",
-                "report_view_existing": "Xem báo cáo ca trực hiện có",
-                "report_edit_initiated": "Bắt đầu chỉnh sửa báo cáo ca trực",
-
-                // Báo cáo ca trực - Quản lý file
-                "report_upload_success": "Tải lên file đính kèm thành công",
-                "report_upload_failure": "Lỗi khi tải lên file đính kèm",
-                "report_delete_success": "Xóa file đính kèm thành công",
-                "report_delete_failure": "Lỗi khi xóa file đính kèm",
-                "file_creation_success": "Tạo file HTML thành công",
-                "file_creation_failure": "Lỗi khi tạo file HTML",
-                "file_creation_connection_error": "Lỗi kết nối khi tạo file HTML",
-
-                // Quản lý ca làm việc
-                "admin_create_shift_success": "Admin tạo ca làm việc mới thành công",
-                "admin_create_shift_failure": "Lỗi khi Admin tạo ca làm việc mới",
-                "admin_delete_shift_success": "Admin xóa ca làm việc thành công",
-                "admin_delete_shift_failure": "Lỗi khi Admin xóa ca làm việc",
-
-                // Quản lý hoán đổi ca
-                "admin_create_shift_swap": "Admin tạo hoán đổi ca",
-                "admin_update_shift_swap": "Admin cập nhật hoán đổi ca",
-                "admin_delete_shift_swap": "Admin xóa hoán đổi ca",
-
-                // Quản lý dữ liệu chỉ số
-                "indicator_entry": "Nhập liệu chỉ số mới",
-                "indicator_edit": "Chỉnh sửa chỉ số",
-                "indicator_delete": "Xóa chỉ số",
-
-                // Quản lý file & tài liệu
-                "file_upload": "Tải lên file mới",
-                "file_download": "Tải xuống file",
-                "file_delete": "Xóa file",
-                "file_rename": "Đổi tên file",
-                
-                // Quản lý người dùng
-                "user_role_update": "Cập nhật quyền người dùng",
-                "user_profile_update": "Cập nhật thông tin cá nhân",
-                "user_password_change": "Thay đổi mật khẩu",
-                "user_disable": "Vô hiệu hóa tài khoản",
-                "user_enable": "Kích hoạt tài khoản",
-
-                // Cấu hình hệ thống
-                "system_config_update": "Cập nhật cấu hình hệ thống",
-                "backup_created": "Tạo bản sao lưu dữ liệu",
-                "restore_completed": "Khôi phục dữ liệu từ bản sao lưu"
-            };
-            
             let details = "";            switch (log.action) {
                 case "login_success":
                     details = `Đăng nhập thành công. Thiết bị: ${log.userAgent || "N/A"}`;
@@ -335,6 +398,26 @@ import { initMenu } from "./menu.js";
                         <b>Chi tiết:</b> ${log.details || "Hệ thống tự động đăng xuất do quá thời gian quy định"}<br>
                         <b>Thiết bị:</b> ${log.userAgent || "N/A"}
                     `;
+                    break;
+                case "reAuth_success":
+                    details = `Xác thực lại mật khẩu thành công.`;
+                    break;
+                case "reAuth_failure":
+                    details = `<b style="color:red;">Lỗi xác thực lại:</b> ${log.error || "Sai mật khẩu"}`;
+                    break;
+                case "reAuth_dismissed":
+                    details = `Đã hủy hộp thoại yêu cầu xác thực lại.`;
+                    break;
+                case "system_config_update":
+                    if (log.action_detail === "delete_company_config") {
+                        details = `Xóa cấu hình của công ty <b>${log.company || "N/A"}</b> (Ngày áp dụng: ${log.deletedConfig?.effectiveDate || "N/A"})`;
+                    } else if (log.action_detail === "save_company_config") {
+                        details = `Lưu cấu hình cho công ty <b>${log.company || "N/A"}</b> (Ngày áp dụng: ${log.date || "N/A"})`;
+                    } else if (log.action_detail === "delete_master_company") {
+                        details = `Xóa công ty <b>${log.company || "N/A"}</b> khỏi hệ thống (Kèm ${log.deletedConfigsCount || 0} cấu hình)`;
+                    } else {
+                        details = `Cập nhật cấu hình hệ thống: ${log.config ? JSON.stringify(log.config) : ""}`;
+                    }
                     break;
                 case "admin_create_work_rule":
                     details = `
@@ -360,6 +443,7 @@ import { initMenu } from "./menu.js";
                     details = `<b>Cập nhật:</b> ${targetName}<br>${changesHtml || "<i>Không có thay đổi nào</i>"}`;
                     break;
                 case "admin_delete_work_rule":
+                case "admin_delete_work_rules":
                     details = `Đã xóa quy tắc: <b>${log.deletedRule?.job || "N/A"}</b>`;
                     break;
                 case "admin_create_manual_job":
@@ -381,6 +465,7 @@ import { initMenu } from "./menu.js";
                     `;
                     break;
                 case "admin_delete_work_pattern":
+                case "admin_delete_work_patterns":
                     details = `Đã xóa quy tắc của: <b>${log.deletedPattern?.displayName || "N/A"}</b>`;
                     break;
                 case "apps_script_add_user_success":
@@ -489,22 +574,62 @@ import { initMenu } from "./menu.js";
                     break;
 
                 case "admin_delete_shift_swap":
+                case "admin_delete_shift_swaps":
                     details = `
                         <b>Xóa hoán đổi ngày:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}<br>
                         <b>Người xin nghỉ (A):</b> ${log.user1 || "N/A"}<br>
                         <b>Người làm thay (B):</b> ${log.user2 || "N/A"}
                     `;
                     break;
+                case "indicator_entry":
+                    details = `
+                        <b>Công ty:</b> ${log.company || "N/A"}<br>
+                        <b>Ngày:</b> ${log.ngay_ghi || "N/A"}<br>
+                        <b>Chỉ số:</b> ${log.chi_so || "N/A"}<br>
+                        ${log.action_detail === 'save_baseline' ? '<b>Loại:</b> Cập nhật mốc khởi tạo' : ''}
+                    `;
+                    break;
+                case "deleteReport":
+                    details = `
+                        <b>Xóa báo cáo ID:</b> ${log.id || "N/A"}<br>
+                        <b>Công ty:</b> ${log.company || "N/A"}<br>
+                        <b>Ngày:</b> ${log.ngay_ghi || "N/A"}<br>
+                        <b>Chỉ số:</b> ${log.chi_so || "N/A"}
+                    `;
+                    break;
+                
+                case "user_role_update":
+                    details = `<b>Phân quyền:</b> ${log.targetUser || "N/A"} &rarr; <b style="color:#273668;">${log.newRole || "N/A"}</b>`;
+                    break;
+                case "force_logout_requested":
+                    details = `Ép đăng xuất tài khoản: <b>${log.targetUser || "N/A"}</b>`;
+                    break;
+                case "add_user_email":
+                    details = `Gửi email cấp quyền cho: <b>${log.email || "N/A"}</b><br>Chi tiết: ${log.details || ""}`;
+                    break;
+                case "hourly_schedule_sent":
+                    details = `Hệ thống tự động gửi lịch trực.<br>Chi tiết: ${log.details || ""}`;
+                    break;
+                case "daily_schedule_failed":
+                    details = `<b style="color:red;">Lỗi gửi lịch tự động:</b> ${log.error || ""}<br>Chi tiết: ${log.details || ""}`;
+                    break;
+                case "upload":
+                case "delete":
+                case "create_report_file":
+                    details = `Thao tác Google Drive (GAS).<br>Chi tiết: ${log.details || "N/A"}`;
+                    break;
 
                 default:
                     details = `
                         ${log.details ? "<b>Chi tiết:</b> " + log.details + "<br>" : ""}
+                        ${log.reason ? "<b>Lý do:</b> " + log.reason + "<br>" : ""}
                         ${log.company ? "<b>Cty:</b> " + log.company + "<br>" : ""}
                         ${log.chi_so ? "<b>Chỉ số:</b> " + log.chi_so + "<br>" : ""}
                         ${log.ngay_ghi ? "<b>Ngày ghi:</b> " + log.ngay_ghi + "<br>" : ""}
                         ${log.ghi_chu ? "<b>Nội dung:</b> " + log.ghi_chu + "<br>" : ""}
                         ${log.fileId ? "<b>FileId:</b> " + log.fileId + "<br>" : ""}
                         ${log.fileUrl ? `<a href="${log.fileUrl}" target="_blank">Xem file</a>` : ""}
+                        ${log.error ? `<b style="color:red;">Lỗi:</b> ${log.error}<br>` : ""}
                     `;
                     break;
             }
@@ -515,10 +640,11 @@ import { initMenu } from "./menu.js";
             const displayFull = details.trim() ? details : 'Không có chi tiết';
 
             const tr = document.createElement("tr");
+            const actionLabel = actionTooltips[log.action] || log.action || "";
             tr.innerHTML = `
                 <td>${time}</td>
                 <td title="${log.email || ""}">${log.email || ""}</td>
-                <td title="${actionTooltips[log.action] || log.action || ""}">${log.action || ""}</td>
+                <td title="${log.action || ""}">${actionLabel}</td>
                 <td><div class="log-details-wrapper" title="Nhấn để xem chi tiết">${displayPreview}</div></td>
             `;
             
@@ -710,28 +836,190 @@ import { initMenu } from "./menu.js";
 
           // ⭐️ initial listener - Gọi async function đúng cách
           (async () => {
+            // Lấy danh sách toàn bộ user trong hệ thống trước khi tải log
+            try {
+                // 1. Lấy danh sách Admin
+                const rolesSnap = await getDocs(collection(db, "roles"));
+                rolesSnap.docs.forEach(doc => {
+                    if (doc.data().role === "admin") {
+                        adminUsers.add(doc.id);
+                        allKnownUsers.add(doc.id);
+                    }
+                });
+
+                // 2. Lấy thêm từ lịch sử Phân ca (Bao gồm cả những người đã kết thúc quy tắc)
+                const patternsSnap = await getDocs(collection(db, "work_patterns"));
+                patternsSnap.docs.forEach(doc => {
+                    const data = doc.data();
+                    if (data.user) {
+                        patternUsers.add(data.user);
+                        allKnownUsers.add(data.user);
+                    }
+                });
+
+                // 3. Lấy từ danh sách User hiện tại
+                const users = await fetchAllUsers();
+                users.forEach(u => {
+                    if (u.email) allKnownUsers.add(u.email);
+                });
+                
+                // 4. Quét vét cạn từ lịch sử Log đã lưu Offline (IndexedDB)
+                try {
+                    const localLogs = await getAllFromLocalDB("logs");
+                    if (localLogs && localLogs.length > 0) {
+                        localLogs.forEach(l => {
+                            if (l.action) allKnownActions.add(l.action);
+                            if (l.email) {
+                                allKnownUsers.add(l.email);
+                                if (!userActionsMap.has(l.email)) userActionsMap.set(l.email, new Set());
+                                if (l.action) {
+                                    userActionsMap.get(l.email).add(l.action);
+                                }
+                            }
+                        });
+                    }
+                } catch (err) { }
+                
+                allKnownUsers.add("system-auto"); // Bổ sung bot hệ thống
+            } catch (e) {
+                console.error("Lỗi lấy danh sách user:", e);
+            }
             await fetchLogsByDate(false);
           })();
+
+          function renderActionFilter(selectedUser) {
+              if (!actionFilter) return;
+              
+              const prev = actionFilter.value;
+              let allowedActions = null;
+              
+              if (selectedUser && userActionsMap.has(selectedUser)) {
+                  allowedActions = userActionsMap.get(selectedUser);
+              }
+              
+              const actionGroups = {
+                  "Đăng nhập & Xác thực": ["login_success", "login_failure", "logout", "logout_success", "auto_logout_inactivity", "force_logout_requested", "forced_logout_executed", "reAuth_dismissed", "reAuth_success", "reAuth_failure"],
+                  "Lên lịch & Phân ca": ["admin_create_work_rule", "admin_update_work_rule", "admin_delete_work_rule", "admin_delete_work_rules", "admin_create_manual_job", "admin_update_manual_job", "admin_delete_manual_job", "admin_create_work_pattern", "admin_update_work_pattern", "admin_delete_work_pattern", "admin_delete_work_patterns", "admin_create_shift_success", "admin_create_shift_failure", "admin_delete_shift_success", "admin_delete_shift_failure", "admin_create_shift_swap", "admin_update_shift_swap", "admin_delete_shift_swap", "admin_delete_shift_swaps"],
+                  "Báo cáo ca trực": ["report_create_success", "report_update_success", "report_save_failure", "report_view_existing", "report_edit_initiated", "report_skipped_exact_match", "form_submit_canceled", "form_submit_fatal_error", "form_unknown_id", "form2_validation_error", "add_sameday_error", "overwrite_sameday_error", "overwrite_error", "overwrite_skipped", "overwrite_success", "updateReport"],
+                  "Báo cáo Chỉ số": ["indicator_entry", "indicator_edit", "indicator_delete", "deleteReport", "deleteReport_failure", "deleteReport_not_found", "deleteReport_file_skipped", "meter_reset_confirmed", "meter_reset_canceled", "meter_reset_canceled_sameday", "duplicate_date_accepted"],
+                  "Thông báo Nghỉ & ĐB": ["form2_submit_success", "form2_submit_partial_error", "form2_submit_no_dates", "form2_submit_skipped_only", "form2_special_workday_meaningless", "overwrite_manual_holiday_success", "overwrite_manual_holiday_error", "overwrite_manual_holiday_skipped", "add_holiday_error"],
+                  "Quản lý File & Drive": ["updateFile", "report_upload_success", "report_upload_failure", "report_delete_success", "report_delete_failure", "file_creation_success", "file_creation_failure", "file_creation_connection_error", "file_size_error", "drive_upload_success", "drive_upload_failure", "drive_delete_failure", "drive_delete_success", "drive_delete_unauthorized", "drive_cleanup_success", "drive_cleanup_fail", "upload", "delete", "create_report_file"],
+                  "Hệ thống & Cài đặt": ["system_config_update", "backup_created", "restore_completed", "user_role_update", "apps_script_add_user_success", "add_user_email", "hourly_schedule_sent", "daily_schedule_failed", "addDoc_failure", "addDoc_success", "addDoc_unauthorized", "getReportsByDate_failure"]
+              };
+
+              let optionsHtml = '';
+              const processedCodes = new Set();
+
+              for (const [groupName, codes] of Object.entries(actionGroups)) {
+                  const groupActions = codes.filter(code => {
+                      if (allowedActions) {
+                          if (!allowedActions.has(code)) return false;
+                      } else {
+                          if (!allKnownActions.has(code)) return false;
+                      }
+                      return actionTooltips[code];
+                  }).map(code => {
+                      processedCodes.add(code);
+                      return { code, label: actionTooltips[code] };
+                  }).sort((a, b) => a.label.localeCompare(b.label));
+
+                  if (groupActions.length > 0) {
+                      optionsHtml += `<optgroup label="${groupName}">`;
+                      optionsHtml += groupActions.map(a => `<option value="${a.code}">${a.label}</option>`).join('');
+                      optionsHtml += `</optgroup>`;
+                  }
+              }
+
+              const otherActions = Object.keys(actionTooltips)
+                  .filter(code => !processedCodes.has(code))
+                  .filter(code => {
+                      if (allowedActions && !allowedActions.has(code)) return false;
+                      return true;
+                  })
+                  .map(code => ({ code, label: actionTooltips[code] }))
+                  .sort((a, b) => a.label.localeCompare(b.label));
+
+              if (otherActions.length > 0) {
+                  const groupLabel = allowedActions ? "Khác" : "Hành động khác";
+                  optionsHtml += `<optgroup label="${groupLabel}">`;
+                  optionsHtml += otherActions.map(a => `<option value="${a.code}">${a.label}</option>`).join('');
+                  optionsHtml += `</optgroup>`;
+              }
+              
+              actionFilter.innerHTML = '<option value="">-- Hành động --</option>' + optionsHtml;
+              
+              const currentOptions = Array.from(actionFilter.options).map(o => o.value);
+              if (currentOptions.includes(prev)) {
+                  actionFilter.value = prev;
+              } else {
+                  actionFilter.value = '';
+              }
+          }
 
           // Populate selects helper (unique actions and emails)
           function populateFilterOptions(logs) {
             if (!Array.isArray(logs)) return;
-            const actions = new Set();
-            const users = new Set();
+            
+            let newUsersAdded = false;
+            let newActionsAddedForSelectedUser = false;
+            let newActionsAddedOverall = false;
+            const selectedUser = userFilter ? userFilter.value : '';
+
             logs.forEach(l => {
-              if (l.action) actions.add(l.action);
-              if (l.email) users.add(l.email);
+                if (l.action) {
+                    if (!allKnownActions.has(l.action)) {
+                        allKnownActions.add(l.action);
+                        newActionsAddedOverall = true;
+                    }
+                }
+                
+                if (l.email) {
+                    if (!allKnownUsers.has(l.email)) {
+                        allKnownUsers.add(l.email);
+                        newUsersAdded = true;
+                    }
+                    if (!userActionsMap.has(l.email)) userActionsMap.set(l.email, new Set());
+                    
+                    if (l.action && !userActionsMap.get(l.email).has(l.action)) {
+                        userActionsMap.get(l.email).add(l.action);
+                        if (selectedUser === l.email) {
+                            newActionsAddedForSelectedUser = true;
+                        }
+                    }
+                }
             });
-            // clear existing but keep empty option
+
+            // Nạp danh sách hành động
             if (actionFilter) {
-              const prev = actionFilter.value;
-              actionFilter.innerHTML = '<option value="">--Tất cả--</option>' + Array.from(actions).sort().map(a => `<option value="${a}">${a}</option>`).join('');
-              if (Array.from(actions).includes(prev)) actionFilter.value = prev;
+                const shouldRender = actionFilter.options.length <= 1 || newActionsAddedForSelectedUser || (!selectedUser && newActionsAddedOverall);
+                if (shouldRender) {
+                    renderActionFilter(selectedUser);
+                }
             }
-            if (userFilter) {
+
+            // Chỉ cập nhật dropdown user nếu có user mới hoặc dropdown chưa được khởi tạo
+            if (userFilter && (newUsersAdded || userFilter.options.length <= 1)) {
               const prevU = userFilter.value;
-              userFilter.innerHTML = '<option value="">--Tất cả--</option>' + Array.from(users).sort().map(u => `<option value="${u}">${u}</option>`).join('');
-              if (Array.from(users).includes(prevU)) userFilter.value = prevU;
+              
+              const priorityUsers = new Set([...patternUsers, ...adminUsers]);
+              const otherUsers = new Set([...allKnownUsers].filter(u => !priorityUsers.has(u)));
+
+              let optionsHtml = '<option value="">-- Người dùng --</option>';
+              
+              if (priorityUsers.size > 0) {
+                  optionsHtml += '<optgroup label="Nhân viên & Quản trị viên">';
+                  optionsHtml += Array.from(priorityUsers).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+                  optionsHtml += '</optgroup>';
+              }
+              
+              if (otherUsers.size > 0) {
+                  optionsHtml += '<optgroup label="Tài khoản khác">';
+                  optionsHtml += Array.from(otherUsers).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+                  optionsHtml += '</optgroup>';
+              }
+
+              userFilter.innerHTML = optionsHtml;
+              if (Array.from(allKnownUsers).includes(prevU)) userFilter.value = prevU;
             }
           }
           
@@ -771,7 +1059,10 @@ import { initMenu } from "./menu.js";
           };
 
           actionFilter.addEventListener('change', handleSelectFilterChange);
-          userFilter.addEventListener('change', handleSelectFilterChange);
+          userFilter.addEventListener('change', (e) => {
+              renderActionFilter(e.target.value);
+              handleSelectFilterChange();
+          });
           
           // Sự kiện nút Áp dụng / Bỏ lọc
           if (toggleFilterBtn) {
@@ -784,8 +1075,9 @@ import { initMenu } from "./menu.js";
                   if (endDateInput) { endDateInput.disabled = false; endDateInput.style.opacity = "1"; endDateInput.style.cursor = ""; }
 
                   if (toggleFilterBtn.textContent === 'Bỏ lọc') {
-                      actionFilter.value = '';
                       userFilter.value = '';
+                      renderActionFilter(''); // Reset action filter to show all
+                      actionFilter.value = '';
                       startDateInput.value = '';
                       endDateInput.value = '';
                       // Reset về tải ban đầu

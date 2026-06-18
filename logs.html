@@ -146,7 +146,7 @@
       body #pageContent .filter-box {
           display: grid !important;
           grid-template-columns: 1fr 1fr 0.8fr;
-          grid-template-rows: auto;
+          grid-template-rows: auto auto;
           gap: 6px;
           width: 100% !important;
           margin: 0 !important;
@@ -160,9 +160,11 @@
       body #pageContent .filter-box > label:nth-of-type(2) { grid-column: 2 / 3; grid-row: 1; }
       body #pageContent .filter-box > button#toggleFilterBtn { grid-column: 3 / 4; grid-row: 1; }
       
-      /* Ẩn các bộ lọc phụ (Hành động, Người dùng) để giao diện gọn thành 3 dòng */
-      body #pageContent .filter-box > select#actionFilter,
-      body #pageContent .filter-box > select#userFilter,
+      /* Hàng 2: Hành động | Người dùng */
+      body #pageContent .filter-box > select#actionFilter { grid-column: 1 / 2; grid-row: 2; display: block !important; }
+      body #pageContent .filter-box > select#userFilter { grid-column: 2 / 4; grid-row: 2; display: block !important; }
+      
+      /* Ẩn các nhãn để tiết kiệm không gian */
       body #pageContent .filter-box > label:nth-of-type(3),
       body #pageContent .filter-box > label:nth-of-type(4) {
           display: none !important;
@@ -242,9 +244,9 @@
           <label>Từ ngày: <input type="date" id="startDateInput"></label>
           <label>Đến ngày: <input type="date" id="endDateInput"></label>
           <label style="white-space:nowrap;">Hành động:</label>
-          <select id="actionFilter"><option value="">--Tất cả--</option></select>
+          <select id="actionFilter"><option value="">-- Hành động --</option></select>
           <label style="white-space:nowrap;">Người dùng:</label>
-          <select id="userFilter"><option value="">--Tất cả--</option></select>
+          <select id="userFilter"><option value="">-- Người dùng --</option></select>
           <button id="toggleFilterBtn" type="button">Áp dụng</button>
         </div>
           
