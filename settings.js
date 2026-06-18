@@ -2033,7 +2033,7 @@ function renderUsersTable() {
             ? `<button class="change-role-btn" data-email="${email}" data-newrole="user" style="background:#f39c12; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Hạ quyền User</button>`
             : `<button class="change-role-btn" data-email="${email}" data-newrole="admin" style="background:#2ecc71; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Cấp quyền Admin</button>`;
 
-        const forceLogoutBtn = `<button class="force-logout-btn" data-email="${email}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Ép Đăng xuất</button>`;
+        const forceLogoutBtn = `<button class="force-logout-btn" data-email="${email}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Đăng xuất</button>`;
 
         return `<tr>
             <td>${email}</td>
@@ -2079,7 +2079,7 @@ function renderUsersTable() {
                 return showSwal("error", "Từ chối thao tác", "Bạn không thể ép chính mình đăng xuất từ đây!");
             }
             
-            const isConfirmed = await showConfirmSwal("Đăng xuất", `Bạn có chắc chắn muốn ép <b>${email}</b> đăng xuất ngay lập tức không?`, "Đăng xuất", "Hủy", "warning");
+            const isConfirmed = await showConfirmSwal("Đăng xuất", `Bạn có chắc chắn muốn <b>${email}</b> đăng xuất ngay lập tức không?`, "Đăng xuất", "Hủy", "warning");
             if (isConfirmed) {
                 const isVerified = await promptForReAuth();
                 if (!isVerified) return;
@@ -2089,7 +2089,7 @@ function renderUsersTable() {
                     await setDoc(doc(db, "users", email), { forceLogoutAt: serverTimestamp() }, { merge: true });
                     addLog("force_logout_requested", { targetUser: email, email: auth.currentUser?.email });
                     hideLoading();
-                    showSwal("success", "Thành công", `Đã gửi lệnh ép đăng xuất đến ${email}`);
+                    showSwal("success", "Thành công", `Đã gửi lệnh đăng xuất đến ${email}`);
                 } catch (err) {
                     hideLoading();
                     showSwal("error", "Lỗi", err.message);

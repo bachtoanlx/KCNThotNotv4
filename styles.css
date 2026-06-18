@@ -1770,7 +1770,12 @@ tr:last-child td {
   ========================================================= */
   div:has(> #csEffectiveDate) {
     grid-column: 1 / -1 !important; /* Ép phần tử này tràn toàn bộ các cột trong Grid */
+    flex: 1 1 100% !important; /* Ép rớt dòng nếu khung cha đang dùng Flexbox */
     width: 100% !important;
+  }
+  #csEffectiveDate {
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* =========================================================

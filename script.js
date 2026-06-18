@@ -187,8 +187,8 @@ onAuthStateChanged(auth, async (user) => {
                 
                 // BÙ TRỪ ĐỘ TRỄ: Thêm 2000ms để tránh việc giờ login và giờ ép đăng xuất bị trùng/lệch do server
                 if (forceTime > 0 && forceTime > (loginTime + 2000)) {
-                    console.log("Bị ép đăng xuất bởi Admin.", {forceTime, loginTime});
-                    addLog("forced_logout_executed", { email: userEmailSafe, status: "success", reason: "Bị ép đăng xuất bởi Admin." });
+                    console.log("Đăng xuất bởi Admin.", {forceTime, loginTime});
+                    addLog("forced_logout_executed", { email: userEmailSafe, status: "success", reason: "Đăng xuất bởi Admin." });
                     
                     if (currentUserSnapshotUnsubscribe) {
                         currentUserSnapshotUnsubscribe();
@@ -198,7 +198,7 @@ onAuthStateChanged(auth, async (user) => {
                     logout().then(() => {
                         window.Swal.fire({
                             title: 'Đăng xuất',
-                            text: 'Tài khoản của bạn đã bị quản trị viên ép đăng xuất.',
+                            text: 'Tài khoản của bạn đã bị quản trị viên đăng xuất.',
                             icon: 'warning',
                             confirmButtonText: 'Đã hiểu',
                             allowOutsideClick: false,
