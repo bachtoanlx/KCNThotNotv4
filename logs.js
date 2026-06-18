@@ -36,6 +36,7 @@ import { initMenu } from "./menu.js";
   const userFilter = document.getElementById('userFilter');
   const toggleFilterBtn = document.getElementById('toggleFilterBtn');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const refreshCacheBtn = document.getElementById('refreshCacheBtn');
 
   // Từ điển chuyển đổi action -> tiếng Việt (Sử dụng toàn cục)
   const actionTooltips = {
@@ -620,12 +621,13 @@ import { initMenu } from "./menu.js";
                     break;
 
                 default:
+                    const displayDate = log.ngay_ghi || log.date;
                     details = `
                         ${log.details ? "<b>Chi tiết:</b> " + log.details + "<br>" : ""}
                         ${log.reason ? "<b>Lý do:</b> " + log.reason + "<br>" : ""}
                         ${log.company ? "<b>Cty:</b> " + log.company + "<br>" : ""}
                         ${log.chi_so ? "<b>Chỉ số:</b> " + log.chi_so + "<br>" : ""}
-                        ${log.ngay_ghi ? "<b>Ngày ghi:</b> " + log.ngay_ghi + "<br>" : ""}
+                        ${displayDate ? "<b>Ngày:</b> " + displayDate + "<br>" : ""}
                         ${log.ghi_chu ? "<b>Nội dung:</b> " + log.ghi_chu + "<br>" : ""}
                         ${log.fileId ? "<b>FileId:</b> " + log.fileId + "<br>" : ""}
                         ${log.fileUrl ? `<a href="${log.fileUrl}" target="_blank">Xem file</a>` : ""}
@@ -724,7 +726,6 @@ import { initMenu } from "./menu.js";
           // Hàm lấy dữ liệu từ Firestore dựa trên khoảng thời gian
           async function fetchLogsByDate(isLoadMore = false) {
             if (isFetching) return;
-            isFetching = true;
             
             // Tự động điền ngày mặc định nếu trống
             if (!startDateInput.value) {
@@ -748,6 +749,8 @@ import { initMenu } from "./menu.js";
                 return;
               }
             }
+
+            isFetching = true;
 
             if (!isLoadMore) {
                 lastDoc = null; // Reset con trỏ Firebase nếu đây là đợt tải (lọc) mới
@@ -811,18 +814,6 @@ import { initMenu } from "./menu.js";
             const actionVal = actionFilter ? actionFilter.value : '';
             const userVal = userFilter ? userFilter.value : '';
             
-            const isManualFilter = actionVal !== '' || userVal !== '' || startDateInput.value !== '' || endDateInput.value !== '';
-
-            if (toggleFilterBtn) {
-                if (isManualFilter) {
-                    toggleFilterBtn.textContent = 'Bỏ lọc';
-                    toggleFilterBtn.style.background = '#6c757d'; // Grey
-                } else {
-                    toggleFilterBtn.textContent = 'Áp dụng';
-                    toggleFilterBtn.style.background = '#3498db'; // Blue
-                }
-            }
-
             if (actionVal) {
                 filteredLogs = filteredLogs.filter(l => l.action === actionVal);
             }
@@ -833,6 +824,20 @@ import { initMenu } from "./menu.js";
             allLogs = filteredLogs;
             filterAndRenderLogs(allLogs, searchInput.value);
           }
+
+          // Biến trạng thái để biết bộ lọc có đang được áp dụng hay không
+          let isFilterApplied = false;
+
+          const updateFilterBtnState = () => {
+              if (!toggleFilterBtn) return;
+              if (isFilterApplied) {
+                  toggleFilterBtn.textContent = 'Bỏ lọc';
+                  toggleFilterBtn.style.background = '#6c757d';
+              } else {
+                  toggleFilterBtn.textContent = 'Áp dụng';
+                  toggleFilterBtn.style.background = '#3498db';
+              }
+          };
 
           // ⭐️ initial listener - Gọi async function đúng cách
           (async () => {
@@ -885,7 +890,71 @@ import { initMenu } from "./menu.js";
                 console.error("Lỗi lấy danh sách user:", e);
             }
             await fetchLogsByDate(false);
+            
+            // Kích hoạt cỗ máy tải ngầm dữ liệu cũ sau 3 giây (Tránh nghẽn UI)
+            setTimeout(backgroundBackwardSync, 3000);
           })();
+          
+          // HÀM MỚI: Tải ngầm dữ liệu quá khứ về IndexedDB để tìm kiếm Offline luôn đầy đủ
+          async function backgroundBackwardSync() {
+              try {
+                  // --- BẢO VỆ QUOTA FIREBASE: Chỉ tải ngầm 1 lần mỗi 24 giờ ---
+                  const lastBgSync = localStorage.getItem("lastBgSync_logs");
+                  const now = Date.now();
+                  // 86400000 mili-giây = 24 giờ
+                  if (lastBgSync && (now - parseInt(lastBgSync)) < 86400000) {
+                      console.log("⏳ [Tải ngầm] Hôm nay đã tải dữ liệu cũ rồi, tạm nghỉ để tiết kiệm Quota.");
+                      return;
+                  }
+
+                  const lastForwardSync = await getLastSyncTime("logs");
+                  if (lastForwardSync === 0) return; // Chưa từng Deep Search, không tải ngầm
+
+                  let oldestSync = await getLastSyncTime("logs_oldest");
+                  
+                  // Nếu chưa có mốc lùi, lấy mốc 60 ngày tính từ thời điểm Sync đầu tiên
+                  if (oldestSync === 0) {
+                      const sixtyDaysBeforeSync = new Date(lastForwardSync);
+                      sixtyDaysBeforeSync.setDate(sixtyDaysBeforeSync.getDate() - 60);
+                      oldestSync = sixtyDaysBeforeSync.getTime();
+                  }
+
+                  // Dừng tải ngầm nếu đã lùi đến ngày dự án đi vào hoạt động (Đầu năm 2024)
+                  const projectStartDate = new Date("2024-01-01T00:00:00").getTime();
+                  if (oldestSync <= projectStartDate) return;
+
+                  // Lùi thêm 30 ngày
+                  const targetOldest = oldestSync - (30 * 24 * 60 * 60 * 1000);
+                  
+                  console.log(`🔄 [Tải ngầm] Kéo thêm log cũ từ ${new Date(targetOldest).toLocaleDateString('vi-VN')} đến ${new Date(oldestSync).toLocaleDateString('vi-VN')}...`);
+
+                  const qBackward = query(
+                      collection(db, "logs"), 
+                      where("createdAt", ">=", new Date(targetOldest)),
+                      where("createdAt", "<", new Date(oldestSync))
+                  );
+
+                  const snapshot = await getDocs(qBackward);
+                  if (!snapshot.empty) {
+                      const olderLogs = snapshot.docs.map(doc => {
+                          const data = doc.data();
+                          return {
+                              id: doc.id,
+                              ...data,
+                              _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now()
+                          };
+                      });
+                      await saveToLocalDB("logs", olderLogs);
+                  }
+
+                  await setLastSyncTime("logs_oldest", targetOldest);
+                  // Đánh dấu thời điểm tải ngầm thành công để bắt đầu đếm ngược 24h
+                  localStorage.setItem("lastBgSync_logs", now.toString());
+                  console.log(`✅ [Tải ngầm] Xong! Đã nạp thêm ${snapshot.size} bản ghi cũ vào bộ nhớ đệm.`);
+              } catch (error) {
+                  console.error("Lỗi tải ngầm log cũ:", error);
+              }
+          }
 
           function renderActionFilter(selectedUser) {
               if (!actionFilter) return;
@@ -1023,46 +1092,41 @@ import { initMenu } from "./menu.js";
             }
           }
           
-          // Sự kiện thay đổi ngày -> Fetch lại dữ liệu Firestore
-          startDateInput.addEventListener('change', () => { isDeepSearchMode = false; fetchLogsByDate(false); });
-          endDateInput.addEventListener('change', () => { isDeepSearchMode = false; fetchLogsByDate(false); });
-
-          // Sự kiện thay đổi bộ lọc -> Lọc local ngay lập tức HOẶC lọc chéo trên RAM nếu đang tìm kiếm
-          const handleSelectFilterChange = () => {
-              // 1. Cập nhật giao diện nút Bỏ lọc / Áp dụng
-              const actionVal = actionFilter ? actionFilter.value : '';
-              const userVal = userFilter ? userFilter.value : '';
-              const isManualFilter = actionVal !== '' || userVal !== '' || startDateInput.value !== '' || endDateInput.value !== '';
-              
-              if (toggleFilterBtn) {
-                  if (isManualFilter) {
-                      toggleFilterBtn.textContent = 'Bỏ lọc';
-                      toggleFilterBtn.style.background = '#6c757d';
-                  } else {
-                      toggleFilterBtn.textContent = 'Áp dụng';
-                      toggleFilterBtn.style.background = '#3498db';
+          // Khi thay đổi bất kỳ ô lọc nào
+          const handleFilterInputChange = () => {
+              const q = searchInput ? searchInput.value.trim() : "";
+              if (q !== "") {
+                  // Nếu đang có từ khóa tìm kiếm, lọc ngay lập tức
+                  tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang tìm kiếm...</td></tr>`;
+                  if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                  
+                  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+                  searchDebounceTimer = setTimeout(() => {
+                      performDeepSearch(q);
+                  }, 500);
+                  
+                  if (!isFilterApplied) {
+                      isFilterApplied = true;
+                      updateFilterBtnState();
                   }
-              }
-
-              // 2. Lọc dữ liệu
-              const q = searchInput.value.trim();
-              if (q !== "" || isManualFilter) {
-                  // Có từ khóa HOẶC Có chọn bộ lọc -> Quét toàn bộ DB lịch sử không cần phân trang
-                  tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #3498db; font-style: italic; padding: 20px;">⏳ Đang lọc dữ liệu...</td></tr>`;
-                  performDeepSearch(q);
               } else {
-                  // Xóa sạch bộ lọc -> Khôi phục mẻ 15 dòng mặc định
-                  isDeepSearchMode = false;
-                  applyLocalFilters();
-                  if (loadMoreBtn && lastDoc) loadMoreBtn.style.display = 'inline-block';
+                  // Nếu ô tìm kiếm trống, chuyển nút về trạng thái "Áp dụng" chờ click
+                  if (isFilterApplied) {
+                      isFilterApplied = false;
+                      updateFilterBtnState();
+                  }
               }
           };
 
-          actionFilter.addEventListener('change', handleSelectFilterChange);
-          userFilter.addEventListener('change', (e) => {
-              renderActionFilter(e.target.value);
-              handleSelectFilterChange();
-          });
+          if (startDateInput) startDateInput.addEventListener('change', handleFilterInputChange);
+          if (endDateInput) endDateInput.addEventListener('change', handleFilterInputChange);
+          if (actionFilter) actionFilter.addEventListener('change', handleFilterInputChange);
+          if (userFilter) {
+              userFilter.addEventListener('change', (e) => {
+                  renderActionFilter(e.target.value);
+                  handleFilterInputChange();
+              });
+          }
           
           // Sự kiện nút Áp dụng / Bỏ lọc
           if (toggleFilterBtn) {
@@ -1074,15 +1138,20 @@ import { initMenu } from "./menu.js";
                   if (startDateInput) { startDateInput.disabled = false; startDateInput.style.opacity = "1"; startDateInput.style.cursor = ""; }
                   if (endDateInput) { endDateInput.disabled = false; endDateInput.style.opacity = "1"; endDateInput.style.cursor = ""; }
 
-                  if (toggleFilterBtn.textContent === 'Bỏ lọc') {
-                      userFilter.value = '';
+                  if (isFilterApplied) {
+                      // Nếu đang ở trạng thái Bỏ lọc
+                      if (userFilter) userFilter.value = '';
                       renderActionFilter(''); // Reset action filter to show all
-                      actionFilter.value = '';
-                      startDateInput.value = '';
-                      endDateInput.value = '';
-                      // Reset về tải ban đầu
+                      if (actionFilter) actionFilter.value = '';
+                      if (startDateInput) startDateInput.value = '';
+                      if (endDateInput) endDateInput.value = '';
+                      isFilterApplied = false;
+                      updateFilterBtnState();
                       fetchLogsByDate(false);
                   } else {
+                      // Nếu đang ở trạng thái Áp dụng
+                      isFilterApplied = true;
+                      updateFilterBtnState();
                       fetchLogsByDate(false);
                   }
               });
@@ -1092,20 +1161,25 @@ import { initMenu } from "./menu.js";
 
           searchInput.addEventListener("input", () => {
             const q = searchInput.value.trim();
-            const actionVal = actionFilter ? actionFilter.value : '';
-            const userVal = userFilter ? userFilter.value : '';
-            const isManualFilter = actionVal !== '' || userVal !== '';
             
             // Hủy bộ đếm giờ cũ nếu người dùng vẫn đang gõ liên tục
             if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             
-            if (q === "" && !isManualFilter) {
+            if (q === "") {
                 const wasDeepSearch = isDeepSearchMode;
                 isDeepSearchMode = false;
                 
                 // Khôi phục UI bộ lọc thời gian
                 if (startDateInput) { startDateInput.disabled = false; startDateInput.style.opacity = "1"; startDateInput.style.cursor = ""; }
                 if (endDateInput) { endDateInput.disabled = false; endDateInput.style.opacity = "1"; endDateInput.style.cursor = ""; }
+
+                // Cập nhật lại trạng thái nút lọc nếu không còn điều kiện nào
+                const actionVal = actionFilter ? actionFilter.value : '';
+                const userVal = userFilter ? userFilter.value : '';
+                if (!actionVal && !userVal && isFilterApplied) {
+                    isFilterApplied = false;
+                    updateFilterBtnState();
+                }
 
                 if (wasDeepSearch) {
                     // Trả lại ngày đã lưu trước khi tìm kiếm
@@ -1135,6 +1209,12 @@ import { initMenu } from "./menu.js";
                 searchDebounceTimer = setTimeout(() => {
                     performDeepSearch(q);
                 }, 500);
+                
+                // Đánh dấu là bộ lọc đang được áp dụng
+                if (!isFilterApplied) {
+                    isFilterApplied = true;
+                    updateFilterBtnState();
+                }
             }
           });
 
@@ -1175,6 +1255,28 @@ import { initMenu } from "./menu.js";
               // Theo dõi cuộn toàn trang (Mobile)
               const windowObserver = new IntersectionObserver(handleIntersection, { root: null, rootMargin: "100px", threshold: 0.1 });
               windowObserver.observe(loadMoreBtn);
+          }
+
+          // MỚI: Sự kiện nút Làm mới (Xóa Cache)
+          if (refreshCacheBtn) {
+              refreshCacheBtn.addEventListener('click', async () => {
+                  const isConfirmed = await showConfirmSwal("Làm mới dữ liệu", "Hành động này sẽ xóa bộ nhớ đệm hiện tại trên thiết bị này và tải lại dữ liệu mới nhất từ máy chủ. Tiếp tục?", "Đồng ý", "Hủy");
+                  if (isConfirmed) {
+                      showLoading("Đang làm mới bộ nhớ đệm...");
+                      const req = indexedDB.open('KCN_LocalDB');
+                      req.onsuccess = (e) => {
+                          const dbLocal = e.target.result;
+                          const tx = dbLocal.transaction(['logs', 'sync_info'], 'readwrite');
+                          tx.objectStore('logs').clear(); // Xóa sạch log cũ
+                          tx.objectStore('sync_info').delete('logs'); // Xóa mốc đồng bộ tiến
+                          tx.objectStore('sync_info').delete('logs_oldest'); // Xóa mốc đồng bộ lùi
+                          localStorage.removeItem('lastBgSync_logs'); // Mở khóa cho phép tải ngầm chạy lại
+                          tx.oncomplete = () => {
+                              window.location.reload(); // Tải lại trang
+                          };
+                      };
+                  }
+              });
           }
 
         } else {

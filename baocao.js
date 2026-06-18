@@ -1137,7 +1137,7 @@
             // 5b. Thêm mảng file TỔNG HỢP vào data
             reportData.images = finalImages.map(f => f.url);
             reportData.imageIds = finalImages.map(f => f.id);
-            reportData.lastSaved = serverTimestamp();
+            reportData.updatedAt = serverTimestamp();
 
             await setDoc(docRef, reportData); // Ghi đè toàn bộ với danh sách ảnh ĐÚNG
 

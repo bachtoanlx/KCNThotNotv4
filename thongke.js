@@ -1089,17 +1089,30 @@ function toggleBodyScroll(disable) {
 
             // 1. Sync Deletes (Tombstone) - Bỏ qua vì chưa có cơ chế xóa shift_reports
 
-            // 2. Sync Upserts (New/Modified)
+            // 2. TỐI ƯU FIREBASE (On-Demand Chunk Sync): Kiểm tra và tải khối dữ liệu Năm nếu bị thiếu
+            const startYear = parseInt(startDateStr.substring(0, 4));
+            const endYear = parseInt(endDateStr.substring(0, 4));
+            let syncedYears = JSON.parse(localStorage.getItem(`synced_years_${collectionName}`) || "[]");
             let newRecords = [];
-            if (lastSync === 0) {
-                const qAll = query(collection(db, collectionName));
-                const snapAll = await getDocs(qAll);
-                newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
-            } else {
-                // Dùng updatedAt (được đổi từ lastSaved) để bắt cả Sửa và Thêm mới
+            
+            for (let y = startYear; y <= endYear; y++) {
+                if (!syncedYears.includes(y)) {
+                    console.log(`[Chunk Sync] Bộ nhớ đệm trống. Đang tải trọn gói dữ liệu năm ${y}...`);
+                    const qYear = query(collection(db, collectionName), where("reportDate", ">=", `${y}-01-01`), where("reportDate", "<=", `${y}-12-31`));
+                    const snap = await getDocs(qYear);
+                    const yearDocs = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                    newRecords = [...newRecords, ...yearDocs];
+                    syncedYears.push(y);
+                }
+            }
+            localStorage.setItem(`synced_years_${collectionName}`, JSON.stringify(syncedYears));
+
+            // 3. Đồng bộ Delta (Forward Sync): Kéo các bản ghi vừa Thêm/Sửa (nếu có)
+            if (lastSync > 0) {
                 const qUpdated = query(collection(db, collectionName), where("updatedAt", ">", new Date(lastSync)));
                 const snapU = await getDocs(qUpdated);
-                newRecords = snapU.docs.map(d => ({id: d.id, ...d.data()}));
+                const updatedDocs = snapU.docs.map(d => ({id: d.id, ...d.data()}));
+                newRecords = [...newRecords, ...updatedDocs];
             }
 
             if (newRecords.length > 0) {
@@ -1112,10 +1125,10 @@ function toggleBodyScroll(disable) {
             }
             await setLastSyncTime(collectionName, Date.now());
 
-            // 3. Get all data from IndexedDB
+            // 4. Lấy dữ liệu từ IndexedDB ra để lọc
             const allLocalData = await getAllFromLocalDB(collectionName);
             
-            // 4. Filter in-memory
+            // 5. Filter in-memory
             const periodReports = allLocalData.filter(r => {
                 const reportDate = r.reportDate;
                 return reportDate && reportDate >= startDateStr && reportDate <= endDateStr;

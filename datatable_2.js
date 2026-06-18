@@ -134,10 +134,19 @@
             // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
             let newRecords = [];
             if (lastSync === 0) {
-                // Lần đầu tải toàn bộ
-                const qAll = query(collection(db, "reports_2"));
-                const snapAll = await getDocs(qAll);
-                newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                // TỐI ƯU FIREBASE: Lần đầu Deep Search chỉ tải 60 ngày gần nhất
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+                const iso60 = formatISODate(sixtyDaysAgo);
+                
+                const qInit1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", iso60));
+                const qInit2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", iso60));
+                const [snap1, snap2] = await Promise.all([getDocs(qInit1), getDocs(qInit2)]);
+                
+                const map = new Map();
+                snap1.docs.forEach(doc => map.set(doc.id, {id: doc.id, ...doc.data()}));
+                snap2.docs.forEach(doc => map.set(doc.id, {id: doc.id, ...doc.data()}));
+                newRecords = Array.from(map.values());
             } else {
                 // Tải dữ liệu thay đổi. Dùng song song 2 truy vấn để bắt cả mới và sửa
                 const qCreated = query(collection(db, "reports_2"), where("createdAt", ">", new Date(lastSync)));

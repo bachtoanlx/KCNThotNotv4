@@ -136,10 +136,12 @@
             // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
             let newRecords = [];
             if (lastSync === 0) {
-                // Lần đầu tải toàn bộ
-                const qAll = query(collection(db, "reports_1"));
-                const snapAll = await getDocs(qAll);
-                newRecords = snapAll.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                // TỐI ƯU FIREBASE: Lần đầu Deep Search chỉ tải 60 ngày gần nhất thay vì TOÀN BỘ
+                const sixtyDaysAgo = new Date();
+                sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+                const qInit = query(collection(db, "reports_1"), where("ngay_ghi", ">=", formatISODate(sixtyDaysAgo)));
+                const snapInit = await getDocs(qInit);
+                newRecords = snapInit.docs.map(doc => ({id: doc.id, ...doc.data()}));
             } else {
                 // Tải dữ liệu thay đổi. Dùng song song 2 truy vấn để bắt cả mới và sửa
                 const qCreated = query(collection(db, "reports_1"), where("createdAt", ">", new Date(lastSync)));
@@ -717,6 +719,49 @@
                     // Theo dõi cuộn toàn trang (Mobile)
                     const windowObserver = new IntersectionObserver(handleIntersection, { root: null, rootMargin: "100px", threshold: 0.1 });
                     windowObserver.observe(loadMoreBtn);
+                }
+
+                // ⭐️ Kích hoạt cỗ máy tải ngầm dữ liệu cũ sau 3 giây (Bảo vệ IndexedDB cho báo cáo)
+                setTimeout(backgroundBackwardSync, 3000);
+                
+                async function backgroundBackwardSync() {
+                    try {
+                        // Chỉ tải ngầm 1 lần mỗi 24 giờ
+                        const lastBgSync = localStorage.getItem("lastBgSync_reports_1");
+                        const now = Date.now();
+                        if (lastBgSync && (now - parseInt(lastBgSync)) < 86400000) return;
+
+                        const lastForwardSync = await getLastSyncTime("reports_1");
+                        if (lastForwardSync === 0) return; // Chưa từng Deep Search
+
+                        let oldestSync = await getLastSyncTime("reports_1_oldest");
+                        if (oldestSync === 0) {
+                            const sixtyDaysAgo = new Date();
+                            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+                            oldestSync = sixtyDaysAgo.getTime();
+                        }
+
+                        const projectStartDate = new Date("2024-01-01T00:00:00").getTime();
+                        if (oldestSync <= projectStartDate) return;
+
+                        const targetOldest = oldestSync - (30 * 24 * 60 * 60 * 1000); // Lùi thêm 30 ngày
+
+                        const qBackward = query(collection(db, "reports_1"), 
+                            where("ngay_ghi", ">=", formatISODate(new Date(targetOldest))),
+                            where("ngay_ghi", "<", formatISODate(new Date(oldestSync)))
+                        );
+
+                        const snapshot = await getDocs(qBackward);
+                        if (!snapshot.empty) {
+                            const olderDocs = snapshot.docs.map(doc => { const data = doc.data(); return { id: doc.id, ...data, _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(), _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now() }; });
+                            await saveToLocalDB("reports_1", olderDocs);
+                        }
+
+                        await setLastSyncTime("reports_1_oldest", targetOldest);
+                        localStorage.setItem("lastBgSync_reports_1", now.toString());
+                    } catch (error) {
+                        console.error("Lỗi tải ngầm báo cáo cũ:", error);
+                    }
                 }
 
         } else {

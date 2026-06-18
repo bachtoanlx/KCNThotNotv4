@@ -993,7 +993,7 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
                           allowEscapeKey: false,
                       });
                       
-                      addLog("form2_special_workday_meaningless", { email: userEmail, company: baseData.company, date: singleDate });
+                      addLog("form2_special_workday_meaningless", { email: userEmail, company: baseData.company, date: singleDate, ngay_ghi: singleDate, ghi_chu: baseData.ghi_chu });
                       skipped++;
                       continue; // 🛑 BỎ QUA NGÀY VÀ CHUYỂN SANG NGÀY TIẾP THEO
                       
@@ -1030,16 +1030,16 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
                             await deleteDoc(doc(db, collectionName, existingDoc.id));
                             await addReportDoc(newRecordData, collectionName);
                             
-                            addLog("overwrite_manual_holiday_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, oldId: existingDoc.id, newType: submissionType });
+                            addLog("overwrite_manual_holiday_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionType, ghi_chu: newRecordData.ghi_chu });
                             addedCount++;
                         } catch (e) {
                             showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
                             errorList.push(`Ngày ${singleDate} (Ghi đè T2-T6) - ${e.message}`);
-                            addLog("overwrite_manual_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, error: e.message });
+                            addLog("overwrite_manual_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
                         }
                     } else {
                         skipped++;
-                        addLog("overwrite_manual_holiday_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, type: submissionType });
+                        addLog("overwrite_manual_holiday_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionType, ghi_chu: newRecordData.ghi_chu });
                     }
                     continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
                     
@@ -1057,7 +1057,7 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
                     } catch (e) {
                         console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
                         errorList.push(`Ngày ${singleDate} (Thêm mới T7/CN) - ${e.message}`);
-                        addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, error: e.message });
+                        addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
                     }
                     continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
                 } 
@@ -1137,18 +1137,18 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
                           await deleteDoc(doc(db, collectionName, existingDoc.id));
                           await addReportDoc(newRecordData, collectionName);
                           
-                          addLog("overwrite_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, oldId: existingDoc.id, newType: submissionTypeDisplay });
+                          addLog("overwrite_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
 
                           addedCount++;
                       } catch (e) {
                           showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
                           errorList.push(`Ngày ${singleDate} (Ghi đè) - ${e.message}`);
-                          addLog("overwrite_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, error: e.message });
+                          addLog("overwrite_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
                       }
             } else {
                 // Bỏ qua bản ghi này
                 skipped++;
-                addLog("overwrite_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, type: submissionTypeDisplay });
+                addLog("overwrite_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
             }
         } 
         
@@ -1161,7 +1161,7 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
             } catch (e) {
                 console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
                 errorList.push(`Ngày ${singleDate} (Thêm mới) - ${e.message}`);
-                addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, error: e.message });
+                addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
             }
         }
         // --- HẾT LOGIC THÊM MỚI NGÀY NGHỈ THƯỜNG ---
@@ -1285,7 +1285,7 @@ if (!snapSameDay.empty) {
       hideLoading();
       showSwal("info", "Đã hủy gửi báo cáo.");
       // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("meter_reset_canceled_sameday", { email: userEmail, company, ngay_ghi, newChiSo, reason: "dismissed" });
+      addLog("meter_reset_canceled_sameday", { email: userEmail, company, ngay_ghi, newChiSo, reason: "dismissed", ghi_chu: data.ghi_chu });
       return;
     }
 
@@ -1331,7 +1331,7 @@ if (!snapSameDay.empty) {
         };
 
         await setDoc(doc(db, collectionName, existingDoc.id), updatedRecord, { merge: true });
-        // Log cũ đã có: addLog("updateReport", { id: existingDoc.id, collection: collectionName, reason, newChiSo });
+        addLog("updateReport", { email: userEmail, id: existingDoc.id, collection: collectionName, reason: reason, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
 
         // 🚀 Gửi Push Notification Cảnh báo
         notifyAdmins(
@@ -1348,7 +1348,7 @@ if (!snapSameDay.empty) {
         hideLoading();
         showSwal("error", "Lỗi ghi đè: " + e.message);
         // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("overwrite_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message });
+        addLog("overwrite_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
         return;
       }
     }
@@ -1387,7 +1387,7 @@ if (!snapSameDay.empty) {
         hideLoading();
         showSwal("error", "Lỗi thêm báo cáo: " + e.message);
         // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("add_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message });
+        addLog("add_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
         return;
       }
     }
@@ -1407,7 +1407,7 @@ if (exactMatchDoc) {
       hideLoading();
       showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
       // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "No file & exact match" });
+      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "No file & exact match", ghi_chu: data.ghi_chu });
       return;
     } else {
       // Bản mới có file → cập nhật (ghi đè)
@@ -1421,7 +1421,7 @@ if (exactMatchDoc) {
         updatedAt: serverTimestamp()
       };
       await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
-      await addLog("updateFile", { id: exactDoc.id, collection: collectionName, newFile: uploaded.id });
+      await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
       hideLoading();
       showSwal("success", "Đã cập nhật file cho bản ghi.");
       form.reset();
@@ -1437,7 +1437,7 @@ if (exactMatchDoc) {
       hideLoading();
       showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
       // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "File exists & exact match" });
+      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "File exists & exact match", ghi_chu: data.ghi_chu });
       return;
     } else {
       // Bản mới có file → hỏi xác nhận
@@ -1481,7 +1481,7 @@ if (exactMatchDoc) {
           updatedAt: serverTimestamp()
         };
         await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
-        await addLog("updateFile", { id: exactDoc.id, collection: collectionName, newFile: uploaded.id, oldFile: exactData.fileId, action: "replace" });
+        await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, oldFile: exactData.fileId, action: "replace", company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
         
         // 🚀 Gửi Push Notification Cập nhật ảnh
         notifyAdmins("🔄 Cập nhật báo cáo", `Cập nhật hình ảnh chỉ số Công ty ${company} - User: ${userEmail}`);
@@ -1582,7 +1582,7 @@ if (exactMatchDoc) {
                     showSwal("warning", "Đã xác nhận gửi chỉ số thấp kèm lý do. Đang xử lý...");
                     showLoading("Đang xử lý báo cáo đặc biệt..."); 
                     // ⭐️ BỔ SUNG LOG ⭐️
-                    addLog("meter_reset_confirmed", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, reason: result.value.reason });
+                    addLog("meter_reset_confirmed", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, reason: result.value.reason, ghi_chu: data.ghi_chu });
 
                 } else {
                     // Người dùng nhấn Hủy Bỏ
@@ -1590,7 +1590,7 @@ if (exactMatchDoc) {
                     form.reset();
                     if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
                     // ⭐️ BỔ SUNG LOG ⭐️
-                    addLog("meter_reset_canceled", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo });
+                    addLog("meter_reset_canceled", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, ghi_chu: data.ghi_chu });
                     return; 
                 }
             }
@@ -1621,7 +1621,7 @@ if (exactMatchDoc) {
         }
         showLoading("Đang xử lý báo cáo..."); 
         // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("duplicate_date_accepted", { email: userEmail, company, ngay_ghi, newChiSo });
+        addLog("duplicate_date_accepted", { email: userEmail, company, ngay_ghi, newChiSo, ghi_chu: data.ghi_chu });
     }
     
 
