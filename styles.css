@@ -508,6 +508,13 @@ table {
   border-radius: 8px;
   overflow: hidden;
 }
+/* Giới hạn độ rộng cột Hành động trong bảng Phân quyền */
+#usersTable th:nth-child(4),
+table:has(#usersTableBody) th:nth-child(4) {
+    width: 270px !important;
+    min-width: 270px !important;
+}
+
 th, td {
   border: none;
   border-bottom: 1px solid var(--border-color);
@@ -1677,18 +1684,6 @@ tr:last-child td {
   }
 
   /* =========================================================
-     ĐỒNG BỘ KÍCH THƯỚC NÚT PHÂN QUYỀN TRONG BẢNG
-  ========================================================= */
-  .change-role-btn {
-    width: 115px !important; /* Chốt cứng chiều ngang để 2 nút bằng y nhau */
-    text-align: center !important; /* Căn giữa chữ */
-    padding: 6px 4px !important; /* Tăng nhẹ vùng bấm (touch target) cho dễ chạm trên điện thoại */
-    white-space: nowrap !important; /* Ép không rớt dòng */
-    display: inline-block !important; 
-    box-sizing: border-box !important;
-  }
-
-  /* =========================================================
      ĐIỀU CHỈNH KHỐI MỐC ĐỒNG HỒ BAN ĐẦU (MOBILE)
   ========================================================= */
   /* Ép 2 khối chứa input Ngày và Chỉ số chia đều 50/50 trên cùng 1 hàng */
@@ -1819,4 +1814,17 @@ tr:last-child td {
     line-height: 1.2 !important; /* Chỉnh khoảng cách các dòng chữ tiêu đề cho khít lại */
   }
 
+}
+
+/* =========================================================
+   ĐỒNG BỘ KÍCH THƯỚC NÚT PHÂN QUYỀN TRONG BẢNG (GLOBAL)
+========================================================= */
+.change-role-btn,
+.force-logout-btn {
+  width: 115px !important; /* Chốt cứng chiều ngang để 2 nút bằng y nhau */
+  text-align: center !important; /* Căn giữa chữ */
+  padding: 6px 4px !important; /* Tăng nhẹ vùng bấm (touch target) */
+  white-space: nowrap !important; /* Ép không rớt dòng */
+  display: inline-block !important; 
+  box-sizing: border-box !important;
 }

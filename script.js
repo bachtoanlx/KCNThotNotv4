@@ -127,7 +127,14 @@ export async function initFCM(email) {
 }
 
 // Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
+let currentUserSnapshotUnsubscribe = null;
+
 onAuthStateChanged(auth, async (user) => {
+  if (currentUserSnapshotUnsubscribe) {
+      currentUserSnapshotUnsubscribe();
+      currentUserSnapshotUnsubscribe = null;
+  }
+
   if (user) {
     try {
         // Đảm bảo user luôn có mặt trong collection `users` ngay khi đăng nhập
@@ -146,6 +153,39 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         console.log("[FCM] Đang đợi người dùng cấp quyền thông báo qua thao tác nhấp chuột.");
     }
+
+    // Lắng nghe yêu cầu ép đăng xuất từ Admin
+    currentUserSnapshotUnsubscribe = onSnapshot(doc(db, "users", user.email), (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.forceLogoutAt) {
+                // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
+                let forceTime = 0;
+                if (typeof data.forceLogoutAt.toMillis === 'function') {
+                    forceTime = data.forceLogoutAt.toMillis();
+                } else if (data.forceLogoutAt.seconds) {
+                    forceTime = data.forceLogoutAt.seconds * 1000;
+                }
+                
+                const loginTime = new Date(user.metadata.lastSignInTime).getTime();
+                
+                if (forceTime > loginTime) {
+                    console.log("Bị ép đăng xuất bởi Admin.");
+                    addLog("forced_logout_executed", { email: user.email, status: "success", reason: "Bị ép đăng xuất bởi Admin." });
+                    logout().then(() => {
+                        window.Swal.fire({
+                            title: 'Đăng xuất',
+                            text: 'Tài khoản của bạn đã bị quản trị viên ép đăng xuất.',
+                            icon: 'warning',
+                            confirmButtonText: 'Đã hiểu'
+                        }).then(() => {
+                            window.location.reload(); // Tự động làm mới trang web về trạng thái khách
+                        });
+                    });
+                }
+            }
+        }
+    });
   }
 });
 

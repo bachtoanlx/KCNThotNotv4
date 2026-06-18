@@ -2033,11 +2033,13 @@ function renderUsersTable() {
             ? `<button class="change-role-btn" data-email="${email}" data-newrole="user" style="background:#f39c12; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Hạ quyền User</button>`
             : `<button class="change-role-btn" data-email="${email}" data-newrole="admin" style="background:#2ecc71; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Cấp quyền Admin</button>`;
 
+        const forceLogoutBtn = `<button class="force-logout-btn" data-email="${email}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Đăng xuất</button>`;
+
         return `<tr>
             <td>${email}</td>
             <td>${lastActive}</td>
             <td>${roleDisplay}</td>
-            <td>${actionBtn}</td>
+            <td><div style="display:flex; gap:4px; flex-wrap: wrap; justify-content: center;">${actionBtn}${forceLogoutBtn}</div></td>
         </tr>`;
     }).join("");
 
@@ -2061,6 +2063,33 @@ function renderUsersTable() {
                     addLog("user_role_update", { targetUser: email, newRole: newRole, email: auth.currentUser?.email });
                     hideLoading();
                     showSwal("success", "Thành công", `Đã cập nhật quyền cho ${email}`);
+                } catch (err) {
+                    hideLoading();
+                    showSwal("error", "Lỗi", err.message);
+                }
+            }
+        });
+    });
+
+    document.querySelectorAll(".force-logout-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const email = e.target.dataset.email;
+            
+            if (email === auth.currentUser?.email) {
+                return showSwal("error", "Từ chối thao tác", "Bạn không thể ép chính mình đăng xuất từ đây!");
+            }
+            
+            const isConfirmed = await showConfirmSwal("Đăng xuất", `Bạn có chắc chắn muốn ép <b>${email}</b> đăng xuất ngay lập tức không?`, "Đăng xuất", "Hủy", "warning");
+            if (isConfirmed) {
+                const isVerified = await promptForReAuth();
+                if (!isVerified) return;
+                
+                try {
+                    showLoading("Đang xử lý...");
+                    await setDoc(doc(db, "users", email), { forceLogoutAt: serverTimestamp() }, { merge: true });
+                    addLog("force_logout_requested", { targetUser: email, email: auth.currentUser?.email });
+                    hideLoading();
+                    showSwal("success", "Thành công", `Đã gửi lệnh ép đăng xuất đến ${email}`);
                 } catch (err) {
                     hideLoading();
                     showSwal("error", "Lỗi", err.message);
