@@ -34,6 +34,9 @@ import {
   writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
+// Khởi tạo biến lưu thời điểm load trang làm mốc an toàn
+window.appSessionStartTime = Date.now();
+
 // Firebase Cloud Messaging
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
 
@@ -136,11 +139,13 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   if (user) {
+    const userEmailSafe = user.email ? user.email.toLowerCase() : "unknown";
+    
     try {
         // Đảm bảo user luôn có mặt trong collection `users` ngay khi đăng nhập
         // Bất kể họ có cho phép thông báo (FCM) hay không
-        await setDoc(doc(db, "users", user.email), {
-            email: user.email,
+        await setDoc(doc(db, "users", userEmailSafe), {
+            email: userEmailSafe,
             lastActiveAt: serverTimestamp()
         }, { merge: true });
     } catch (e) {
@@ -155,36 +160,61 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // Lắng nghe yêu cầu ép đăng xuất từ Admin
-    currentUserSnapshotUnsubscribe = onSnapshot(doc(db, "users", user.email), (docSnap) => {
+    currentUserSnapshotUnsubscribe = onSnapshot(doc(db, "users", userEmailSafe), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             if (data.forceLogoutAt) {
                 // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
                 let forceTime = 0;
-                if (typeof data.forceLogoutAt.toMillis === 'function') {
+                if (data.forceLogoutAt && typeof data.forceLogoutAt.toMillis === 'function') {
                     forceTime = data.forceLogoutAt.toMillis();
-                } else if (data.forceLogoutAt.seconds) {
+                } else if (data.forceLogoutAt && data.forceLogoutAt.seconds) {
                     forceTime = data.forceLogoutAt.seconds * 1000;
                 }
                 
-                const loginTime = new Date(user.metadata.lastSignInTime).getTime();
+                // Phương pháp lấy giờ đăng nhập chính xác nhất đa nền tảng
+                let loginTime = 0;
+                if (user.metadata.lastLoginAt) {
+                    loginTime = parseInt(user.metadata.lastLoginAt, 10);
+                } else if (user.metadata.lastSignInTime) {
+                    loginTime = new Date(user.metadata.lastSignInTime).getTime();
+                }
                 
-                if (forceTime > loginTime) {
-                    console.log("Bị ép đăng xuất bởi Admin.");
-                    addLog("forced_logout_executed", { email: user.email, status: "success", reason: "Bị ép đăng xuất bởi Admin." });
+                // Nếu có sự cố đọc giờ, dùng giờ khởi tạo app trừ 5 giây làm mốc an toàn
+                if (!loginTime || isNaN(loginTime)) {
+                    loginTime = window.appSessionStartTime - 5000;
+                }
+                
+                // BÙ TRỪ ĐỘ TRỄ: Thêm 2000ms để tránh việc giờ login và giờ ép đăng xuất bị trùng/lệch do server
+                if (forceTime > 0 && forceTime > (loginTime + 2000)) {
+                    console.log("Bị ép đăng xuất bởi Admin.", {forceTime, loginTime});
+                    addLog("forced_logout_executed", { email: userEmailSafe, status: "success", reason: "Bị ép đăng xuất bởi Admin." });
+                    
+                    if (currentUserSnapshotUnsubscribe) {
+                        currentUserSnapshotUnsubscribe();
+                        currentUserSnapshotUnsubscribe = null;
+                    }
+                    
                     logout().then(() => {
                         window.Swal.fire({
                             title: 'Đăng xuất',
                             text: 'Tài khoản của bạn đã bị quản trị viên ép đăng xuất.',
                             icon: 'warning',
-                            confirmButtonText: 'Đã hiểu'
+                            confirmButtonText: 'Đã hiểu',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false
                         }).then(() => {
                             window.location.reload(); // Tự động làm mới trang web về trạng thái khách
                         });
+                    }).catch((e) => {
+                        console.error("Lỗi đăng xuất", e);
+                        window.location.reload();
                     });
                 }
             }
         }
+    }, (error) => {
+        console.error("Lỗi lắng nghe users collection:", error);
     });
   }
 });

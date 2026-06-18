@@ -2033,7 +2033,7 @@ function renderUsersTable() {
             ? `<button class="change-role-btn" data-email="${email}" data-newrole="user" style="background:#f39c12; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Hạ quyền User</button>`
             : `<button class="change-role-btn" data-email="${email}" data-newrole="admin" style="background:#2ecc71; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Cấp quyền Admin</button>`;
 
-        const forceLogoutBtn = `<button class="force-logout-btn" data-email="${email}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Đăng xuất</button>`;
+        const forceLogoutBtn = `<button class="force-logout-btn" data-email="${email}" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Ép Đăng xuất</button>`;
 
         return `<tr>
             <td>${email}</td>
@@ -2073,9 +2073,9 @@ function renderUsersTable() {
 
     document.querySelectorAll(".force-logout-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {
-            const email = e.target.dataset.email;
+            const email = e.target.dataset.email.toLowerCase(); // Ép về chữ thường để đảm bảo ID chính xác
             
-            if (email === auth.currentUser?.email) {
+            if (email === auth.currentUser?.email?.toLowerCase()) {
                 return showSwal("error", "Từ chối thao tác", "Bạn không thể ép chính mình đăng xuất từ đây!");
             }
             
