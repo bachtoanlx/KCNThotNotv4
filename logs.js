@@ -36,7 +36,6 @@ import { initMenu } from "./menu.js";
   const userFilter = document.getElementById('userFilter');
   const toggleFilterBtn = document.getElementById('toggleFilterBtn');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
-  const refreshCacheBtn = document.getElementById('refreshCacheBtn');
 
   // Từ điển chuyển đổi action -> tiếng Việt (Sử dụng toàn cục)
   const actionTooltips = {
@@ -56,6 +55,9 @@ import { initMenu } from "./menu.js";
       "admin_create_work_rule": "Thêm công việc",
       "admin_update_work_rule": "Sửa công việc",
       "admin_delete_work_rule": "Xóa công việc",
+      "admin_create_work_rule_quick": "Thêm nhanh công việc",
+      "admin_update_work_rule_quick": "Sửa nhanh công việc",
+      "admin_delete_work_rule_quick": "Xóa nhanh công việc",
       "admin_create_manual_job": "Thêm việc thủ công",
       "admin_update_manual_job": "Sửa việc thủ công",
       "admin_delete_manual_job": "Xóa việc thủ công",
@@ -160,12 +162,16 @@ import { initMenu } from "./menu.js";
       "delete": "Xóa file (GAS)",
       "create_report_file": "Tạo file lưu trữ (GAS)",
       "hourly_schedule_sent": "Gửi lịch tự động",
-      "daily_schedule_failed": "Lỗi gửi lịch tự động"
+      "daily_schedule_failed": "Lỗi gửi lịch tự động",
+      "admin_manual_edit": "Admin sửa JSON",
+      "admin_manual_delete": "Admin xóa JSON"
   };
 
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
   let allLogs = []; 
   let unsubscribeLogs = null; // store current onSnapshot unsubscribe fn
+  let unsubscribeRealtime = null;
+  let unsubscribeRealtimeDel = null;
   
   let lastDoc = null; // Lưu vị trí bản ghi cuối cùng để phân trang
   const LIMIT_PER_PAGE = 15; // Số lượng tải mỗi lần cuộn
@@ -237,35 +243,37 @@ import { initMenu } from "./menu.js";
   }
 
 
-  // MỚI: Hàm thực hiện Deep Search
-  async function performDeepSearch(queryText, isLoadMore = false) {
-      if (isFetching) return;
-      isFetching = true;
-      
-      isDeepSearchMode = true;
-      deepSearchQuery = queryText;
-      
+  async function syncDeltaLogs() {
       try {
-          // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
           const lastSync = await getLastSyncTime("logs");
+          let maxTime = lastSync;
+
+          // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
           if (lastSync > 0) {
               const qDel = query(collection(db, "sync_deletes"), 
                   where("deletedAt", ">", new Date(lastSync))
               );
               const snapDel = await getDocs(qDel);
               if (!snapDel.empty) {
-                  const idsToDelete = snapDel.docs
+                  const relevantDeletes = snapDel.docs
                       .map(d => d.data())
-                      .filter(data => data.collectionName === "logs")
-                      .map(data => data.docId);
+                      .filter(data => data.collectionName === "logs");
+                  
+                  relevantDeletes.forEach(data => {
+                      const t = data.deletedAt?.toMillis?.() || 0;
+                      if (t > maxTime) maxTime = t;
+                  });
+
+                  const idsToDelete = relevantDeletes.map(data => data.docId);
                   if (idsToDelete.length > 0) {
                       await deleteFromLocalDB("logs", idsToDelete);
                   }
               }
           }
+
+          // 2. Đồng bộ Upserts (Dữ liệu Mới)
           let q;
-          if (lastSync === 0) { // Lần đầu tải toàn bộ
-              // TỐI ƯU FIREBASE: Chỉ tải tối đa 60 ngày gần nhất cho bộ nhớ đệm (Tránh đốt Quota khi logs phình to)
+          if (lastSync === 0) { // Lần đầu tải toàn bộ (tối đa 60 ngày)
               const sixtyDaysAgo = new Date();
               sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
               q = query(collection(db, "logs"), where("createdAt", ">=", sixtyDaysAgo), orderBy("createdAt", "desc"));
@@ -280,13 +288,84 @@ import { initMenu } from "./menu.js";
                   return {
                       id: doc.id,
                       ...data,
-                      // Giữ lại số mili-giây để Serialize xuống IndexedDB
                       _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now()
                   };
               });
               await saveToLocalDB("logs", newLogs);
-              await setLastSyncTime("logs", Date.now());
+
+              newLogs.forEach(r => {
+                  const t = r._createdAtMillis || 0;
+                  if (t > maxTime) maxTime = t;
+              });
           }
+
+          // Cập nhật mốc thời gian đồng bộ sử dụng thời gian của Server (maxTime)
+          if (maxTime > lastSync) {
+              await setLastSyncTime("logs", maxTime);
+          }
+      } catch (e) {
+          console.warn("Lỗi đồng bộ logs:", e);
+      }
+  }
+
+  function startRealtimeSyncLogs(startTime) {
+      if (unsubscribeRealtime) unsubscribeRealtime();
+      if (unsubscribeRealtimeDel) unsubscribeRealtimeDel();
+
+      const qNew = query(collection(db, "logs"), where("createdAt", ">", startTime));
+      unsubscribeRealtime = onSnapshot(qNew, (snapshot) => {
+          snapshot.docChanges().forEach(async (change) => {
+              if (change.type === "added" || change.type === "modified") {
+                  const data = change.doc.data();
+                  const parsed = {
+                      id: change.doc.id,
+                      ...data,
+                      _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now()
+                  };
+                  await saveToLocalDB("logs", [parsed]);
+                  
+                  const lastSync = await getLastSyncTime("logs");
+                  if (parsed._createdAtMillis > lastSync) {
+                      await setLastSyncTime("logs", parsed._createdAtMillis);
+                  }
+              }
+          });
+      }, (error) => {
+          console.warn("[Realtime Sync Logs] Lỗi lắng nghe:", error);
+      });
+
+      const qDel = query(collection(db, "sync_deletes"), where("deletedAt", ">", startTime));
+      unsubscribeRealtimeDel = onSnapshot(qDel, (snapshot) => {
+          snapshot.docChanges().forEach(async (change) => {
+              if (change.type === "added" || change.type === "modified") {
+                  const data = change.doc.data();
+                  if (data.collectionName === "logs") {
+                      await deleteFromLocalDB("logs", [data.docId]);
+                      
+                      const t = data.deletedAt?.toMillis?.() || 0;
+                      const lastSync = await getLastSyncTime("logs");
+                      if (t > lastSync) {
+                          await setLastSyncTime("logs", t);
+                      }
+                  }
+              }
+          });
+      }, (error) => {
+          console.warn("[Realtime Sync Logs Del] Lỗi lắng nghe xóa:", error);
+      });
+  }
+
+  // MỚI: Hàm thực hiện Deep Search
+  async function performDeepSearch(queryText, isLoadMore = false) {
+      if (isFetching) return;
+      isFetching = true;
+      
+      isDeepSearchMode = true;
+      deepSearchQuery = queryText;
+      
+      try {
+          // Chạy đồng bộ tự động dữ liệu trước khi thực hiện tìm kiếm trên IndexedDB
+          await syncDeltaLogs();
 
           // 2. Nạp dữ liệu lên RAM và tìm kiếm
           const allLocalLogs = await getAllFromLocalDB("logs");
@@ -421,27 +500,75 @@ import { initMenu } from "./menu.js";
                     }
                     break;
                 case "admin_create_work_rule":
+                case "admin_create_work_rule_quick":
                     details = `
                         <b>Công việc:</b> ${log.job || "N/A"}<br>
-                        <b>Ngày cụ thể:</b> ${log.date || "-"}<br>
-                        <b>Ghi chú:</b> ${log.note || "-"}
+                        <b>Ngày cụ thể:</b> ${log.exactDate || log.date || "-"}<br>
+                        <b>Ghi chú:</b> ${log.note ? log.note.replace("[CVAdmin]", "").trim() : "-"}
                     `;
                     break;
                 case "admin_update_work_rule":
                 case "admin_update_manual_job":
                 case "admin_update_work_pattern":
                 case "admin_update_shift_swap":
-                    const changesObj = log.changes || {};
-                    let changesHtml = Object.values(changesObj).map(c => {
-                        let oldV = c.old;
-                        let newV = c.new;
-                        if(Array.isArray(oldV)) oldV = oldV.join(", ");
-                        if(Array.isArray(newV)) newV = newV.join(", ");
-                        return `<b>${c.label}:</b> <s>${oldV || "<i>Trống</i>"}</s> &rarr; <span style="color: green;">${newV || "<i>Trống</i>"}</span>`;
-                    }).join("<br>");
-                    
-                    const targetName = log.targetName || log.updateData?.job || log.updateData?.displayName || "N/A";
-                    details = `<b>Cập nhật:</b> ${targetName}<br>${changesHtml || "<i>Không có thay đổi nào</i>"}`;
+                case "admin_update_work_rule_quick":
+                    {
+                        const changesObj = log.changes;
+                        let changesHtml = "";
+                        if (changesObj && Object.keys(changesObj).length > 0) {
+                            changesHtml = Object.values(changesObj).map(c => {
+                                let oldV = c.old;
+                                let newV = c.new;
+                                if(Array.isArray(oldV)) oldV = oldV.join(", ");
+                                if(Array.isArray(newV)) newV = newV.join(", ");
+                                return `<b>${c.label}:</b> <s>${oldV || "<i>Trống</i>"}</s> &rarr; <span style="color: green;">${newV || "<i>Trống</i>"}</span>`;
+                            }).join("<br>");
+                        } else if (log.updateData) {
+                            const fieldLabels = {
+                                job: "Tên công việc",
+                                time: "Giờ thực hiện",
+                                exactDate: "Ngày cụ thể",
+                                dom: "Ngày trong tháng",
+                                day: "Thứ trong tuần",
+                                week: "Tuần trong tháng",
+                                month: "Tháng trong năm",
+                                ruleEndDate: "Ngày kết thúc",
+                                note: "Ghi chú",
+                                is_admin_job: "Việc Admin",
+                                is_common_job: "Việc chung",
+                                targetGroup: "Nhóm nhận việc",
+                                notifyTime: "Giờ thông báo",
+                                displayName: "Tên hiển thị",
+                                user: "Nhân viên",
+                                type: "Loại lịch",
+                                patternStartDate: "Ngày bắt đầu",
+                                patternEndDate: "Ngày kết thúc",
+                                isHidden: "Ẩn"
+                            };
+                            const lines = [];
+                            for (const [key, value] of Object.entries(log.updateData)) {
+                                if (key === "updatedAt") continue;
+                                const label = fieldLabels[key] || key;
+                                let valStr = value;
+                                if (value === null || value === undefined || value === "") valStr = "<i>Trống</i>";
+                                else if (typeof value === "boolean") valStr = value ? "Có" : "Không";
+                                
+                                // Lọc bỏ prefix [CVAdmin] trong note
+                                if (key === "note" && typeof valStr === "string") {
+                                    valStr = valStr.replace("[CVAdmin]", "").trim() || "<i>Trống</i>";
+                                }
+                                
+                                lines.push(`<b>${label}:</b> <span style="color: #2c3e50;">${valStr}</span>`);
+                            }
+                            changesHtml = lines.join("<br>");
+                        }
+                        
+                        const targetName = log.targetName || log.updateData?.job || log.updateData?.displayName || "N/A";
+                        details = `<b>Cập nhật:</b> ${targetName}<br>${changesHtml || "<i>Không có thay đổi nào</i>"}`;
+                    }
+                    break;
+                case "admin_delete_work_rule_quick":
+                    details = `Đã xóa nhanh quy tắc ID: <b>${log.deletedRuleId || "N/A"}</b>`;
                     break;
                 case "admin_delete_work_rule":
                 case "admin_delete_work_rules":
@@ -471,6 +598,28 @@ import { initMenu } from "./menu.js";
                     break;
                 case "apps_script_add_user_success":
                     details = `Gửi yêu cầu Apps Script thành công cho: <b>${log.targetUser || "N/A"}</b>`;
+                    break;
+                case "admin_manual_edit":
+                    {
+                        const editDetails = log.changes ? JSON.stringify(log.changes) : "{}";
+                        const prettyEditDetails = log.changes ? JSON.stringify(log.changes, null, 2) : "{}";
+                        details = `
+                            <b>Bảng:</b> ${log.collection || "N/A"}<br>
+                            <b>Doc ID:</b> ${log.docId || "N/A"}<br>
+                            <b>Dữ liệu mới:</b> <span class="json-preview-inline">${editDetails}</span><pre class="json-full-block" style="white-space: pre-wrap; font-family: monospace; font-size: 11px; background: #fff; border: 1px solid #ddd; padding: 5px; border-radius: 4px; margin-top: 5px; max-height: 200px; overflow-y: auto; color: #333;">${prettyEditDetails}</pre>
+                        `;
+                    }
+                    break;
+                case "admin_manual_delete":
+                    {
+                        const deletedDetails = log.deletedData ? JSON.stringify(log.deletedData) : "{}";
+                        const prettyDeletedDetails = log.deletedData ? JSON.stringify(log.deletedData, null, 2) : "{}";
+                        details = `
+                            <b>Bảng:</b> ${log.collection || "N/A"}<br>
+                            <b>Doc ID:</b> ${log.docId || "N/A"}<br>
+                            <b>Dữ liệu đã xóa:</b> <span class="json-preview-inline">${deletedDetails}</span><pre class="json-full-block" style="white-space: pre-wrap; font-family: monospace; font-size: 11px; background: #fff; border: 1px solid #ddd; padding: 5px; border-radius: 4px; margin-top: 5px; max-height: 200px; overflow-y: auto; color: #333;">${prettyDeletedDetails}</pre>
+                        `;
+                    }
                     break;
                 // ⭐️⭐️⭐️ BẮT ĐẦU KHỐI CODE CẦN DÁN ⭐️⭐️⭐️
 
@@ -889,7 +1038,11 @@ import { initMenu } from "./menu.js";
             } catch (e) {
                 console.error("Lỗi lấy danh sách user:", e);
             }
+            await syncDeltaLogs();
             await fetchLogsByDate(false);
+            
+            // Khởi động lắng nghe thời gian thực cho các log phát sinh sau đó
+            startRealtimeSyncLogs(new Date(Date.now() - 300000));
             
             // Kích hoạt cỗ máy tải ngầm dữ liệu cũ sau 3 giây (Tránh nghẽn UI)
             setTimeout(backgroundBackwardSync, 3000);
@@ -968,12 +1121,12 @@ import { initMenu } from "./menu.js";
               
               const actionGroups = {
                   "Đăng nhập & Xác thực": ["login_success", "login_failure", "logout", "logout_success", "auto_logout_inactivity", "force_logout_requested", "forced_logout_executed", "reAuth_dismissed", "reAuth_success", "reAuth_failure"],
-                  "Lên lịch & Phân ca": ["admin_create_work_rule", "admin_update_work_rule", "admin_delete_work_rule", "admin_delete_work_rules", "admin_create_manual_job", "admin_update_manual_job", "admin_delete_manual_job", "admin_create_work_pattern", "admin_update_work_pattern", "admin_delete_work_pattern", "admin_delete_work_patterns", "admin_create_shift_success", "admin_create_shift_failure", "admin_delete_shift_success", "admin_delete_shift_failure", "admin_create_shift_swap", "admin_update_shift_swap", "admin_delete_shift_swap", "admin_delete_shift_swaps"],
+                  "Lên lịch & Phân ca": ["admin_create_work_rule", "admin_update_work_rule", "admin_delete_work_rule", "admin_delete_work_rules", "admin_create_manual_job", "admin_update_manual_job", "admin_delete_manual_job", "admin_create_work_pattern", "admin_update_work_pattern", "admin_delete_work_pattern", "admin_delete_work_patterns", "admin_create_shift_success", "admin_create_shift_failure", "admin_delete_shift_success", "admin_delete_shift_failure", "admin_create_shift_swap", "admin_update_shift_swap", "admin_delete_shift_swap", "admin_delete_shift_swaps", "admin_create_work_rule_quick", "admin_update_work_rule_quick", "admin_delete_work_rule_quick"],
                   "Báo cáo ca trực": ["report_create_success", "report_update_success", "report_save_failure", "report_view_existing", "report_edit_initiated", "report_skipped_exact_match", "form_submit_canceled", "form_submit_fatal_error", "form_unknown_id", "form2_validation_error", "add_sameday_error", "overwrite_sameday_error", "overwrite_error", "overwrite_skipped", "overwrite_success", "updateReport"],
                   "Báo cáo Chỉ số": ["indicator_entry", "indicator_edit", "indicator_delete", "deleteReport", "deleteReport_failure", "deleteReport_not_found", "deleteReport_file_skipped", "meter_reset_confirmed", "meter_reset_canceled", "meter_reset_canceled_sameday", "duplicate_date_accepted"],
                   "Thông báo Nghỉ & ĐB": ["form2_submit_success", "form2_submit_partial_error", "form2_submit_no_dates", "form2_submit_skipped_only", "form2_special_workday_meaningless", "overwrite_manual_holiday_success", "overwrite_manual_holiday_error", "overwrite_manual_holiday_skipped", "add_holiday_error"],
                   "Quản lý File & Drive": ["updateFile", "report_upload_success", "report_upload_failure", "report_delete_success", "report_delete_failure", "file_creation_success", "file_creation_failure", "file_creation_connection_error", "file_size_error", "drive_upload_success", "drive_upload_failure", "drive_delete_failure", "drive_delete_success", "drive_delete_unauthorized", "drive_cleanup_success", "drive_cleanup_fail", "upload", "delete", "create_report_file"],
-                  "Hệ thống & Cài đặt": ["system_config_update", "backup_created", "restore_completed", "user_role_update", "apps_script_add_user_success", "add_user_email", "hourly_schedule_sent", "daily_schedule_failed", "addDoc_failure", "addDoc_success", "addDoc_unauthorized", "getReportsByDate_failure"]
+                  "Hệ thống & Cài đặt": ["system_config_update", "backup_created", "restore_completed", "user_role_update", "apps_script_add_user_success", "add_user_email", "hourly_schedule_sent", "daily_schedule_failed", "addDoc_failure", "addDoc_success", "addDoc_unauthorized", "getReportsByDate_failure", "admin_manual_edit", "admin_manual_delete"]
               };
 
               let optionsHtml = '';
@@ -1257,27 +1410,6 @@ import { initMenu } from "./menu.js";
               windowObserver.observe(loadMoreBtn);
           }
 
-          // MỚI: Sự kiện nút Làm mới (Xóa Cache)
-          if (refreshCacheBtn) {
-              refreshCacheBtn.addEventListener('click', async () => {
-                  const isConfirmed = await showConfirmSwal("Làm mới dữ liệu", "Hành động này sẽ xóa bộ nhớ đệm hiện tại trên thiết bị này và tải lại dữ liệu mới nhất từ máy chủ. Tiếp tục?", "Đồng ý", "Hủy");
-                  if (isConfirmed) {
-                      showLoading("Đang làm mới bộ nhớ đệm...");
-                      const req = indexedDB.open('KCN_LocalDB');
-                      req.onsuccess = (e) => {
-                          const dbLocal = e.target.result;
-                          const tx = dbLocal.transaction(['logs', 'sync_info'], 'readwrite');
-                          tx.objectStore('logs').clear(); // Xóa sạch log cũ
-                          tx.objectStore('sync_info').delete('logs'); // Xóa mốc đồng bộ tiến
-                          tx.objectStore('sync_info').delete('logs_oldest'); // Xóa mốc đồng bộ lùi
-                          localStorage.removeItem('lastBgSync_logs'); // Mở khóa cho phép tải ngầm chạy lại
-                          tx.oncomplete = () => {
-                              window.location.reload(); // Tải lại trang
-                          };
-                      };
-                  }
-              });
-          }
 
         } else {
             notLogged.style.display = "none";
@@ -1288,5 +1420,13 @@ import { initMenu } from "./menu.js";
           notLogged.style.display = "flex";
           noPermission.style.display = "none";
           content.style.display = "none";
+          if (unsubscribeRealtime) {
+              unsubscribeRealtime();
+              unsubscribeRealtime = null;
+          }
+          if (unsubscribeRealtimeDel) {
+              unsubscribeRealtimeDel();
+              unsubscribeRealtimeDel = null;
+          }
       }
     });

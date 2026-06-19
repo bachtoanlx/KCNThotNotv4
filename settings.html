@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,10 +14,10 @@
             width: 100%;
             background: var(--surface-color);
             border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--border-color);
             min-height: 75vh;
-        } 
+        }
 
         /* Sidebar - Tab buttons */
         .settings-sidebar {
@@ -43,7 +44,7 @@
         }
 
         .settings-tab-btn:hover {
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
         }
 
         .settings-tab-btn.active {
@@ -70,9 +71,16 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        } 
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         .settings-header {
             margin-bottom: 20px;
@@ -84,32 +92,39 @@
             margin: 0;
             color: var(--primary-color);
         }
-        
-        #csHistoryTable th, #csHistoryTable td,
-        #csShiftTable th, #csShiftTable td,
-        #ruleList th, #ruleList td,
-        #patternList th, #patternList td,
-        #swapList th, #swapList td,
-        #usersTable th, #usersTable td {
+
+        #csHistoryTable th,
+        #csHistoryTable td,
+        #csShiftTable th,
+        #csShiftTable td,
+        #ruleList th,
+        #ruleList td,
+        #patternList th,
+        #patternList td,
+        #swapList th,
+        #swapList td,
+        #usersTable th,
+        #usersTable td {
             text-align: center;
         }
-        
+
         #patternList td:first-child,
-        #usersTable th:first-child, #usersTable td:first-child {
+        #usersTable th:first-child,
+        #usersTable td:first-child {
             text-align: left;
             max-width: 150px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         #ruleList td:first-child {
             text-align: left;
             white-space: normal !important;
             word-wrap: break-word;
             word-break: break-word;
         }
-        
+
         /* Đồng bộ chiều cao 33px cho các control trên Desktop */
         #company-content-placeholder input[type="text"],
         #company-content-placeholder input[type="date"],
@@ -130,6 +145,7 @@
             .settings-container {
                 flex-direction: column;
             }
+
             .settings-sidebar {
                 width: 100%;
                 display: flex;
@@ -139,6 +155,7 @@
                 border-bottom: 1px solid var(--border-color);
                 border-radius: 8px 8px 0 0;
             }
+
             .settings-tab-btn {
                 border-left: none;
                 border-bottom: 4px solid transparent;
@@ -146,21 +163,25 @@
                 padding: 12px 15px;
                 text-align: center;
             }
+
             .settings-tab-btn.active {
                 border-left-color: transparent;
                 border-bottom-color: var(--primary-color);
             }
+
             .settings-main {
                 padding: 15px;
             }
-            
+
             .settings-header {
                 margin-bottom: 10px;
                 padding-bottom: 5px;
             }
+
             .settings-header h2 {
                 font-size: 1.2rem;
             }
+
             .settings-header .note {
                 margin: 2px 0 0 0;
             }
@@ -185,35 +206,48 @@
             /* Rút gọn nút Xem Cấu hình và Lưu Quy tắc trên mobile */
             #company-content-placeholder #openConfigModal,
             #company-content-placeholder #csSaveBtn {
-                font-size: 0 !important; /* Ẩn text gốc */
-                padding: 6px 10px !important; /* Giảm padding ngang */
-                flex-shrink: 0; /* Không cho nút bị co lại */
+                font-size: 0 !important;
+                /* Ẩn text gốc */
+                padding: 6px 10px !important;
+                /* Giảm padding ngang */
+                flex-shrink: 0;
+                /* Không cho nút bị co lại */
             }
+
             #openConfigModal::before {
                 content: '⚙️ Xem';
-                font-size: 13px; /* Đặt lại font-size cho text mới */
+                font-size: 13px;
+                /* Đặt lại font-size cho text mới */
             }
+
             #csSaveBtn::before {
                 content: '💾 Lưu';
-                font-size: 13px; /* Đặt lại font-size cho text mới */
+                font-size: 13px;
+                /* Đặt lại font-size cho text mới */
             }
         }
-        
+
         /* Custom style for modal size and coordinates on Desktop */
         @media (min-width: 769px) {
             #configModal .modal-content-config {
                 position: absolute;
-                top: 60px; /* Dưới thanh menu */
-                bottom: 5px; /* Cách đáy*/
-                left: 260px; /* Vượt qua thanh menu trái (250px) + khoảng đệm */
-                right: 20px; /* Cách lề phải 20px */
+                top: 60px;
+                /* Dưới thanh menu */
+                bottom: 5px;
+                /* Cách đáy*/
+                left: 260px;
+                /* Vượt qua thanh menu trái (250px) + khoảng đệm */
+                right: 20px;
+                /* Cách lề phải 20px */
                 width: auto !important;
                 margin: 0 !important;
                 max-height: none !important;
-                max-width: none !important; /* Ghi đè giới hạn max-width từ styles.css */
+                max-width: none !important;
+                /* Ghi đè giới hạn max-width từ styles.css */
                 border-radius: 8px;
             }
         }
+
         /* =========================================================
         FIX LỖI BẢNG BỊ "LỌT THỎM" BÊN TRONG DIV.TABLE-CONTAINER
         ========================================================= */
@@ -221,7 +255,7 @@
         /* 1. Xóa bỏ viền kép và khoảng trống thừa của bảng khi nằm trong khung bọc */
         .table-container table {
             margin-top: 0 !important;
-            border: none !important; 
+            border: none !important;
             border-radius: 0 !important;
         }
 
@@ -236,686 +270,1047 @@
         }
     </style>
 </head>
+
 <body>
 
-<div id="menu-placeholder"></div>
-<div id="loading-placeholder"></div>
+    <div id="menu-placeholder"></div>
+    <div id="loading-placeholder"></div>
 
-<div id="notLogged" style="display:none; text-align: center; padding: 50px;">
-    <h3>Đang kiểm tra quyền truy cập...</h3>
-</div>
+    <div id="notLogged" style="display:none; text-align: center; padding: 50px;">
+        <h3>Đang kiểm tra quyền truy cập...</h3>
+    </div>
 
-<div id="pageContent" style="display:none;">
-    <div class="card-body" style="padding-top: 5px;">
-        <div class="settings-container">
-        
-        <!-- Cột Menu Trái -->
-        <div class="settings-sidebar">
-            <button class="settings-tab-btn active" data-target="tab-company">🏢 Cấu hình Công ty</button>
-            <button class="settings-tab-btn" data-target="tab-shifts">🕒 Quản lý Ca Báo cáo</button>
-            <button class="settings-tab-btn" data-target="tab-schedule">📅 Quản lý Công việc</button>
-            <button class="settings-tab-btn" data-target="tab-system">⚙️ Hệ thống</button>
-        </div>
+    <div id="pageContent" style="display:none;">
+        <div class="card-body" style="padding-top: 5px;">
+            <div class="settings-container">
 
-        <!-- Khối Nội dung Phải -->
-        <div class="settings-main">
-            
-            <!-- Tab 1: Cấu hình Công ty -->
-            <div id="tab-company" class="settings-tab-pane active">
-                <div class="settings-header">
-                    <h2>Cấu hình Công ty & Thống kê</h2>
-                    <p class="note">Quản lý danh sách công ty, hệ số khoán, ngày nghỉ mặc định.</p>
-                </div>
-                <div id="company-content-placeholder">
-
-                <!-- Khối Cấu hình Doanh nghiệp -->
-                <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0; color: #334155; font-size: 1.1em;">🏢 Cấu hình Doanh nghiệp chi tiết</h3>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Chọn hoặc Nhập Công ty:</label>
-                            <div style="display: flex; gap: 5px;">
-                                <input type="text" id="csCompanySelect" list="csCompanyList" placeholder="Chọn hoặc nhập tên..." autocomplete="off" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                                <button id="csDeleteCompanyBtn" style="display: none; background: #e74c3c; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer;" title="Xóa công ty khỏi Master List">🗑️</button>
-                            </div>
-                            <datalist id="csCompanyList"></datalist>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày bắt đầu áp dụng:</label>
-                            <input type="date" id="csEffectiveDate" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Nhóm Công ty:</label>
-                            <select id="csGroupSelect" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                                <option value="group1">Nhóm Đồng hồ</option>
-                                <option value="group2">Nhóm Hóa đơn</option>
-                                <option value="group3">Nhóm Khoán</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Hệ số Khoán (m³/ngày):</label>
-                            <input type="number" id="csQuota" step="0.1" placeholder="Nhập hệ số... (nếu có)" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày cuối kỳ phí (Bắt buộc):</label>
-                            <input type="number" id="csBillingDay" min="1" max="31" placeholder="Nhập ngày 1-31" required style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                        </div>
-                        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày nghỉ mặc định trong tuần:</label>
-                            <div id="csHolidays" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="1"> T2</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="2"> T3</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="3"> T4</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="4"> T5</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="5"> T6</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="6"> T7</label>
-                                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input type="checkbox" value="0"> CN</label>
-                            </div>
-                        </div>
-                        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ghi chú:</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" id="csNote" placeholder="Nhập ghi chú..." style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                                <button type="button" id="openConfigModal" style="background: #17a2b8; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">⚙️ Xem Cấu Hình</button>
-                                <button id="csSaveBtn" style="background: #28a745; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">💾 Lưu Quy Tắc</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📜 Lịch sử Quy tắc</h4>
-                    <div class="table-container" style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
-                        <table id="csHistoryTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                                <tr>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ngày áp dụng</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Nhóm</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hệ số</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Kỳ phí</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ngày nghỉ</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ghi chú</th>
-                                    <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
-                                </tr>
-                            </thead>
-                            <tbody id="csHistoryBody">
-                                <tr><td colspan="7" style="padding: 15px; color: #64748b;">Vui lòng chọn công ty để xem lịch sử.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- KHỐI QUẢN LÝ MỐC ĐỒNG HỒ BAN ĐẦU -->
-                    <div style="margin-top: 20px; padding: 15px; border: 1px dashed #f39c12; border-radius: 8px; background: #fffcf5;">
-                        <h4 style="margin: 0 0 10px 0; color: #d35400; font-size: 14px;">🎯 Mốc Đồng Hồ Ban Đầu (Baseline)</h4>
-                        <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Điểm tựa tính toán cho tháng/năm đầu tiên. Nếu đồng hồ cũ mang vào có sẵn số, hãy nhập vào đây và chọn ngày bắt đầu hoạt động.</p>
-                        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày chốt mốc:</label>
-                                <input type="date" id="csBaselineDate" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-weight: 600; font-size: 13px; color: #333;">Chỉ số đồng hồ:</label>
-                                <input type="number" id="csBaselineIndex" step="0.1" placeholder="Ví dụ: 1534" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            </div>
-                            <div>
-                                <button id="csSaveBaselineBtn" style="padding: 6px 15px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Cập nhật Mốc</button>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Cột Menu Trái -->
+                <div class="settings-sidebar">
+                    <button class="settings-tab-btn active" data-target="tab-company">🏢 Cấu hình Công ty</button>
+                    <button class="settings-tab-btn" data-target="tab-shifts">🕒 Quản lý Ca Báo cáo</button>
+                    <button class="settings-tab-btn" data-target="tab-schedule">📅 Quản lý Công việc</button>
+                    <button class="settings-tab-btn" data-target="tab-system">⚙️ Hệ thống</button>
                 </div>
 
-                <!-- Khối Cài đặt Ngày Mốc -->
-                <div style="margin-top: 20px; padding: 15px; background: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; color: #0056b3; margin-bottom: 10px; font-size: 1.1em;">⚙️ Cài đặt ngày mốc thống kê</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu tuần:</label>
-                            <select id="weekDayStart" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                                <option value="0">Chủ nhật</option>
-                                <option value="1">Thứ 2</option>
-                                <option value="2">Thứ 3</option>
-                                <option value="3">Thứ 4</option>
-                                <option value="4">Thứ 5</option>
-                                <option value="5">Thứ 6</option>
-                                <option value="6">Thứ 7</option>
-                            </select>
+                <!-- Khối Nội dung Phải -->
+                <div class="settings-main">
+
+                    <!-- Tab 1: Cấu hình Công ty -->
+                    <div id="tab-company" class="settings-tab-pane active">
+                        <div class="settings-header">
+                            <h2>Cấu hình Công ty & Thống kê</h2>
+                            <p class="note">Quản lý danh sách công ty, hệ số khoán, ngày nghỉ mặc định.</p>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu tháng:</label>
-                            <select id="monthDayStart" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu năm:</label>
-                            <select id="yearDayStart" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
-                        </div>
-                        <div>
-                            <button id="saveConfigBtn" style="width: 100%; padding: 8px; background: #273668; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu Cài Đặt</button>
+                        <div id="company-content-placeholder">
+
+                            <!-- Khối Cấu hình Doanh nghiệp -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                                    <h3 style="margin: 0; color: #334155; font-size: 1.1em;">🏢 Cấu hình Doanh nghiệp
+                                        chi tiết</h3>
+                                </div>
+
+                                <div
+                                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Chọn hoặc Nhập
+                                            Công ty:</label>
+                                        <div style="display: flex; gap: 5px;">
+                                            <input type="text" id="csCompanySelect" list="csCompanyList"
+                                                placeholder="Chọn hoặc nhập tên..." autocomplete="off"
+                                                style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                            <button id="csDeleteCompanyBtn"
+                                                style="display: none; background: #e74c3c; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer;"
+                                                title="Xóa công ty khỏi Master List">🗑️</button>
+                                        </div>
+                                        <datalist id="csCompanyList"></datalist>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày bắt đầu áp
+                                            dụng:</label>
+                                        <input type="date" id="csEffectiveDate"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Nhóm Công
+                                            ty:</label>
+                                        <select id="csGroupSelect"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                            <option value="group1">Nhóm Đồng hồ</option>
+                                            <option value="group2">Nhóm Hóa đơn</option>
+                                            <option value="group3">Nhóm Khoán</option>
+                                        </select>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Hệ số Khoán
+                                            (m³/ngày):</label>
+                                        <input type="number" id="csQuota" step="0.1"
+                                            placeholder="Nhập hệ số... (nếu có)"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày cuối kỳ phí
+                                            (Bắt buộc):</label>
+                                        <input type="number" id="csBillingDay" min="1" max="31"
+                                            placeholder="Nhập ngày 1-31" required
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày nghỉ mặc
+                                            định trong tuần:</label>
+                                        <div id="csHolidays" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="1"> T2</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="2"> T3</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="3"> T4</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="4"> T5</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="5"> T6</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="6"> T7</label>
+                                            <label
+                                                style="display: flex; align-items: center; gap: 4px; font-size: 13px; background: #f1f3f5; padding: 4px 10px; border-radius: 20px; cursor: pointer;"><input
+                                                    type="checkbox" value="0"> CN</label>
+                                        </div>
+                                    </div>
+                                    <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ghi chú:</label>
+                                        <div style="display: flex; gap: 10px;">
+                                            <input type="text" id="csNote" placeholder="Nhập ghi chú..."
+                                                style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                            <button type="button" id="openConfigModal"
+                                                style="background: #17a2b8; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">⚙️
+                                                Xem Cấu Hình</button>
+                                            <button id="csSaveBtn"
+                                                style="background: #28a745; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap;">💾
+                                                Lưu Quy Tắc</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📜 Lịch sử Quy tắc
+                                </h4>
+                                <div class="table-container"
+                                    style="max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                                    <table id="csHistoryTable"
+                                        style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                        <thead
+                                            style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                            <tr>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ngày áp dụng
+                                                </th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Nhóm</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hệ số</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Kỳ phí</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ngày nghỉ
+                                                </th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Ghi chú</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="csHistoryBody">
+                                            <tr>
+                                                <td colspan="7" style="padding: 15px; color: #64748b;">Vui lòng chọn
+                                                    công ty để xem lịch sử.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- KHỐI QUẢN LÝ MỐC ĐỒNG HỒ BAN ĐẦU -->
+                                <div
+                                    style="margin-top: 20px; padding: 15px; border: 1px dashed #f39c12; border-radius: 8px; background: #fffcf5;">
+                                    <h4 style="margin: 0 0 10px 0; color: #d35400; font-size: 14px;">🎯 Mốc Đồng Hồ Ban
+                                        Đầu (Baseline)</h4>
+                                    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Điểm tựa tính toán cho
+                                        tháng/năm đầu tiên. Nếu đồng hồ cũ mang vào có sẵn số, hãy nhập vào đây và chọn
+                                        ngày bắt đầu hoạt động.</p>
+                                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày chốt
+                                                mốc:</label>
+                                            <input type="date" id="csBaselineDate"
+                                                style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Chỉ số đồng
+                                                hồ:</label>
+                                            <input type="number" id="csBaselineIndex" step="0.1"
+                                                placeholder="Ví dụ: 1534"
+                                                style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                        </div>
+                                        <div>
+                                            <button id="csSaveBaselineBtn"
+                                                style="padding: 6px 15px; background: #f39c12; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾
+                                                Cập nhật Mốc</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Khối Cài đặt Ngày Mốc -->
+                            <div
+                                style="margin-top: 20px; padding: 15px; background: #f0f7ff; border: 1px solid #b3d7ff; border-radius: 8px; margin-bottom: 20px;">
+                                <h3 style="margin-top: 0; color: #0056b3; margin-bottom: 10px; font-size: 1.1em;">⚙️ Cài
+                                    đặt ngày mốc thống kê</h3>
+                                <div
+                                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu
+                                            tuần:</label>
+                                        <select id="weekDayStart"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                            <option value="0">Chủ nhật</option>
+                                            <option value="1">Thứ 2</option>
+                                            <option value="2">Thứ 3</option>
+                                            <option value="3">Thứ 4</option>
+                                            <option value="4">Thứ 5</option>
+                                            <option value="5">Thứ 6</option>
+                                            <option value="6">Thứ 7</option>
+                                        </select>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu
+                                            tháng:</label>
+                                        <select id="monthDayStart"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày đầu
+                                            năm:</label>
+                                        <select id="yearDayStart"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;"></select>
+                                    </div>
+                                    <div>
+                                        <button id="saveConfigBtn"
+                                            style="width: 100%; padding: 8px; background: #273668; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾
+                                            Lưu Cài Đặt</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Tab 2: Quản lý Ca báo cáo -->
+                    <div id="tab-shifts" class="settings-tab-pane">
+                        <div class="settings-header">
+                            <h2>Quản lý Ca Báo Cáo</h2>
+                            <p class="note">Thiết lập các ca trực ghi nhận chỉ số.</p>
+                        </div>
+                        <div id="shifts-content-placeholder">
+                            <!-- Form Thêm Ca -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">➕ Thêm / Cập nhật Ca
+                                    Báo cáo</h3>
+                                <div
+                                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Tên Ca:</label>
+                                        <input type="text" id="shift-name" placeholder="Nhập tên ca.."
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ bắt
+                                            đầu:</label>
+                                        <input type="time" id="shift-start-time"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ kết
+                                            thúc:</label>
+                                        <input type="time" id="shift-end-time"
+                                            style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+                                    </div>
+                                    <div>
+                                        <label class="special-filter-label"
+                                            style="width: 100%; justify-content: center;"
+                                            title="Đánh dấu nếu ca trực kết thúc vào ngày hôm sau">
+                                            <input type="checkbox" id="shift-is-next-day">
+                                            <span>Vắt qua ngày hôm sau</span>
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <button id="save-shift-btn"
+                                            style="width: 100%; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾
+                                            Lưu Ca</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bảng Danh sách Ca -->
+                            <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 Danh sách Ca Báo cáo
+                                hiện tại</h4>
+                            <div class="table-container"
+                                style="max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; background: #fff;">
+                                <table id="csShiftTable"
+                                    style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                                    <thead
+                                        style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                        <tr>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Tên Ca</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Giờ bắt đầu</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Giờ kết thúc
+                                            </th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="shift-list-body">
+                                        <tr>
+                                            <td colspan="4" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Quản lý Lịch trực -->
+                    <div id="tab-schedule" class="settings-tab-pane">
+                        <div class="settings-header">
+                            <h2>Quản lý Công việc & Lịch trực</h2>
+                            <p class="note">Thiết lập quy tắc xoay ca, công việc định kỳ, hoán đổi ca.</p>
+                        </div>
+                        <div id="schedule-content-placeholder">
+                            <!-- Tìm kiếm và Nút chức năng -->
+                            <div
+                                style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <div style="flex: 1; min-width: 250px;">
+                                    <input type="text" id="scheduleSearchInput"
+                                        placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..."
+                                        style="width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                                </div>
+                                <div style="display: flex; gap: 10px; flex-shrink: 0;">
+                                    <button id="btn-openAddModal"
+                                        style="background: var(--primary-color); color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">➕
+                                        Thêm, Sửa quy tắc</button>
+                                    <button id="btn-openSwapModal"
+                                        style="background: #f39c12; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">🔄
+                                        Hoán đổi ca</button>
+                                </div>
+                            </div>
+
+                            <!-- Bảng 1: DS Công việc -->
+                            <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 I. Danh sách Công
+                                việc <span id="ruleListCount"
+                                    style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span>
+                            </h4>
+                            <div class="table-container"
+                                style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
+                                <table id="ruleList"
+                                    style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                                    <thead
+                                        style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                        <tr>
+                                            <th style="text-align: left; padding: 8px;">Công việc</th>
+                                            <th style="padding: 8px;">Giờ</th>
+                                            <th style="padding: 8px;">Ngày cụ thể</th>
+                                            <th style="padding: 8px;">Ngày kết thúc</th>
+                                            <th style="padding: 8px;">Định kỳ</th>
+                                            <th style="padding: 8px;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ruleListBody">
+                                        <tr>
+                                            <td colspan="6" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Bảng 2: DS Ngày làm -->
+                            <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🧭 II. Danh sách Ngày
+                                làm <span id="patternListCount"
+                                    style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span>
+                            </h4>
+                            <div class="table-container"
+                                style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
+                                <table id="patternList"
+                                    style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                                    <thead
+                                        style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                        <tr>
+                                            <th style="padding: 8px;">Nhân viên</th>
+                                            <th style="padding: 8px;">Tên hiển thị</th>
+                                            <th style="padding: 8px;">Kiểu</th>
+                                            <th style="padding: 8px;">Chi tiết</th>
+                                            <th style="padding: 8px;">Ngày BĐ</th>
+                                            <th style="padding: 8px;">Ngày KT</th>
+                                            <th style="padding: 8px;">Giờ BĐ</th>
+                                            <th style="padding: 8px;">Giờ KT</th>
+                                            <th style="padding: 8px;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="patternListBody">
+                                        <tr>
+                                            <td colspan="9" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Bảng 3: DS Hoán đổi -->
+                            <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🔄 III. Danh sách Hoán
+                                đổi ca <span id="swapListCount"
+                                    style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span>
+                            </h4>
+                            <div class="table-container"
+                                style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
+                                <table id="swapList"
+                                    style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                                    <thead
+                                        style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                        <tr>
+                                            <th style="padding: 8px;">Ngày đổi</th>
+                                            <th style="padding: 8px;">Người xin đổi (A)</th>
+                                            <th style="padding: 8px;">Người làm thay (B)</th>
+                                            <th style="padding: 8px;">Lý do</th>
+                                            <th style="padding: 8px;">Ngày tạo</th>
+                                            <th style="padding: 8px;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="swapListBody">
+                                        <tr>
+                                            <td colspan="6" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Hệ thống -->
+                    <div id="tab-system" class="settings-tab-pane">
+                        <div class="settings-header">
+                            <h2>Cài đặt Hệ thống</h2>
+                            <p class="note">Quản lý tài khoản, phân quyền, sao lưu dữ liệu.</p>
+                        </div>
+                        <div id="system-content-placeholder">
+                            <!-- Phân quyền người dùng -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người
+                                    dùng</h3>
+                                <div class="table-container"
+                                    style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                                    <table id="usersTable"
+                                        style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                        <thead
+                                            style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                            <tr>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Email</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập
+                                                    cuối</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Vai trò</th>
+                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="usersTableBody">
+                                            <tr>
+                                                <td colspan="4" style="padding: 15px; color: #64748b;">Đang tải dữ
+                                                    liệu...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Sao lưu và Khôi phục -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">💾 Sao lưu & Khôi phục
+                                    Dữ liệu</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Tải xuống toàn bộ dữ liệu
+                                    (cấu hình, quy tắc, lịch trực) để dự phòng, hoặc khôi phục từ bản sao lưu trước đó.
+                                </p>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <button id="btnBackupData"
+                                        style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                                        <span>⬇️</span> Sao lưu dữ liệu (Tải về .json)
+                                    </button>
+                                    <div style="position: relative;">
+                                        <input type="file" id="restoreFileInput" accept=".json" style="display: none;">
+                                        <button id="btnRestoreData"
+                                            onclick="document.getElementById('restoreFileInput').click()"
+                                            style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                                            <span>⬆️</span> Khôi phục (Tải lên .json)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trình quản lý dữ liệu nâng cao cho Admin -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🛠️ Quản lý Dữ liệu
+                                    Firestore (Chỉ Admin)</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Truy vấn, chỉnh sửa hoặc
+                                    xóa bất kỳ tài liệu nào trên hệ thống bằng mã ID. Hệ thống sẽ tự động cập nhật mốc
+                                    thời gian của máy chủ để đồng bộ xuống tất cả thiết bị.</p>
+
+                                <div
+                                    style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: flex-end;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Chọn Bảng
+                                            (Collection)</label>
+                                        <select id="adminExploreCollection"
+                                            style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 220px;">
+                                            <option value="reports_1">Báo cáo nước (reports_1)</option>
+                                            <option value="reports_2">Báo cáo nghỉ/làm ĐB (reports_2)</option>
+                                            <option value="shift_reports">Báo cáo ca trực (shift_reports)</option>
+                                            <option value="logs">Nhật ký hệ thống (logs)</option>
+                                            <option value="companies_master">Danh sách công ty (companies_master)
+                                            </option>
+                                            <option value="company_configs">Cấu hình công ty (company_configs)</option>
+                                            <option value="work_rules">Quy tắc công việc (work_rules)</option>
+                                            <option value="work_patterns">Lịch phân ca (work_patterns)</option>
+                                            <option value="users">Danh sách người dùng (users)</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 200px;">
+                                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Nhập ID Tài
+                                            liệu (Document ID)</label>
+                                        <input type="text" id="adminExploreDocId" placeholder="Ví dụ: 0uXl0p61f95z..."
+                                            style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 100%;">
+                                    </div>
+                                    <button id="adminExploreFetchBtn"
+                                        style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 35px;">
+                                        🔍 Lấy dữ liệu
+                                    </button>
+                                </div>
+
+                                <!-- Editor container (Mặc định ẩn) -->
+                                <div id="adminJsonEditorContainer"
+                                    style="display: none; flex-direction: column; gap: 10px;">
+                                    <label style="font-size: 12px; font-weight: bold; color: #475569;">Nội dung tài liệu
+                                        (Định dạng JSON) - <span style="color: #e74c3c;">Lưu ý: Không để nháy kép cho số
+                                            (ví dụ: 1250 thay vì "1250")</span></label>
+                                    <textarea id="adminJsonTextArea"
+                                        style="width: 100%; height: 250px; font-family: monospace; font-size: 13px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fafafa; color: #333;"
+                                        spellcheck="false"></textarea>
+                                    <div
+                                        style="display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap;">
+                                        <button id="adminExploreDeleteBtn"
+                                            style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                            ❌ Xóa Tài liệu
+                                        </button>
+                                        <div style="display: flex; gap: 10px;">
+                                            <button id="adminExploreCancelBtn"
+                                                style="background: #95a5a6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                                Hủy bỏ
+                                            </button>
+                                            <button id="adminExploreSaveBtn"
+                                                style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                                                💾 Lưu Thay đổi
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Làm mới Bộ nhớ đệm (IndexedDB) -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🔄 Đồng bộ & Làm mới
+                                    dữ liệu cục bộ</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Hành động này sẽ xóa toàn
+                                    bộ dữ liệu nhật ký hệ thống được lưu đệm cục bộ (IndexedDB) trên thiết bị này và tải
+                                    lại dữ liệu mới nhất từ máy chủ Firebase.</p>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <button id="refreshCacheBtn"
+                                        style="background: #95a5a6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                                        <span>🔄</span> Làm mới bộ nhớ đệm
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-
-            <!-- Tab 2: Quản lý Ca báo cáo -->
-            <div id="tab-shifts" class="settings-tab-pane">
-                <div class="settings-header">
-                    <h2>Quản lý Ca Báo Cáo</h2>
-                    <p class="note">Thiết lập các ca trực ghi nhận chỉ số.</p>
-                </div>
-                <div id="shifts-content-placeholder">
-                    <!-- Form Thêm Ca -->
-                    <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">➕ Thêm / Cập nhật Ca Báo cáo</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end;">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-weight: 600; font-size: 13px; color: #333;">Tên Ca:</label>
-                                <input type="text" id="shift-name" placeholder="Nhập tên ca.." style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ bắt đầu:</label>
-                                <input type="time" id="shift-start-time" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ kết thúc:</label>
-                                <input type="time" id="shift-end-time" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                            </div>
-                            <div>
-                                <label class="special-filter-label" style="width: 100%; justify-content: center;" title="Đánh dấu nếu ca trực kết thúc vào ngày hôm sau">
-                                    <input type="checkbox" id="shift-is-next-day">
-                                    <span>Vắt qua ngày hôm sau</span>
-                                </label>
-                            </div>
-                            <div>
-                                <button id="save-shift-btn" style="width: 100%; padding: 8px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">💾 Lưu Ca</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Bảng Danh sách Ca -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 Danh sách Ca Báo cáo hiện tại</h4>
-                    <div class="table-container" style="max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; background: #fff;">
-                        <table id="csShiftTable" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                                <tr><th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Tên Ca</th><th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Giờ bắt đầu</th><th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Giờ kết thúc</th><th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th></tr>
-                            </thead>
-                            <tbody id="shift-list-body"><tr><td colspan="4" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 3: Quản lý Lịch trực -->
-            <div id="tab-schedule" class="settings-tab-pane">
-                <div class="settings-header">
-                    <h2>Quản lý Công việc & Lịch trực</h2>
-                    <p class="note">Thiết lập quy tắc xoay ca, công việc định kỳ, hoán đổi ca.</p>
-                </div>
-                <div id="schedule-content-placeholder">
-                    <!-- Tìm kiếm và Nút chức năng -->
-                    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <div style="flex: 1; min-width: 250px;">
-                            <input type="text" id="scheduleSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-                        </div>
-                        <div style="display: flex; gap: 10px; flex-shrink: 0;">
-                            <button id="btn-openAddModal" style="background: var(--primary-color); color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">➕ Thêm, Sửa quy tắc</button>
-                            <button id="btn-openSwapModal" style="background: #f39c12; color: white; border: none; padding: 0 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">🔄 Hoán đổi ca</button>
-                        </div>
-                    </div>
-
-                    <!-- Bảng 1: DS Công việc -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">📋 I. Danh sách Công việc <span id="ruleListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
-                    <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
-                        <table id="ruleList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                <tr><th style="text-align: left; padding: 8px;">Công việc</th><th style="padding: 8px;">Giờ</th><th style="padding: 8px;">Ngày cụ thể</th><th style="padding: 8px;">Ngày kết thúc</th><th style="padding: 8px;">Định kỳ</th><th style="padding: 8px;">Hành động</th></tr>
-                            </thead>
-                            <tbody id="ruleListBody"><tr><td colspan="6" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td></tr></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Bảng 2: DS Ngày làm -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🧭 II. Danh sách Ngày làm <span id="patternListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
-                    <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
-                        <table id="patternList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                <tr><th style="padding: 8px;">Nhân viên</th><th style="padding: 8px;">Tên hiển thị</th><th style="padding: 8px;">Kiểu</th><th style="padding: 8px;">Chi tiết</th><th style="padding: 8px;">Ngày BĐ</th><th style="padding: 8px;">Ngày KT</th><th style="padding: 8px;">Giờ BĐ</th><th style="padding: 8px;">Giờ KT</th><th style="padding: 8px;">Hành động</th></tr>
-                            </thead>
-                            <tbody id="patternListBody"><tr><td colspan="9" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td></tr></tbody>
-                        </table>
-                    </div>
-
-                    <!-- Bảng 3: DS Hoán đổi -->
-                    <h4 style="margin: 15px 0 10px 0; color: #034892; font-size: 14px;">🔄 III. Danh sách Hoán đổi ca <span id="swapListCount" style="font-weight:normal; color:#e74c3c; font-size: 0.85em; background: #fff; border: 1px solid #f5b7b1; padding: 2px 6px; border-radius: 12px; margin-left: 5px; display: none;"></span></h4>
-                    <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 4px; background: #fff; margin-bottom: 20px;">
-                        <table id="swapList" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                <tr><th style="padding: 8px;">Ngày đổi</th><th style="padding: 8px;">Người xin đổi (A)</th><th style="padding: 8px;">Người làm thay (B)</th><th style="padding: 8px;">Lý do</th><th style="padding: 8px;">Ngày tạo</th><th style="padding: 8px;">Hành động</th></tr>
-                            </thead>
-                            <tbody id="swapListBody"><tr><td colspan="6" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab 4: Hệ thống -->
-            <div id="tab-system" class="settings-tab-pane">
-                <div class="settings-header">
-                    <h2>Cài đặt Hệ thống</h2>
-                    <p class="note">Quản lý tài khoản, phân quyền, sao lưu dữ liệu.</p>
-                </div>
-                <div id="system-content-placeholder">
-                    <!-- Phân quyền người dùng -->
-                    <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
-                        <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người dùng</h3>
-                        <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
-                            <table id="usersTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                    <tr>
-                                        <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Email</th>
-                                        <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập cuối</th>
-                                        <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Vai trò</th>
-                                        <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="usersTableBody">
-                                    <tr><td colspan="4" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Sao lưu và Khôi phục -->
-                    <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
-                        <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">💾 Sao lưu & Khôi phục Dữ liệu</h3>
-                        <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Tải xuống toàn bộ dữ liệu (cấu hình, quy tắc, lịch trực) để dự phòng, hoặc khôi phục từ bản sao lưu trước đó.</p>
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <button id="btnBackupData" style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                                <span>⬇️</span> Sao lưu dữ liệu (Tải về .json)
-                            </button>
-                            <div style="position: relative;">
-                                <input type="file" id="restoreFileInput" accept=".json" style="display: none;">
-                                <button id="btnRestoreData" onclick="document.getElementById('restoreFileInput').click()" style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                                    <span>⬆️</span> Khôi phục (Tải lên .json)
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
-    </div>
-</div>
 
-<!-- MODAL CHỈNH SỬA QUY TẮC (EDIT PATTERN) -->
-<div id="editPatternModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-md">
-        <span class="close" id="closeEditPatternModal">&times;</span>
-        <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc Ngày làm</h2>
-        
-        <input type="hidden" id="editPatternId">
-        
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Nhân viên:</label> <input type="text" id="editPatternUser" readonly class="modal-input flex-1" title="Không thể sửa Email/Mã User">
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Tên hiển thị:</label> <input type="text" id="editPatternDisplayName" class="modal-input flex-1">
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Ngày áp dụng:</label> <input type="date" id="editPatternStartDate" class="modal-input flex-1">
-            <label class="modal-label ml-10" style="min-width: unset;">Đến ngày:</label> <input type="date" id="editPatternEndDate" title="Để trống nếu áp dụng vô thời hạn" class="modal-input flex-1">
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Loại lịch:</label>
-            <select id="editPatternTypeSelect" class="modal-input flex-1">
-                <option value="administrative">Lịch Cố định</option>
-                <option value="shift_rotation">Lịch Theo Ca</option>
-            </select>
-        </div>
+    <!-- MODAL CHỈNH SỬA QUY TẮC (EDIT PATTERN) -->
+    <div id="editPatternModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-md">
+            <span class="close" id="closeEditPatternModal">&times;</span>
+            <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc Ngày làm</h2>
 
-        <div id="editAdministrativeInputs">
+            <input type="hidden" id="editPatternId">
+
             <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                <label class="modal-label">Nhóm ca:</label>
-                <input type="text" id="editAdminShiftGroupName" list="existingShiftGroups" placeholder="VD: Hành chính..." class="modal-input flex-1" title="Tên nhóm ca (Mặc định: Hành chính)">
+                <label class="modal-label">Nhân viên:</label> <input type="text" id="editPatternUser" readonly
+                    class="modal-input flex-1" title="Không thể sửa Email/Mã User">
             </div>
             <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                <label class="modal-label">Thứ làm việc:</label>
-                <div id="editDayCheckboxes" class="d-flex gap-5 flex-wrap flex-1">
-                    <label class="check-badge"><input type="checkbox" value="2">T2</label> <label class="check-badge"><input type="checkbox" value="3">T3</label> <label class="check-badge"><input type="checkbox" value="4">T4</label> <label class="check-badge"><input type="checkbox" value="5">T5</label> <label class="check-badge"><input type="checkbox" value="6">T6</label> <label class="check-badge"><input type="checkbox" value="7">T7</label> <label class="check-badge"><input type="checkbox" value="8">CN</label>
+                <label class="modal-label">Tên hiển thị:</label> <input type="text" id="editPatternDisplayName"
+                    class="modal-input flex-1">
+            </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <label class="modal-label">Ngày áp dụng:</label> <input type="date" id="editPatternStartDate"
+                    class="modal-input flex-1">
+                <label class="modal-label ml-10" style="min-width: unset;">Đến ngày:</label> <input type="date"
+                    id="editPatternEndDate" title="Để trống nếu áp dụng vô thời hạn" class="modal-input flex-1">
+            </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <label class="modal-label">Loại lịch:</label>
+                <select id="editPatternTypeSelect" class="modal-input flex-1">
+                    <option value="administrative">Lịch Cố định</option>
+                    <option value="shift_rotation">Lịch Theo Ca</option>
+                </select>
+            </div>
+
+            <div id="editAdministrativeInputs">
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                    <label class="modal-label">Nhóm ca:</label>
+                    <input type="text" id="editAdminShiftGroupName" list="existingShiftGroups"
+                        placeholder="VD: Hành chính..." class="modal-input flex-1"
+                        title="Tên nhóm ca (Mặc định: Hành chính)">
+                </div>
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                    <label class="modal-label">Thứ làm việc:</label>
+                    <div id="editDayCheckboxes" class="d-flex gap-5 flex-wrap flex-1">
+                        <label class="check-badge"><input type="checkbox" value="2">T2</label> <label
+                            class="check-badge"><input type="checkbox" value="3">T3</label> <label
+                            class="check-badge"><input type="checkbox" value="4">T4</label> <label
+                            class="check-badge"><input type="checkbox" value="5">T5</label> <label
+                            class="check-badge"><input type="checkbox" value="6">T6</label> <label
+                            class="check-badge"><input type="checkbox" value="7">T7</label> <label
+                            class="check-badge"><input type="checkbox" value="8">CN</label>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div id="editShiftRotationInputs" style="display:none;">
+            <div id="editShiftRotationInputs" style="display:none;">
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                    <label class="modal-label">Nhóm ca:</label> <input type="text" id="editShiftGroupName"
+                        list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." class="modal-input flex-1">
+                </div>
+            </div>
             <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-                <label class="modal-label">Nhóm ca:</label> <input type="text" id="editShiftGroupName" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." class="modal-input flex-1">
+                <label class="modal-label">Giờ Bắt đầu:</label> <input type="time" id="editStartTime"
+                    class="modal-input flex-1">
+                <label class="modal-label ml-10" style="min-width: unset;">Giờ Kết thúc:</label> <input type="time"
+                    id="editEndTime" class="modal-input flex-1">
             </div>
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Giờ Bắt đầu:</label> <input type="time" id="editStartTime" class="modal-input flex-1">
-            <label class="modal-label ml-10" style="min-width: unset;">Giờ Kết thúc:</label> <input type="time" id="editEndTime" class="modal-input flex-1">
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Thông báo:</label> 
-            <select id="editPatternNotifyTime" class="modal-input flex-1">
-                <option value="">Không tự động thông báo</option>
-                <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-            </select>
-        </div>
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <label class="modal-label">Ghi chú:</label> <input type="text" id="editPatternNote" class="modal-input flex-1">
-        </div>
-        <div class="action-buttons d-flex justify-end gap-10 mt-20">
-            <button id="deleteEditPatternBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-            <div class="flex-1"></div>
-            <button id="cancelEditPatternBtn" class="btn-action btn-secondary">Hủy</button>
-            <button id="saveEditPatternBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL CHỈNH SỬA QUY TẮC CÔNG VIỆC (MỤC 1) -->
-<div id="editRuleModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-lg">
-        <span class="close" id="closeEditRuleModal">&times;</span>
-        <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc công việc</h2>
-        <input type="hidden" id="editRuleId">
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <input type="text" id="editRuleJobName" placeholder="Tên công việc" class="modal-input flex-1">
-            <label class="check-badge"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
-            <label class="check-badge"><input type="checkbox" id="editRuleIsCommonCheckbox"> #CV Chung</label>
-        </div>
-        
-        <div id="editCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
-            <div class="input-row mb-10">
-                <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
-                <select id="editCommonJobTargetGroup" class="modal-input flex-1"></select>
-            </div>
-            <div class="input-row mb-0">
-                <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
-                <select id="editCommonJobNotifyTime" class="modal-input flex-1">
-                    <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <label class="modal-label">Thông báo:</label>
+                <select id="editPatternNotifyTime" class="modal-input flex-1">
                     <option value="">Không tự động thông báo</option>
                     <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
                     <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
                 </select>
             </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <label class="modal-label">Ghi chú:</label> <input type="text" id="editPatternNote"
+                    class="modal-input flex-1">
+            </div>
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteEditPatternBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
+                <div class="flex-1"></div>
+                <button id="cancelEditPatternBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveEditPatternBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
+            </div>
         </div>
+    </div>
 
-        <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <input type="time" id="editRuleTime" title="Giờ hoàn thành" class="modal-input">
-            <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" class="modal-input flex-1" style="background-color: #eaf3ff;">
-            <select id="editRuleDom" class="modal-input">
-                <!-- Options sẽ được gen bằng JavaScript -->
-            </select>
-            <select id="editRuleDay" class="modal-input">
-                <option value="">--Thứ--</option>
-                <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option>
-                <option value="5">T5</option><option value="6">T6</option><option value="7">T7</option>
-                <option value="8">CN</option><option value="all">Mọi ngày</option>
-            </select>
-            <select id="editRuleWeek" class="modal-input">
-                <option value="">--Tuần--</option>
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
-            </select>
-            <select id="editRuleMonth" class="modal-input">
-                <option value="">--Tháng--</option>
-                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
-            </select>
-        </div>
-        <div class="input-row d-flex align-center gap-10 mb-15">
-            <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
-            <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1" style="background-color: #fdf2e9;">
-        </div>
-        <div class="input-row d-flex mb-15">
-            <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
-        </div>
-        
-        <div id="editRuleCompletionFields" style="display: none; border-top: 1px dashed #ccc; padding-top: 15px; margin-bottom: 15px;">
-            <h4 style="margin-top: 0; margin-bottom: 10px; color: #555;">Thông tự Hoàn thành (Dành cho CV Admin)</h4>
-            <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
-                <label class="modal-label" style="min-width: 120px;">Kỳ hoàn thành:</label>
-                <input type="date" id="editRuleLastCompletedDate" class="modal-input flex-1" title="Ngày chốt của kỳ báo cáo">
+    <!-- MODAL CHỈNH SỬA QUY TẮC CÔNG VIỆC (MỤC 1) -->
+    <div id="editRuleModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-lg">
+            <span class="close" id="closeEditRuleModal">&times;</span>
+            <h2 class="modal-title">✏️ Chỉnh sửa Quy tắc công việc</h2>
+            <input type="hidden" id="editRuleId">
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <input type="text" id="editRuleJobName" placeholder="Tên công việc" class="modal-input flex-1">
+                <label class="check-badge"><input type="checkbox" id="editRuleIsAdminCheckbox"> #CV Admin</label>
+                <label class="check-badge"><input type="checkbox" id="editRuleIsCommonCheckbox"> #CV Chung</label>
             </div>
-            <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
-                <label class="modal-label" style="min-width: 120px;">Ngày xác nhận:</label>
-                <input type="datetime-local" id="editRuleActualCompletedDate" class="modal-input flex-1" title="Thời gian thực tế bấm hoàn thành">
+
+            <div id="editCommonJobSettings"
+                style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
+                <div class="input-row mb-10">
+                    <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
+                    <select id="editCommonJobTargetGroup" class="modal-input flex-1"></select>
+                </div>
+                <div class="input-row mb-0">
+                    <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
+                    <select id="editCommonJobNotifyTime" class="modal-input flex-1">
+                        <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
+                        <option value="">Không tự động thông báo</option>
+                        <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                        <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                    </select>
+                </div>
             </div>
-            <div class="input-row d-flex flex-wrap gap-10 align-center">
-                <label class="modal-label" style="min-width: 120px;">Lý do / Nội dung:</label>
-                <select id="editRuleCompletedNoteSelect" class="modal-input flex-1">
-                    <option value="">-- Trống --</option>
-                    <option value="Đã hoàn thành">Đã hoàn thành</option>
-                    <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
-                    <option value="Không thể hoàn thành">Không thể hoàn thành</option>
-                    <option value="Loại bỏ">Loại bỏ</option>
-                    <option value="Khác">Khác...</option>
+
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                <input type="time" id="editRuleTime" title="Giờ hoàn thành" class="modal-input">
+                <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)"
+                    class="modal-input flex-1" style="background-color: #eaf3ff;">
+                <select id="editRuleDom" class="modal-input">
+                    <!-- Options sẽ được gen bằng JavaScript -->
                 </select>
-                <input type="text" id="editRuleCompletedNoteCustom" placeholder="Nhập lý do tùy ý..." class="modal-input flex-1" style="display: none;">
+                <select id="editRuleDay" class="modal-input">
+                    <option value="">--Thứ--</option>
+                    <option value="2">T2</option>
+                    <option value="3">T3</option>
+                    <option value="4">T4</option>
+                    <option value="5">T5</option>
+                    <option value="6">T6</option>
+                    <option value="7">T7</option>
+                    <option value="8">CN</option>
+                    <option value="all">Mọi ngày</option>
+                </select>
+                <select id="editRuleWeek" class="modal-input">
+                    <option value="">--Tuần--</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="all">Mọi tuần</option>
+                </select>
+                <select id="editRuleMonth" class="modal-input">
+                    <option value="">--Tháng--</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="all">Mọi tháng</option>
+                </select>
+            </div>
+            <div class="input-row d-flex align-center gap-10 mb-15">
+                <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
+                <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)"
+                    class="modal-input flex-1" style="background-color: #fdf2e9;">
+            </div>
+            <div class="input-row d-flex mb-15">
+                <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
+            </div>
+
+            <div id="editRuleCompletionFields"
+                style="display: none; border-top: 1px dashed #ccc; padding-top: 15px; margin-bottom: 15px;">
+                <h4 style="margin-top: 0; margin-bottom: 10px; color: #555;">Thông tự Hoàn thành (Dành cho CV Admin)
+                </h4>
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
+                    <label class="modal-label" style="min-width: 120px;">Kỳ hoàn thành:</label>
+                    <input type="date" id="editRuleLastCompletedDate" class="modal-input flex-1"
+                        title="Ngày chốt của kỳ báo cáo">
+                </div>
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-10">
+                    <label class="modal-label" style="min-width: 120px;">Ngày xác nhận:</label>
+                    <input type="datetime-local" id="editRuleActualCompletedDate" class="modal-input flex-1"
+                        title="Thời gian thực tế bấm hoàn thành">
+                </div>
+                <div class="input-row d-flex flex-wrap gap-10 align-center">
+                    <label class="modal-label" style="min-width: 120px;">Lý do / Nội dung:</label>
+                    <select id="editRuleCompletedNoteSelect" class="modal-input flex-1">
+                        <option value="">-- Trống --</option>
+                        <option value="Đã hoàn thành">Đã hoàn thành</option>
+                        <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
+                        <option value="Không thể hoàn thành">Không thể hoàn thành</option>
+                        <option value="Loại bỏ">Loại bỏ</option>
+                        <option value="Khác">Khác...</option>
+                    </select>
+                    <input type="text" id="editRuleCompletedNoteCustom" placeholder="Nhập lý do tùy ý..."
+                        class="modal-input flex-1" style="display: none;">
+                </div>
+            </div>
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteEditRuleBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
+                <div class="flex-1"></div>
+                <button id="cancelEditRuleBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveEditRuleBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
             </div>
         </div>
-        <div class="action-buttons d-flex justify-end gap-10 mt-20">
-            <button id="deleteEditRuleBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-            <div class="flex-1"></div>
-            <button id="cancelEditRuleBtn" class="btn-action btn-secondary">Hủy</button>
-            <button id="saveEditRuleBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-        </div>
     </div>
-</div>
 
-<!-- MODAL THÊM QUY TẮC MỚI -->
-<div id="addRuleModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-xl">
-        <span class="close" id="closeAddRuleModal">&times;</span>
-        <h2 class="modal-title">➕ Thêm, Sửa quy tắc công việc</h2>
-        
-        <div class="input-row d-flex gap-10 align-center mb-15">
-            <label class="modal-label">Loại quy tắc:</label>
-            <select id="addRuleTypeSelect" class="modal-input flex-1">
-                <option value="job">Quy tắc công việc</option>
-                <option value="pattern">Quy tắc ngày làm (Phân ca)</option>
-            </select>
-        </div>
+    <!-- MODAL THÊM QUY TẮC MỚI -->
+    <div id="addRuleModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-xl">
+            <span class="close" id="closeAddRuleModal">&times;</span>
+            <h2 class="modal-title">➕ Thêm, Sửa quy tắc công việc</h2>
 
-        <!-- CONTAINER CHO FORM CÔNG VIỆC -->
-        <div id="addJobFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent;">
-          <input type="hidden" id="addJobRuleEditId">
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <input type="text" id="jobName" list="existingJobsList" placeholder="Tên công việc" class="modal-input flex-1" autocomplete="off">
-            <datalist id="existingJobsList"></datalist>
-            <label class="check-badge"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
-            <label class="check-badge"><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
-          </div>
-          
-          <div id="addCommonJobSettings" style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
-              <div class="input-row mb-10">
-                  <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
-                  <select id="addCommonJobTargetGroup" class="modal-input flex-1"></select>
-              </div>
-              <div class="input-row mb-0">
-                  <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
-                  <select id="addCommonJobNotifyTime" class="modal-input flex-1">
-                      <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
-                      <option value="">Không tự động thông báo</option>
-                      <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                      <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-                  </select>
-              </div>
-          </div>
-
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
-            <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc" class="modal-input">
-            <input type="date" id="exactDate" title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)" class="modal-input flex-1" style="background-color: #eaf3ff;">
-            <select id="domSelect" class="modal-input">
-              <!-- Options sẽ được gen bằng JavaScript -->
-            </select>
-            <select id="daySelect" class="modal-input">
-              <option value="">--Thứ--</option>
-              <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option><option value="5">T5</option><option value="6">T6</option><option value="7">T7</option><option value="8">CN</option><option value="all">Mọi ngày</option>
-            </select>
-            <select id="weekSelect" class="modal-input">
-              <option value="">--Tuần--</option>
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
-            </select>
-            <select id="monthSelect" class="modal-input">
-              <option value="">--Tháng--</option>
-              <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
-            </select>
-          </div>
-          <div class="input-row d-flex align-center gap-10 mb-15">
-            <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
-            <input type="date" id="addRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1" style="background-color: #fdf2e9;">
-          </div>
-          <div class="input-row d-flex mb-15">
-            <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
-          </div>
-        </div>
-
-        <!-- CONTAINER CHO FORM NGÀY LÀM -->
-        <div id="addPatternFormContainer" class="modal-form-box" style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
-          <div class="input-row">
-            <input type="text" id="patternUser" class="modal-input flex-1" list="systemUsersList" placeholder="Chọn Email/Mã từ danh sách..." autocomplete="off">
-            <datalist id="systemUsersList"></datalist>
-            <input type="text" id="patternDisplayName" class="modal-input flex-1" placeholder="Tên hiển thị trên lịch">
-            <input type="date" id="patternStartDate" class="modal-input flex-1" title="Ngày bắt đầu áp dụng quy tắc">
-            <select id="patternTypeSelect" class="modal-input">
-              <option value="administrative">1.Lịch Cố định</option>
-              <option value="shift_rotation">2.Lịch Theo Ca</option>
-            </select>
-          </div>
-
-          <div id="administrativeInputs">
-            <div class="input-row">
-              <label>Nhóm ca:</label>
-              <input type="text" id="adminShiftGroupName" class="modal-input" list="existingShiftGroups" placeholder="VD: Hành chính..." style="width: 160px; flex: none;" title="Tên nhóm ca (Mặc định: Hành chính)">
+            <div class="input-row d-flex gap-10 align-center mb-15">
+                <label class="modal-label">Loại quy tắc:</label>
+                <select id="addRuleTypeSelect" class="modal-input flex-1">
+                    <option value="job">Quy tắc công việc</option>
+                    <option value="pattern">Quy tắc ngày làm (Phân ca)</option>
+                </select>
             </div>
-            <div class="input-row">
-              <label>Thứ làm việc:</label>
-              <div id="dayCheckboxes">
-                <label class="check-badge"><input type="checkbox" value="2">T2</label><label class="check-badge"><input type="checkbox" value="3">T3</label><label class="check-badge"><input type="checkbox" value="4">T4</label><label class="check-badge"><input type="checkbox" value="5">T5</label><label class="check-badge"><input type="checkbox" value="6">T6</label><label class="check-badge"><input type="checkbox" value="7">T7</label><label class="check-badge"><input type="checkbox" value="8">CN</label>
-              </div>
-                <label class="ml-10">Giờ bắt đầu:</label> <input type="time" id="adminStartTime" class="modal-input">
-                <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime" class="modal-input">
+
+            <!-- CONTAINER CHO FORM CÔNG VIỆC -->
+            <div id="addJobFormContainer" class="modal-form-box"
+                style="margin-top: 0; border: none; padding: 0; background: transparent;">
+                <input type="hidden" id="addJobRuleEditId">
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                    <input type="text" id="jobName" list="existingJobsList" placeholder="Tên công việc"
+                        class="modal-input flex-1" autocomplete="off">
+                    <datalist id="existingJobsList"></datalist>
+                    <label class="check-badge"><input type="checkbox" id="isAdminJobRuleCheckbox"> #CV Admin</label>
+                    <label class="check-badge"><input type="checkbox" id="isCommonJobRuleCheckbox"> #CV Chung</label>
+                </div>
+
+                <div id="addCommonJobSettings"
+                    style="display: none; background: #eef6ff; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #3498db;">
+                    <div class="input-row mb-10">
+                        <label class="modal-label" style="min-width: 120px;">Nhóm áp dụng:</label>
+                        <select id="addCommonJobTargetGroup" class="modal-input flex-1"></select>
+                    </div>
+                    <div class="input-row mb-0">
+                        <label class="modal-label" style="min-width: 120px;">Thông báo:</label>
+                        <select id="addCommonJobNotifyTime" class="modal-input flex-1">
+                            <option value="immediate">⚡ Ngay lập tức (Gửi ngay sau khi lưu)</option>
+                            <option value="">Không tự động thông báo</option>
+                            <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                            <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
+                    <input type="time" id="jobTime" title="Chọn giờ phải hoàn thành công việc" class="modal-input">
+                    <input type="date" id="exactDate"
+                        title="Ngày cụ thể (Nếu chọn ngày này, các quy tắc định kỳ phía sau sẽ bị bỏ qua)"
+                        class="modal-input flex-1" style="background-color: #eaf3ff;">
+                    <select id="domSelect" class="modal-input">
+                        <!-- Options sẽ được gen bằng JavaScript -->
+                    </select>
+                    <select id="daySelect" class="modal-input">
+                        <option value="">--Thứ--</option>
+                        <option value="2">T2</option>
+                        <option value="3">T3</option>
+                        <option value="4">T4</option>
+                        <option value="5">T5</option>
+                        <option value="6">T6</option>
+                        <option value="7">T7</option>
+                        <option value="8">CN</option>
+                        <option value="all">Mọi ngày</option>
+                    </select>
+                    <select id="weekSelect" class="modal-input">
+                        <option value="">--Tuần--</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="all">Mọi tuần</option>
+                    </select>
+                    <select id="monthSelect" class="modal-input">
+                        <option value="">--Tháng--</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="all">Mọi tháng</option>
+                    </select>
+                </div>
+                <div class="input-row d-flex align-center gap-10 mb-15">
+                    <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
+                    <input type="date" id="addRuleEndDate"
+                        title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1"
+                        style="background-color: #fdf2e9;">
+                </div>
+                <div class="input-row d-flex mb-15">
+                    <input type="text" id="jobNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
+                </div>
             </div>
-          </div>
 
-          <div id="shiftRotationInputs" style="display:none;">
-              <div class="input-row">
-                  <label>Nhóm ca:</label>
-                  <input type="text" id="shiftGroupName" class="modal-input" list="existingShiftGroups" placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px; flex: none;" title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
-                  <datalist id="existingShiftGroups"></datalist>
-                  <label>Giờ bắt đầu ca:</label>
-                  <input type="time" id="shiftStartTime" class="modal-input">
-                  <label>Giờ kết thúc ca:</label>
-                  <input type="time" id="shiftEndTime" class="modal-input">
-              </div>
-          </div>
+            <!-- CONTAINER CHO FORM NGÀY LÀM -->
+            <div id="addPatternFormContainer" class="modal-form-box"
+                style="margin-top: 0; border: none; padding: 0; background: transparent; display: none;">
+                <div class="input-row">
+                    <input type="text" id="patternUser" class="modal-input flex-1" list="systemUsersList"
+                        placeholder="Chọn Email/Mã từ danh sách..." autocomplete="off">
+                    <datalist id="systemUsersList"></datalist>
+                    <input type="text" id="patternDisplayName" class="modal-input flex-1"
+                        placeholder="Tên hiển thị trên lịch">
+                    <input type="date" id="patternStartDate" class="modal-input flex-1"
+                        title="Ngày bắt đầu áp dụng quy tắc">
+                    <select id="patternTypeSelect" class="modal-input">
+                        <option value="administrative">1.Lịch Cố định</option>
+                        <option value="shift_rotation">2.Lịch Theo Ca</option>
+                    </select>
+                </div>
 
-          <div class="input-row d-flex flex-wrap gap-10 align-center mt-10 mb-15">
-              <label class="modal-label">Thông báo:</label> 
-              <select id="patternNotifyTime" class="modal-input flex-1">
-                  <option value="">Không tự động thông báo</option>
-                  <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
-                  <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
-              </select>
-          </div>
+                <div id="administrativeInputs">
+                    <div class="input-row">
+                        <label>Nhóm ca:</label>
+                        <input type="text" id="adminShiftGroupName" class="modal-input" list="existingShiftGroups"
+                            placeholder="VD: Hành chính..." style="width: 160px; flex: none;"
+                            title="Tên nhóm ca (Mặc định: Hành chính)">
+                    </div>
+                    <div class="input-row">
+                        <label>Thứ làm việc:</label>
+                        <div id="dayCheckboxes">
+                            <label class="check-badge"><input type="checkbox" value="2">T2</label><label
+                                class="check-badge"><input type="checkbox" value="3">T3</label><label
+                                class="check-badge"><input type="checkbox" value="4">T4</label><label
+                                class="check-badge"><input type="checkbox" value="5">T5</label><label
+                                class="check-badge"><input type="checkbox" value="6">T6</label><label
+                                class="check-badge"><input type="checkbox" value="7">T7</label><label
+                                class="check-badge"><input type="checkbox" value="8">CN</label>
+                        </div>
+                        <label class="ml-10">Giờ bắt đầu:</label> <input type="time" id="adminStartTime"
+                            class="modal-input">
+                        <label>Giờ kết thúc:</label> <input type="time" id="adminEndTime" class="modal-input">
+                    </div>
+                </div>
 
-          <div class="input-row">
-              <input type="text" id="patternNote" class="modal-input flex-1" placeholder="Ghi chú (Tùy chọn)">
-          </div>
-        </div>
+                <div id="shiftRotationInputs" style="display:none;">
+                    <div class="input-row">
+                        <label>Nhóm ca:</label>
+                        <input type="text" id="shiftGroupName" class="modal-input" list="existingShiftGroups"
+                            placeholder="VD: Vận hành, Bảo vệ..." style="width: 160px; flex: none;"
+                            title="Tên nhóm để xoay vòng độc lập (Mặc định: Vận hành)">
+                        <datalist id="existingShiftGroups"></datalist>
+                        <label>Giờ bắt đầu ca:</label>
+                        <input type="time" id="shiftStartTime" class="modal-input">
+                        <label>Giờ kết thúc ca:</label>
+                        <input type="time" id="shiftEndTime" class="modal-input">
+                    </div>
+                </div>
 
-        <div class="action-buttons d-flex justify-end gap-10 mt-20">
-            <button id="deleteAddRuleBtn" class="btn-action btn-danger" style="display: none;">🗑️ Xóa vĩnh viễn</button>
-            <div id="addRuleSpacer" style="flex: 1; display: none;"></div>
-            <button id="cancelAddRuleBtn" class="btn-action btn-secondary">Hủy</button>
-            <button id="saveAsNewRuleBtn" class="btn-action btn-info" style="display: none;" title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm việc mới</button>
-            <button id="saveNewRuleBtn" class="btn-action btn-success">💾 Lưu quy tắc</button>
+                <div class="input-row d-flex flex-wrap gap-10 align-center mt-10 mb-15">
+                    <label class="modal-label">Thông báo:</label>
+                    <select id="patternNotifyTime" class="modal-input flex-1">
+                        <option value="">Không tự động thông báo</option>
+                        <option value="19:00">Bản tin Tối (19:00) - Nhắc lịch ngày mai</option>
+                        <option value="06:00">Bản tin Sáng (06:00) - Nhắc lịch hôm nay</option>
+                    </select>
+                </div>
+
+                <div class="input-row">
+                    <input type="text" id="patternNote" class="modal-input flex-1" placeholder="Ghi chú (Tùy chọn)">
+                </div>
+            </div>
+
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteAddRuleBtn" class="btn-action btn-danger" style="display: none;">🗑️ Xóa vĩnh
+                    viễn</button>
+                <div id="addRuleSpacer" style="flex: 1; display: none;"></div>
+                <button id="cancelAddRuleBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveAsNewRuleBtn" class="btn-action btn-info" style="display: none;"
+                    title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm việc mới</button>
+                <button id="saveNewRuleBtn" class="btn-action btn-success">💾 Lưu quy tắc</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- MODAL HOÁN ĐỔI CA -->
-<div id="swapModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-sm">
-        <span class="close" id="closeSwapModal">&times;</span>
-        <h2 class="modal-title">🔄 Hoán đổi ca làm việc</h2>
-        
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
-            <input type="date" id="swapDate" class="modal-input w-100">
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
-            <select id="swapUser1" class="modal-input w-100"></select>
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
-            <select id="swapUser2" class="modal-input w-100"></select>
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
-            <input type="text" id="swapReason" class="modal-input w-100" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
-        </div>
-        
-        <div class="action-buttons d-flex justify-end gap-10 mt-20">
-            <button id="cancelSwapBtn" class="btn-action btn-secondary">Hủy</button>
-            <button id="saveSwapBtn" class="btn-action btn-success">💾 Lưu Hoán đổi</button>
+    <!-- MODAL HOÁN ĐỔI CA -->
+    <div id="swapModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-sm">
+            <span class="close" id="closeSwapModal">&times;</span>
+            <h2 class="modal-title">🔄 Hoán đổi ca làm việc</h2>
+
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
+                <input type="date" id="swapDate" class="modal-input w-100">
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
+                <select id="swapUser1" class="modal-input w-100"></select>
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
+                <select id="swapUser2" class="modal-input w-100"></select>
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
+                <input type="text" id="swapReason" class="modal-input w-100"
+                    placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
+            </div>
+
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="cancelSwapBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveSwapBtn" class="btn-action btn-success">💾 Lưu Hoán đổi</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- MODAL CHỈNH SỬA HOÁN ĐỔI CA -->
-<div id="editSwapModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-sm">
-        <span class="close" id="closeEditSwapModal">&times;</span>
-        <h2 class="modal-title">✏️ Chỉnh sửa hoán đổi ca</h2>
-        
-        <input type="hidden" id="editSwapId">
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
-            <input type="date" id="editSwapDate" class="modal-input w-100">
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
-            <select id="editSwapUser1" class="modal-input w-100"></select>
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
-            <select id="editSwapUser2" class="modal-input w-100"></select>
-        </div>
-        <div class="input-row mb-15">
-            <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
-            <input type="text" id="editSwapReason" class="modal-input w-100" placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
-        </div>
-        
-        <div class="action-buttons d-flex justify-end gap-10 mt-20">
-            <button id="deleteEditSwapBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-            <div class="flex-1"></div>
-            <button id="cancelEditSwapBtn" class="btn-action btn-secondary">Hủy</button>
-            <button id="saveEditSwapBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
+    <!-- MODAL CHỈNH SỬA HOÁN ĐỔI CA -->
+    <div id="editSwapModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-sm">
+            <span class="close" id="closeEditSwapModal">&times;</span>
+            <h2 class="modal-title">✏️ Chỉnh sửa hoán đổi ca</h2>
+
+            <input type="hidden" id="editSwapId">
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Ngày hoán đổi:</label>
+                <input type="date" id="editSwapDate" class="modal-input w-100">
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Người xin nghỉ (A):</label>
+                <select id="editSwapUser1" class="modal-input w-100"></select>
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Người làm thay (B):</label>
+                <select id="editSwapUser2" class="modal-input w-100"></select>
+            </div>
+            <div class="input-row mb-15">
+                <label class="modal-label" style="display: block; margin-bottom: 5px;">Lý do hoán đổi:</label>
+                <input type="text" id="editSwapReason" class="modal-input w-100"
+                    placeholder="Ví dụ: Nghỉ phép, Việc bận cá nhân...">
+            </div>
+
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteEditSwapBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
+                <div class="flex-1"></div>
+                <button id="cancelEditSwapBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveEditSwapBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Cấu hình -->
-<div id="configModal" class="modal" style="display: none;">
-  <div class="modal-content-config">
-    <span class="close-btn" id="closeConfigModal">&times;</span>
-    <h2 style="margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 8px;">⚙️ Thông tin cấu hình đang áp dụng</h2>
-    <div id="configModalContent" style="margin-top: 15px;">
-      <p>Đang tải dữ liệu...</p>
+    <!-- Modal Cấu hình -->
+    <div id="configModal" class="modal" style="display: none;">
+        <div class="modal-content-config">
+            <span class="close-btn" id="closeConfigModal">&times;</span>
+            <h2 style="margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 8px;">
+                ⚙️ Thông tin cấu hình đang áp dụng</h2>
+            <div id="configModalContent" style="margin-top: 15px;">
+                <p>Đang tải dữ liệu...</p>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<div id="footer-placeholder"></div>
+    <div id="footer-placeholder"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-<script type="module" src="settings.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script type="module" src="settings.js"></script>
 
 </body>
+
 </html>

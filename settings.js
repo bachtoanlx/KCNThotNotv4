@@ -1,5 +1,5 @@
 import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth } from "./script.js";
-import { doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { formatISODate } from "./core-calculator.js";
 import { getDaysDifference, isRuleActiveOnDate, sortShiftRules, getNormalizedFirstChar } from "./autoplan-core.js";
@@ -18,6 +18,9 @@ fetch("footer.html").then(r => r.text()).then(h => {
 
 const notLogged = document.getElementById("notLogged");
 const pageContent = document.getElementById("pageContent");
+
+let activeEditingRuleData = null;
+let activeEditingPatternData = null;
 
 // === LOGIC TABS ===
 function initTabs() {
@@ -40,6 +43,28 @@ function initTabs() {
         });
     });
 }
+
+// === BIẾN TOÀN CỤC CHO TAB 4 & TRUY VẤN EXPLORER ===
+let triggerAdminExplore = null;
+
+const copyDocIdToClipboard = (collectionName, docId) => {
+    const textToCopy = `${collectionName}:${docId}`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        if (window.Swal) {
+            window.Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `Đã sao chép định danh bản ghi (${collectionName}) vào Clipboard!`,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+        }
+    }).catch(err => {
+        console.error('Không thể sao chép:', err);
+    });
+};
 
 // === BIẾN TOÀN CỤC CHO TAB 1 ===
 let allMasterCompanies = [];
@@ -1185,6 +1210,22 @@ function renderRuleList() {
                 </div>
             </td>`;
         tr.querySelector(".editRuleBtn").addEventListener("click", () => { openEditRuleModal(d); });
+        
+        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
+        tr.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            copyDocIdToClipboard('work_rules', d.id);
+        });
+
+        let pressTimer;
+        tr.addEventListener('touchstart', () => {
+            pressTimer = window.setTimeout(() => {
+                copyDocIdToClipboard('work_rules', d.id);
+            }, 800);
+        }, { passive: true });
+        tr.addEventListener('touchend', () => clearTimeout(pressTimer));
+        tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
         tbody.appendChild(tr);
     };
 
@@ -1367,6 +1408,22 @@ function renderPatternList() {
                 </div>
             </td>`;
         tr.querySelector(".editPatternBtn").addEventListener("click", () => { openEditPatternModal(d); });
+        
+        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
+        tr.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            copyDocIdToClipboard('work_patterns', d.id);
+        });
+
+        let pressTimer;
+        tr.addEventListener('touchstart', () => {
+            pressTimer = window.setTimeout(() => {
+                copyDocIdToClipboard('work_patterns', d.id);
+            }, 800);
+        }, { passive: true });
+        tr.addEventListener('touchend', () => clearTimeout(pressTimer));
+        tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
         tbody.appendChild(tr);
     };
     
@@ -1442,6 +1499,22 @@ function renderSwapList() {
             </td>
         `;
         tr.querySelector('.editSwapBtn').addEventListener('click', () => { openEditSwapModal(s); });
+        
+        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
+        tr.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            copyDocIdToClipboard('shift_swaps', s.id);
+        });
+
+        let pressTimer;
+        tr.addEventListener('touchstart', () => {
+            pressTimer = window.setTimeout(() => {
+                copyDocIdToClipboard('shift_swaps', s.id);
+            }, 800);
+        }, { passive: true });
+        tr.addEventListener('touchend', () => clearTimeout(pressTimer));
+        tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
         tbody.appendChild(tr);
     });
 } 
@@ -1504,6 +1577,7 @@ function openAddRuleModal() {
 }
 
 function openEditRuleModal(rule) {
+    activeEditingRuleData = rule;
     document.getElementById("editRuleId").value = rule.id;
     document.getElementById("editRuleJobName").value = rule.job || "";
     document.getElementById("editRuleTime").value = rule.time || "";
@@ -1571,6 +1645,7 @@ function openEditRuleModal(rule) {
 }
 
 function openEditPatternModal(pattern) {
+    activeEditingPatternData = pattern;
     document.getElementById("editPatternId").value = pattern.id;
     document.getElementById("editPatternUser").value = pattern.user || "";
     document.getElementById("editPatternDisplayName").value = pattern.displayName || "";
@@ -1873,8 +1948,48 @@ function setupScheduleEventListeners() {
 
         try {
             showLoading("Đang lưu...");
+            const fieldLabels = {
+                displayName: "Tên hiển thị",
+                patternStartDate: "Ngày bắt đầu",
+                patternEndDate: "Ngày kết thúc",
+                type: "Loại lịch",
+                note: "Ghi chú",
+                startTime: "Giờ bắt đầu ca",
+                endTime: "Giờ kết thúc ca",
+                notifyTime: "Giờ thông báo",
+                workDaysOfWeek: "Ngày làm việc trong tuần",
+                shiftGroup: "Nhóm ca trực"
+            };
+            const changes = {};
+            if (activeEditingPatternData) {
+                for (const [key, label] of Object.entries(fieldLabels)) {
+                    let oldVal = activeEditingPatternData[key];
+                    let newVal = updateData[key];
+                    
+                    const getNormalized = (v) => {
+                        if (v === null || v === undefined) return "";
+                        if (Array.isArray(v)) return v.map(String).join(",");
+                        return String(v).trim();
+                    };
+                    
+                    let cleanOldVal = getNormalized(oldVal);
+                    let cleanNewVal = getNormalized(newVal);
+                    
+                    if (cleanOldVal !== cleanNewVal) {
+                        let oldDisp = oldVal;
+                        let newDisp = newVal;
+                        if (Array.isArray(oldVal)) oldDisp = oldVal.join(", ");
+                        if (Array.isArray(newVal)) newDisp = newVal.join(", ");
+                        changes[key] = {
+                            label: label,
+                            old: oldVal === null || oldVal === undefined || oldVal === "" ? "Trống" : oldDisp,
+                            new: newVal === null || newVal === undefined || newVal === "" ? "Trống" : newDisp
+                        };
+                    }
+                }
+            }
             await updateDoc(doc(db, "work_patterns", id), updateData);
-            addLog("admin_update_work_pattern", { email: auth.currentUser?.email || "admin", patternId: id, updateData: updateData });
+            addLog("admin_update_work_pattern", { email: auth.currentUser?.email || "admin", patternId: id, targetName: displayName, changes: changes });
             hideLoading(); showSwal("success", "Thành công", "Đã cập nhật quy tắc!");
             closeEditPatternModalFn();
         } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -1929,8 +2044,60 @@ function setupScheduleEventListeners() {
 
         try {
             showLoading("Đang lưu...");
+            const fieldLabels = {
+                job: "Tên công việc",
+                time: "Giờ thực hiện",
+                exactDate: "Ngày cụ thể",
+                dom: "Ngày trong tháng",
+                day: "Thứ trong tuần",
+                week: "Tuần trong tháng",
+                month: "Tháng trong năm",
+                ruleEndDate: "Ngày kết thúc",
+                note: "Ghi chú",
+                is_admin_job: "Việc Admin",
+                is_common_job: "Việc chung",
+                targetGroup: "Nhóm nhận việc",
+                notifyTime: "Giờ thông báo",
+                lastCompletedDate: "Ngày hoàn thành cuối",
+                actualCompletedDate: "Ngày hoàn thành thực tế",
+                completedNote: "Ghi chú hoàn thành"
+            };
+            const changes = {};
+            if (activeEditingRuleData) {
+                for (const [key, label] of Object.entries(fieldLabels)) {
+                    let oldVal = activeEditingRuleData[key];
+                    let newVal = updateData[key];
+                    
+                    const getNormalized = (v) => {
+                        if (v === null || v === undefined) return "";
+                        return String(v).trim();
+                    };
+                    
+                    let cleanOldVal = getNormalized(oldVal);
+                    let cleanNewVal = getNormalized(newVal);
+                    
+                    if (key === "note") {
+                        cleanOldVal = cleanOldVal.replace("[CVAdmin]", "").replace("[CVChung]", "").trim();
+                        cleanNewVal = cleanNewVal.replace("[CVAdmin]", "").replace("[CVChung]", "").trim();
+                    }
+                    
+                    if (cleanOldVal !== cleanNewVal) {
+                        let oldDisp = oldVal;
+                        let newDisp = newVal;
+                        if (key === "note") {
+                            oldDisp = cleanOldVal;
+                            newDisp = cleanNewVal;
+                        }
+                        changes[key] = {
+                            label: label,
+                            old: oldVal === null || oldVal === undefined || oldVal === "" ? "Trống" : oldDisp,
+                            new: newVal === null || newVal === undefined || newVal === "" ? "Trống" : newDisp
+                        };
+                    }
+                }
+            }
             await updateDoc(doc(db, "work_rules", id), updateData);
-            addLog("admin_update_work_rule", { email: auth.currentUser?.email || "admin", ruleId: id, updateData: updateData });
+            addLog("admin_update_work_rule", { email: auth.currentUser?.email || "admin", ruleId: id, targetName: job, changes: changes });
             hideLoading(); showSwal("success", "Thành công", "Đã cập nhật công việc!");
             closeEditRuleModalFn();
         } catch (e) { hideLoading(); showSwal("error", "Lỗi", e.message); }
@@ -2020,6 +2187,329 @@ let systemRoles = {};
 function setupSystemManagement() {
     listenSystemUsers();
     setupBackupRestore();
+    setupResetCache();
+    setupAdminDataExplorer();
+}
+
+function setupResetCache() {
+    const refreshCacheBtn = document.getElementById("refreshCacheBtn");
+    if (refreshCacheBtn) {
+        refreshCacheBtn.addEventListener('click', async () => {
+            const isConfirmed = await showConfirmSwal("Làm mới dữ liệu", "Hành động này sẽ xóa bộ nhớ đệm hiện tại trên thiết bị này và tải lại dữ liệu mới nhất từ máy chủ. Tiếp tục?", "Đồng ý", "Hủy");
+            if (isConfirmed) {
+                showLoading("Đang làm mới bộ nhớ đệm...");
+                const req = indexedDB.open('KCN_LocalDB');
+                req.onsuccess = (e) => {
+                    const dbLocal = e.target.result;
+                    const tx = dbLocal.transaction(['logs', 'sync_info'], 'readwrite');
+                    tx.objectStore('logs').clear(); // Xóa sạch log cũ
+                    tx.objectStore('sync_info').delete('logs'); // Xóa mốc đồng bộ tiến
+                    tx.objectStore('sync_info').delete('logs_oldest'); // Xóa mốc đồng bộ lùi
+                    localStorage.removeItem('lastBgSync_logs'); // Mở khóa cho phép tải ngầm chạy lại
+                    tx.oncomplete = () => {
+                        window.location.reload(); // Tải lại trang
+                    };
+                };
+            }
+        });
+    }
+}
+
+function setupAdminDataExplorer() {
+    const fetchBtn = document.getElementById("adminExploreFetchBtn");
+    const collectionSelect = document.getElementById("adminExploreCollection");
+    const docIdInput = document.getElementById("adminExploreDocId");
+    const editorContainer = document.getElementById("adminJsonEditorContainer");
+    const jsonTextArea = document.getElementById("adminJsonTextArea");
+    const cancelBtn = document.getElementById("adminExploreCancelBtn");
+    const saveBtn = document.getElementById("adminExploreSaveBtn");
+    const deleteBtn = document.getElementById("adminExploreDeleteBtn");
+
+    if (!fetchBtn) return;
+
+    let activeFetchedData = null; // Lưu dữ liệu cũ phục vụ việc đối chiếu khi xóa trường
+
+    // Gán hàm module để gọi từ các hàm render khác
+    triggerAdminExplore = (colName, docId) => {
+        // 1. Chuyển tab sang Hệ thống
+        const tabBtns = document.querySelectorAll(".settings-tab-btn");
+        const tabPanes = document.querySelectorAll(".settings-tab-pane");
+        tabBtns.forEach(b => {
+            if (b.getAttribute("data-target") === "tab-system") b.classList.add("active");
+            else b.classList.remove("active");
+        });
+        tabPanes.forEach(p => {
+            if (p.id === "tab-system") p.classList.add("active");
+            else p.classList.remove("active");
+        });
+
+        // 2. Điền thông tin truy vấn
+        if (collectionSelect) collectionSelect.value = colName;
+        if (docIdInput) docIdInput.value = docId;
+
+        // 3. Thực thi lấy dữ liệu
+        fetchBtn.click();
+
+        // 4. Cuộn xuống khu vực editor
+        const explorerHeading = document.querySelector("#tab-system h3:nth-of-type(3)");
+        if (explorerHeading) {
+            explorerHeading.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+    };
+
+    // Hàm đệ quy chuyển đổi Firestore Timestamp hoặc Date sang ISO string
+    function convertTimestampsToISO(obj) {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj.toMillis === "function") {
+            return new Date(obj.toMillis()).toISOString();
+        }
+        if (obj instanceof Date) {
+            return obj.toISOString();
+        }
+        if (Array.isArray(obj)) {
+            return obj.map(item => convertTimestampsToISO(item));
+        }
+        if (typeof obj === "object") {
+            const res = {};
+            for (const [key, val] of Object.entries(obj)) {
+                res[key] = convertTimestampsToISO(val);
+            }
+            return res;
+        }
+        return obj;
+    }
+
+    // Hàm đệ quy parse chuỗi ISO date thành Date object
+    function convertISOToDates(obj) {
+        if (obj === null || obj === undefined) return obj;
+        if (typeof obj === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(obj)) {
+            const d = new Date(obj);
+            if (!isNaN(d.getTime())) {
+                return d;
+            }
+        }
+        if (Array.isArray(obj)) {
+            return obj.map(item => convertISOToDates(item));
+        }
+        if (typeof obj === "object") {
+            const res = {};
+            for (const [key, val] of Object.entries(obj)) {
+                res[key] = convertISOToDates(val);
+            }
+            return res;
+        }
+        return obj;
+    }
+
+    const handleIdAutoDetect = (val) => {
+        const trimmed = val.trim();
+        if (trimmed.includes(':')) {
+            const parts = trimmed.split(':');
+            const colName = parts[0].trim();
+            const docId = parts[1].trim();
+
+            const validCollections = ["reports_1", "reports_2", "shift_reports", "logs", "companies_master", "company_configs", "work_rules", "work_patterns", "users"];
+            if (validCollections.includes(colName) && docId) {
+                if (collectionSelect) collectionSelect.value = colName;
+                if (docIdInput) docIdInput.value = docId;
+
+                setTimeout(() => {
+                    fetchBtn.click();
+                    if (window.Swal) {
+                        window.Swal.fire({
+                            toast: true,
+                            position: 'top-end',
+                            icon: 'success',
+                            title: `Đã tự động nạp bản ghi từ Clipboard!`,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    }
+                }, 50);
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (docIdInput) {
+        docIdInput.addEventListener("paste", (e) => {
+            const pasteText = (e.clipboardData || window.clipboardData).getData('text');
+            const detected = handleIdAutoDetect(pasteText);
+            if (detected) {
+                e.preventDefault();
+            }
+        });
+
+        docIdInput.addEventListener("input", (e) => {
+            handleIdAutoDetect(e.target.value);
+        });
+    }
+
+    fetchBtn.addEventListener("click", async () => {
+        const colName = collectionSelect.value;
+        const docId = docIdInput.value.trim();
+
+        if (!docId) {
+            showSwal("error", "Lỗi", "Vui lòng nhập ID tài liệu.");
+            return;
+        }
+
+        showLoading("Đang tải tài liệu...");
+        try {
+            const docRef = doc(db, colName, docId);
+            const snap = await getDoc(docRef);
+
+            if (!snap.exists()) {
+                showSwal("error", "Không tìm thấy", `Không tìm thấy tài liệu với ID: ${docId} trong bảng ${colName}.`);
+                editorContainer.style.display = "none";
+                return;
+            }
+
+            const data = snap.data();
+            activeFetchedData = data;
+
+            // Chuyển đổi timestamp sang ISO string đệ quy để Admin dễ chỉnh sửa
+            const editableData = convertTimestampsToISO(data);
+            delete editableData.updatedAt; // Khóa updatedAt không cho chỉnh sửa ở tool
+
+            jsonTextArea.value = JSON.stringify(editableData, null, 2);
+            editorContainer.style.display = "flex";
+        } catch (err) {
+            console.error("Lỗi lấy dữ liệu:", err);
+            showSwal("error", "Lỗi", err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    cancelBtn.addEventListener("click", () => {
+        editorContainer.style.display = "none";
+        docIdInput.value = "";
+        activeFetchedData = null;
+    });
+
+    saveBtn.addEventListener("click", async () => {
+        const colName = collectionSelect.value;
+        const docId = docIdInput.value.trim();
+
+        let parsedData;
+        try {
+            parsedData = JSON.parse(jsonTextArea.value);
+        } catch (err) {
+            showSwal("error", "Lỗi cú pháp JSON", "Dữ liệu nhập vào không hợp lệ. Vui lòng kiểm tra kỹ dấu ngoặc kép, dấu phẩy.");
+            return;
+        }
+
+        const isConfirmed = await showConfirmSwal(
+            "Xác nhận Lưu",
+            "Hành động này sẽ thay đổi dữ liệu trực tiếp trên Firestore và tự động đồng bộ xuống các thiết bị khác. Tiếp tục?",
+            "Đồng ý lưu", "Hủy bỏ"
+        );
+        if (!isConfirmed) return;
+
+        showLoading("Đang lưu thay đổi...");
+        try {
+            // Chuyển đổi các trường ngày tháng ISO sang Date object đệ quy
+            const finalData = convertISOToDates(parsedData);
+
+            // Đối chiếu xóa các trường đã bị xóa khỏi JSON
+            if (activeFetchedData) {
+                for (const key of Object.keys(activeFetchedData)) {
+                    if (!(key in parsedData) && key !== 'updatedAt') {
+                        finalData[key] = deleteField();
+                    }
+                }
+            }
+
+            finalData.updatedAt = serverTimestamp();
+            finalData.adminEdited = true;
+            finalData.updatedBy = auth.currentUser?.email || "admin";
+
+            const docRef = doc(db, colName, docId);
+            await setDoc(docRef, finalData, { merge: true });
+
+            // Ghi nhật ký hệ thống
+            await addLog("admin_manual_edit", {
+                email: auth.currentUser?.email,
+                collection: colName,
+                docId: docId,
+                changes: parsedData
+            });
+
+            showSwal("success", "Đã lưu", "Tài liệu đã được cập nhật thành công!");
+            editorContainer.style.display = "none";
+            docIdInput.value = "";
+            activeFetchedData = null;
+        } catch (err) {
+            console.error("Lỗi khi lưu:", err);
+            showSwal("error", "Lỗi", err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    deleteBtn.addEventListener("click", async () => {
+        const colName = collectionSelect.value;
+        const docId = docIdInput.value.trim();
+
+        if (!activeFetchedData) return;
+
+        const isConfirmed = await showConfirmSwal(
+            "Xác nhận Xóa vĩnh viễn",
+            `<span style="color:red; font-weight:bold;">CẢNH BÁO:</span> Hành động này sẽ xóa vĩnh viễn tài liệu này khỏi Firestore và đồng bộ xóa sạch cache trên tất cả thiết bị. Bạn có chắc chắn không?`,
+            "Có, xóa vĩnh viễn", "Hủy bỏ", "error"
+        );
+        if (!isConfirmed) return;
+
+        showLoading("Đang thực hiện xóa tài liệu...");
+        try {
+            const docRef = doc(db, colName, docId);
+            const batchInstance = writeBatch(db);
+
+            // 1. Xóa tài liệu chính
+            batchInstance.delete(docRef);
+
+            // 2. Ghi bia mộ (tombstone) để kích hoạt đồng bộ xóa ở các thiết bị khác
+            batchInstance.set(doc(collection(db, "sync_deletes")), {
+                docId: docId,
+                collectionName: colName,
+                deletedAt: serverTimestamp()
+            });
+
+            await batchInstance.commit();
+
+            // 3. Ghi log lưu trữ toàn bộ dữ liệu trước khi xóa
+            await addLog("admin_manual_delete", {
+                email: auth.currentUser?.email,
+                collection: colName,
+                docId: docId,
+                deletedData: activeFetchedData
+            });
+
+            showSwal("success", "Đã xóa", "Tài liệu đã được xóa vĩnh viễn thành công!");
+            editorContainer.style.display = "none";
+            docIdInput.value = "";
+            activeFetchedData = null;
+        } catch (err) {
+            console.error("Lỗi khi xóa tài liệu:", err);
+            showSwal("error", "Lỗi", err.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    // Tự động kích hoạt từ URL params (Ví dụ khi chuyển hướng từ trang datatable)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlCol = urlParams.get('col');
+    const urlId = urlParams.get('id');
+    if (urlCol && urlId) {
+        setTimeout(() => {
+            if (typeof triggerAdminExplore === "function") {
+                triggerAdminExplore(urlCol, urlId);
+            }
+        }, 500);
+    }
 }
 
 function listenSystemUsers() {
@@ -2040,16 +2530,47 @@ function renderUsersTable() {
     const tbody = document.getElementById("usersTableBody");
     if (!tbody) return;
 
-    if (systemUsers.length === 0) {
+    const usersList = typeof systemUsers !== 'undefined' ? systemUsers : [];
+    const rolesMap = typeof systemRoles !== 'undefined' ? systemRoles : {};
+
+    // Gộp danh sách người dùng từ cả users (đã đăng nhập) và roles (được phân quyền)
+    const userMap = new Map();
+    
+    // 1. Nạp từ users list (những người đã từng đăng nhập)
+    usersList.forEach(u => {
+        const email = (u.email || u.id || "").toLowerCase().trim();
+        if (email) {
+            userMap.set(email, {
+                email: email,
+                lastActiveAt: u.lastActiveAt || null,
+                ...u
+            });
+        }
+    });
+
+    // 2. Nạp từ roles map (để bao quát những người đã được phân quyền nhưng chưa đăng nhập)
+    Object.keys(rolesMap).forEach(emailKey => {
+        const email = emailKey.toLowerCase().trim();
+        if (email && !userMap.has(email)) {
+            userMap.set(email, {
+                email: email,
+                lastActiveAt: null
+            });
+        }
+    });
+
+    const mergedUsers = Array.from(userMap.values());
+
+    if (mergedUsers.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; color: #666;">Không có dữ liệu người dùng.</td></tr>';
         return;
     }
 
-    const sortedUsers = [...systemUsers].sort((a, b) => (a.email || "").localeCompare(b.email || ""));
+    const sortedUsers = mergedUsers.sort((a, b) => a.email.localeCompare(b.email));
 
     tbody.innerHTML = sortedUsers.map(u => {
-        const email = u.email || u.id;
-        const role = systemRoles[email] || "user";
+        const email = u.email;
+        const role = rolesMap[email] || "user";
         const lastActive = u.lastActiveAt?.toDate ? u.lastActiveAt.toDate().toLocaleString('vi-VN') : "-";
         
         const roleDisplay = role === "admin" ? `<span style="color: #e74c3c; font-weight: bold;">Admin</span>` : `<span style="color: #273668;">User</span>`;
@@ -2066,6 +2587,27 @@ function renderUsersTable() {
             <td><div style="display:flex; gap:4px; flex-wrap: wrap; justify-content: center;">${actionBtn}${forceLogoutBtn}</div></td>
         </tr>`;
     }).join("");
+
+    // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin (email của user chính là ID của tài liệu)
+    tbody.querySelectorAll("tr").forEach((tr, index) => {
+        const u = sortedUsers[index];
+        if (u) {
+            const email = u.email;
+            tr.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                copyDocIdToClipboard('users', email);
+            });
+
+            let pressTimer;
+            tr.addEventListener('touchstart', () => {
+                pressTimer = window.setTimeout(() => {
+                    copyDocIdToClipboard('users', email);
+                }, 800);
+            }, { passive: true });
+            tr.addEventListener('touchend', () => clearTimeout(pressTimer));
+            tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+        }
+    });
 
     document.querySelectorAll(".change-role-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {

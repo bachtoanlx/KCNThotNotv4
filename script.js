@@ -129,6 +129,13 @@ export async function initFCM(email) {
   }
 }
 
+// Thiết lập Device ID để kiểm tra phiên đăng nhập trên thiết bị khác
+let deviceId = localStorage.getItem('deviceId');
+if (!deviceId) {
+  deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  localStorage.setItem('deviceId', deviceId);
+}
+
 // Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
 let currentUserSnapshotUnsubscribe = null;
 
@@ -146,7 +153,8 @@ onAuthStateChanged(auth, async (user) => {
         // Bất kể họ có cho phép thông báo (FCM) hay không
         await setDoc(doc(db, "users", userEmailSafe), {
             email: userEmailSafe,
-            lastActiveAt: serverTimestamp()
+            lastActiveAt: serverTimestamp(),
+            lastDeviceId: deviceId
         }, { merge: true });
     } catch (e) {
         console.warn("Không thể lưu thông tin đăng nhập ban đầu:", e);
@@ -163,6 +171,19 @@ onAuthStateChanged(auth, async (user) => {
     currentUserSnapshotUnsubscribe = onSnapshot(doc(db, "users", userEmailSafe), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
+
+            // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác
+            if (data.lastDeviceId && data.lastDeviceId !== deviceId) {
+                console.log("[Bảo mật] Tài khoản đã được đăng nhập ở thiết bị khác. Xóa cache và đăng xuất...");
+                if (currentUserSnapshotUnsubscribe) {
+                    currentUserSnapshotUnsubscribe();
+                    currentUserSnapshotUnsubscribe = null;
+                }
+                clearLocalDB().then(() => {
+                    signOut(auth);
+                });
+                return;
+            }
             if (data.forceLogoutAt) {
                 // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
                 let forceTime = 0;
@@ -195,7 +216,7 @@ onAuthStateChanged(auth, async (user) => {
                         currentUserSnapshotUnsubscribe = null;
                     }
                     
-                    logout().then(() => {
+                    logout(true).then(() => {
                         window.Swal.fire({
                             title: 'Đăng xuất',
                             text: 'Tài khoản của bạn đã bị quản trị viên đăng xuất.',
@@ -307,10 +328,44 @@ export async function notifyAdmins(title, body) {
   }
 }
 
-export function logout() {
+export async function clearLocalDB() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('KCN_LocalDB');
+    req.onsuccess = (e) => {
+      const dbLocal = e.target.result;
+      try {
+        const tx = dbLocal.transaction(['logs', 'reports_1', 'reports_2', 'shift_reports', 'sync_info'], 'readwrite');
+        tx.objectStore('logs').clear();
+        tx.objectStore('reports_1').clear();
+        tx.objectStore('reports_2').clear();
+        tx.objectStore('shift_reports').clear();
+        tx.objectStore('sync_info').clear();
+        tx.oncomplete = () => {
+          localStorage.removeItem('lastBgSync_logs');
+          localStorage.removeItem('lastBgSync_reports_1');
+          localStorage.removeItem('lastBgSync_reports_2');
+          localStorage.removeItem('synced_years_shift_reports');
+          resolve();
+        };
+        tx.onerror = () => {
+          resolve();
+        };
+      } catch (err) {
+        console.warn("Lỗi dọn dẹp cache IndexedDB:", err);
+        resolve();
+      }
+    };
+    req.onerror = () => {
+      resolve();
+    };
+  });
+}
+
+export async function logout(force = false) {
   const userEmail = auth.currentUser?.email || "unknown";
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("logout", { email: userEmail, status: "success", userAgent: navigator.userAgent });
+
   return signOut(auth);
 }
 
@@ -1327,7 +1382,8 @@ if (!snapSameDay.empty) {
           fileId,
           isMeterReset: true,
           ghi_chu: (existingData.ghi_chu ? existingData.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT CÙNG NGÀY: ${reason}]`,
-          updatedAt: serverTimestamp()
+          updatedAt: serverTimestamp(),
+          adminEdited: false
         };
 
         await setDoc(doc(db, collectionName, existingDoc.id), updatedRecord, { merge: true });

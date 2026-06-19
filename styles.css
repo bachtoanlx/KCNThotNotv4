@@ -1833,3 +1833,348 @@ tr:last-child td {
   display: inline-block !important; 
   box-sizing: border-box !important;
 }
+
+/* =========================================================
+   CSS CHO TRANG KHO HÓA CHẤT (STOCK MANAGEMENT)
+   ========================================================= */
+.stock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+  margin-bottom: 25px;
+}
+
+.stock-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stock-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+}
+
+.stock-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.stock-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.stock-badge {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.badge-safe {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.badge-warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.badge-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.stock-value-container {
+  margin: 10px 0;
+}
+
+.stock-large-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1;
+}
+
+.stock-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.stock-min-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Thanh progress bar tồn kho */
+.progress-bar-container {
+  background-color: #e2e8f0;
+  border-radius: 8px;
+  height: 12px;
+  width: 100%;
+  overflow: hidden;
+  margin: 15px 0 5px 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+.fill-safe {
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.fill-warning {
+  background: linear-gradient(90deg, #f1c40f, #f39c12);
+}
+
+.fill-danger {
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.stock-card-footer {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 8px;
+  text-align: right;
+}
+
+/* Kho Layout Split (2 cột) */
+.kho-layout {
+  display: flex;
+  gap: 25px;
+  margin-top: 10px;
+}
+
+.kho-left {
+  flex: 3;
+  min-width: 0;
+}
+
+.kho-right {
+  flex: 2;
+  min-width: 320px;
+}
+
+@media (max-width: 992px) {
+  .kho-layout {
+    flex-direction: column;
+  }
+  .kho-right {
+    min-width: 100%;
+  }
+}
+
+/* =========================================================
+   CSS CHO TRANG BÁO LỖI & SỰ CỐ THIẾT BỊ (MAINTENANCE)
+   ========================================================= */
+.suco-layout {
+  display: flex;
+  gap: 25px;
+  margin-top: 10px;
+}
+
+.suco-left {
+  flex: 2;
+  min-width: 320px;
+}
+
+.suco-right {
+  flex: 3;
+  min-width: 0;
+}
+
+@media (max-width: 992px) {
+  .suco-layout {
+    flex-direction: column;
+  }
+  .suco-left {
+    min-width: 100%;
+  }
+}
+
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.ticket-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.ticket-card:hover {
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+/* Hiệu ứng chớp nháy đặc biệt cho ca khẩn cấp chưa xử lý */
+@keyframes critBlink {
+  0% { border-color: var(--danger-color); box-shadow: 0 0 4px rgba(231, 76, 60, 0.4); }
+  50% { border-color: #f1c40f; box-shadow: 0 0 12px rgba(241, 196, 15, 0.6); }
+  100% { border-color: var(--danger-color); box-shadow: 0 0 4px rgba(231, 76, 60, 0.4); }
+}
+
+.ticket-card.critical-pending {
+  animation: critBlink 2s infinite ease-in-out;
+  border-width: 1.5px;
+}
+
+.ticket-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.ticket-device-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--primary-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.severity-badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-crit {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.badge-med {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.badge-low {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.ticket-desc {
+  font-size: 0.85rem;
+  color: var(--text-color);
+  margin: 8px 0;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-line;
+}
+
+.ticket-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.ticket-image-preview {
+  width: 100%;
+  height: 120px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: opacity 0.2s;
+}
+
+.ticket-image-preview:hover {
+  opacity: 0.9;
+}
+
+.ticket-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 10px;
+  margin-top: 5px;
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.status-pending {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.status-fixing {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-resolved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.ticket-admin-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.ticket-admin-btn {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.ticket-notes-box {
+  background-color: #f8fafc;
+  border-left: 3px solid #27ae60;
+  padding: 6px 10px;
+  margin-top: 8px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.8rem;
+  color: #334155;
+  font-style: italic;
+}
+

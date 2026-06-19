@@ -27,6 +27,59 @@ const quickFilterSelect = document.getElementById("quickFilterSelect");
 let allAdminRulesData = [];
 let currentFilter = { from: null, to: null };
 let currentSearchQuery = "";
+let activeEditingRuleData = null;
+
+function getRuleChanges(oldData, newData) {
+    const fieldLabels = {
+        job: "Tên công việc",
+        time: "Giờ thực hiện",
+        exactDate: "Ngày cụ thể",
+        dom: "Ngày trong tháng",
+        day: "Thứ trong tuần",
+        week: "Tuần trong tháng",
+        month: "Tháng trong năm",
+        ruleEndDate: "Ngày kết thúc",
+        note: "Ghi chú"
+    };
+    const changes = {};
+    if (oldData) {
+        for (const [key, label] of Object.entries(fieldLabels)) {
+            let oldVal = oldData[key];
+            let newVal = newData[key];
+            
+            // Nếu newVal không được định nghĩa trong newData (không có trong form cập nhật), ta bỏ qua
+            if (newVal === undefined) continue;
+            
+            const getNormalized = (v) => {
+                if (v === null || v === undefined) return "";
+                return String(v).trim();
+            };
+            
+            let cleanOldVal = getNormalized(oldVal);
+            let cleanNewVal = getNormalized(newVal);
+            
+            if (key === "note") {
+                cleanOldVal = cleanOldVal.replace("[CVAdmin]", "").replace("[CVChung]", "").trim();
+                cleanNewVal = cleanNewVal.replace("[CVAdmin]", "").replace("[CVChung]", "").trim();
+            }
+            
+            if (cleanOldVal !== cleanNewVal) {
+                let oldDisp = oldVal;
+                let newDisp = newVal;
+                if (key === "note") {
+                    oldDisp = cleanOldVal;
+                    newDisp = cleanNewVal;
+                }
+                changes[key] = {
+                    label: label,
+                    old: oldVal === null || oldVal === undefined || oldVal === "" ? "Trống" : oldDisp,
+                    new: newVal === null || newVal === undefined || newVal === "" ? "Trống" : newDisp
+                };
+            }
+        }
+    }
+    return changes;
+}
 
 onAuth(async (user) => {
     if (!user) {
@@ -281,36 +334,12 @@ function renderAdminTaskList(rulesToRender) {
             };
         };
 
-        // --- LOGIC: Bỏ qua bộ lọc thời gian nếu đang có từ khóa tìm kiếm (Global Search) ---
+        // --- LOGIC: Sử dụng bộ lọc thời gian nếu KHÔNG có từ khóa tìm kiếm ---
         if (currentFilter.from && currentFilter.to && !currentSearchQuery) {
-            // MỞ RỘNG: Chế độ Lọc theo khoảng ngày
+            // MỞ RỘNG: Chế độ Lọc theo khoảng ngày (Tháng, Quý, Năm...)
             const startDate = new Date(currentFilter.from + "T00:00:00");
             const endDate = new Date(currentFilter.to + "T00:00:00");
             
-            // --- CẢI TIẾN: LUÔN GIỮ LẠI CÁC VIỆC ĐANG LÀM / QUÁ HẠN / ĐẾN HẠN HÔM NAY ---
-            const lastMatchDate = getLastMatchDate(d);
-            const nextMatchDate = getNextMatchDate(d);
-            
-            const pastTask = createTaskRow(lastMatchDate, false);
-            const futureTask = createTaskRow(nextMatchDate, true);
-            
-            const forceAddedDates = new Set();
-
-            // 1. Ép giữ lại các việc Quá hạn, Đến hạn hôm nay, Đang làm ở kỳ trước
-            if (pastTask && pastTask.category !== 3 && pastTask.category !== 5) {
-                taskList.push(pastTask);
-                forceAddedDates.add(pastTask.matchDateStr);
-            }
-            
-            // 2. Ép giữ lại các việc Đang làm (nhưng thuộc kỳ tương lai)
-            if (futureTask && futureTask.isInProgress && futureTask.category !== 3 && futureTask.category !== 5) {
-                if (!forceAddedDates.has(futureTask.matchDateStr)) {
-                    taskList.push(futureTask);
-                    forceAddedDates.add(futureTask.matchDateStr);
-                }
-            }
-            // --------------------------------------------------------------------------
-
             for (let curr = new Date(startDate); curr <= endDate; curr.setDate(curr.getDate() + 1)) {
                 if (ruleMatchesDate(d, curr)) {
                     const currMidnight = new Date(curr);
@@ -318,25 +347,37 @@ function renderAdminTaskList(rulesToRender) {
                     const isFuture = currMidnight > todayMidnight;
                     const task = createTaskRow(new Date(curr), isFuture);
                     if (task) {
-                        // Bỏ qua nếu đã được ép thêm ở trên để tránh trùng lặp dòng
-                        if (forceAddedDates.has(task.matchDateStr)) continue;
                         taskList.push(task);
                     }
                 }
             }
         } else {
-            // MẶC ĐỊNH: Chỉ lấy 1 kỳ trước và 1 kỳ sau
-            const lastMatchDate = getLastMatchDate(d);
+            // MẶC ĐỊNH: Khi tìm kiếm, duyệt qua các kỳ để gom hết việc chưa hoàn thành trong 365 ngày qua
             const nextMatchDate = getNextMatchDate(d);
-            const pastTask = createTaskRow(lastMatchDate, false);
             const futureTask = createTaskRow(nextMatchDate, true);
-    
-            if (pastTask) taskList.push(pastTask);
-            if (futureTask && (!pastTask || futureTask.matchDateStr !== pastTask.matchDateStr)) {
+            if (futureTask) {
                 taskList.push(futureTask);
             }
-            if (!pastTask && !futureTask) {
-                taskList.push({ id: d.id, job: d.job, time: d.time || "23:59", noteDisplay: noteDisplay, category: 5, targetDate: null, diffDays: 999, matchDateStr: "", statusText: "Không có lịch", statusColor: "#333", doneBtnHtml: "", currentHistory: [], actualCompletedStr: "-", actualCompletedDate: new Date(0), completedNote: "" });
+
+            const today = new Date();
+            let foundFirstPast = false;
+            for (let i = 0; i < 365; i++) {
+                const curr = new Date(today);
+                curr.setDate(today.getDate() - i);
+                if (ruleMatchesDate(d, curr)) {
+                    const pastTask = createTaskRow(curr, false);
+                    if (pastTask) {
+                        const isCompleted = pastTask.category === 3;
+                        if (!isCompleted) {
+                            // Việc quá hạn chưa làm -> luôn đưa vào để tìm kiếm
+                            taskList.push(pastTask);
+                        } else if (!foundFirstPast) {
+                            // Việc đã hoàn thành -> chỉ lấy kỳ gần nhất để tránh trùng lặp
+                            taskList.push(pastTask);
+                            foundFirstPast = true;
+                        }
+                    }
+                }
             }
         }
     });
@@ -718,6 +759,7 @@ function updateEditRuleState() {
 });
 
 function openEditRuleModal(rule) {
+    activeEditingRuleData = rule;
     document.getElementById("editRuleId").value = rule.id;
     document.getElementById("editRuleJobName").value = rule.job || "";
     document.getElementById("editRuleTime").value = rule.time || "";
@@ -742,6 +784,7 @@ function openEditRuleModal(rule) {
 const closeEditRuleModalFn = () => {
     document.getElementById("editRuleModal").style.display = "none";
     toggleBodyScroll(false);
+    activeEditingRuleData = null;
     
     ["editRuleId", "editRuleJobName", "editRuleTime", "editRuleExactDate", "editRuleDom", "editRuleDay", "editRuleWeek", "editRuleMonth", "editRuleEndDate", "editRuleNote"].forEach(id => {
         const el = document.getElementById(id);
@@ -773,11 +816,12 @@ document.getElementById("saveEditRuleBtn").addEventListener("click", async () =>
     let note = `[CVAdmin] ${rawNote}`.trim();
     
     const updateData = { job, time, exactDate, dom, day, week, month, ruleEndDate, note, updatedAt: serverTimestamp() };
+    const changes = getRuleChanges(activeEditingRuleData, updateData);
 
     try {
         showLoading("Đang lưu...");
         await updateDoc(doc(db, "work_rules", id), updateData);
-        addLog("admin_update_work_rule", { email: getCurrentUserEmail(), ruleId: id, targetName: job, updateData });
+        addLog("admin_update_work_rule", { email: getCurrentUserEmail(), ruleId: id, targetName: job, changes });
         hideLoading();
         showSwal("success", "Đã cập nhật công việc!");
         closeEditRuleModalFn();
@@ -804,6 +848,7 @@ document.getElementById("deleteEditRuleBtn").addEventListener("click", async () 
 
 // LOGIC THÊM NHANH (MỚI)
 function resetQuickAddFormMode() {
+    activeEditingRuleData = null;
     document.getElementById("quickAddRuleEditId").value = "";
     document.getElementById("deleteQuickAddBtn").style.display = "none";
     document.getElementById("quickAddSpacer").style.display = "none";
@@ -853,6 +898,7 @@ document.getElementById("quickTaskName").addEventListener("input", function() {
 
     if (exactMatchRule) {
         if (currentEditId !== exactMatchRule.id) {
+            activeEditingRuleData = exactMatchRule;
             document.getElementById("quickTaskDate").value = exactMatchRule.exactDate || "";
             
             let rawNote = exactMatchRule.note || "";
@@ -926,8 +972,9 @@ document.getElementById("saveQuickAddBtn").addEventListener("click", async () =>
                 note: finalNote,
                 updatedAt: serverTimestamp()
             };
+            const changes = getRuleChanges(activeEditingRuleData, updateData);
             await updateDoc(doc(db, "work_rules", editId), updateData);
-            addLog("admin_update_work_rule_quick", { email: getCurrentUserEmail(), ruleId: editId, targetName: jobName, updateData });
+            addLog("admin_update_work_rule_quick", { email: getCurrentUserEmail(), ruleId: editId, targetName: jobName, changes });
             
             hideLoading();
             showSwal("success", "Đã cập nhật công việc!");

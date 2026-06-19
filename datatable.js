@@ -47,6 +47,25 @@
     let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
     const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
 
+    const copyDocIdToClipboard = (collectionName, docId) => {
+        const textToCopy = `${collectionName}:${docId}`;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            if (window.Swal) {
+                window.Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: `Đã sao chép định danh bản ghi (${collectionName}) vào Clipboard!`,
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true
+                });
+            }
+        }).catch(err => {
+            console.error('Không thể sao chép:', err);
+        });
+    };
+
     // === STATE VÀ HÀM CHO DEEP SEARCH ===
     let isDeepSearchMode = false;
     let deepSearchQuery = "";
@@ -107,26 +126,100 @@
         }).join(" ");
     }
 
-    async function performDeepSearch(queryText) {
-        if (isFetching) return;
-        isFetching = true;
-        
-        isDeepSearchMode = true;
-        deepSearchQuery = queryText;
-        
+    let unsubscribeRealtime = null;
+    let unsubscribeRealtimeDel = null;
+
+    function startRealtimeSyncReports1(startTime) {
+        if (unsubscribeRealtime) unsubscribeRealtime();
+        if (unsubscribeRealtimeDel) unsubscribeRealtimeDel();
+
+        const qNew = query(collection(db, "reports_1"), where("updatedAt", ">", startTime));
+        unsubscribeRealtime = onSnapshot(qNew, (snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const data = change.doc.data();
+                    const parsed = {
+                        id: change.doc.id,
+                        ...data,
+                        _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                        _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                    };
+                    await saveToLocalDB("reports_1", [parsed]);
+                    
+                    const lastSync = await getLastSyncTime("reports_1");
+                    const t = data.updatedAt?.toMillis?.() || data.createdAt?.toMillis?.() || 0;
+                    if (t > lastSync) {
+                        await setLastSyncTime("reports_1", t);
+                    }
+                    
+                    if (!isDeepSearchMode) {
+                        if (searchInput && searchInput.value.trim() === "") {
+                            await fetchAndRenderData(false);
+                        }
+                    } else {
+                        if (deepSearchQuery && deepSearchQuery.trim() !== "") {
+                            await performDeepSearch(deepSearchQuery);
+                        }
+                    }
+                }
+            });
+        }, (error) => {
+            console.warn("[Realtime Sync Reports 1] Lỗi lắng nghe:", error);
+        });
+
+        const qDel = query(collection(db, "sync_deletes"), where("deletedAt", ">", startTime));
+        unsubscribeRealtimeDel = onSnapshot(qDel, (snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const data = change.doc.data();
+                    if (data.collectionName === "reports_1") {
+                        await deleteFromLocalDB("reports_1", [data.docId]);
+                        
+                        const t = data.deletedAt?.toMillis?.() || 0;
+                        const lastSync = await getLastSyncTime("reports_1");
+                        if (t > lastSync) {
+                            await setLastSyncTime("reports_1", t);
+                        }
+                        
+                        if (!isDeepSearchMode) {
+                            if (searchInput && searchInput.value.trim() === "") {
+                                await fetchAndRenderData(false);
+                            }
+                        } else {
+                            if (deepSearchQuery && deepSearchQuery.trim() !== "") {
+                                await performDeepSearch(deepSearchQuery);
+                            }
+                        }
+                    }
+                }
+            });
+        }, (error) => {
+            console.warn("[Realtime Sync Reports 1 Del] Lỗi lắng nghe xóa:", error);
+        });
+    }
+
+    async function syncDeltaReports1() {
         try {
-            // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
             const lastSync = await getLastSyncTime("reports_1");
+            let maxTime = lastSync;
+
+            // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
             if (lastSync > 0) {
                 const qDel = query(collection(db, "sync_deletes"), 
                     where("deletedAt", ">", new Date(lastSync))
                 );
                 const snapDel = await getDocs(qDel);
                 if (!snapDel.empty) {
-                    const idsToDelete = snapDel.docs
+                    const relevantDeletes = snapDel.docs
                         .map(d => d.data())
-                        .filter(data => data.collectionName === "reports_1")
-                        .map(data => data.docId);
+                        .filter(data => data.collectionName === "reports_1");
+                    
+                    relevantDeletes.forEach(data => {
+                        const t = data.deletedAt?.toMillis?.() || 0;
+                        if (t > maxTime) maxTime = t;
+                    });
+
+                    const idsToDelete = relevantDeletes.map(data => data.docId);
                     if (idsToDelete.length > 0) {
                         await deleteFromLocalDB("reports_1", idsToDelete);
                     }
@@ -136,7 +229,7 @@
             // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
             let newRecords = [];
             if (lastSync === 0) {
-                // TỐI ƯU FIREBASE: Lần đầu Deep Search chỉ tải 60 ngày gần nhất thay vì TOÀN BỘ
+                // TỐI ƯU FIREBASE: Lần đầu chỉ tải 60 ngày gần nhất thay vì TOÀN BỘ
                 const sixtyDaysAgo = new Date();
                 sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
                 const qInit = query(collection(db, "reports_1"), where("ngay_ghi", ">=", formatISODate(sixtyDaysAgo)));
@@ -160,8 +253,32 @@
                     _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
                 }));
                 await saveToLocalDB("reports_1", parsedRecords);
+
+                newRecords.forEach(r => {
+                    const t = r.updatedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+                    if (t > maxTime) maxTime = t;
+                });
             }
-            await setLastSyncTime("reports_1", Date.now());
+
+            // Cập nhật mốc thời gian đồng bộ sử dụng thời gian của Server (maxTime)
+            if (maxTime > lastSync) {
+                await setLastSyncTime("reports_1", maxTime);
+            }
+        } catch (e) {
+            console.warn("Lỗi đồng bộ reports_1:", e);
+        }
+    }
+
+    async function performDeepSearch(queryText) {
+        if (isFetching) return;
+        isFetching = true;
+        
+        isDeepSearchMode = true;
+        deepSearchQuery = queryText;
+        
+        try {
+            // Chạy đồng bộ tự động dữ liệu trước khi thực hiện tìm kiếm trên IndexedDB
+            await syncDeltaReports1();
 
             // 3. Nạp dữ liệu lên RAM và tìm kiếm
             const allLocalData = await getAllFromLocalDB("reports_1");
@@ -322,7 +439,7 @@
         const fragment = document.createDocumentFragment();
         finalData.forEach(r => {
             const fileLink = r.fileUrl ? `<a href="${r.fileUrl}" target="_blank">Link</a>` : "";
-            const formattedTime = formatTimestamp(r.updatedAt || r.createdAt);
+            const formattedTime = formatTimestamp(r.adminEdited === true ? r.createdAt : (r.updatedAt || r.createdAt));
             let combinedGhiChu = r.ghi_chu || "";
             let displayGhiChu = combinedGhiChu; // Nội dung hiển thị trên bảng (1 dòng)
             
@@ -350,6 +467,24 @@
             
             // Gắn sự kiện click cho ô Ghi chú
             const noteCell = tr.querySelector('.clickable-cell');
+            
+            // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
+            if (isAdmin) {
+                tr.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    copyDocIdToClipboard('reports_1', r.id);
+                });
+
+                let pressTimer;
+                tr.addEventListener('touchstart', () => {
+                    pressTimer = window.setTimeout(() => {
+                        copyDocIdToClipboard('reports_1', r.id);
+                    }, 800);
+                }, { passive: true });
+                tr.addEventListener('touchend', () => clearTimeout(pressTimer));
+                tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            }
+
             if (noteCell) {
                 noteCell._fullContent = combinedGhiChu || "Không có ghi chú";
                 noteCell._previewContent = displayGhiChu;
@@ -640,6 +775,12 @@
                     initialLoad = false;
                 }
 
+                // Tự động đồng bộ các thay đổi mới nhất từ server về IndexedDB cục bộ
+                await syncDeltaReports1();
+
+                // Khởi động lắng nghe thời gian thực cho dữ liệu mới phát sinh
+                startRealtimeSyncReports1(new Date(Date.now() - 300000));
+
                 // 4. Tải dữ liệu chính (Lần đầu)
                 await fetchAndRenderData(false); 
                 
@@ -767,6 +908,14 @@
         } else {
             notLogged.style.display = "flex";
             content.style.display = "none";
+            if (unsubscribeRealtime) {
+                unsubscribeRealtime();
+                unsubscribeRealtime = null;
+            }
+            if (unsubscribeRealtimeDel) {
+                unsubscribeRealtimeDel();
+                unsubscribeRealtimeDel = null;
+            }
             hideLoading(); 
         }
     });

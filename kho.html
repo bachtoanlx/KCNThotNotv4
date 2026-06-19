@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kho Hóa Chất - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    /* Bổ sung tinh chỉnh bố cục */
+    html, body {
+      height: 100vh;
+      height: 100dvh;
+      overflow-x: hidden;
+    }
+    
+    #pageContent {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px 20px;
+    }
+
+    @media (max-width: 768px) {
+      #pageContent {
+        padding: 5px 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <div id="notLogged" style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này. Quay lại trang chủ.</a>
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <div class="kho-layout">
+      <!-- Cột bên trái: Thẻ Tồn Kho Hóa Chất -->
+      <div class="kho-left">
+        <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
+          📦 Giám sát Tồn kho Hóa chất
+        </h2>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
+          Hệ thống giám sát lượng hóa chất vận hành hiện tại trong kho. Tồn kho tự động cập nhật giảm khi lưu báo cáo ca trực.
+        </p>
+
+        <!-- Lưới thẻ hóa chất -->
+        <div class="stock-grid" id="stock-grid">
+          <!-- Các thẻ hóa chất sẽ được render bằng Javascript -->
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
+            Đang tải dữ liệu kho...
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột bên phải: Nghiệp vụ Nhập kho & Lịch sử (Chỉ hiển thị nút nhập kho cho Admin) -->
+      <div class="kho-right">
+        <!-- Section Nhập Kho (Ẩn mặc định cho User thường, chỉ Admin nhìn thấy) -->
+        <div id="admin-import-card" style="display: none; margin-bottom: 25px;">
+          <h2 style="color: var(--primary-color); font-size: 1.3rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            📥 Nhập Hóa Chất Vào Kho
+          </h2>
+          <form id="importForm" style="padding: 15px;">
+            <div class="form-group form-field">
+              <label for="import-chemical-name">Tên Hóa chất:</label>
+              <select class="form-control" id="import-chemical-name" required>
+                <option value="" disabled selected>- Chọn hóa chất -</option>
+                <option value="Polymer Anion">Polymer Anion</option>
+                <option value="PAC">PAC</option>
+                <option value="Chlorine">Chlorine</option>
+                <option value="Polymer Cation">Polymer Cation</option>
+                <option value="Javen">Javen</option>
+                <option value="Phèn sắt">Phèn sắt</option>
+                <option value="Phèn nhôm">Phèn nhôm</option>
+                <option value="Xút (NaOH)">Xút (NaOH)</option>
+                <option value="Axit Sunfuric (H2SO4)">Axit Sunfuric (H2SO4)</option>
+                <option value="new_chemical">- Thêm hóa chất khác... -</option>
+              </select>
+            </div>
+
+            <!-- Ô nhập hóa chất mới (Ẩn mặc định, chỉ hiện khi chọn hóa chất khác) -->
+            <div class="form-group form-field" id="new-chemical-group" style="display: none;">
+              <label for="new-chemical-name">Tên hóa chất mới:</label>
+              <input type="text" class="form-control" id="new-chemical-name" placeholder="Nhập tên hóa chất...">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <div class="form-group form-field" style="flex: 1;">
+                <label for="import-amount">Số lượng nhập (kg):</label>
+                <input type="number" class="form-control" id="import-amount" min="1" placeholder="Nhập số lượng..." required>
+              </div>
+              <div class="form-group form-field" style="flex: 1;">
+                <label for="import-threshold">Ngưỡng báo động (kg):</label>
+                <input type="number" class="form-control" id="import-threshold" min="0" placeholder="Ngưỡng cảnh báo..." value="100">
+              </div>
+            </div>
+
+            <div class="form-group form-field">
+              <label for="import-supplier">Nhà cung cấp / Đối tác:</label>
+              <input type="text" class="form-control" id="import-supplier" placeholder="Tên nhà cung cấp...">
+            </div>
+
+            <div class="form-group form-field">
+              <label for="import-date">Ngày nhập kho:</label>
+              <input type="date" class="form-control" id="import-date" required>
+            </div>
+
+            <div class="form-group form-field">
+              <label for="import-note">Ghi chú:</label>
+              <input type="text" class="form-control" id="import-note" placeholder="Nhập ghi chú (nếu có)...">
+            </div>
+
+            <div class="form-group text-center" style="margin-top: 15px;">
+              <button type="submit" class="submit-btn" style="background-color: var(--success-color); padding: 8px 20px; font-size: 1rem;">
+                💾 Xác nhận Nhập Kho
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Section Lịch Sử Nhập Kho -->
+        <div>
+          <h2 style="color: var(--primary-color); font-size: 1.3rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+            📜 Nhật Ký Nhập Kho Gần Đây
+          </h2>
+          <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+            <table style="min-width: 100%; font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th style="text-align: center;">Ngày</th>
+                  <th>Hóa chất</th>
+                  <th style="text-align: right;">Số lượng (kg)</th>
+                  <th>Nhà cung cấp</th>
+                </tr>
+              </thead>
+              <tbody id="receipts-tbody">
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 20px; color: #64748b;">
+                    Đang tải nhật ký nhập kho...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module" src="kho.js"></script>
+</body>
+</html>

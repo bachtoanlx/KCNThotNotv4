@@ -1,6 +1,6 @@
 // 1. IMPORT CÁC HÀM DÙNG CHUNG
     import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage } from "./script.js";
-    import { collection, getDocs, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, setDoc, getDoc, query, where, orderBy, limit, documentId } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, getDocs, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, setDoc, getDoc, query, where, orderBy, limit, documentId, writeBatch, increment } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
     // CÁC HÀM HELPER TOÀN CỤC
@@ -1138,11 +1138,58 @@
             reportData.images = finalImages.map(f => f.url);
             reportData.imageIds = finalImages.map(f => f.id);
             reportData.updatedAt = serverTimestamp();
+            reportData.adminEdited = false;
 
-            await setDoc(docRef, reportData); // Ghi đè toàn bộ với danh sách ảnh ĐÚNG
+            // ⭐️ CẬP NHẬT KHO HÓA CHẤT TỰ ĐỘNG (Batch Update) ⭐️
+            const batch = writeBatch(db);
+            
+            // Đặt lưu báo cáo ca trực vào batch
+            batch.set(docRef, reportData);
+
+            // Tính toán chênh lệch tồn kho hóa chất
+            const adjustments = new Map();
+            const isUpdate = docSnap.exists();
+
+            // Lấy lượng dùng cũ (nếu có)
+            if (isUpdate && docSnap.data().chemicals) {
+                const prevChems = docSnap.data().chemicals;
+                prevChems.forEach(c => {
+                    const name = c.chemicalName ? c.chemicalName.trim() : "";
+                    const qty = parseDisplayValue(c.quantity) || 0;
+                    if (name && !isNaN(qty)) {
+                        adjustments.set(name, (adjustments.get(name) || 0) - qty); // Trừ đi lượng cũ (cộng lại kho)
+                    }
+                });
+            }
+
+            // Cộng thêm lượng dùng mới
+            if (reportData.chemicals) {
+                reportData.chemicals.forEach(c => {
+                    const name = c.chemicalName ? c.chemicalName.trim() : "";
+                    const qty = parseDisplayValue(c.quantity) || 0;
+                    if (name && !isNaN(qty)) {
+                        adjustments.set(name, (adjustments.get(name) || 0) + qty); // Cộng thêm lượng mới (trừ bớt kho)
+                    }
+                });
+            }
+
+            // Thêm các tác vụ cập nhật kho vào batch
+            for (const [name, diff] of adjustments.entries()) {
+                if (diff !== 0) {
+                    const chemRef = doc(db, "chemical_inventory", name);
+                    batch.set(chemRef, {
+                        chemicalName: name,
+                        currentStock: increment(-diff), // Trừ lượng chênh lệch dùng
+                        lastUpdated: serverTimestamp(),
+                        lastUpdatedBy: auth.currentUser?.email || "system"
+                    }, { merge: true });
+                }
+            }
+
+            // Commit batch một cách nguyên tử
+            await batch.commit();
 
             // ⭐️ VỊ TRÍ CHÈN LOG LƯU THÀNH CÔNG ⭐️
-            const isUpdate = docSnap.exists(); // Biến này đã được lấy ở (4a)
             const userEmail = auth.currentUser ? auth.currentUser.email : "unknown";
             addLog(
                 isUpdate ? "report_update_success" : "report_create_success", 

@@ -2,7 +2,10 @@ import { onAuth, getRole, showLoading, hideLoading, showSwal, getReportsByDate, 
 import { formatISODate, findLatestReadingBeforeOrOnMark } from "./core-calculator.js";
 import { initMenu } from "./menu.js";
 import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
-import { collection, query, where, orderBy, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { collection, query, where, orderBy, getDocs, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+let unsubscribeRealtime = null;
+let unsubscribeRealtimeDel = null;
 
 // Tải giao diện chung
 fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
@@ -31,12 +34,13 @@ function resetYearSelectIfEditingDates() {
     el.addEventListener("change", resetYearSelectIfEditingDates);
 });
 
-async function loadChartData(fromDate, toDate) {
-    showLoading("Đang đồng bộ và tải dữ liệu biểu đồ...");
+async function loadChartData(fromDate, toDate, silent = false) {
+    if (!silent) showLoading("Đang đồng bộ và tải dữ liệu biểu đồ...");
     try {
         // 1. Sync `reports_1` data with IndexedDB
         const collectionName = "reports_1";
         const lastSync = await getLastSyncTime(collectionName);
+        let maxTime = lastSync;
 
         // 1a. Sync Deletes (Tombstone)
         if (lastSync > 0) {
@@ -45,10 +49,16 @@ async function loadChartData(fromDate, toDate) {
             );
             const snapDel = await getDocs(qDel);
             if (!snapDel.empty) {
-                const idsToDelete = snapDel.docs
+                const relevantDeletes = snapDel.docs
                     .map(d => d.data())
-                    .filter(data => data.collectionName === collectionName)
-                    .map(data => data.docId);
+                    .filter(data => data.collectionName === collectionName);
+
+                relevantDeletes.forEach(data => {
+                    const t = data.deletedAt?.toMillis?.() || 0;
+                    if (t > maxTime) maxTime = t;
+                });
+
+                const idsToDelete = relevantDeletes.map(data => data.docId);
                 if (idsToDelete.length > 0) {
                     await deleteFromLocalDB(collectionName, idsToDelete);
                 }
@@ -72,14 +82,23 @@ async function loadChartData(fromDate, toDate) {
         }
 
         if (newRecords.length > 0) {
-            const parsedRecords = newRecords.map(data => ({
-                ...data,
-                _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
-                _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
-            }));
+            const parsedRecords = newRecords.map(data => {
+                const createdAtTime = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
+                const updatedAtTime = data.updatedAt?.toMillis ? data.updatedAt.toMillis() : 0;
+                const recordMax = Math.max(createdAtTime, updatedAtTime);
+                if (recordMax > maxTime) maxTime = recordMax;
+
+                return {
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                };
+            });
             await saveToLocalDB(collectionName, parsedRecords);
         }
-        await setLastSyncTime(collectionName, Date.now());
+        if (maxTime > lastSync) {
+            await setLastSyncTime(collectionName, maxTime);
+        }
 
         // 2. Get all data from IndexedDB and filter in-memory
         const allLocalData = await getAllFromLocalDB(collectionName);
@@ -101,8 +120,65 @@ async function loadChartData(fromDate, toDate) {
         console.error("Lỗi tải dữ liệu biểu đồ từ IndexedDB:", e);
         showSwal("error", "Lỗi tải dữ liệu", e.message);
     } finally {
-        hideLoading();
+        if (!silent) hideLoading();
     }
+}
+
+function startRealtimeSyncReports1(startTime) {
+    if (unsubscribeRealtime) unsubscribeRealtime();
+    if (unsubscribeRealtimeDel) unsubscribeRealtimeDel();
+
+    const qNew = query(collection(db, "reports_1"), where("updatedAt", ">", startTime));
+    unsubscribeRealtime = onSnapshot(qNew, (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+            if (change.type === "added" || change.type === "modified") {
+                const data = change.doc.data();
+                const parsed = {
+                    id: change.doc.id,
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                };
+                await saveToLocalDB("reports_1", [parsed]);
+                
+                const lastSync = await getLastSyncTime("reports_1");
+                const t = data.updatedAt?.toMillis?.() || data.createdAt?.toMillis?.() || 0;
+                if (t > lastSync) {
+                    await setLastSyncTime("reports_1", t);
+                }
+                
+                if (fromInput && toInput) {
+                    loadChartData(fromInput.value, toInput.value, true);
+                }
+            }
+        });
+    }, (error) => {
+        console.warn("[Realtime Sync Reports 1 (Chart)] Lỗi lắng nghe:", error);
+    });
+
+    const qDel = query(collection(db, "sync_deletes"), where("deletedAt", ">", startTime));
+    unsubscribeRealtimeDel = onSnapshot(qDel, (snapshot) => {
+        snapshot.docChanges().forEach(async (change) => {
+            if (change.type === "added" || change.type === "modified") {
+                const data = change.doc.data();
+                if (data.collectionName === "reports_1") {
+                    await deleteFromLocalDB("reports_1", [data.docId]);
+                    
+                    const t = data.deletedAt?.toMillis?.() || 0;
+                    const lastSync = await getLastSyncTime("reports_1");
+                    if (t > lastSync) {
+                        await setLastSyncTime("reports_1", t);
+                    }
+                    
+                    if (fromInput && toInput) {
+                        loadChartData(fromInput.value, toInput.value, true);
+                    }
+                }
+            }
+        });
+    }, (error) => {
+        console.warn("[Realtime Sync Reports 1 Del (Chart)] Lỗi lắng nghe xóa:", error);
+    });
 }
 
 const applyDateFilter = async () => {
@@ -257,8 +333,19 @@ onAuth(async (user) => {
         toInput.value = todayISO;
         
         await loadChartData(currentYearStart, todayISO);
+        
+        // Khởi động lắng nghe thời gian thực sau khi tải xong dữ liệu ban đầu
+        startRealtimeSyncReports1(new Date(Date.now() - 300000));
     } else {
         notLogged.style.display = "flex";
         content.style.display = "none";
+        if (unsubscribeRealtime) {
+            unsubscribeRealtime();
+            unsubscribeRealtime = null;
+        }
+        if (unsubscribeRealtimeDel) {
+            unsubscribeRealtimeDel();
+            unsubscribeRealtimeDel = null;
+        }
     }
 });

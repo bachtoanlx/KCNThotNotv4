@@ -1,8 +1,11 @@
 // --- IMPORT ---
     import { db, onAuth, getRole, showLoading, hideLoading, showSwal } from "./script.js";
-    import { collection, getDocs, query, orderBy, where, limit  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { collection, getDocs, query, orderBy, where, limit, onSnapshot  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
-    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime } from "./localDB.js";
+    import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
+
+    let unsubscribeRealtime = null;
+    let unsubscribeRealtimeDel = null;
 
     // --- TẢI GIAO DIỆN CHUNG ---
     fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
@@ -1115,15 +1118,25 @@ function toggleBodyScroll(disable) {
                 newRecords = [...newRecords, ...updatedDocs];
             }
 
+            let maxTime = lastSync;
             if (newRecords.length > 0) {
-                const parsedRecords = newRecords.map(data => ({
-                    ...data,
-                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
-                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
-                }));
+                const parsedRecords = newRecords.map(data => {
+                    const createdAtTime = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
+                    const updatedAtTime = data.updatedAt?.toMillis ? data.updatedAt.toMillis() : 0;
+                    const recordMax = Math.max(createdAtTime, updatedAtTime);
+                    if (recordMax > maxTime) maxTime = recordMax;
+
+                    return {
+                        ...data,
+                        _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                        _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                    };
+                });
                 await saveToLocalDB(collectionName, parsedRecords);
             }
-            await setLastSyncTime(collectionName, Date.now());
+            if (maxTime > lastSync) {
+                await setLastSyncTime(collectionName, maxTime);
+            }
 
             // 4. Lấy dữ liệu từ IndexedDB ra để lọc
             const allLocalData = await getAllFromLocalDB(collectionName);
@@ -1151,7 +1164,55 @@ function toggleBodyScroll(disable) {
             throw error;
         } finally {
             // Tắt loading sẽ do hàm gọi nó thực hiện
-        }
+    }
+
+    function startRealtimeSyncShiftReports(startTime) {
+        if (unsubscribeRealtime) unsubscribeRealtime();
+        if (unsubscribeRealtimeDel) unsubscribeRealtimeDel();
+
+        const qNew = query(collection(db, "shift_reports"), where("updatedAt", ">", startTime));
+        unsubscribeRealtime = onSnapshot(qNew, (snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const data = change.doc.data();
+                    const parsed = {
+                        id: change.doc.id,
+                        ...data,
+                        _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : null,
+                        _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : null,
+                    };
+                    await saveToLocalDB("shift_reports", [parsed]);
+                    
+                    const lastSync = await getLastSyncTime("shift_reports");
+                    const t = data.updatedAt?.toMillis?.() || data.createdAt?.toMillis?.() || 0;
+                    if (t > lastSync) {
+                        await setLastSyncTime("shift_reports", t);
+                    }
+                }
+            });
+        }, (error) => {
+            console.warn("[Realtime Sync Shift Reports] Lỗi lắng nghe:", error);
+        });
+
+        const qDel = query(collection(db, "sync_deletes"), where("deletedAt", ">", startTime));
+        unsubscribeRealtimeDel = onSnapshot(qDel, (snapshot) => {
+            snapshot.docChanges().forEach(async (change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const data = change.doc.data();
+                    if (data.collectionName === "shift_reports") {
+                        await deleteFromLocalDB("shift_reports", [data.docId]);
+                        
+                        const t = data.deletedAt?.toMillis?.() || 0;
+                        const lastSync = await getLastSyncTime("shift_reports");
+                        if (t > lastSync) {
+                            await setLastSyncTime("shift_reports", t);
+                        }
+                    }
+                }
+            });
+        }, (error) => {
+            console.warn("[Realtime Sync Shift Reports Del] Lỗi lắng nghe xóa:", error);
+        });
     }
     // --- HÀM CHÍNH KHI ĐĂNG NHẬP (ĐÃ SỬA LẠI VỊ TRÍ LISTENER) ---
   onAuth(async (user) => {
@@ -1250,6 +1311,10 @@ function toggleBodyScroll(disable) {
 
                   // Tải dữ liệu chỉ cho năm hiện tại
                   allReportsData = await fetchReportsForPeriod(initialStartDateStr, initialEndDateStr);
+                  
+                  // Khởi động lắng nghe thời gian thực cho dữ liệu mới phát sinh
+                  startRealtimeSyncShiftReports(new Date(Date.now() - 300000));
+
                   currentFilter.from = initialStartDateStr;
                   currentFilter.to = initialEndDateStr;
 
@@ -1327,6 +1392,14 @@ function toggleBodyScroll(disable) {
           content.style.display = "none";
           if (footerPlaceholder) footerPlaceholder.style.display = "block";
           // Có thể thêm code reset các biến global ở đây nếu cần
+          if (unsubscribeRealtime) {
+              unsubscribeRealtime();
+              unsubscribeRealtime = null;
+          }
+          if (unsubscribeRealtimeDel) {
+              unsubscribeRealtimeDel();
+              unsubscribeRealtimeDel = null;
+          }
           allReportsData = [];
           initialLoad = true;
           currentFilter = { from: null, to: null };
