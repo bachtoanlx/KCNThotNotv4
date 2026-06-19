@@ -508,9 +508,14 @@ table {
   border-radius: 8px;
   overflow: hidden;
 }
-/* Giới hạn độ rộng cột Hành động trong bảng Phân quyền */
+/* Giới hạn độ rộng cột Vai trò và Hành động trong bảng Phân quyền */
 #usersTable th:nth-child(4),
 table:has(#usersTableBody) th:nth-child(4) {
+    width: 100px !important;
+    min-width: 100px !important;
+}
+#usersTable th:nth-child(5),
+table:has(#usersTableBody) th:nth-child(5) {
     width: 270px !important;
     min-width: 270px !important;
 }

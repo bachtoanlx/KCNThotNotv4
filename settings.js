@@ -2562,7 +2562,7 @@ function renderUsersTable() {
     const mergedUsers = Array.from(userMap.values());
 
     if (mergedUsers.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="padding: 15px; color: #666;">Không có dữ liệu người dùng.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 15px; color: #666;">Không có dữ liệu người dùng.</td></tr>';
         return;
     }
 
@@ -2573,6 +2573,29 @@ function renderUsersTable() {
         const role = rolesMap[email] || "user";
         const lastActive = u.lastActiveAt?.toDate ? u.lastActiveAt.toDate().toLocaleString('vi-VN') : "-";
         
+        // Trích xuất thông tin thiết bị tin cậy dạng nhãn thân thiện
+        const trustedPCs = Array.isArray(u.trustedPCs) ? u.trustedPCs : [];
+        if (u.trustedPC && !trustedPCs.includes(u.trustedPC)) {
+            trustedPCs.push(u.trustedPC);
+        }
+        const trustedMobiles = Array.isArray(u.trustedMobiles) ? u.trustedMobiles : [];
+        if (u.trustedMobile && !trustedMobiles.includes(u.trustedMobile)) {
+            trustedMobiles.push(u.trustedMobile);
+        }
+        
+        const labelsMap = u.deviceLabels || {};
+        const pcLabels = trustedPCs.map(id => labelsMap[id] || "Máy tính").join(", ");
+        const mobileLabels = trustedMobiles.map(id => labelsMap[id] || "Điện thoại").join(", ");
+        
+        let devicesDisplay = "-";
+        if (pcLabels && mobileLabels) {
+            devicesDisplay = `🖥️ ${pcLabels} <br/> 📱 ${mobileLabels}`;
+        } else if (pcLabels) {
+            devicesDisplay = `🖥️ ${pcLabels}`;
+        } else if (mobileLabels) {
+            devicesDisplay = `📱 ${mobileLabels}`;
+        }
+
         const roleDisplay = role === "admin" ? `<span style="color: #e74c3c; font-weight: bold;">Admin</span>` : `<span style="color: #273668;">User</span>`;
         const actionBtn = role === "admin" 
             ? `<button class="change-role-btn" data-email="${email}" data-newrole="user" style="background:#f39c12; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size: 12px;">Hạ quyền User</button>`
@@ -2583,6 +2606,7 @@ function renderUsersTable() {
         return `<tr>
             <td>${email}</td>
             <td>${lastActive}</td>
+            <td style="font-size: 12px; color: #475569; line-height: 1.4; text-align: left; padding: 6px 8px;">${devicesDisplay}</td>
             <td>${roleDisplay}</td>
             <td><div style="display:flex; gap:4px; flex-wrap: wrap; justify-content: center;">${actionBtn}${forceLogoutBtn}</div></td>
         </tr>`;

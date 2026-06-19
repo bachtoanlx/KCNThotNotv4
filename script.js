@@ -128,12 +128,237 @@ export async function initFCM(email) {
     console.warn("Lỗi khởi tạo FCM (Có thể do chạy HTTP localhost thay vì HTTPS):", error);
   }
 }
+// Tạo mã định danh bằng vân tay trình duyệt (Browser Fingerprint)
+export function getBrowserFingerprint() {
+  const traits = [
+    navigator.userAgent,
+    screen.width + 'x' + screen.height + 'x' + screen.colorDepth,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    navigator.language,
+    navigator.hardwareConcurrency || 'unknown'
+  ];
+  
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 200;
+    canvas.height = 30;
+    ctx.textBaseline = "top";
+    ctx.font = "14px 'Arial'";
+    ctx.fillStyle = "#f60";
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = "#069";
+    ctx.fillText("KCN_DeviceFingerprint", 2, 2);
+    traits.push(canvas.toDataURL());
+  } catch (e) {
+    // Không hỗ trợ canvas hoặc bị chặn
+  }
+  
+  const rawString = traits.join('|');
+  
+  // Thuật toán băm cyrb53
+  let h1 = 0xdeadbeef ^ 0, h2 = 0x41c6ce57 ^ 0;
+  for (let i = 0, ch; i < rawString.length; i++) {
+    ch = rawString.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const hash = (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+  
+  return 'fp_' + hash;
+}
 
 // Thiết lập Device ID để kiểm tra phiên đăng nhập trên thiết bị khác
 let deviceId = localStorage.getItem('deviceId');
 if (!deviceId) {
-  deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  // Sử dụng Dấu vân tay thiết bị làm Device ID để đảm bảo tính ổn định kể cả khi xóa lịch sử web
+  deviceId = getBrowserFingerprint();
   localStorage.setItem('deviceId', deviceId);
+}
+// Nhãn thân thiện của thiết bị hiện tại
+export function getDeviceLabel() {
+  const ua = navigator.userAgent;
+  let os = "Thiết bị khác";
+  let browser = "Trình duyệt khác";
+
+  if (/Windows NT/i.test(ua)) os = "Windows PC";
+  else if (/Macintosh/i.test(ua)) os = "Mac";
+  else if (/Linux/i.test(ua) && !/Android/i.test(ua)) os = "Linux PC";
+  else if (/iPhone/i.test(ua)) os = "iPhone";
+  else if (/iPad/i.test(ua)) os = "iPad";
+  else if (/Android/i.test(ua)) os = "Android";
+
+  if (/Edg/i.test(ua)) browser = "Edge";
+  else if (/Chrome/i.test(ua) && !/Chromium/i.test(ua)) browser = "Chrome";
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
+  else if (/Firefox/i.test(ua)) browser = "Firefox";
+  
+  const res = `${screen.width}x${screen.height}`;
+  return `${os} (${browser}) - ${res}`;
+}
+
+// Nhận diện loại thiết bị
+export function getDeviceType() {
+  const ua = navigator.userAgent;
+  if (/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)) {
+    return 'mobile';
+  }
+  return 'pc';
+}
+
+// Tải trạng thái tin cậy đã biết từ lần trước để tránh độ trễ
+window.isCurrentDeviceTrusted = localStorage.getItem('isCurrentDeviceTrusted') !== 'false';
+
+export async function checkAndUpdateUserDevice(userEmailSafe) {
+  const deviceType = getDeviceType();
+  const docRef = doc(db, "users", userEmailSafe);
+  
+  try {
+    const docSnap = await getDoc(docRef);
+    let isTrusted = true;
+    const isSessionCounted = sessionStorage.getItem('deviceSessionCounted') === 'true';
+    
+    let updateData = {
+      email: userEmailSafe,
+      lastActiveAt: serverTimestamp(),
+      deviceLabels: {
+        [deviceId]: getDeviceLabel()
+      }
+    };
+    
+    if (deviceType === 'pc') {
+      updateData.lastPCDeviceId = deviceId;
+    } else {
+      updateData.lastMobileDeviceId = deviceId;
+    }    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      
+      if (deviceType === 'pc') {
+        let trustedPCs = Array.isArray(data.trustedPCs) ? data.trustedPCs : [];
+        if (data.trustedPC && !trustedPCs.includes(data.trustedPC)) {
+          trustedPCs.push(data.trustedPC);
+        }
+        
+        const candidatePC = data.candidatePC;
+        const candidatePCCount = data.candidatePCCount || 0;
+        
+        if (trustedPCs.length === 0) {
+          trustedPCs.push(deviceId);
+          updateData.trustedPCs = trustedPCs;
+          isTrusted = true;
+        } else if (trustedPCs.includes(deviceId)) {
+          isTrusted = true;
+          if (candidatePC || candidatePCCount > 0) {
+            updateData.candidatePC = null;
+            updateData.candidatePCCount = 0;
+          }
+        } else {
+          if (candidatePC === deviceId) {
+            if (!isSessionCounted) {
+              const newCount = candidatePCCount + 1;
+              if (newCount >= 3) {
+                trustedPCs.push(deviceId);
+                if (trustedPCs.length > 2) {
+                  trustedPCs.shift();
+                }
+                updateData.trustedPCs = trustedPCs;
+                updateData.candidatePC = null;
+                updateData.candidatePCCount = 0;
+                isTrusted = true;
+                console.log("[Bảo mật] PC này đã được chấp nhận vào danh sách thiết bị tin cậy.");
+              } else {
+                updateData.candidatePCCount = newCount;
+                isTrusted = false;
+              }
+              sessionStorage.setItem('deviceSessionCounted', 'true');
+            } else {
+              isTrusted = false;
+            }
+          } else {
+            if (!isSessionCounted) {
+              updateData.candidatePC = deviceId;
+              updateData.candidatePCCount = 1;
+              sessionStorage.setItem('deviceSessionCounted', 'true');
+            }
+            isTrusted = false;
+          }
+        }
+        
+      } else { // mobile
+        let trustedMobiles = Array.isArray(data.trustedMobiles) ? data.trustedMobiles : [];
+        if (data.trustedMobile && !trustedMobiles.includes(data.trustedMobile)) {
+          trustedMobiles.push(data.trustedMobile);
+        }
+        
+        const candidateMobile = data.candidateMobile;
+        const candidateMobileCount = data.candidateMobileCount || 0;
+        
+        if (trustedMobiles.length === 0) {
+          trustedMobiles.push(deviceId);
+          updateData.trustedMobiles = trustedMobiles;
+          isTrusted = true;
+        } else if (trustedMobiles.includes(deviceId)) {
+          isTrusted = true;
+          if (candidateMobile || candidateMobileCount > 0) {
+            updateData.candidateMobile = null;
+            updateData.candidateMobileCount = 0;
+          }
+        } else {
+          if (candidateMobile === deviceId) {
+            if (!isSessionCounted) {
+              const newCount = candidateMobileCount + 1;
+              if (newCount >= 3) {
+                trustedMobiles.push(deviceId);
+                if (trustedMobiles.length > 2) {
+                  trustedMobiles.shift();
+                }
+                updateData.trustedMobiles = trustedMobiles;
+                updateData.candidateMobile = null;
+                updateData.candidateMobileCount = 0;
+                isTrusted = true;
+                console.log("[Bảo mật] Mobile này đã được chấp nhận vào danh sách thiết bị tin cậy.");
+              } else {
+                updateData.candidateMobileCount = newCount;
+                isTrusted = false;
+              }
+              sessionStorage.setItem('deviceSessionCounted', 'true');
+            } else {
+              isTrusted = false;
+            }
+          } else {
+            if (!isSessionCounted) {
+              updateData.candidateMobile = deviceId;
+              updateData.candidateMobileCount = 1;
+              sessionStorage.setItem('deviceSessionCounted', 'true');
+            }
+            isTrusted = false;
+          }
+        }
+      }
+    } else {
+      if (deviceType === 'pc') {
+        updateData.trustedPCs = [deviceId];
+      } else {
+        updateData.trustedMobiles = [deviceId];
+      }
+      isTrusted = true;
+    }
+    
+    await setDoc(docRef, updateData, { merge: true });
+    window.isCurrentDeviceTrusted = isTrusted;
+    localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
+    return isTrusted;
+  } catch (err) {
+    console.error("Lỗi khi kiểm tra thiết bị:", err);
+    window.isCurrentDeviceTrusted = true;
+    localStorage.setItem('isCurrentDeviceTrusted', 'true');
+    return true;
+  }
 }
 
 // Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
@@ -149,13 +374,7 @@ onAuthStateChanged(auth, async (user) => {
     const userEmailSafe = user.email ? user.email.toLowerCase() : "unknown";
     
     try {
-        // Đảm bảo user luôn có mặt trong collection `users` ngay khi đăng nhập
-        // Bất kể họ có cho phép thông báo (FCM) hay không
-        await setDoc(doc(db, "users", userEmailSafe), {
-            email: userEmailSafe,
-            lastActiveAt: serverTimestamp(),
-            lastDeviceId: deviceId
-        }, { merge: true });
+        await checkAndUpdateUserDevice(userEmailSafe);
     } catch (e) {
         console.warn("Không thể lưu thông tin đăng nhập ban đầu:", e);
     }
@@ -172,17 +391,54 @@ onAuthStateChanged(auth, async (user) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
 
-            // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác
-            if (data.lastDeviceId && data.lastDeviceId !== deviceId) {
-                console.log("[Bảo mật] Tài khoản đã được đăng nhập ở thiết bị khác. Xóa cache và đăng xuất...");
-                if (currentUserSnapshotUnsubscribe) {
-                    currentUserSnapshotUnsubscribe();
-                    currentUserSnapshotUnsubscribe = null;
+            // Cập nhật trạng thái tin cậy hiện tại từ Firestore theo thời gian thực
+            const deviceType = getDeviceType();
+            let isTrusted = false;
+            if (deviceType === 'pc') {
+                const trustedPCs = Array.isArray(data.trustedPCs) ? data.trustedPCs : [];
+                isTrusted = trustedPCs.includes(deviceId);
+            } else {
+                const trustedMobiles = Array.isArray(data.trustedMobiles) ? data.trustedMobiles : [];
+                isTrusted = trustedMobiles.includes(deviceId);
+            }
+            window.isCurrentDeviceTrusted = isTrusted;
+            localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
+
+            // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác của cùng loại
+            if (deviceType === 'pc') {
+                if (data.lastPCDeviceId && data.lastPCDeviceId !== deviceId) {
+                    console.log("[Bảo mật] Tài khoản đã được đăng nhập ở PC khác. Đăng xuất...");
+                    if (currentUserSnapshotUnsubscribe) {
+                        currentUserSnapshotUnsubscribe();
+                        currentUserSnapshotUnsubscribe = null;
+                    }
+                    const shouldClear = !window.isCurrentDeviceTrusted;
+                    if (shouldClear) {
+                        clearLocalDB().then(() => {
+                            signOut(auth);
+                        });
+                    } else {
+                        signOut(auth);
+                    }
+                    return;
                 }
-                clearLocalDB().then(() => {
-                    signOut(auth);
-                });
-                return;
+            } else {
+                if (data.lastMobileDeviceId && data.lastMobileDeviceId !== deviceId) {
+                    console.log("[Bảo mật] Tài khoản đã được đăng nhập ở Điện thoại khác. Đăng xuất...");
+                    if (currentUserSnapshotUnsubscribe) {
+                        currentUserSnapshotUnsubscribe();
+                        currentUserSnapshotUnsubscribe = null;
+                    }
+                    const shouldClear = !window.isCurrentDeviceTrusted;
+                    if (shouldClear) {
+                        clearLocalDB().then(() => {
+                            signOut(auth);
+                        });
+                    } else {
+                        signOut(auth);
+                    }
+                    return;
+                }
             }
             if (data.forceLogoutAt) {
                 // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
@@ -366,6 +622,9 @@ export async function logout(force = false) {
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("logout", { email: userEmail, status: "success", userAgent: navigator.userAgent });
 
+  if (!window.isCurrentDeviceTrusted) {
+    await clearLocalDB();
+  }
   return signOut(auth);
 }
 
@@ -376,30 +635,39 @@ export function initAutoLogout(timeoutInDays = 7) {
   if (isAutoLogoutInitialized) return; // Tránh chạy nhiều lần nếu onAuth kích hoạt lại
   isAutoLogoutInitialized = true;
 
-  const INACTIVITY_LIMIT_MS = timeoutInDays * 24 * 60 * 60 * 1000; // Đổi ngày ra mili-giây
+  const getLimitMs = () => {
+    const isTrusted = window.isCurrentDeviceTrusted;
+    return isTrusted ? (timeoutInDays * 24 * 60 * 60 * 1000) : (1 * 60 * 60 * 1000);
+  };
+
   let isThrottled = false;
   let checkInterval;
 
   // 1. KIỂM TRA NGAY LẬP TỨC KHI VỪA TẢI TRANG
-  // (Trường hợp người dùng đóng tab và quay lại sau nhiều ngày)
   const lastActivityStr = localStorage.getItem('lastActivityTime');
   if (lastActivityStr) {
     const lastActivity = parseInt(lastActivityStr, 10);
-    if (Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
+    const limitMs = getLimitMs();
+    if (Date.now() - lastActivity > limitMs) {
       console.log("Đã quá thời gian không hoạt động từ lần truy cập trước. Đang tự động đăng xuất...");
       const currentUser = auth.currentUser;
-      if (currentUser) {
-        addLog("auto_logout_inactivity", { 
-          email: currentUser.email, 
-          status: "success", 
-          reason: `Inactive for ${timeoutInDays} days`,
-          details: `Hệ thống tự động đăng xuất do tài khoản quá ${timeoutInDays} ngày không thao tác (kiểm tra lúc mở lại web).`,
-          userAgent: navigator.userAgent
-        }).then(() => {
-          localStorage.removeItem('lastActivityTime');
-          signOut(auth);
-        });
-      }
+      const executeLogout = async () => {
+        if (currentUser) {
+          await addLog("auto_logout_inactivity", { 
+            email: currentUser.email, 
+            status: "success", 
+            reason: `Inactive limit reached (${window.isCurrentDeviceTrusted ? '7 days' : '1 hour'})`,
+            details: `Hệ thống tự động đăng xuất do tài khoản quá thời gian không thao tác (${window.isCurrentDeviceTrusted ? '7 ngày' : '1 giờ'}).`,
+            userAgent: navigator.userAgent
+          });
+        }
+        localStorage.removeItem('lastActivityTime');
+        if (!window.isCurrentDeviceTrusted) {
+          await clearLocalDB();
+        }
+        await signOut(auth);
+      };
+      executeLogout();
       return; // Dừng khởi tạo nếu đã quá hạn
     }
   }
@@ -423,23 +691,27 @@ export function initAutoLogout(timeoutInDays = 7) {
     localStorage.setItem('lastActivityTime', Date.now().toString());
   }
 
-  // 3. Hàm kiểm tra định kỳ (mỗi phút 1 lần) - cho trường hợp treo tab mở liên tục
+  // 3. Hàm kiểm tra định kỳ (mỗi phút 1 lần)
   checkInterval = setInterval(async () => {
     const lastActivity = parseInt(localStorage.getItem('lastActivityTime') || "0", 10);
     const currentUser = auth.currentUser;
+    const limitMs = getLimitMs();
 
-    if (currentUser && lastActivity > 0 && (Date.now() - lastActivity > INACTIVITY_LIMIT_MS)) {
+    if (currentUser && lastActivity > 0 && (Date.now() - lastActivity > limitMs)) {
       console.log("Đã quá thời gian không hoạt động. Đang tự động đăng xuất...");
       clearInterval(checkInterval); // Dừng kiểm tra
       // Ghi log trước khi ép đăng xuất
       await addLog("auto_logout_inactivity", { 
         email: currentUser.email, 
         status: "success", 
-        reason: `Inactive for ${timeoutInDays} days`,
-        details: `Hệ thống tự động đăng xuất do tài khoản không có bất kỳ thao tác nào (chuột, phím, cuộn trang) vượt quá thời gian quy định (${timeoutInDays} ngày).`,
+        reason: `Inactive limit reached (${window.isCurrentDeviceTrusted ? '7 days' : '1 hour'})`,
+        details: `Hệ thống tự động đăng xuất do tài khoản không có thao tác vượt quá ${window.isCurrentDeviceTrusted ? '7 ngày' : '1 giờ'}.`,
         userAgent: navigator.userAgent
       });
       localStorage.removeItem('lastActivityTime'); // Xóa mốc thời gian
+      if (!window.isCurrentDeviceTrusted) {
+        await clearLocalDB();
+      }
       await signOut(auth); // Ép văng ra khỏi hệ thống
     }
   }, 60000); // 60000 ms = 1 phút
