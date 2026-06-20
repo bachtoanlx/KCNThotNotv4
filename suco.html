@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +8,53 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
-    html, body {
+    html,
+    body {
       height: 100vh;
       height: 100dvh;
       overflow-x: hidden;
     }
+
     #pageContent {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 10px 20px;
+      padding: 10px 8px;
     }
+
     @media (max-width: 768px) {
       #pageContent {
-        padding: 5px 10px;
+        padding: 5px 0px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      #pageContent {
+        overflow: hidden !important;
+        /* Khóa cuộn cấp trang chính */
+        height: 100%;
+      }
+
+      .suco-layout {
+        height: 100%;
+        min-height: 0;
+        /* Bắt buộc để kích hoạt cơ chế cuộn trong flexbox */
+      }
+
+      .suco-left {
+        height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        /* Tự động cuộn form nếu chiều cao màn hình quá thấp */
+      }
+
+      .suco-right {
+        height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        /* Chỉ cho phép cuộn độc lập cột danh sách bên phải */
+        padding-right: 8px;
+        /* Tránh để thanh cuộn đè sát mép thẻ */
       }
     }
   </style>
@@ -30,7 +64,8 @@
   <div id="menu-placeholder"></div>
   <div id="loading-placeholder"></div>
 
-  <div id="notLogged" style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
+  <div id="notLogged"
+    style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
     <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này. Quay lại trang chủ.</a>
   </div>
 
@@ -42,10 +77,10 @@
           🛠️ Báo Cáo Sự Cố Thiết Bị
         </h2>
         <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
-          Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành hoặc sự cố kỹ thuật tại trạm xử lý nước thải.
+          Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành.
         </p>
 
-        <form id="incidentForm" style="padding: 20px;">
+        <form id="incidentForm">
           <div class="form-group form-field">
             <label for="device-select">Thiết bị hỏng hóc:</label>
             <select class="form-control" id="device-select" required>
@@ -72,15 +107,17 @@
 
           <div class="form-group form-field">
             <label for="incident-desc">Mô tả sự cố chi tiết:</label>
-            <textarea class="form-control" id="incident-desc" style="min-height: 100px;" placeholder="Mô tả hiện tượng lỗi (Ví dụ: Máy bơm kêu to, rung lắc dữ dội, không bơm lên nước...)" required></textarea>
+            <textarea class="form-control" id="incident-desc" style="min-height: 100px;"
+              placeholder="Mô tả hiện tượng lỗi..." required></textarea>
           </div>
 
           <div class="form-group form-field">
             <label for="incident-severity">Mức độ nghiêm trọng:</label>
             <select class="form-control" id="incident-severity" required>
-              <option value="low" selected>🟢 Thấp (Lỗi nhẹ, không ảnh hưởng lớn đến vận hành)</option>
-              <option value="medium">🟡 Trung bình (Cần khắc phục sớm, thiết bị phụ trợ bị ảnh hưởng)</option>
-              <option value="critical">🔴 Khẩn cấp (Ảnh hưởng nghiêm trọng đến đầu ra hoặc quy trình xử lý sinh học)</option>
+              <option value="low" selected>🟢 Thấp - Không ảnh hưởng đến vận hành</option>
+              <option value="medium">🟡 Trung bình - Cần khắc phục sớm</option>
+              <option value="critical">🔴 Khẩn cấp - Ảnh hưởng lớn đến vận hành</option>
+              </option>
             </select>
           </div>
 
@@ -88,8 +125,12 @@
             <label for="file">Chọn hình ảnh sự cố:</label>
             <input type="file" id="file" class="form-control-file" accept="image/*" style="display: none;">
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
-              <button type="button" id="customFileBtn" style="padding: 6px 12px; border: 1px solid #ced4da; background: #e9ecef; border-radius: 0.25rem; cursor: pointer; font-size: 1rem; color: #495057;">Chọn tệp</button>
-              <span id="customFileName" style="color: #666; font-style: italic; cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">Không có tệp nào được chọn</span>
+              <button type="button" id="customFileBtn"
+                style="padding: 6px 12px; border: 1px solid #ced4da; background: #e9ecef; border-radius: 0.25rem; cursor: pointer; font-size: 14px; color: #495057;">Chọn
+                tệp</button>
+              <span id="customFileName"
+                style="color: #666; font-style: italic; cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; font-size: 14px;">Không
+                có tệp nào được chọn</span>
             </div>
           </div>
 
@@ -106,28 +147,26 @@
         <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
           📋 Danh Sách Sự Cố & Tiến Độ Khắc Phục
         </h2>
-        
+
         <!-- Khung bộ lọc sự cố -->
-        <div style="display: flex; gap: 10px; margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 3px;">
-            <span style="font-size: 0.75rem; font-weight: bold; color: #64748b;">Trạng thái:</span>
-            <select id="filter-status" style="width: 100%; padding: 4px; font-size: 0.85rem;">
+        <div class="filter-box" style="margin-bottom: 15px;">
+          <label>Trạng thái:
+            <select id="filter-status">
               <option value="all">Tất cả trạng thái</option>
-              <option value="active" selected>⚠️ Đang diễn ra (Chờ + Đang sửa)</option>
+              <option value="active" selected>⚠️ Đang diễn ra</option>
               <option value="pending">Chờ xử lý</option>
               <option value="fixing">Đang sửa chữa</option>
               <option value="resolved">Đã khắc phục xong</option>
             </select>
-          </div>
-          <div style="flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 3px;">
-            <span style="font-size: 0.75rem; font-weight: bold; color: #64748b;">Mức độ:</span>
-            <select id="filter-severity" style="width: 100%; padding: 4px; font-size: 0.85rem;">
+          </label>
+          <label>Mức độ:
+            <select id="filter-severity">
               <option value="all">Tất cả mức độ</option>
               <option value="critical">🔴 Khẩn cấp</option>
               <option value="medium">🟡 Trung bình</option>
               <option value="low">🟢 Thấp</option>
             </select>
-          </div>
+          </label>
         </div>
 
         <!-- Lưới phiếu sự cố -->
@@ -145,4 +184,5 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module" src="suco.js"></script>
 </body>
+
 </html>

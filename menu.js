@@ -6,12 +6,12 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-
 // Hàm khóa cuộn trang, chống giật UI
 function toggleBodyScroll(disable) {
   if (disable) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.paddingRight = scrollbarWidth + "px";
-      document.body.style.overflow = "hidden";
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.paddingRight = scrollbarWidth + "px";
+    document.body.style.overflow = "hidden";
   } else {
-      document.body.style.paddingRight = "";
-      document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
+    document.body.style.overflow = "";
   }
 }
 
@@ -53,10 +53,16 @@ export function initMenu() {
   dropdowns.forEach(drop => {
     const btn = drop.querySelector('.dropbtn');
     if (!btn) return;
-    btn.addEventListener('click', function(event) {
+    btn.addEventListener('click', function (event) {
       if (window.innerWidth <= 820) {
         event.preventDefault();
-        // chỉ toggle dropdown này (không ảnh hưởng dropdown khác)
+        // Đóng tất cả các dropdown khác
+        dropdowns.forEach(otherDrop => {
+          if (otherDrop !== drop) {
+            otherDrop.classList.remove('active');
+          }
+        });
+        // toggle dropdown này
         drop.classList.toggle('active');
       }
     });
@@ -84,10 +90,20 @@ export function initMenu() {
       userEmailEl.textContent = user.email;
       loginBtn.style.display = "none";
       logoutBtn.style.display = "inline-block";
-      
+
+      // Áp dụng viền cam nếu là máy lạ tạm thời
+      const isTrusted = window.isCurrentDeviceTrusted !== false;
+      if (!isTrusted) {
+        logoutBtn.style.border = "2px solid #e67e22";
+        logoutBtn.title = "Tự động đăng xuất sau 1 giờ)";
+      } else {
+        logoutBtn.style.border = "";
+        logoutBtn.title = "";
+      }
+
       // Kích hoạt tự động đăng xuất nếu không hoạt động
       // Truyền vào số ngày, ví dụ: 7 ngày (hoặc có thể truyền số thập phân như 0.5 cho nửa ngày)
-      initAutoLogout(7); 
+      initAutoLogout(7);
 
       const role = await getRole(user.email);
       if (role === "admin") {
@@ -162,12 +178,12 @@ export function initMenu() {
 
         form.reset();
         showSwal("success", "Đăng nhập thành công!");
-        
+
         // Đợi 6 giây sau khi đăng nhập mới hiện popup hỏi quyền thông báo (Soft Ask)
         setTimeout(() => {
-            if (Notification.permission === 'default') {
-                requestNotificationPermission();
-            }
+          if (Notification.permission === 'default') {
+            requestNotificationPermission();
+          }
         }, 6000);
       } catch (err) {
         console.error("🔥 LOGIN FAIL:", {
@@ -196,7 +212,7 @@ export function initMenu() {
             method: "POST",
             body: formData
           }).catch(e => console.warn("Lỗi gửi cảnh báo bảo mật:", e));
-        } catch(e) {}
+        } catch (e) { }
 
         showSwal("error", "Vui lòng kiểm tra lại tài khoản!");
       }

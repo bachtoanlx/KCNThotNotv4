@@ -164,7 +164,14 @@ import { initMenu } from "./menu.js";
       "hourly_schedule_sent": "Gửi lịch tự động",
       "daily_schedule_failed": "Lỗi gửi lịch tự động",
       "admin_manual_edit": "Admin sửa JSON",
-      "admin_manual_delete": "Admin xóa JSON"
+      "admin_manual_delete": "Admin xóa JSON",
+
+      // Quản lý sự cố & kho hóa chất
+      "incident_report_success": "Báo cáo sự cố",
+      "incident_status_update": "Cập nhật trạng thái sự cố",
+      "incident_resolve_success": "Khắc phục sự cố xong",
+      "incident_delete_success": "Xóa báo cáo sự cố",
+      "chemical_import_success": "Nhập kho hóa chất"
   };
 
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
@@ -769,6 +776,36 @@ import { initMenu } from "./menu.js";
                     details = `Thao tác Google Drive (GAS).<br>Chi tiết: ${log.details || "N/A"}`;
                     break;
 
+                case "incident_report_success":
+                    details = `
+                        <b>Thiết bị:</b> ${log.deviceName || "N/A"}<br>
+                        <b>Mức độ:</b> ${log.severity === "critical" ? "<span style='color:red; font-weight:bold;'>Khẩn cấp</span>" : log.severity === "medium" ? "Trung bình" : "Thấp"}
+                    `;
+                    break;
+                case "incident_status_update":
+                    details = `
+                        <b>Mã sự cố:</b> ${log.ticketId || "N/A"}<br>
+                        <b>Trạng thái mới:</b> ${log.status === "fixing" ? "Đang sửa" : log.status === "resolved" ? "Đã xong" : "Đang chờ"}
+                    `;
+                    break;
+                case "incident_resolve_success":
+                    details = `
+                        <b>Mã sự cố:</b> ${log.ticketId || "N/A"}<br>
+                        <b>Ghi chú khắc phục:</b> ${log.notes || "-"}
+                    `;
+                    break;
+                case "incident_delete_success":
+                    details = `<b>Đã xóa mã sự cố:</b> ${log.ticketId || "N/A"}`;
+                    break;
+                case "chemical_import_success":
+                    details = `
+                        <b>Hóa chất:</b> ${log.chemicalName || "N/A"}<br>
+                        <b>Số lượng:</b> ${log.amount ? Number(log.amount).toLocaleString('vi-VN') + " kg" : "0 kg"}<br>
+                        <b>Nhà cung cấp:</b> ${log.supplier || "N/A"}<br>
+                        <b>Ngày nhập:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}
+                    `;
+                    break;
+
                 default:
                     const displayDate = log.ngay_ghi || log.date;
                     details = `
@@ -1123,6 +1160,7 @@ import { initMenu } from "./menu.js";
                   "Đăng nhập & Xác thực": ["login_success", "login_failure", "logout", "logout_success", "auto_logout_inactivity", "force_logout_requested", "forced_logout_executed", "reAuth_dismissed", "reAuth_success", "reAuth_failure"],
                   "Lên lịch & Phân ca": ["admin_create_work_rule", "admin_update_work_rule", "admin_delete_work_rule", "admin_delete_work_rules", "admin_create_manual_job", "admin_update_manual_job", "admin_delete_manual_job", "admin_create_work_pattern", "admin_update_work_pattern", "admin_delete_work_pattern", "admin_delete_work_patterns", "admin_create_shift_success", "admin_create_shift_failure", "admin_delete_shift_success", "admin_delete_shift_failure", "admin_create_shift_swap", "admin_update_shift_swap", "admin_delete_shift_swap", "admin_delete_shift_swaps", "admin_create_work_rule_quick", "admin_update_work_rule_quick", "admin_delete_work_rule_quick"],
                   "Báo cáo ca trực": ["report_create_success", "report_update_success", "report_save_failure", "report_view_existing", "report_edit_initiated", "report_skipped_exact_match", "form_submit_canceled", "form_submit_fatal_error", "form_unknown_id", "form2_validation_error", "add_sameday_error", "overwrite_sameday_error", "overwrite_error", "overwrite_skipped", "overwrite_success", "updateReport"],
+                  "Sự cố & Kho hóa chất": ["incident_report_success", "incident_status_update", "incident_resolve_success", "incident_delete_success", "chemical_import_success"],
                   "Báo cáo Chỉ số": ["indicator_entry", "indicator_edit", "indicator_delete", "deleteReport", "deleteReport_failure", "deleteReport_not_found", "deleteReport_file_skipped", "meter_reset_confirmed", "meter_reset_canceled", "meter_reset_canceled_sameday", "duplicate_date_accepted"],
                   "Thông báo Nghỉ & ĐB": ["form2_submit_success", "form2_submit_partial_error", "form2_submit_no_dates", "form2_submit_skipped_only", "form2_special_workday_meaningless", "overwrite_manual_holiday_success", "overwrite_manual_holiday_error", "overwrite_manual_holiday_skipped", "add_holiday_error"],
                   "Quản lý File & Drive": ["updateFile", "report_upload_success", "report_upload_failure", "report_delete_success", "report_delete_failure", "file_creation_success", "file_creation_failure", "file_creation_connection_error", "file_size_error", "drive_upload_success", "drive_upload_failure", "drive_delete_failure", "drive_delete_success", "drive_delete_unauthorized", "drive_cleanup_success", "drive_cleanup_fail", "upload", "delete", "create_report_file"],

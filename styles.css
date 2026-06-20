@@ -152,6 +152,12 @@ html {
   html.swal2-height-auto, body.swal2-height-auto {
     height: 100vh !important;
   }
+
+  .filter-box select {
+    padding-top: 0;
+    padding-bottom: 0; /* Tránh bị che khuất chữ trong bộ lọc */
+  }
+
 }
 
 /* ================= CSS ĐỒNG BỘ SWEETALERT GIỐNG MODAL HỆ THỐNG ================= */
@@ -275,6 +281,10 @@ nav.navbar {
   border: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 100;
   padding: 8px 0;
+}
+
+.dropdown-content.dropdown-compact {
+  min-width: 140px;
 }
 
 .dropdown-content a {
@@ -431,6 +441,7 @@ nav.navbar {
 h2 {
   margin-bottom: 10px;
   color: var(--primary-color);
+  font-size: 1.3rem;
 }
 
 /* Đồng bộ lề tiêu đề trang khớp với lề của bảng dữ liệu */
@@ -442,7 +453,7 @@ h2 {
 /* ===== Form ===== */
 form {
   background: var(--surface-color);
-  padding: 20px;
+  padding: 12px;
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
   border: 1px solid var(--border-color);
@@ -687,17 +698,26 @@ tr:last-child td {
     color: #495057;
     margin-bottom: 0.1rem; /* Kéo label sát lại với ô input/select */
     display: block;
+    font-size: 14px;
 }
 .form-field .form-control, .form-field .form-control-file {
-    border-radius: 0.5rem;
+    border-radius: 6px;
     border: 1px solid #ced4da;
-    padding: 0.6rem 0.8rem; /* Giảm độ cao (padding top/bottom) của input/select */
-    font-size: 1rem;
-    line-height: 1.0;
+    padding: 6px 10px; /* Kích thước compact chuẩn hệ thống trên PC */
+    font-size: 14px;
     width: 100%;
     background-color: var(--input-bg);
     color: var(--text-color);
     transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+.form-field select.form-control {
+    height: 33px;
+    padding-top: 0;
+    padding-bottom: 0; /* Tránh bị che khuất chữ */
+}
+.form-field input.form-control {
+    height: 33px;
 }
 .form-field .form-control:focus, .form-field .form-control-file:focus {
     border-color: var(--focus-color);
@@ -708,13 +728,18 @@ tr:last-child td {
     background-color: var(--primary-color);
     color: #fff;
     border: none;
-    border-radius: 0.5rem;
-    padding: 0.75rem 2rem;
-    font-size: 1.1rem;
+    border-radius: 6px;
+    height: 33px; /* Chiều cao chuẩn 33px cho PC */
+    padding: 0 20px;
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .submit-btn:hover {
     background-color: var(--primary-hover);
@@ -1020,18 +1045,28 @@ tr:last-child td {
     pointer-events: auto; /* Kích hoạt lại khả năng click */
   }
   
-  .nav-links a,
-  .nav-links .dropdown {
+  .nav-links a {
     width: 100%;
-    padding: 3px 20px;
+    padding: 8px 20px;
+    font-size: 13px;
+    box-sizing: border-box;
+    display: block;
   }
   
-  .nav-links a {
-    font-size: 13px;
+  .nav-links .dropdown {
+    width: 100%;
+    padding: 0;
+    box-sizing: border-box;
   }
   
   .nav-links .dropbtn {
     font-size: 13px;
+    padding: 8px 20px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    box-sizing: border-box;
   }
 
   /* Cấu hình cho nút hamburger */
@@ -1090,8 +1125,9 @@ tr:last-child td {
   .dropdown .dropdown-content {
       position: static;
       box-shadow: none;
-      background-color: #1a254a;
-      border: none; /* Bỏ viền của dropdown menu khi xem trên mobile */
+      background-color: #131d3b; /* Tông tối hơn nền chính để phân lớp */
+      border: none;
+      border-radius: 0; /* Bỏ bo góc trên mobile */
 
       /* Thu gọn hoàn toàn và ẩn nội dung */
       max-height: 0;
@@ -1115,7 +1151,8 @@ tr:last-child td {
   }
   
   .dropdown-content a {
-    padding: 10px 20px;
+    padding: 6px 20px 6px 35px; /* Thụt lề thụt đầu dòng rõ ràng */
+    box-sizing: border-box;
   }
 }
 /* Thêm vào cuối file styles.css */
@@ -1253,15 +1290,28 @@ tr:last-child td {
     padding: 8px;
   }
   
-  /* Fix input zoom trên iOS */
+  /* 1/ Các ô nhập liệu (Inputs, Selects, Textareas) trên mobile */
+  input,
+  select,
+  textarea,
+  .form-control,
+  .form-control-file,
+  .modal-input {
+    font-size: 14px !important;
+  }
+  
+  /* Giữ nguyên padding cho các ô nhập liệu chung */
   input[type="text"],
   input[type="email"],
   input[type="password"],
   input[type="date"],
   input[type="file"],
+  input[type="number"],
+  input[type="time"],
   select,
-  textarea {
-    font-size: 16px;
+  textarea,
+  .form-control,
+  .modal-input {
     padding: 10px;
   }
   
@@ -1375,10 +1425,14 @@ tr:last-child td {
     margin-bottom: 2px; /* Kéo label sát input trên mobile */
   }
   
-  body .form-control,
-  body .form-control-file {
-    font-size: 16px;
+  body .form-field .form-control,
+  body .form-field .form-control-file {
+    font-size: 14px;
     padding: 8px 10px; /* Thu gọn chiều cao ô nhập trên mobile */
+  }
+  body .form-field select.form-control,
+  body .form-field input.form-control {
+    height: auto !important; /* Hủy bỏ chiều cao cứng của desktop */
   }
   
   /* Controls row mobile */
@@ -1503,10 +1557,16 @@ tr:last-child td {
     margin-top: 4px;
   }
   
-  /* Submit button */
-  body .submit-btn {
-    font-size: 16px;
-    padding: 10px;
+  /* 2/ Các nút gửi form trên mobile */
+  body .submit-btn,
+  body button[type="submit"],
+  body input[type="submit"] {
+    font-size: 14px !important;
+    padding: 10px !important;
+    height: auto !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
   /* Ẩn tất cả các phần admin trên mobile (trừ menu admin-only) */
@@ -1844,17 +1904,17 @@ tr:last-child td {
    ========================================================= */
 .stock-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  margin-top: 15px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+  margin-bottom: 15px;
 }
 
 .stock-card {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  padding: 12px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
   display: flex;
   flex-direction: column;
@@ -1875,7 +1935,7 @@ tr:last-child td {
 }
 
 .stock-title {
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--primary-color);
 }
@@ -1908,21 +1968,21 @@ tr:last-child td {
 }
 
 .stock-large-value {
-  font-size: 2.2rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--text-color);
   line-height: 1;
 }
 
 .stock-unit {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #64748b;
   margin-left: 4px;
 }
 
 .stock-min-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin-top: 4px;
 }
@@ -1931,10 +1991,10 @@ tr:last-child td {
 .progress-bar-container {
   background-color: #e2e8f0;
   border-radius: 8px;
-  height: 12px;
+  height: 8px;
   width: 100%;
   overflow: hidden;
-  margin: 15px 0 5px 0;
+  margin: 10px 0 5px 0;
 }
 
 .progress-bar-fill {
@@ -1956,11 +2016,11 @@ tr:last-child td {
 }
 
 .stock-card-footer {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #94a3b8;
-  margin-top: 10px;
+  margin-top: 8px;
   border-top: 1px solid var(--border-color);
-  padding-top: 8px;
+  padding-top: 6px;
   text-align: right;
 }
 
@@ -2000,12 +2060,12 @@ tr:last-child td {
 }
 
 .suco-left {
-  flex: 2;
-  min-width: 320px;
+  flex: 0 0 400px;
+  max-width: 400px;
 }
 
 .suco-right {
-  flex: 3;
+  flex: 1;
   min-width: 0;
 }
 
@@ -2015,21 +2075,23 @@ tr:last-child td {
   }
   .suco-left {
     min-width: 100%;
+    max-width: none;
+    flex: 1 1 auto;
   }
 }
 
 .ticket-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
 }
 
 .ticket-card {
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   display: flex;
   flex-direction: column;
@@ -2065,7 +2127,7 @@ tr:last-child td {
 
 .ticket-device-title {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   color: var(--primary-color);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2078,6 +2140,8 @@ tr:last-child td {
   padding: 3px 8px;
   border-radius: 4px;
   text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-crit {
@@ -2099,27 +2163,27 @@ tr:last-child td {
 }
 
 .ticket-desc {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-color);
-  margin: 8px 0;
+  margin: 6px 0;
   line-height: 1.4;
   word-wrap: break-word;
   white-space: pre-line;
 }
 
 .ticket-meta {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #64748b;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .ticket-image-preview {
   width: 100%;
-  height: 120px;
+  height: 90px;
   background-size: cover;
   background-position: center;
   border-radius: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   border: 1px solid var(--border-color);
   transition: opacity 0.2s;
@@ -2134,8 +2198,8 @@ tr:last-child td {
   justify-content: space-between;
   align-items: center;
   border-top: 1px dashed var(--border-color);
-  padding-top: 10px;
-  margin-top: 5px;
+  padding-top: 8px;
+  margin-top: 4px;
 }
 
 .status-indicator {
@@ -2175,10 +2239,10 @@ tr:last-child td {
 .ticket-notes-box {
   background-color: #f8fafc;
   border-left: 3px solid #27ae60;
-  padding: 6px 10px;
-  margin-top: 8px;
+  padding: 4px 8px;
+  margin-top: 6px;
   border-radius: 0 6px 6px 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #334155;
   font-style: italic;
 }
