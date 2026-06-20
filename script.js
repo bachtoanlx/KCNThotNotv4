@@ -180,25 +180,120 @@ if (!deviceId) {
   localStorage.setItem('deviceId', deviceId);
 }
 // Nhãn thân thiện của thiết bị hiện tại
-export function getDeviceLabel() {
+export async function getDeviceLabel() {
   const ua = navigator.userAgent;
   let os = "Thiết bị khác";
   let browser = "Trình duyệt khác";
 
-  if (/Windows NT/i.test(ua)) os = "Windows PC";
-  else if (/Macintosh/i.test(ua)) os = "Mac";
-  else if (/Linux/i.test(ua) && !/Android/i.test(ua)) os = "Linux PC";
-  else if (/iPhone/i.test(ua)) os = "iPhone";
-  else if (/iPad/i.test(ua)) os = "iPad";
-  else if (/Android/i.test(ua)) os = "Android";
+  // 1. Lấy thông tin model từ User-Agent Client Hints nếu có hỗ trợ (cho kết quả chính xác nhất trên Chrome/Edge Android)
+  let hintsModel = "";
+  if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+    try {
+      const entropy = await navigator.userAgentData.getHighEntropyValues(['model']);
+      hintsModel = entropy.model || "";
+    } catch (e) {
+      console.warn("Lỗi đọc userAgentData hints:", e);
+    }
+  }
 
-  if (/Edg/i.test(ua)) browser = "Edge";
-  else if (/Chrome/i.test(ua) && !/Chromium/i.test(ua)) browser = "Chrome";
-  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = "Safari";
-  else if (/Firefox/i.test(ua)) browser = "Firefox";
-  
+  // 2. Phân tích Trình duyệt và phiên bản của nó
+  let browserVer = "";
+  if (/Edg\/(\d+)/i.test(ua)) {
+    browser = "Edge";
+    browserVer = ua.match(/Edg\/(\d+)/i)[1];
+  } else if (/Chrome\/(\d+)/i.test(ua) && !/Chromium/i.test(ua)) {
+    browser = "Chrome";
+    browserVer = ua.match(/Chrome\/(\d+)/i)[1];
+  } else if (/Safari\/(\d+)/i.test(ua) && !/Chrome/i.test(ua)) {
+    browser = "Safari";
+    const verMatch = ua.match(/Version\/(\d+)/i);
+    browserVer = verMatch ? verMatch[1] : "";
+  } else if (/Firefox\/(\d+)/i.test(ua)) {
+    browser = "Firefox";
+    browserVer = ua.match(/Firefox\/(\d+)/i)[1];
+  }
+  const browserDisplay = browserVer ? `${browser} ${browserVer}` : browser;
+
+  // 3. Phân tích Hệ điều hành và Model cụ thể
+  if (/Windows NT/i.test(ua)) {
+    os = "Windows PC";
+  } else if (/Macintosh/i.test(ua)) {
+    os = "Mac";
+    const macVerMatch = ua.match(/Mac OS X (\d+[._]\d+)/i);
+    if (macVerMatch) {
+      os = `Mac (OS X ${macVerMatch[1].replace('_', '.')})`;
+    }
+  } else if (/Linux/i.test(ua) && !/Android/i.test(ua)) {
+    os = "Linux PC";
+  } else if (/iPhone/i.test(ua)) {
+    // Dự đoán dòng iPhone dựa trên kích thước màn hình và DPR
+    const width = screen.width;
+    const height = screen.height;
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.min(width, height);
+    const h = Math.max(width, height);
+    
+    let iphoneModel = "iPhone";
+    if (w === 430 && h === 932 && dpr === 3) iphoneModel = "iPhone 14/15 Pro Max";
+    else if (w === 393 && h === 852 && dpr === 3) iphoneModel = "iPhone 14/15 Pro";
+    else if (w === 428 && h === 926 && dpr === 3) iphoneModel = "iPhone 12/13/14 Plus/Pro Max";
+    else if (w === 390 && h === 844 && dpr === 3) iphoneModel = "iPhone 12/13/14/Pro";
+    else if (w === 414 && h === 896 && dpr === 3) iphoneModel = "iPhone XS Max/11 Pro Max";
+    else if (w === 414 && h === 896 && dpr === 2) iphoneModel = "iPhone XR/11";
+    else if (w === 375 && h === 812 && dpr === 3) iphoneModel = "iPhone X/XS/11 Pro/Mini";
+    else if (w === 414 && h === 736 && dpr === 3) iphoneModel = "iPhone 6+/7+/8+";
+    else if (w === 375 && h === 667 && dpr === 2) iphoneModel = "iPhone 6/7/8/SE";
+    else if (w === 320 && h === 568 && dpr === 2) iphoneModel = "iPhone 5/SE(1st)";
+    
+    os = iphoneModel;
+  } else if (/iPad/i.test(ua)) {
+    os = "iPad";
+  } else if (/Android/i.test(ua)) {
+    let androidModel = hintsModel;
+    
+    if (!androidModel) {
+      // Dự phòng phân tích User Agent nếu Client Hints trống hoặc không được hỗ trợ
+      const match = ua.match(/\(([^)]+)\)/);
+      if (match) {
+        const parts = match[1].split(';').map(p => p.trim());
+        const androidIdx = parts.findIndex(p => p.toLowerCase().includes('android'));
+        if (androidIdx !== -1) {
+          for (let i = androidIdx + 1; i < parts.length; i++) {
+            const part = parts[i];
+            // Bỏ qua mã ngôn ngữ
+            if (/^[a-z]{2}-[a-z]{2}$/i.test(part)) continue;
+            // Bỏ qua các từ khóa hệ thống
+            if (part === 'U' || part === 'wv' || part === 'Mobi') continue;
+            
+            androidModel = part.split('Build/')[0].trim();
+            break;
+          }
+        }
+      }
+    }
+    
+    if (!androidModel) {
+      androidModel = "Android";
+    }
+    
+    // Chuẩn hóa một số hãng điện thoại phổ biến
+    if (androidModel.toUpperCase().startsWith("SAMSUNG ")) {
+      androidModel = "Samsung " + androidModel.substring(8);
+    } else if (/^SM-/i.test(androidModel)) {
+      androidModel = "Samsung " + androidModel;
+    } else if (androidModel.toLowerCase().startsWith("redmi") || androidModel.toLowerCase().startsWith("mi ") || androidModel.toLowerCase().startsWith("poco")) {
+      androidModel = "Xiaomi " + androidModel;
+    } else if (androidModel.toLowerCase().startsWith("cph") || androidModel.toLowerCase().startsWith("oppo")) {
+      androidModel = "OPPO " + androidModel;
+    } else if (androidModel.toLowerCase().startsWith("v2") || androidModel.toLowerCase().startsWith("vivo")) {
+      androidModel = "Vivo " + androidModel;
+    }
+    
+    os = androidModel;
+  }
+
   const res = `${screen.width}x${screen.height}`;
-  return `${os} (${browser}) - ${res}`;
+  return `${os} (${browserDisplay}) - ${res}`;
 }
 
 // Nhận diện loại thiết bị
@@ -226,7 +321,7 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
       email: userEmailSafe,
       lastActiveAt: serverTimestamp(),
       deviceLabels: {
-        [deviceId]: getDeviceLabel()
+        [deviceId]: await getDeviceLabel()
       }
     };
     
@@ -261,7 +356,7 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
           if (candidatePC === deviceId) {
             if (!isSessionCounted) {
               const newCount = candidatePCCount + 1;
-              if (newCount >= 3) {
+              if (newCount >= 2) {
                 trustedPCs.push(deviceId);
                 if (trustedPCs.length > 2) {
                   trustedPCs.shift();
@@ -312,7 +407,7 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
           if (candidateMobile === deviceId) {
             if (!isSessionCounted) {
               const newCount = candidateMobileCount + 1;
-              if (newCount >= 3) {
+              if (newCount >= 2) {
                 trustedMobiles.push(deviceId);
                 if (trustedMobiles.length > 2) {
                   trustedMobiles.shift();
@@ -352,6 +447,23 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
     await setDoc(docRef, updateData, { merge: true });
     window.isCurrentDeviceTrusted = isTrusted;
     localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
+    
+    // Cập nhật viền cam cho nút Đăng xuất trên thiết bị lạ
+    try {
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        if (!isTrusted) {
+          logoutBtn.style.border = "2px solid #e67e22";
+          logoutBtn.title = "Thiết bị này tạm thời được coi là máy lạ (tự động đăng xuất sau 1 giờ)";
+        } else {
+          logoutBtn.style.border = "";
+          logoutBtn.title = "";
+        }
+      }
+    } catch (e) {
+      console.warn("Lỗi cập nhật viền nút đăng xuất:", e);
+    }
+    
     return isTrusted;
   } catch (err) {
     console.error("Lỗi khi kiểm tra thiết bị:", err);
@@ -403,6 +515,22 @@ onAuthStateChanged(auth, async (user) => {
             }
             window.isCurrentDeviceTrusted = isTrusted;
             localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
+
+            // Cập nhật viền cam thời gian thực cho nút Đăng xuất
+            try {
+                const logoutBtn = document.getElementById("logoutBtn");
+                if (logoutBtn) {
+                    if (!isTrusted) {
+                        logoutBtn.style.border = "2px solid #e67e22";
+                        logoutBtn.title = "Thiết bị này tạm thời được coi là máy lạ (tự động đăng xuất sau 1 giờ)";
+                    } else {
+                        logoutBtn.style.border = "";
+                        logoutBtn.title = "";
+                    }
+                }
+            } catch (e) {
+                console.warn("Lỗi cập nhật viền nút đăng xuất trong onSnapshot:", e);
+            }
 
             // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác của cùng loại
             if (deviceType === 'pc') {
@@ -493,6 +621,13 @@ onAuthStateChanged(auth, async (user) => {
     }, (error) => {
         console.error("Lỗi lắng nghe users collection:", error);
     });
+  } else {
+    // Đăng xuất hoặc chưa đăng nhập
+    try {
+        sessionStorage.removeItem('deviceSessionCounted');
+    } catch (e) {
+        console.warn("Lỗi xóa sessionStorage khi auth state thay đổi:", e);
+    }
   }
 });
 
@@ -621,6 +756,12 @@ export async function logout(force = false) {
   const userEmail = auth.currentUser?.email || "unknown";
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("logout", { email: userEmail, status: "success", userAgent: navigator.userAgent });
+
+  try {
+    sessionStorage.removeItem('deviceSessionCounted');
+  } catch (e) {
+    console.warn("Lỗi xóa sessionStorage khi đăng xuất:", e);
+  }
 
   if (!window.isCurrentDeviceTrusted) {
     await clearLocalDB();
