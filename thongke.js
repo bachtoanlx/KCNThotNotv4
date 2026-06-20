@@ -1164,7 +1164,9 @@ function toggleBodyScroll(disable) {
             throw error;
         } finally {
             // Tắt loading sẽ do hàm gọi nó thực hiện
+        }
     }
+
 
     function startRealtimeSyncShiftReports(startTime) {
         if (unsubscribeRealtime) unsubscribeRealtime();

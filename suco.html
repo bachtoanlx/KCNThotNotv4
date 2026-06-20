@@ -23,8 +23,33 @@
     }
 
     @media (max-width: 768px) {
-      #pageContent {
-        padding: 5px 0px;
+      html, body {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      body #pageContent {
+        height: 100% !important;
+        min-height: 0 !important;
+        flex: 1 1 0% !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 5px 0px !important;
+      }
+
+      #pageContent > h2,
+      #pageContent > p {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .suco-layout {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 8px 10px 8px;
       }
     }
 
@@ -33,10 +58,12 @@
         overflow: hidden !important;
         /* Khóa cuộn cấp trang chính */
         height: 100%;
+        display: flex;
+        flex-direction: column;
       }
 
       .suco-layout {
-        height: 100%;
+        flex: 1;
         min-height: 0;
         /* Bắt buộc để kích hoạt cơ chế cuộn trong flexbox */
       }
@@ -70,16 +97,16 @@
   </div>
 
   <div id="pageContent" style="display:none;">
+    <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+      🛠️ Báo Cáo Sự Cố Thiết Bị
+    </h2>
+    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
+      Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành.
+    </p>
+
     <div class="suco-layout">
       <!-- Cột bên trái: Biểu mẫu báo lỗi sự cố -->
       <div class="suco-left">
-        <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-          🛠️ Báo Cáo Sự Cố Thiết Bị
-        </h2>
-        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
-          Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành.
-        </p>
-
         <form id="incidentForm">
           <div class="form-group form-field">
             <label for="device-select">Thiết bị hỏng hóc:</label>
