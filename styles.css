@@ -143,15 +143,7 @@ html {
 
 /* === Khóa cuộn dọc và ép nội dung vừa màn hình trên Desktop === */
 @media (min-width: 769px) {
-  html, body {
-    height: 100vh; /* Cố định chiều cao bằng 100% viewport */
-    overflow: hidden; /* Ẩn toàn bộ thanh cuộn (ngang & dọc) ở cấp trang */
-  }
-  
-  /* Ghi đè SweetAlert2 để không làm mất height 100vh gây giật trang khi mở Modal */
-  html.swal2-height-auto, body.swal2-height-auto {
-    height: 100vh !important;
-  }
+  /* Cho phép cuộn dọc tự nhiên cấp trang */
 
   .filter-box select {
     padding-top: 0;
@@ -1158,8 +1150,6 @@ tr:last-child td {
 /* Thêm vào cuối file styles.css */
 #pageContent, #content-container {
     flex: 1; /* Giúp nội dung chính co giãn để đẩy footer xuống */
-    overflow-y: auto; /* Bật thanh cuộn dọc độc lập cho vùng nội dung chính */
-    min-height: 0; /* Quan trọng: Ép phần nội dung không được phình to quá flexbox màn hình */
 }
 
 /* ===== Shared filter-box styles (áp dụng cho các trang có bộ lọc ngày) ===== */
@@ -1931,6 +1921,7 @@ tr:last-child td {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -1938,14 +1929,19 @@ tr:last-child td {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--primary-color);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .stock-badge {
   font-size: 0.75rem;
   font-weight: bold;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
   text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-safe {
@@ -2245,5 +2241,114 @@ tr:last-child td {
   font-size: 0.75rem;
   color: #334155;
   font-style: italic;
+}
+
+/* ===== HỆ THỐNG LAYOUT CỐ ĐỊNH MENU/FOOTER (FIXED VIEWPORT) ===== */
+body.fixed-viewport-layout {
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+body.fixed-viewport-layout #pageContent {
+  flex: 1 !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.fixed-viewport-layout #pageContent:not([style*="display: none"]):not([style*="display:none"]) {
+  display: flex !important;
+}
+
+/* Đảm bảo tiêu đề h2 và p không bị bóp méo khi nội dung chính co giãn */
+body.fixed-viewport-layout #pageContent > h2,
+body.fixed-viewport-layout #pageContent > p {
+  flex-shrink: 0 !important;
+}
+
+/* Tối ưu khoảng cách (margin) do Flexbox không tự động gộp lề */
+body.fixed-viewport-layout #pageContent > h2 {
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+
+body.fixed-viewport-layout #pageContent > p {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+}
+
+/* Các vùng cuộn nội dung độc lập của 3 trang */
+body.fixed-viewport-layout .kho-layout,
+body.fixed-viewport-layout .suco-layout,
+body.fixed-viewport-layout .tinhtoan-layout {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin-top: 0 !important; /* Gỡ bỏ margin-top tránh cộng dồn khoảng cách */
+}
+
+/* ===== CHUẨN HÓA KÍCH THƯỚC INPUT & NÚT BẤM CHO 3 TRANG CHÍNH ===== */
+/* Desktop: 33px (theo chuẩn hệ thống) */
+body.fixed-viewport-layout .form-field input.form-control,
+body.fixed-viewport-layout .form-field select.form-control,
+body.fixed-viewport-layout input.form-control:not([type="hidden"]),
+body.fixed-viewport-layout select.form-control {
+  height: 33px !important;
+  padding: 6px 10px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+}
+
+body.fixed-viewport-layout .submit-btn,
+body.fixed-viewport-layout .btn-action,
+body.fixed-viewport-layout .calc-btn {
+  height: 33px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Mobile: 27px (theo chuẩn hệ thống) */
+@media (max-width: 768px) {
+  body.fixed-viewport-layout .form-field input.form-control,
+  body.fixed-viewport-layout .form-field select.form-control,
+  body.fixed-viewport-layout input.form-control:not([type="hidden"]),
+  body.fixed-viewport-layout select.form-control {
+    height: 27px !important;
+    padding: 4px 8px !important;
+    font-size: 13px !important;
+  }
+
+  body.fixed-viewport-layout .submit-btn,
+  body.fixed-viewport-layout .btn-action,
+  body.fixed-viewport-layout .calc-btn {
+    height: 27px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ===== NÚT TẢI / LƯU TRONG KịCH BẢN (NHỎ HƠN CHUẨN 4px) ===== */
+/* Desktop: 33 - 4 = 29px */
+body.fixed-viewport-layout .scenario-card .btn-action {
+  height: 29px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+}
+
+/* Mobile: 27 - 4 = 23px */
+@media (max-width: 768px) {
+  body.fixed-viewport-layout .scenario-card .btn-action {
+    height: 23px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
 }
 

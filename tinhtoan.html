@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tính Toán Hệ Thống Hóa Chất</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    #pageContent {
+      padding: 10px 8px;
+    }
+
+    .calculator-container {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .calc-inputs-column {
+      flex: 1.2;
+      min-width: 0;
+    }
+
+    .calc-results-column {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .scenario-card {
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    /* Responsive cho màn hình máy tính bảng và mobile (<= 992px) */
+    @media (max-width: 992px) {
+      .calculator-container {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .calc-inputs-column,
+      .calc-results-column {
+        width: 100%;
+      }
+    }
+
+    /* Cấu hình đặc thù riêng trên mobile nhỏ (<= 768px) */
+    @media (max-width: 768px) {
+      body #pageContent {
+        padding: 5px 0px !important;
+      }
+
+      #pageContent>h2 {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .scenario-card {
+        margin: 0 2px 10px 2px;
+        width: calc(100% - 4px);
+      }
+
+      .calculator-container {
+        padding: 0 2px 10px 2px;
+        width: 100%;
+      }
+
+      .calc-card {
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .form-field label {
+        font-size: 13px;
+      }
+
+      .form-field .form-control {
+        font-size: 13px;
+        height: 27px;
+        padding: 4px 8px;
+      }
+
+      .card-title {
+        font-size: 13.5px;
+        margin-bottom: 10px;
+      }
+    }
+
+    .calc-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      margin-bottom: 15px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .calc-card:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    /* Badge dạng viên thuốc (pill) cho trạng thái kết quả */
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+    .pill-success {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #15803d;
+    }
+    .pill-warning {
+      background: #fef3c7;
+      border-color: #fcd34d;
+      color: #b45309;
+    }
+    .pill-danger {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .toggle-group {
+      display: flex;
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 2px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .toggle-option {
+      flex: 1;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      color: var(--text-color);
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .toggle-option.active {
+      background: var(--primary-color);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Hiển thị kết quả */
+    .result-display-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (max-width: 500px) {
+      .result-display-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .result-item {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 6px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
+    .result-item.highlight {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    .result-label {
+      font-size: 10.5px;
+      color: #64748b;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+
+    .result-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .result-unit {
+      font-size: 10.5px;
+      color: #64748b;
+      margin-left: 2px;
+      font-weight: 500;
+    }
+
+    .calc-results-column .calc-card {
+      padding: 15px;
+      margin-bottom: 12px;
+    }
+
+    .calc-btn-container {
+      margin-top: 0px;
+      margin-bottom: 12px;
+    }
+
+    .calc-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .calc-btn:hover {
+      background: linear-gradient(135deg, #32db79, #2ecc71);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+    }
+
+    .alert-calc {
+      background: #fef2f2;
+      border: 1px dashed var(--danger-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      color: #b91c1c;
+      font-size: 12.5px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.45;
+    }
+
+    .alert-calc.info {
+      background: #f0fdf4;
+      border-color: var(--success-color);
+      color: #166534;
+    }
+
+    .formula-section {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 0px;
+    }
+
+    .formula-section h3 {
+      font-size: 1rem;
+      color: var(--primary-color);
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .formula-list {
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.6;
+      list-style-type: none;
+    }
+
+    .formula-list li {
+      margin-bottom: 8px;
+      padding-left: 15px;
+      position: relative;
+    }
+
+    .formula-list li::before {
+      content: "•";
+      color: var(--focus-color);
+      font-weight: bold;
+      position: absolute;
+      left: 0;
+    }
+
+    .chem-analysis-item {
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 0;
+    }
+
+    .chem-analysis-item:last-child {
+      border-bottom: none;
+    }
+
+    .chem-title {
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body class="fixed-viewport-layout">
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <div id="notLogged" style="display:none;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px;">🧮 Tính Toán Định Lượng Hệ Thống</h2>
+
+    <div class="tinhtoan-layout">
+      <!-- Khối Kịch bản mẫu -->
+    <div class="calc-card scenario-card" style="margin-bottom: 10px;">
+      <div class="card-title">💾 Kịch bản tính toán mẫu</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+
+        <!-- Kịch bản 1 -->
+        <div
+          style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: var(--primary-color);">Kịch bản 1</div>
+            <div id="scenLabel1" style="font-size: 12px; color: #64748b; font-style: italic; margin-top: 3px;">(Chưa
+              lưu)</div>
+          </div>
+          <div class="d-flex gap-5">
+            <button id="btnLoadScen1" class="btn-action btn-primary flex-1" style="font-size: 12px; padding: 5px;"
+              disabled>Tải</button>
+            <button id="btnSaveScen1" class="btn-action btn-success flex-1"
+              style="font-size: 12px; padding: 5px;">Lưu</button>
+          </div>
+        </div>
+
+        <!-- Kịch bản 2 -->
+        <div
+          style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: var(--primary-color);">Kịch bản 2</div>
+            <div id="scenLabel2" style="font-size: 12px; color: #64748b; font-style: italic; margin-top: 3px;">(Chưa
+              lưu)</div>
+          </div>
+          <div class="d-flex gap-5">
+            <button id="btnLoadScen2" class="btn-action btn-primary flex-1" style="font-size: 12px; padding: 5px;"
+              disabled>Tải</button>
+            <button id="btnSaveScen2" class="btn-action btn-success flex-1"
+              style="font-size: 12px; padding: 5px;">Lưu</button>
+          </div>
+        </div>
+
+        <!-- Kịch bản 3 -->
+        <div
+          style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 13px; color: var(--primary-color);">Kịch bản 3</div>
+            <div id="scenLabel3" style="font-size: 12px; color: #64748b; font-style: italic; margin-top: 3px;">(Chưa
+              lưu)</div>
+          </div>
+          <div class="d-flex gap-5">
+            <button id="btnLoadScen3" class="btn-action btn-primary flex-1" style="font-size: 12px; padding: 5px;"
+              disabled>Tải</button>
+            <button id="btnSaveScen3" class="btn-action btn-success flex-1"
+              style="font-size: 12px; padding: 5px;">Lưu</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="calculator-container">
+
+      <!-- Cột Trái: Nhập Thông Số -->
+      <div class="calc-inputs-column">
+
+        <!-- Thông số vận hành chính -->
+        <div class="calc-card">
+          <div class="card-title">🔌 Thông số vận hành chính</div>
+          <div class="form-field mb-10">
+            <label for="flowRateMain">Lưu lượng bơm điều hòa (m³/h):</label>
+            <input type="number" id="flowRateMain" class="form-control" placeholder="Ví dụ: 50" min="0" step="any">
+          </div>
+          <div class="form-field">
+            <label for="hoursMain">Số giờ chạy bơm (Giờ):</label>
+            <input type="number" id="hoursMain" class="form-control" placeholder="Ví dụ: 16" min="0" max="24"
+              step="any">
+          </div>
+        </div>
+
+        <!-- Chlorine -->
+        <div class="calc-card">
+          <div class="card-title">🧪 Hóa chất Chlorine</div>
+
+          <div class="form-field mb-10">
+            <div style="display: flex; gap: 15px;">
+              <div style="flex: 2;">
+                <label for="weightCl">Khối lượng Chlorine bột pha (kg):</label>
+                <input type="number" id="weightCl" class="form-control" placeholder="Ví dụ: 5" min="0" step="any">
+              </div>
+              <div style="flex: 1;">
+                <label for="purityCl">Độ tinh khiết bột (%):</label>
+                <input type="number" id="purityCl" class="form-control" placeholder="Ví dụ: 70" min="0" max="100"
+                  step="any" value="70">
+              </div>
+            </div>
+            <!-- Hidden inputs to prevent JS references from breaking -->
+            <input type="hidden" id="percentCl" value="">
+            <input type="hidden" id="purityClPercentMode" value="70">
+          </div>
+
+          <div class="form-field mb-10">
+            <label for="tankVolCl">Thể tích cần pha (lít) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tối đa 2000L - Tự động
+                tính)</span>:</label>
+            <input type="number" id="tankVolCl" class="form-control" placeholder="Tự động tính từ khối lượng" readonly>
+          </div>
+
+          <!-- Quy đổi trực quan -->
+          <div style="font-size: 12px; color: #475569; margin-bottom: 10px; font-style: italic;" id="clConversionText">
+            Quy đổi: Nồng độ = 0%
+          </div>
+
+          <div class="form-field">
+            <label for="pumpFlowCl">Lưu lượng bơm định lượng Chlorine (lít/giờ) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tự động tính)</span>:</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+              <input type="number" id="pumpFlowCl" class="form-control" style="flex: 2;" placeholder="Tự động tính"
+                readonly>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Min (L/h)</label>
+                <input type="number" id="pumpMinCl" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="1.0" min="0" step="any">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Max (L/h)</label>
+                <input type="number" id="pumpMaxCl" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="30.0" min="0" step="any">
+              </div>
+            </div>
+            <input type="checkbox" id="useAllCl" style="display: none;" checked>
+          </div>
+        </div>
+
+        <!-- PAC -->
+        <div class="calc-card">
+          <div class="card-title">🧪 Hóa chất PAC</div>
+
+          <div class="form-field mb-10">
+            <label for="weightPac">Khối lượng PAC bột pha (kg):</label>
+            <input type="number" id="weightPac" class="form-control" placeholder="Ví dụ: 50" min="0" step="any">
+            <input type="hidden" id="percentPac" value="">
+          </div>
+
+          <div class="form-field mb-10">
+            <label for="tankVolPac">Thể tích cần pha (lít) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tối đa 2000L - Tự động
+                tính)</span>:</label>
+            <input type="number" id="tankVolPac" class="form-control" placeholder="Tự động tính từ khối lượng" readonly>
+          </div>
+
+          <div style="font-size: 12px; color: #475569; margin-bottom: 10px; font-style: italic;" id="pacConversionText">
+            Quy đổi: Nồng độ = 0%
+          </div>
+
+          <div class="form-field">
+            <label for="pumpFlowPac">Lưu lượng bơm định lượng PAC (lít/giờ) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tự động tính)</span>:</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+              <input type="number" id="pumpFlowPac" class="form-control" style="flex: 2;" placeholder="Tự động tính"
+                readonly>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Min (L/h)</label>
+                <input type="number" id="pumpMinPac" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="5.0" min="0" step="any">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Max (L/h)</label>
+                <input type="number" id="pumpMaxPac" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="100.0" min="0" step="any">
+              </div>
+            </div>
+            <input type="checkbox" id="useAllPac" style="display: none;" checked>
+          </div>
+        </div>
+
+        <!-- Polymer A -->
+        <div class="calc-card">
+          <div class="card-title">🧪 Hóa chất Polymer A</div>
+
+          <div class="form-field mb-10">
+            <label for="weightPoly">Khối lượng Polymer A hạt pha (kg):</label>
+            <input type="number" id="weightPoly" class="form-control" placeholder="Ví dụ: 1" min="0" step="any">
+            <input type="hidden" id="percentPoly" value="">
+          </div>
+
+          <div class="form-field mb-10">
+            <label for="tankVolPoly">Thể tích cần pha (lít) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tối đa 2000L - Tự động
+                tính)</span>:</label>
+            <input type="number" id="tankVolPoly" class="form-control" placeholder="Tự động tính từ khối lượng"
+              readonly>
+          </div>
+
+          <div style="font-size: 12px; color: #475569; margin-bottom: 10px; font-style: italic;"
+            id="polyConversionText">
+            Quy đổi: Nồng độ = 0%
+          </div>
+
+          <div class="form-field">
+            <label for="pumpFlowPoly">Lưu lượng bơm định lượng Polymer A (lít/giờ) <span
+                style="font-size: 11px; color: #64748b; font-weight: normal;">(Tự động tính)</span>:</label>
+            <div style="display: flex; gap: 10px; align-items: flex-end;">
+              <input type="number" id="pumpFlowPoly" class="form-control" style="flex: 2;" placeholder="Tự động tính"
+                readonly>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Min (L/h)</label>
+                <input type="number" id="pumpMinPoly" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="10.0" min="0" step="any">
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column;">
+                <label style="font-size: 10px; margin-bottom: 2px; color: #64748b;">Max (L/h)</label>
+                <input type="number" id="pumpMaxPoly" class="form-control" style="font-size: 11px; padding: 4px;"
+                  value="200.0" min="0" step="any">
+              </div>
+            </div>
+            <input type="checkbox" id="useAllPoly" style="display: none;" checked>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Cột Phải: Kết Quả Tính -->
+      <div class="calc-results-column">
+
+        <div class="calc-btn-container" style="display: flex; gap: 10px;">
+          <button id="btnCalculate" class="calc-btn" style="flex: 2;">⚙️ Tính toán kết quả</button>
+          <button id="btnOpenConfig" class="calc-btn"
+            style="flex: 1; background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)); box-shadow: 0 4px 6px rgba(39, 54, 104, 0.2);">⚙️
+            Cấu hình</button>
+        </div>
+
+        <!-- Kết quả tính toán chính -->
+        <div class="calc-card" id="resultsCard">
+          <div class="card-title">📊 Kết quả tính toán</div>
+          <div class="result-display-grid">
+
+            <div class="result-item highlight" style="grid-column: span 2;">
+              <div class="result-label">LƯỢNG NƯỚC XỬ LÝ</div>
+              <div class="result-value" id="resFlowRate">0</div>
+              <div class="result-unit">m³/ca</div>
+            </div>
+
+            <div class="result-item">
+              <div class="result-label">LƯỢNG CHLORINE</div>
+              <div class="result-value" id="resChlorine">0</div>
+              <div class="result-unit">kg bột/ca</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 3px; font-weight: 500;" id="resClVol">0 lít/ca
+                dung dịch</div>
+            </div>
+
+            <div class="result-item">
+              <div class="result-label">LƯỢNG PAC</div>
+              <div class="result-value" id="resPac">0</div>
+              <div class="result-unit">kg bột/ca</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 3px; font-weight: 500;" id="resPacVol">0 lít/ca
+                dung dịch</div>
+            </div>
+
+            <div class="result-item">
+              <div class="result-label">LƯỢNG POLYMER A</div>
+              <div class="result-value" id="resPoly">0</div>
+              <div class="result-unit">kg hạt/ca</div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 3px; font-weight: 500;" id="resPolyVol">0 lít/ca
+                dung dịch</div>
+            </div>
+
+            <div class="result-item highlight" style="background: #ecfdf5; border-color: #a7f3d0;">
+              <div class="result-label" style="color: #065f46;">TỔNG NƯỚC CẦN PHA</div>
+              <div class="result-value" id="resTotalWater" style="color: #047857;">0</div>
+              <div class="result-unit" style="color: #065f46;">m³ (3 bồn)</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Đánh giá và Cảnh báo -->
+        <div class="calc-card" id="analysisCard" style="display: none;">
+          <div class="card-title">📝 Đánh giá & Cảnh báo bồn hóa chất</div>
+          <div id="analysisDetails">
+            <!-- Nội dung đánh giá sẽ sinh động xuất hiện ở đây -->
+          </div>
+        </div>
+
+
+
+
+      </div>
+
+    </div>
+    </div>
+  </div>
+
+  <!-- Modal Cấu hình Định mức & Nồng độ pha -->
+  <div id="configDinhMucModal" class="modal">
+    <div class="modal-content-config" style="max-width: 850px;">
+      <span class="close-btn" id="btnCloseConfigModal">&times;</span>
+      <h3
+        style="color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; font-size: 1.15rem;">
+        ⚙️ Cấu Hình Định Mức Khuyến Cáo & Nồng Độ Pha
+      </h3>
+
+      <div style="overflow-x: auto; margin-bottom: 15px;">
+        <table
+          style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; min-width: 650px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid var(--border-color);">
+              <th style="padding: 8px; font-weight: bold; color: var(--primary-color);">Loại hóa chất</th>
+              <th
+                style="padding: 8px; font-weight: bold; color: var(--primary-color); text-align: center; width: 120px;">
+                Định mức tối ưu (ppm)</th>
+              <th
+                style="padding: 8px; font-weight: bold; color: var(--primary-color); text-align: center; width: 180px;">
+                Khuyến cáo châm (ppm)</th>
+              <th
+                style="padding: 8px; font-weight: bold; color: var(--primary-color); text-align: center; width: 180px;">
+                Nồng độ pha bồn (%)</th>
+              <th style="padding: 8px; font-weight: bold; color: var(--primary-color);">Lưu ý vận hành quan trọng (Gợi
+                ý)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Chlorine -->
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 8px; font-weight: 600;">Chlorine (Bột 70%)</td>
+              <td style="padding: 8px; text-align: center;">
+                <input type="number" id="cfgTargetDoseCl" class="form-control"
+                  style="width: 65px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                  placeholder="3.0">
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgRecommendMinCl" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="3.0">
+                  <span>-</span>
+                  <input type="number" id="cfgRecommendMaxCl" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="10.0">
+                </div>
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgCMinCl" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="1.0">
+                  <span>-</span>
+                  <input type="number" id="cfgCMaxCl" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="5.0">
+                </div>
+              </td>
+              <td style="padding: 8px; color: #475569; font-style: italic; max-width: 250px; line-height: 1.4;">
+                Hòa tan 1 - 5 kg bột trong 100L. Luôn đổ bột vào nước. Phản ứng bể tiếp xúc ≥ 30 phút.
+              </td>
+            </tr>
+
+            <!-- PAC -->
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 8px; font-weight: 600;">PAC (Bột vàng)</td>
+              <td style="padding: 8px; text-align: center;">
+                <input type="number" id="cfgTargetDosePac" class="form-control"
+                  style="width: 65px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                  placeholder="15.0">
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgRecommendMinPac" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="15.0">
+                  <span>-</span>
+                  <input type="number" id="cfgRecommendMaxPac" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="30.0">
+                </div>
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgCMinPac" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="5.0">
+                  <span>-</span>
+                  <input type="number" id="cfgCMaxPac" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="10.0">
+                </div>
+              </td>
+              <td style="padding: 8px; color: #475569; font-style: italic; max-width: 250px; line-height: 1.4;">
+                Hòa tan 5 - 10 kg bột trong 100L. Khuấy nhanh mạnh (100–150 v/p) để phá bền điện tích.
+              </td>
+            </tr>
+
+            <!-- Polymer A -->
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 8px; font-weight: 600;">Polymer A (Hạt)</td>
+              <td style="padding: 8px; text-align: center;">
+                <input type="number" id="cfgTargetDosePoly" class="form-control"
+                  style="width: 65px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                  placeholder="1.0">
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgRecommendMinPoly" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="1.0">
+                  <span>-</span>
+                  <input type="number" id="cfgRecommendMaxPoly" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="3.0">
+                </div>
+              </td>
+              <td style="padding: 8px;">
+                <div style="display: flex; gap: 4px; align-items: center; justify-content: center;">
+                  <input type="number" id="cfgCMinPoly" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="0.1">
+                  <span>-</span>
+                  <input type="number" id="cfgCMaxPoly" class="form-control"
+                    style="width: 60px; padding: 4px; text-align: center; font-size: 12px; height: 28px;" step="any"
+                    placeholder="0.2">
+                </div>
+              </td>
+              <td style="padding: 8px; color: #475569; font-style: italic; max-width: 250px; line-height: 1.4;">
+                Hòa tan 100g hạt trong 100L. Rải thật từ từ, khuấy chậm (50–80 v/p) tránh gãy mạch.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="font-size: 11px; color: #64748b; margin-bottom: 15px; line-height: 1.5;">
+        💡 <strong>Gợi ý thiết kế mặc định:</strong><br>
+        • Chlorine: Định mức 3.0 ppm, khuyến cáo 3.0 - 10.0 ppm, nồng độ pha 1.0% - 5.0%.<br>
+        • PAC: Định mức 15.0 ppm, khuyến cáo 15.0 - 30.0 ppm, nồng độ pha 5.0% - 10.0%.<br>
+        • Polymer A: Định mức 1.0 ppm, khuyến cáo 1.0 - 3.0 ppm, nồng độ pha 0.1% - 0.2%.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="btnResetConfig" class="btn-action btn-danger" style="font-size: 12.5px;">Khôi phục mặc định</button>
+        <button id="btnSaveConfig" class="btn-action btn-success" style="font-size: 12.5px;">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script type="module" src="tinhtoan.js"></script>
+</body>
+
+</html>
