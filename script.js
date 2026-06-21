@@ -60,7 +60,7 @@ export const auth = getAuth(app);
 
 // 🚀 Bật Cache ngoại tuyến (Offline Persistence) giảm chi phí đọc
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 export const messaging = getMessaging(app);
 
@@ -84,11 +84,11 @@ export async function initFCM(email) {
         swRegistration = await navigator.serviceWorker.ready;
       }
 
-      const currentToken = await getToken(messaging, { 
+      const currentToken = await getToken(messaging, {
         vapidKey: "BKpLjAuAte8ay_adRyliXxgFTAH_Wh3ID9tMVU6d8nSGbDRH3scSoT1FgGUm0GVaujVnZ7nnwtZYZv5g2AOX7CY",
         serviceWorkerRegistration: swRegistration
       });
-      
+
       if (currentToken) {
         await setDoc(doc(db, "users", email), {
           fcmToken: currentToken,
@@ -113,15 +113,15 @@ export async function initFCM(email) {
       console.log("[FCM] Nhận tin nhắn Foreground:", payload);
       const title = payload.notification?.title || "Thông báo";
       const body = payload.notification?.body || "";
-      
+
       // 🚀 Luôn bắn thông báo Hệ điều hành (Góc màn hình) thay vì dùng SweetAlert để tránh bị ghi đè
       if (Notification.permission === "granted") {
-          const notif = new Notification(title, { body: body });
-          // Khi click vào thông báo ở góc, tự động focus lại tab web này
-          notif.onclick = function() { window.focus(); this.close(); };
-          
-          // (Tùy chọn) Hiện thêm popup nhỏ trên web để chắc chắn admin không bỏ lỡ nếu Windows bị lỗi
-          showSwal("info", title, { html: body, timer: 5000 });
+        const notif = new Notification(title, { body: body });
+        // Khi click vào thông báo ở góc, tự động focus lại tab web này
+        notif.onclick = function () { window.focus(); this.close(); };
+
+        // (Tùy chọn) Hiện thêm popup nhỏ trên web để chắc chắn admin không bỏ lỡ nếu Windows bị lỗi
+        showSwal("info", title, { html: body, timer: 5000 });
       }
     });
   } catch (error) {
@@ -137,7 +137,7 @@ export function getBrowserFingerprint() {
     navigator.language,
     navigator.hardwareConcurrency || 'unknown'
   ];
-  
+
   try {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -153,9 +153,9 @@ export function getBrowserFingerprint() {
   } catch (e) {
     // Không hỗ trợ canvas hoặc bị chặn
   }
-  
+
   const rawString = traits.join('|');
-  
+
   // Thuật toán băm cyrb53
   let h1 = 0xdeadbeef ^ 0, h2 = 0x41c6ce57 ^ 0;
   for (let i = 0, ch; i < rawString.length; i++) {
@@ -168,7 +168,7 @@ export function getBrowserFingerprint() {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
   h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   const hash = (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
-  
+
   return 'fp_' + hash;
 }
 
@@ -232,7 +232,7 @@ export async function getDeviceLabel() {
     const dpr = window.devicePixelRatio || 1;
     const w = Math.min(width, height);
     const h = Math.max(width, height);
-    
+
     let iphoneModel = "iPhone";
     if (w === 430 && h === 932 && dpr === 3) iphoneModel = "iPhone 14/15 Pro Max";
     else if (w === 393 && h === 852 && dpr === 3) iphoneModel = "iPhone 14/15 Pro";
@@ -244,13 +244,13 @@ export async function getDeviceLabel() {
     else if (w === 414 && h === 736 && dpr === 3) iphoneModel = "iPhone 6+/7+/8+";
     else if (w === 375 && h === 667 && dpr === 2) iphoneModel = "iPhone 6/7/8/SE";
     else if (w === 320 && h === 568 && dpr === 2) iphoneModel = "iPhone 5/SE(1st)";
-    
+
     os = iphoneModel;
   } else if (/iPad/i.test(ua)) {
     os = "iPad";
   } else if (/Android/i.test(ua)) {
     let androidModel = hintsModel;
-    
+
     if (!androidModel) {
       // Dự phòng phân tích User Agent nếu Client Hints trống hoặc không được hỗ trợ
       const match = ua.match(/\(([^)]+)\)/);
@@ -264,18 +264,18 @@ export async function getDeviceLabel() {
             if (/^[a-z]{2}-[a-z]{2}$/i.test(part)) continue;
             // Bỏ qua các từ khóa hệ thống
             if (part === 'U' || part === 'wv' || part === 'Mobi') continue;
-            
+
             androidModel = part.split('Build/')[0].trim();
             break;
           }
         }
       }
     }
-    
+
     if (!androidModel) {
       androidModel = "Android";
     }
-    
+
     // Chuẩn hóa một số hãng điện thoại phổ biến
     if (androidModel.toUpperCase().startsWith("SAMSUNG ")) {
       androidModel = "Samsung " + androidModel.substring(8);
@@ -288,7 +288,7 @@ export async function getDeviceLabel() {
     } else if (androidModel.toLowerCase().startsWith("v2") || androidModel.toLowerCase().startsWith("vivo")) {
       androidModel = "Vivo " + androidModel;
     }
-    
+
     os = androidModel;
   }
 
@@ -311,12 +311,12 @@ window.isCurrentDeviceTrusted = localStorage.getItem('isCurrentDeviceTrusted') !
 export async function checkAndUpdateUserDevice(userEmailSafe) {
   const deviceType = getDeviceType();
   const docRef = doc(db, "users", userEmailSafe);
-  
+
   try {
     const docSnap = await getDoc(docRef);
     let isTrusted = true;
     const isSessionCounted = sessionStorage.getItem('deviceSessionCounted') === 'true';
-    
+
     let updateData = {
       email: userEmailSafe,
       lastActiveAt: serverTimestamp(),
@@ -324,24 +324,24 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
         [deviceId]: await getDeviceLabel()
       }
     };
-    
+
     if (deviceType === 'pc') {
       updateData.lastPCDeviceId = deviceId;
     } else {
       updateData.lastMobileDeviceId = deviceId;
-    }    
+    }
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
+
       if (deviceType === 'pc') {
         let trustedPCs = Array.isArray(data.trustedPCs) ? data.trustedPCs : [];
         if (data.trustedPC && !trustedPCs.includes(data.trustedPC)) {
           trustedPCs.push(data.trustedPC);
         }
-        
+
         const candidatePC = data.candidatePC;
         const candidatePCCount = data.candidatePCCount || 0;
-        
+
         if (trustedPCs.length === 0) {
           trustedPCs.push(deviceId);
           updateData.trustedPCs = trustedPCs;
@@ -383,16 +383,16 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
             isTrusted = false;
           }
         }
-        
+
       } else { // mobile
         let trustedMobiles = Array.isArray(data.trustedMobiles) ? data.trustedMobiles : [];
         if (data.trustedMobile && !trustedMobiles.includes(data.trustedMobile)) {
           trustedMobiles.push(data.trustedMobile);
         }
-        
+
         const candidateMobile = data.candidateMobile;
         const candidateMobileCount = data.candidateMobileCount || 0;
-        
+
         if (trustedMobiles.length === 0) {
           trustedMobiles.push(deviceId);
           updateData.trustedMobiles = trustedMobiles;
@@ -443,11 +443,11 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
       }
       isTrusted = true;
     }
-    
+
     await setDoc(docRef, updateData, { merge: true });
     window.isCurrentDeviceTrusted = isTrusted;
     localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
-    
+
     // Cập nhật viền cam cho nút Đăng xuất trên thiết bị lạ
     try {
       const logoutBtn = document.getElementById("logoutBtn");
@@ -463,7 +463,7 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
     } catch (e) {
       console.warn("Lỗi cập nhật viền nút đăng xuất:", e);
     }
-    
+
     return isTrusted;
   } catch (err) {
     console.error("Lỗi khi kiểm tra thiết bị:", err);
@@ -478,155 +478,155 @@ let currentUserSnapshotUnsubscribe = null;
 
 onAuthStateChanged(auth, async (user) => {
   if (currentUserSnapshotUnsubscribe) {
-      currentUserSnapshotUnsubscribe();
-      currentUserSnapshotUnsubscribe = null;
+    currentUserSnapshotUnsubscribe();
+    currentUserSnapshotUnsubscribe = null;
   }
 
   if (user) {
     const userEmailSafe = user.email ? user.email.toLowerCase() : "unknown";
-    
+
     try {
-        await checkAndUpdateUserDevice(userEmailSafe);
+      await checkAndUpdateUserDevice(userEmailSafe);
     } catch (e) {
-        console.warn("Không thể lưu thông tin đăng nhập ban đầu:", e);
+      console.warn("Không thể lưu thông tin đăng nhập ban đầu:", e);
     }
-    
+
     // Sửa lỗi: Chỉ khởi tạo FCM ngầm nếu quyền thông báo ĐÃ ĐƯỢC CẤP TỪ TRƯỚC.
     if (Notification.permission === 'granted') {
-        initFCM(user.email);
+      initFCM(user.email);
     } else {
-        console.log("[FCM] Đang đợi người dùng cấp quyền thông báo qua thao tác nhấp chuột.");
+      console.log("[FCM] Đang đợi người dùng cấp quyền thông báo qua thao tác nhấp chuột.");
     }
 
     // Lắng nghe yêu cầu ép đăng xuất từ Admin
     currentUserSnapshotUnsubscribe = onSnapshot(doc(db, "users", userEmailSafe), (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
+      if (docSnap.exists()) {
+        const data = docSnap.data();
 
-            // Cập nhật trạng thái tin cậy hiện tại từ Firestore theo thời gian thực
-            const deviceType = getDeviceType();
-            let isTrusted = false;
-            if (deviceType === 'pc') {
-                const trustedPCs = Array.isArray(data.trustedPCs) ? data.trustedPCs : [];
-                isTrusted = trustedPCs.includes(deviceId);
-            } else {
-                const trustedMobiles = Array.isArray(data.trustedMobiles) ? data.trustedMobiles : [];
-                isTrusted = trustedMobiles.includes(deviceId);
-            }
-            window.isCurrentDeviceTrusted = isTrusted;
-            localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
-
-            // Cập nhật viền cam thời gian thực cho nút Đăng xuất
-            try {
-                const logoutBtn = document.getElementById("logoutBtn");
-                if (logoutBtn) {
-                    if (!isTrusted) {
-                        logoutBtn.style.border = "2px solid #e67e22";
-                        logoutBtn.title = "Thiết bị này tạm thời được coi là máy lạ (tự động đăng xuất sau 1 giờ)";
-                    } else {
-                        logoutBtn.style.border = "";
-                        logoutBtn.title = "";
-                    }
-                }
-            } catch (e) {
-                console.warn("Lỗi cập nhật viền nút đăng xuất trong onSnapshot:", e);
-            }
-
-            // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác của cùng loại
-            if (deviceType === 'pc') {
-                if (data.lastPCDeviceId && data.lastPCDeviceId !== deviceId) {
-                    console.log("[Bảo mật] Tài khoản đã được đăng nhập ở PC khác. Đăng xuất...");
-                    if (currentUserSnapshotUnsubscribe) {
-                        currentUserSnapshotUnsubscribe();
-                        currentUserSnapshotUnsubscribe = null;
-                    }
-                    const shouldClear = !window.isCurrentDeviceTrusted;
-                    if (shouldClear) {
-                        clearLocalDB().then(() => {
-                            signOut(auth);
-                        });
-                    } else {
-                        signOut(auth);
-                    }
-                    return;
-                }
-            } else {
-                if (data.lastMobileDeviceId && data.lastMobileDeviceId !== deviceId) {
-                    console.log("[Bảo mật] Tài khoản đã được đăng nhập ở Điện thoại khác. Đăng xuất...");
-                    if (currentUserSnapshotUnsubscribe) {
-                        currentUserSnapshotUnsubscribe();
-                        currentUserSnapshotUnsubscribe = null;
-                    }
-                    const shouldClear = !window.isCurrentDeviceTrusted;
-                    if (shouldClear) {
-                        clearLocalDB().then(() => {
-                            signOut(auth);
-                        });
-                    } else {
-                        signOut(auth);
-                    }
-                    return;
-                }
-            }
-            if (data.forceLogoutAt) {
-                // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
-                let forceTime = 0;
-                if (data.forceLogoutAt && typeof data.forceLogoutAt.toMillis === 'function') {
-                    forceTime = data.forceLogoutAt.toMillis();
-                } else if (data.forceLogoutAt && data.forceLogoutAt.seconds) {
-                    forceTime = data.forceLogoutAt.seconds * 1000;
-                }
-                
-                // Phương pháp lấy giờ đăng nhập chính xác nhất đa nền tảng
-                let loginTime = 0;
-                if (user.metadata.lastLoginAt) {
-                    loginTime = parseInt(user.metadata.lastLoginAt, 10);
-                } else if (user.metadata.lastSignInTime) {
-                    loginTime = new Date(user.metadata.lastSignInTime).getTime();
-                }
-                
-                // Nếu có sự cố đọc giờ, dùng giờ khởi tạo app trừ 5 giây làm mốc an toàn
-                if (!loginTime || isNaN(loginTime)) {
-                    loginTime = window.appSessionStartTime - 5000;
-                }
-                
-                // BÙ TRỪ ĐỘ TRỄ: Thêm 2000ms để tránh việc giờ login và giờ ép đăng xuất bị trùng/lệch do server
-                if (forceTime > 0 && forceTime > (loginTime + 2000)) {
-                    console.log("Đăng xuất bởi Admin.", {forceTime, loginTime});
-                    addLog("forced_logout_executed", { email: userEmailSafe, status: "success", reason: "Đăng xuất bởi Admin." });
-                    
-                    if (currentUserSnapshotUnsubscribe) {
-                        currentUserSnapshotUnsubscribe();
-                        currentUserSnapshotUnsubscribe = null;
-                    }
-                    
-                    logout(true).then(() => {
-                        window.Swal.fire({
-                            title: 'Đăng xuất',
-                            text: 'Tài khoản của bạn đã bị quản trị viên đăng xuất.',
-                            icon: 'warning',
-                            confirmButtonText: 'Đã hiểu',
-                            allowOutsideClick: false,
-                            allowEscapeKey: false
-                        }).then(() => {
-                            window.location.reload(); // Tự động làm mới trang web về trạng thái khách
-                        });
-                    }).catch((e) => {
-                        console.error("Lỗi đăng xuất", e);
-                        window.location.reload();
-                    });
-                }
-            }
+        // Cập nhật trạng thái tin cậy hiện tại từ Firestore theo thời gian thực
+        const deviceType = getDeviceType();
+        let isTrusted = false;
+        if (deviceType === 'pc') {
+          const trustedPCs = Array.isArray(data.trustedPCs) ? data.trustedPCs : [];
+          isTrusted = trustedPCs.includes(deviceId);
+        } else {
+          const trustedMobiles = Array.isArray(data.trustedMobiles) ? data.trustedMobiles : [];
+          isTrusted = trustedMobiles.includes(deviceId);
         }
+        window.isCurrentDeviceTrusted = isTrusted;
+        localStorage.setItem('isCurrentDeviceTrusted', isTrusted ? 'true' : 'false');
+
+        // Cập nhật viền cam thời gian thực cho nút Đăng xuất
+        try {
+          const logoutBtn = document.getElementById("logoutBtn");
+          if (logoutBtn) {
+            if (!isTrusted) {
+              logoutBtn.style.border = "2px solid #e67e22";
+              logoutBtn.title = "Thiết bị này tạm thời được coi là máy lạ (tự động đăng xuất sau 1 giờ)";
+            } else {
+              logoutBtn.style.border = "";
+              logoutBtn.title = "";
+            }
+          }
+        } catch (e) {
+          console.warn("Lỗi cập nhật viền nút đăng xuất trong onSnapshot:", e);
+        }
+
+        // Kiểm tra nếu tài khoản được đăng nhập ở thiết bị khác của cùng loại
+        if (deviceType === 'pc') {
+          if (data.lastPCDeviceId && data.lastPCDeviceId !== deviceId) {
+            console.log("[Bảo mật] Tài khoản đã được đăng nhập ở PC khác. Đăng xuất...");
+            if (currentUserSnapshotUnsubscribe) {
+              currentUserSnapshotUnsubscribe();
+              currentUserSnapshotUnsubscribe = null;
+            }
+            const shouldClear = !window.isCurrentDeviceTrusted;
+            if (shouldClear) {
+              clearLocalDB().then(() => {
+                signOut(auth);
+              });
+            } else {
+              signOut(auth);
+            }
+            return;
+          }
+        } else {
+          if (data.lastMobileDeviceId && data.lastMobileDeviceId !== deviceId) {
+            console.log("[Bảo mật] Tài khoản đã được đăng nhập ở Điện thoại khác. Đăng xuất...");
+            if (currentUserSnapshotUnsubscribe) {
+              currentUserSnapshotUnsubscribe();
+              currentUserSnapshotUnsubscribe = null;
+            }
+            const shouldClear = !window.isCurrentDeviceTrusted;
+            if (shouldClear) {
+              clearLocalDB().then(() => {
+                signOut(auth);
+              });
+            } else {
+              signOut(auth);
+            }
+            return;
+          }
+        }
+        if (data.forceLogoutAt) {
+          // Đọc thời gian chính xác kể cả khi bị vỡ do Cache Offline
+          let forceTime = 0;
+          if (data.forceLogoutAt && typeof data.forceLogoutAt.toMillis === 'function') {
+            forceTime = data.forceLogoutAt.toMillis();
+          } else if (data.forceLogoutAt && data.forceLogoutAt.seconds) {
+            forceTime = data.forceLogoutAt.seconds * 1000;
+          }
+
+          // Phương pháp lấy giờ đăng nhập chính xác nhất đa nền tảng
+          let loginTime = 0;
+          if (user.metadata.lastLoginAt) {
+            loginTime = parseInt(user.metadata.lastLoginAt, 10);
+          } else if (user.metadata.lastSignInTime) {
+            loginTime = new Date(user.metadata.lastSignInTime).getTime();
+          }
+
+          // Nếu có sự cố đọc giờ, dùng giờ khởi tạo app trừ 5 giây làm mốc an toàn
+          if (!loginTime || isNaN(loginTime)) {
+            loginTime = window.appSessionStartTime - 5000;
+          }
+
+          // BÙ TRỪ ĐỘ TRỄ: Thêm 2000ms để tránh việc giờ login và giờ ép đăng xuất bị trùng/lệch do server
+          if (forceTime > 0 && forceTime > (loginTime + 2000)) {
+            console.log("Đăng xuất bởi Admin.", { forceTime, loginTime });
+            addLog("forced_logout_executed", { email: userEmailSafe, status: "success", reason: "Đăng xuất bởi Admin." });
+
+            if (currentUserSnapshotUnsubscribe) {
+              currentUserSnapshotUnsubscribe();
+              currentUserSnapshotUnsubscribe = null;
+            }
+
+            logout(true).then(() => {
+              window.Swal.fire({
+                title: 'Đăng xuất',
+                text: 'Tài khoản của bạn đã bị quản trị viên đăng xuất.',
+                icon: 'warning',
+                confirmButtonText: 'Đã hiểu',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+              }).then(() => {
+                window.location.reload(); // Tự động làm mới trang web về trạng thái khách
+              });
+            }).catch((e) => {
+              console.error("Lỗi đăng xuất", e);
+              window.location.reload();
+            });
+          }
+        }
+      }
     }, (error) => {
-        console.error("Lỗi lắng nghe users collection:", error);
+      console.error("Lỗi lắng nghe users collection:", error);
     });
   } else {
     // Đăng xuất hoặc chưa đăng nhập
     try {
-        sessionStorage.removeItem('deviceSessionCounted');
+      sessionStorage.removeItem('deviceSessionCounted');
     } catch (e) {
-        console.warn("Lỗi xóa sessionStorage khi auth state thay đổi:", e);
+      console.warn("Lỗi xóa sessionStorage khi auth state thay đổi:", e);
     }
   }
 });
@@ -634,36 +634,36 @@ onAuthStateChanged(auth, async (user) => {
 // ====== HÀM YÊU CẦU QUYỀN THÔNG BÁO (SOFT ASK / DOUBLE OPT-IN) ======
 export async function requestNotificationPermission() {
   if (Notification.permission === 'granted') {
-      showSwal("info", "Đã bật", { html: "Thông báo hệ thống đã được bật từ trước." });
-      return;
+    showSwal("info", "Đã bật", { html: "Thông báo hệ thống đã được bật từ trước." });
+    return;
   }
-  
+
   // 🚀 Kiểm tra nếu thiết bị đang trong trạng thái chặn
   if (Notification.permission === 'denied') {
-      window.Swal.fire({
-          title: 'Thông báo đang bị chặn',
-          html: 'Trình duyệt của bạn hiện đang <b>chặn</b> thông báo từ trang web này.<br><br><b>Cách mở lại:</b><br>1. Bấm vào biểu tượng <b>ổ khóa 🔒</b> (hoặc biểu tượng tùy chỉnh) trên thanh địa chỉ.<br>2. Tìm mục <i>Thông báo (Notifications)</i> và chuyển sang <b>Cho phép (Allow)</b>.<br>3. Tải lại trang web (F5).',
-          icon: 'warning',
-          confirmButtonText: 'Đã hiểu',
-          confirmButtonColor: '#273668'
-      });
-      return;
+    window.Swal.fire({
+      title: 'Thông báo đang bị chặn',
+      html: 'Trình duyệt của bạn hiện đang <b>chặn</b> thông báo từ trang web này.<br><br><b>Cách mở lại:</b><br>1. Bấm vào biểu tượng <b>ổ khóa 🔒</b> (hoặc biểu tượng tùy chỉnh) trên thanh địa chỉ.<br>2. Tìm mục <i>Thông báo (Notifications)</i> và chuyển sang <b>Cho phép (Allow)</b>.<br>3. Tải lại trang web (F5).',
+      icon: 'warning',
+      confirmButtonText: 'Đã hiểu',
+      confirmButtonColor: '#273668'
+    });
+    return;
   }
 
   // Hỏi khéo bằng SweetAlert2 trước khi gọi requestPermission của trình duyệt
   const isConfirmed = await showConfirmSwal(
-      "Bật thông báo hệ thống",
-      "Để không bỏ lỡ các cảnh báo quan trọng (ví dụ: cảnh báo chỉ số nước giảm, cập nhật lịch trực), bạn có muốn bật thông báo trên thiết bị này không?",
-      "Đồng ý",
-      "Lúc khác",
-      "info"
+    "Bật thông báo hệ thống",
+    "Để không bỏ lỡ các cảnh báo quan trọng (ví dụ: cảnh báo chỉ số nước giảm, cập nhật lịch trực), bạn có muốn bật thông báo trên thiết bị này không?",
+    "Đồng ý",
+    "Lúc khác",
+    "info"
   );
 
   if (isConfirmed) {
-      const user = auth.currentUser;
-      if (user) {
-          await initFCM(user.email);
-      }
+    const user = auth.currentUser;
+    if (user) {
+      await initFCM(user.email);
+    }
   }
 }
 
@@ -674,14 +674,14 @@ export async function notifyAdmins(title, body) {
   console.log(`[FCM] Bắt đầu tiến trình gửi thông báo: "${title}"`);
   try {
     const idToken = await user.getIdToken();
-    
+
     // 1. Tìm tất cả tài khoản Admin
     const rolesSnap = await getDocs(collection(db, "roles"));
     const adminEmails = rolesSnap.docs.filter(d => d.data().role === "admin").map(d => d.id);
     console.log("[FCM] Danh sách tài khoản Admin:", adminEmails);
     if (adminEmails.length === 0) {
-        console.warn("[FCM] Không tìm thấy tài khoản admin nào trong collection 'roles'!");
-        return;
+      console.warn("[FCM] Không tìm thấy tài khoản admin nào trong collection 'roles'!");
+      return;
     }
 
     // 2. Lấy FCM Token của các Admin đó
@@ -689,13 +689,13 @@ export async function notifyAdmins(title, body) {
     const adminTokens = usersSnap.docs
       .filter(d => adminEmails.includes(d.id) && d.data().fcmToken)
       .map(d => d.data().fcmToken);
-      
+
     console.log(`[FCM] Tìm thấy ${adminTokens.length} thiết bị Admin hợp lệ để gửi thông báo.`);
     if (adminTokens.length === 0) {
-        console.warn("[FCM] Các tài khoản admin hiện chưa có FCM Token (Chưa cấp quyền nhận thông báo).");
-        return;
+      console.warn("[FCM] Các tài khoản admin hiện chưa có FCM Token (Chưa cấp quyền nhận thông báo).");
+      return;
     }
-    
+
     const apiUrl = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
 
     // 3. Gửi 1 lệnh duy nhất chứa toàn bộ mảng Token qua Apps Script
@@ -703,17 +703,17 @@ export async function notifyAdmins(title, body) {
     formData.append("idToken", idToken);
     formData.append("action", "sendPushNotification");
     formData.append("data", JSON.stringify({ fcmTokens: adminTokens, title: title, body: body, link: window.location.origin }));
-    
+
     fetch(apiUrl, { method: "POST", body: formData })
       .then(res => res.json())
       .then(data => {
-          console.log("[FCM] Phản hồi từ Apps Script (Batch):", data);
-          if (data.success) {
-              console.log(`✅ Đã yêu cầu GAS gửi push đến ${adminTokens.length} thiết bị!`);
-          }
+        console.log("[FCM] Phản hồi từ Apps Script (Batch):", data);
+        if (data.success) {
+          console.log(`✅ Đã yêu cầu GAS gửi push đến ${adminTokens.length} thiết bị!`);
+        }
       })
       .catch(e => console.warn("[FCM] Lỗi gọi API Apps Script:", e));
-      
+
   } catch (err) {
     console.error("[FCM] Lỗi hàm notifyAdmins:", err);
   }
@@ -794,9 +794,9 @@ export function initAutoLogout(timeoutInDays = 7) {
       const currentUser = auth.currentUser;
       const executeLogout = async () => {
         if (currentUser) {
-          await addLog("auto_logout_inactivity", { 
-            email: currentUser.email, 
-            status: "success", 
+          await addLog("auto_logout_inactivity", {
+            email: currentUser.email,
+            status: "success",
             reason: `Inactive limit reached (${window.isCurrentDeviceTrusted ? '7 days' : '1 hour'})`,
             details: `Hệ thống tự động đăng xuất do tài khoản quá thời gian không thao tác (${window.isCurrentDeviceTrusted ? '7 ngày' : '1 giờ'}).`,
             userAgent: navigator.userAgent
@@ -842,9 +842,9 @@ export function initAutoLogout(timeoutInDays = 7) {
       console.log("Đã quá thời gian không hoạt động. Đang tự động đăng xuất...");
       clearInterval(checkInterval); // Dừng kiểm tra
       // Ghi log trước khi ép đăng xuất
-      await addLog("auto_logout_inactivity", { 
-        email: currentUser.email, 
-        status: "success", 
+      await addLog("auto_logout_inactivity", {
+        email: currentUser.email,
+        status: "success",
         reason: `Inactive limit reached (${window.isCurrentDeviceTrusted ? '7 days' : '1 hour'})`,
         details: `Hệ thống tự động đăng xuất do tài khoản không có thao tác vượt quá ${window.isCurrentDeviceTrusted ? '7 ngày' : '1 giờ'}.`,
         userAgent: navigator.userAgent
@@ -860,11 +860,31 @@ export function initAutoLogout(timeoutInDays = 7) {
 
 // ====== ROLE ======
 export async function getRole(email) {
+  if (!email) return "user";
+  const cacheKey = `role_${email}`;
+
+  // 1. Kiểm tra bộ nhớ đệm (cache) trong sessionStorage trước
+  try {
+    const cachedRole = sessionStorage.getItem(cacheKey);
+    if (cachedRole) return cachedRole;
+  } catch (e) {
+    console.warn("Lỗi đọc sessionStorage:", e);
+  }
+
+  // 2. Nếu chưa có cache, gọi lên server (Firestore)
   try {
     const snap = await getDoc(doc(db, "roles", email));
     const role = snap.exists() ? snap.data().role : "user";
-    // addLog("getRole", { email, role }); // (Tùy chọn) 
-    return role || "user";
+    const finalRole = role || "user";
+
+    // 3. Lưu kết quả vào cache để dùng cho các lần sau (trong phiên làm việc này)
+    try {
+      sessionStorage.setItem(cacheKey, finalRole);
+    } catch (e) {
+      console.warn("Lỗi ghi sessionStorage:", e);
+    }
+
+    return finalRole;
   } catch (err) {
     console.error("Lỗi getRole:", err);
     return "user";
@@ -919,18 +939,18 @@ export async function promptForReAuth() {
 
         // Chuyển sang type="password" khi người dùng bắt đầu gõ
         const switchToPassword = () => {
-            if (input.dataset.disguised === 'true') {
-                input.dataset.disguised = 'false';
-                input.setAttribute('type', 'password');
-                // Bỏ style CSS đi để nút con mắt hoạt động đúng
-                input.style.webkitTextSecurity = 'none';
-                input.style.textSecurity = 'none';
-                input.style.removeProperty('-webkit-text-security');
-                input.style.removeProperty('text-security');
-                input.removeEventListener('input', switchToPassword);
-            }
+          if (input.dataset.disguised === 'true') {
+            input.dataset.disguised = 'false';
+            input.setAttribute('type', 'password');
+            // Bỏ style CSS đi để nút con mắt hoạt động đúng
+            input.style.webkitTextSecurity = 'none';
+            input.style.textSecurity = 'none';
+            input.style.removeProperty('-webkit-text-security');
+            input.style.removeProperty('text-security');
+            input.removeEventListener('input', switchToPassword);
+          }
         };
-        
+
         input.addEventListener('input', switchToPassword);
 
         input.addEventListener("keyup", (e) => {
@@ -939,16 +959,16 @@ export async function promptForReAuth() {
           }
         });
       }
-      
+
       if (toggle && input) {
-          toggle.addEventListener('click', () => {
-              if (input.dataset.disguised === 'true') {
-                  switchToPassword(); // Chạy hàm chuyển đổi
-              }
-              const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-              input.setAttribute('type', type);
-              toggle.textContent = type === 'password' ? '👁️' : '👀';
-          });
+        toggle.addEventListener('click', () => {
+          if (input.dataset.disguised === 'true') {
+            switchToPassword(); // Chạy hàm chuyển đổi
+          }
+          const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+          input.setAttribute('type', type);
+          toggle.textContent = type === 'password' ? '👁️' : '👀';
+        });
       }
     },
     preConfirm: () => {
@@ -986,18 +1006,18 @@ export async function promptForReAuth() {
 //
 // Thêm hàm load config (thường được gọi trong onAuth hoặc khi trang load)
 export async function loadConfig() {
-    try {
-        const ref = doc(db, "settings", "reportConfig");
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-            config = snap.data();
-            console.log("Config loaded:", config);
-        } else {
-            console.log("Config document not found. Using default.");
-        }
-    } catch (e) {
-        console.error("Error loading config:", e);
+  try {
+    const ref = doc(db, "settings", "reportConfig");
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      config = snap.data();
+      console.log("Config loaded:", config);
+    } else {
+      console.log("Config document not found. Using default.");
     }
+  } catch (e) {
+    console.error("Error loading config:", e);
+  }
 }
 
 
@@ -1045,7 +1065,7 @@ async function uploadFileToDrive(file, company, folderId, formId, data) {
     addLog("drive_upload_failure", { email: userEmail, file: file.name, error: result.error });
     throw new Error(result.error);
   }
-  
+
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("drive_upload_success", { email: userEmail, file: file.name, fileId: result.id, url: result.link });
   return { url: result.link, id: result.id };
@@ -1054,11 +1074,11 @@ async function uploadFileToDrive(file, company, folderId, formId, data) {
 async function deleteFileFromDrive(fileId) {
   const user = auth.currentUser;
   const userEmail = user?.email || "unknown";
-  
+
   if (!user) {
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("drive_delete_unauthorized", { fileId, status: "error" });
-      throw new Error("Chưa đăng nhập");
+    // ⭐️ BỔ SUNG LOG ⭐️
+    addLog("drive_delete_unauthorized", { fileId, status: "error" });
+    throw new Error("Chưa đăng nhập");
   }
 
   const idToken = await user.getIdToken();
@@ -1071,11 +1091,11 @@ async function deleteFileFromDrive(fileId) {
   const res = await fetch(DRIVE_API_URL, { method: "POST", body });
   const data = await res.json();
   if (data.error) {
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("drive_delete_failure", { email: userEmail, fileId, error: data.error });
-      throw new Error(data.error);
+    // ⭐️ BỔ SUNG LOG ⭐️
+    addLog("drive_delete_failure", { email: userEmail, fileId, error: data.error });
+    throw new Error(data.error);
   }
-  
+
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("drive_delete_success", { email: userEmail, fileId, status: "success" });
   return data;
@@ -1100,46 +1120,46 @@ function toBase64(file) {
  */
 export async function compressImage(file, thresholdMB = 4, quality = 0.9) {
   const thresholdBytes = thresholdMB * 1024 * 1024;
-  
+
   // Nếu không phải ảnh hoặc dung lượng <= 4MB thì giữ nguyên file gốc
   if (!file.type.startsWith('image/') || file.size <= thresholdBytes) {
-      return file; 
+    return file;
   }
 
   return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-          URL.revokeObjectURL(img.src);
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
 
-          // Tối ưu kích thước: Thu nhỏ kích thước ảnh nếu quá lớn (Max cạnh 2560px - Mức 2K để giữ độ nét cao)
-          const MAX_DIM = 2560;
-          let { width, height } = img;
-          if (width > height && width > MAX_DIM) {
-              height = Math.round(height * (MAX_DIM / width));
-              width = MAX_DIM;
-          } else if (height > MAX_DIM) {
-              width = Math.round(width * (MAX_DIM / height));
-              height = MAX_DIM;
-          }
+      // Tối ưu kích thước: Thu nhỏ kích thước ảnh nếu quá lớn (Max cạnh 2560px - Mức 2K để giữ độ nét cao)
+      const MAX_DIM = 2560;
+      let { width, height } = img;
+      if (width > height && width > MAX_DIM) {
+        height = Math.round(height * (MAX_DIM / width));
+        width = MAX_DIM;
+      } else if (height > MAX_DIM) {
+        width = Math.round(width * (MAX_DIM / height));
+        height = MAX_DIM;
+      }
 
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
 
-          // Chuyển Canvas thành File JPEG để ép dung lượng xuống mức thấp
-          canvas.toBlob(blob => {
-              if (!blob) return reject(new Error("Lỗi khi chuyển đổi Canvas sang Blob"));
-              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                  type: "image/jpeg",
-                  lastModified: Date.now()
-              });
-              resolve(compressedFile);
-          }, 'image/jpeg', quality);
-      };
-      img.onerror = (err) => reject(new Error("Lỗi khi load ảnh để nén: " + err));
+      // Chuyển Canvas thành File JPEG để ép dung lượng xuống mức thấp
+      canvas.toBlob(blob => {
+        if (!blob) return reject(new Error("Lỗi khi chuyển đổi Canvas sang Blob"));
+        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+          type: "image/jpeg",
+          lastModified: Date.now()
+        });
+        resolve(compressedFile);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = (err) => reject(new Error("Lỗi khi load ảnh để nén: " + err));
   });
 }
 
@@ -1154,11 +1174,11 @@ async function addReportDoc(data = {}, collectionName) {
   const userEmail = user?.email || "unknown";
 
   if (!user) {
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("addDoc_unauthorized", { collection: collectionName });
-      throw new Error("Chưa đăng nhập"); 
+    // ⭐️ BỔ SUNG LOG ⭐️
+    addLog("addDoc_unauthorized", { collection: collectionName });
+    throw new Error("Chưa đăng nhập");
   }
-  
+
   const record = {
     ...data,
     createdBy: userEmail,
@@ -1167,14 +1187,14 @@ async function addReportDoc(data = {}, collectionName) {
   };
 
   try {
-      const docRef = await addDoc(collection(db, collectionName), record);
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("addDoc_success", { collection: collectionName, docId: docRef.id, email: userEmail, ...data });
-      return docRef;
+    const docRef = await addDoc(collection(db, collectionName), record);
+    // ⭐️ BỔ SUNG LOG ⭐️
+    addLog("addDoc_success", { collection: collectionName, docId: docRef.id, email: userEmail, ...data });
+    return docRef;
   } catch (err) {
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("addDoc_failure", { collection: collectionName, email: userEmail, error: err.message, data: data });
-      throw err; // Ném lỗi để luồng chính có thể bắt được
+    // ⭐️ BỔ SUNG LOG ⭐️
+    addLog("addDoc_failure", { collection: collectionName, email: userEmail, error: err.message, data: data });
+    throw err; // Ném lỗi để luồng chính có thể bắt được
   }
 }
 
@@ -1187,11 +1207,11 @@ export async function submitForm(e, formId, collectionName, folderId) {
   const user = auth.currentUser;
   const userEmail = user?.email || "unknown";
 
-// --- KIỂM TRA KÍCH THƯỚC FILE ---
+  // --- KIỂM TRA KÍCH THƯỚC FILE ---
   // SỬA: Lấy file input bằng querySelector để đảm bảo tìm thấy dù không có name
   const fileInputElement = form.querySelector('input[type="file"]');
-  let fileInput = fileInputElement?.files?.[0]; 
-  
+  let fileInput = fileInputElement?.files?.[0];
+
   const HARD_LIMIT_BYTES = 15728640; // 15MB: Cho phép user chọn file từ đt thoải mái
   const FINAL_LIMIT_BYTES = 5242880; // 5MB: Giới hạn an toàn trước khi gửi payload lên Google Apps Script
 
@@ -1206,9 +1226,9 @@ export async function submitForm(e, formId, collectionName, folderId) {
 
     // Tiến hành nén ngầm nếu dung lượng > 4MB
     try {
-        fileInput = await compressImage(fileInput, 4, 0.9);
+      fileInput = await compressImage(fileInput, 4, 0.9);
     } catch (err) {
-        console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
+      console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
     }
 
     // Kiểm tra lại lần cuối sau khi nén
@@ -1219,11 +1239,11 @@ export async function submitForm(e, formId, collectionName, folderId) {
       return;
     }
   }
-// ------------------------------------------
+  // ------------------------------------------
   let data = {};
   let file = null;
 
-// 1. Tùy theo formId mà build object data và lấy file
+  // 1. Tùy theo formId mà build object data và lấy file
   switch (formId) {
     case "registrationForm_1":
       let chiSoStr = form.chi_so.value.trim();
@@ -1251,7 +1271,7 @@ export async function submitForm(e, formId, collectionName, folderId) {
         ghi_chu: form.ghi_chu.value.trim(),
       };
       file = fileInput;
-      
+
       // ✅ KIỂM TRA DỮ LIỆU BẮT BUỘC CHO FORM 2
       if (!data.ngay_nghi && !data.ngay_lam_db) {
         hideLoading();
@@ -1270,38 +1290,38 @@ export async function submitForm(e, formId, collectionName, folderId) {
       break;
     // sau này thêm form khác thì thêm case mới
     default:
-        // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("form_unknown_id", { email: userEmail, formId });
-        break;
+      // ⭐️ BỔ SUNG LOG ⭐️
+      addLog("form_unknown_id", { email: userEmail, formId });
+      break;
   }
 
   // --- LOGIC MỚI: KIỂM TRA FILE ĐÍNH KÈM VÀ YÊU CẦU XÁC NHẬN ---
   // Đã kiểm tra kích thước file, bây giờ kiểm tra việc đính kèm.
   hideLoading(); // Ẩn loading kiểm tra dữ liệu trước khi hiện confirm
-    // BƯỚC 1: Lấy đúng input file cho form hiện tại
-      const currentForm = document.getElementById(formId);
-      // Tìm input file có id="file" HOẶC id="file_2" bên trong form
-      const filesInput = currentForm.querySelector('#file, #file_2'); 
+  // BƯỚC 1: Lấy đúng input file cho form hiện tại
+  const currentForm = document.getElementById(formId);
+  // Tìm input file có id="file" HOẶC id="file_2" bên trong form
+  const filesInput = currentForm.querySelector('#file, #file_2');
 
-    // BƯỚC 2: Kiểm tra thiếu file (ĐÃ BỎ ĐIỀU KIỆN LOẠI TRỪ TRƯỚC ĐÓ)
-    if (filesInput && filesInput.files.length === 0) { 
-        const isConfirmed = await showConfirmSwal(
-            "Thiếu File Đính Kèm",
-            "Bạn chưa đính kèm thông báo. Bạn có chắc chắn muốn gửi báo cáo này không?",
-            "Có, tôi chắc chắn gửi",
-            "Không, tôi sẽ đính kèm"
-        );
+  // BƯỚC 2: Kiểm tra thiếu file (ĐÃ BỎ ĐIỀU KIỆN LOẠI TRỪ TRƯỚC ĐÓ)
+  if (filesInput && filesInput.files.length === 0) {
+    const isConfirmed = await showConfirmSwal(
+      "Thiếu File Đính Kèm",
+      "Bạn chưa đính kèm thông báo. Bạn có chắc chắn muốn gửi báo cáo này không?",
+      "Có, tôi chắc chắn gửi",
+      "Không, tôi sẽ đính kèm"
+    );
 
 
-      if (isConfirmed) {
-          // Tiếp tục gửi báo cáo
-          showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
-          await handleSubmit(form, data, file, collectionName, folderId, formId);
-      } else {
-          showSwal("info", "Đã hủy gửi báo cáo.", "Vui lòng kiểm tra lại thông báo.");
-          // ⭐️ BỔ SUNG LOG ⭐️
-          addLog("form_submit_canceled", { email: userEmail, formId, reason: "No file confirmation" });
-      }
+    if (isConfirmed) {
+      // Tiếp tục gửi báo cáo
+      showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
+      await handleSubmit(form, data, file, collectionName, folderId, formId);
+    } else {
+      showSwal("info", "Đã hủy gửi báo cáo.", "Vui lòng kiểm tra lại thông báo.");
+      // ⭐️ BỔ SUNG LOG ⭐️
+      addLog("form_submit_canceled", { email: userEmail, formId, reason: "No file confirmation" });
+    }
   } else {
     // Nếu CÓ file đính kèm, tiến hành gửi ngay lập tức
     showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
@@ -1334,7 +1354,7 @@ export async function addReport(data = {}, file = null, collectionName, folderId
     fileId,
   };
 
-  await addLog("addReport", { ...data, email: user.email, fileUrl, fileId});
+  await addLog("addReport", { ...data, email: user.email, fileUrl, fileId });
   await addDoc(collection(db, collectionName), record);
 }
 
@@ -1350,320 +1370,320 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
     let fileId = "";
 
     // --- BƯỚC 1: Xử lý Form 2 (Ngày nghỉ/Ngày làm đặc biệt) ---
-// --- BƯỚC 1: Xử lý Form 2 (Ngày nghỉ/Ngày làm đặc biệt) ---
-if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
+    // --- BƯỚC 1: Xử lý Form 2 (Ngày nghỉ/Ngày làm đặc biệt) ---
+    if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
 
-    const dateStr = data.ngay_nghi || data.ngay_lam_db;
-    const isSpecialWorkdaySubmission = !!data.ngay_lam_db;
-    const submissionType = isSpecialWorkdaySubmission ? "Ngày làm Đặc biệt" : "Ngày nghỉ";
-    
-    // Tách chuỗi ngày thành mảng các ngày (YYYY-MM-DD)
-    // ⭐️ QUAN TRỌNG: Sắp xếp ngày tăng dần để minDate/maxDate luôn đúng cho query
-    const dates = dateStr.split(',').map(d => d.trim()).filter(d => d.length > 0).sort();
+      const dateStr = data.ngay_nghi || data.ngay_lam_db;
+      const isSpecialWorkdaySubmission = !!data.ngay_lam_db;
+      const submissionType = isSpecialWorkdaySubmission ? "Ngày làm Đặc biệt" : "Ngày nghỉ";
 
-    const baseData = { ...data };
-    delete baseData.ngay_nghi; 
-    delete baseData.ngay_lam_db; 
+      // Tách chuỗi ngày thành mảng các ngày (YYYY-MM-DD)
+      // ⭐️ QUAN TRỌNG: Sắp xếp ngày tăng dần để minDate/maxDate luôn đúng cho query
+      const dates = dateStr.split(',').map(d => d.trim()).filter(d => d.length > 0).sort();
 
-    // 1) Tải File Lên Drive (Chỉ 1 lần) - nếu có file
-    if (file) {
-      const uploaded = await uploadFileToDrive(file, baseData.company || "NoCompany", folderId, formId, data);
-      fileUrl = uploaded.url;
-      fileId = uploaded.id;
-    }
+      const baseData = { ...data };
+      delete baseData.ngay_nghi;
+      delete baseData.ngay_lam_db;
 
-    // 2) Thêm/Ghi đè từng ngày (TUẦN TỰ)
-    let addedCount = 0;
-    let skipped = 0;
-    let errorList = []; // Khởi tạo danh sách lỗi
+      // 1) Tải File Lên Drive (Chỉ 1 lần) - nếu có file
+      if (file) {
+        const uploaded = await uploadFileToDrive(file, baseData.company || "NoCompany", folderId, formId, data);
+        fileUrl = uploaded.url;
+        fileId = uploaded.id;
+      }
 
-    if (dates.length === 0) {
+      // 2) Thêm/Ghi đè từng ngày (TUẦN TỰ)
+      let addedCount = 0;
+      let skipped = 0;
+      let errorList = []; // Khởi tạo danh sách lỗi
+
+      if (dates.length === 0) {
         hideLoading();
         showSwal("error", "Lỗi dữ liệu", "Không tìm thấy ngày hợp lệ nào.");
         return;
-    }
-    
-    // ⭐️ TỐI ƯU HÓA: ĐỌC TẤT CẢ DỮ LIỆU 1 LẦN (Thay vì N lần)
-    const minDate = dates[0];
-    const maxDate = dates[dates.length - 1];
-    
-    const [allHolidaysSnap, allSpecialSnap] = await Promise.all([
+      }
+
+      // ⭐️ TỐI ƯU HÓA: ĐỌC TẤT CẢ DỮ LIỆU 1 LẦN (Thay vì N lần)
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+
+      const [allHolidaysSnap, allSpecialSnap] = await Promise.all([
         getDocs(query(
-            collection(db, collectionName),
-            where("company", "==", baseData.company),
-            where("ngay_nghi", ">=", minDate),
-            where("ngay_nghi", "<=", maxDate)
+          collection(db, collectionName),
+          where("company", "==", baseData.company),
+          where("ngay_nghi", ">=", minDate),
+          where("ngay_nghi", "<=", maxDate)
         )),
         getDocs(query(
-            collection(db, collectionName),
-            where("company", "==", baseData.company),
-            where("ngay_lam_db", ">=", minDate),
-            where("ngay_lam_db", "<=", maxDate)
+          collection(db, collectionName),
+          where("company", "==", baseData.company),
+          where("ngay_lam_db", ">=", minDate),
+          where("ngay_lam_db", "<=", maxDate)
         ))
-    ]);
-    
-    // Tạo Map để tra cứu nhanh O(1)
-    const holidayMap = new Map(
-        allHolidaysSnap.docs.map(doc => [doc.data().ngay_nghi, doc])
-    );
-    const specialMap = new Map(
-        allSpecialSnap.docs.map(doc => [doc.data().ngay_lam_db, doc])
-    );
+      ]);
 
-    for (const singleDate of dates) {
+      // Tạo Map để tra cứu nhanh O(1)
+      const holidayMap = new Map(
+        allHolidaysSnap.docs.map(doc => [doc.data().ngay_nghi, doc])
+      );
+      const specialMap = new Map(
+        allSpecialSnap.docs.map(doc => [doc.data().ngay_lam_db, doc])
+      );
+
+      for (const singleDate of dates) {
         // 2a) TÌM BẢN GHI TRÙNG - ⭐️ TRA CỨU TRONG MAP (Không đọc Firebase)
         const existingHoliday = holidayMap.get(singleDate);
         const existingSpecial = specialMap.get(singleDate);
-        
+
         let existingDoc = existingHoliday || existingSpecial || null;
         let existingData = existingDoc?.data() || null;
 
         // 2b) CHUẨN BỊ DỮ LIỆU MỚI
         const newRecordData = {
-            ...baseData,
-            isSpecialWorkday: isSpecialWorkdaySubmission,
-            ghi_chu: baseData.ghi_chu || (isSpecialWorkdaySubmission ? "Ngày làm đặc biệt" : "N/A"),
-            fileUrl,
-            fileId,
+          ...baseData,
+          isSpecialWorkday: isSpecialWorkdaySubmission,
+          ghi_chu: baseData.ghi_chu || (isSpecialWorkdaySubmission ? "Ngày làm đặc biệt" : "N/A"),
+          fileUrl,
+          fileId,
         };
 
         if (isSpecialWorkdaySubmission) {
-            newRecordData.ngay_lam_db = singleDate;
-            // Đảm bảo không có trường 'ngay_nghi' khi là NLĐB
-            delete newRecordData.ngay_nghi; 
+          newRecordData.ngay_lam_db = singleDate;
+          // Đảm bảo không có trường 'ngay_nghi' khi là NLĐB
+          delete newRecordData.ngay_nghi;
         } else {
-            newRecordData.ngay_nghi = singleDate;
-            // Đảm bảo không có trường 'ngay_lam_db' khi là Ngày nghỉ
-            delete newRecordData.ngay_lam_db;
+          newRecordData.ngay_nghi = singleDate;
+          // Đảm bảo không có trường 'ngay_lam_db' khi là Ngày nghỉ
+          delete newRecordData.ngay_lam_db;
         }
 
         // 2c) XỬ LÝ XUNG ĐỘT HOẶC THÊM MỚI
-        
+
         // --- LOGIC ĐẶC BIỆT CHO NGÀY LÀM VIỆC ĐẶC BIỆT (Kiểm tra các trường hợp cần BỎ QUA hoặc GHI ĐÈ ĐẶC BIỆT) ---
         if (isSpecialWorkdaySubmission) {
-            const isDefaultHoliday = isDateADefaultHoliday(singleDate, baseData.company, config);
-            
-            if (!isDefaultHoliday) {
-                // 1. Trường hợp T2-T6 (Không phải Ngày nghỉ Mặc định)
-                
-                if (!existingDoc) {
-                      // 1.1. T2-T6 KHÔNG TRÙNG & KHÔNG PHẢI NGÀY NGHỈ MẶC ĐỊNH: Bản ghi vô nghĩa
-                      hideLoading();
-                      
-                      // ⭐️ SỬA LỖI: Dùng await Swal.fire() để chặn luồng và chờ người dùng nhấn OK ⭐️
-                      // (Giả định bạn sử dụng SweetAlert2, thư viện được đề cập trong file HTML)
-                      await Swal.fire({
-                          icon: "info",
-                          title: "Bản ghi dư!",
-                          html: `Ngày (${singleDate}) là ngày làm việc bình thường nên KHÔNG cần bản ghi này.`,
-                          confirmButtonText: "Đã hiểu",
-                          allowOutsideClick: false,
-                          allowEscapeKey: false,
-                      });
-                      
-                      addLog("form2_special_workday_meaningless", { email: userEmail, company: baseData.company, date: singleDate, ngay_ghi: singleDate, ghi_chu: baseData.ghi_chu });
-                      skipped++;
-                      continue; // 🛑 BỎ QUA NGÀY VÀ CHUYỂN SANG NGÀY TIẾP THEO
-                      
-                  } else if (!existingData.isSpecialWorkday) {
-                    // 1.2. T2-T6 TRÙNG VỚI TB NGHỈ THỦ CÔNG: Yêu cầu ghi đè (Thay thế TB nghỉ)
-                    hideLoading();
-                    let isConfirmed = await showConfirmSwal(
-                        "Xác nhận Ghi Đè Bản Ghi", // Tiêu đề (Bạn nên đặt)
-                        `[THÔNG BÁO NGHỈ THỦ CÔNG] Ngày ${singleDate} của ${baseData.company} hiện đang là **Thông báo nghỉ** thủ công. Bạn có muốn GHI ĐÈ bằng **Thông báo hủy bỏ** không?`, // Nội dung động
-                        "Có, Ghi đè", // Text nút Yes
-                        "Không, Bỏ qua" // Text nút No
-                    );
+          const isDefaultHoliday = isDateADefaultHoliday(singleDate, baseData.company, config);
 
-                    if (isConfirmed) {
-                      showLoading("Đang ghi đè dữ liệu...");
-                        try {
-                            // Ghi chú mới: Thay thế TB nghỉ
-                            newRecordData.ghi_chu = "Thay thế TB nghỉ.";
-                            
-                            // Xóa và dọn dẹp file cũ 
-                            const fileIdToDelete = existingData.fileId; 
-                            if (fileIdToDelete) {
-                                const qRemaining = query(collection(db, collectionName), where("fileId", "==", fileIdToDelete), where("__name__", "!=", existingDoc.id));
-                                const snapRemaining = await getDocs(qRemaining);
-                                if (snapRemaining.empty) {
-                                    await deleteFileFromDrive(fileIdToDelete).catch(e => console.warn(`[CleanUp Error] Lỗi xóa File ID: ${fileIdToDelete} khỏi Drive:`, e));
-                                    addLog("drive_cleanup_success", { email: userEmail, fileId: fileIdToDelete, reason: "overwrite_manual_no_ref" });
-                                } else {
-                                    console.log(`[CleanUp] File ID: ${fileIdToDelete} vẫn còn ${snapRemaining.size} bản ghi tham chiếu.`);
-                                }
-                            }
-                            
-                            // Thực thi ghi đè
-                            await deleteDoc(doc(db, collectionName, existingDoc.id));
-                            await addReportDoc(newRecordData, collectionName);
-                            
-                            addLog("overwrite_manual_holiday_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionType, ghi_chu: newRecordData.ghi_chu });
-                            addedCount++;
-                        } catch (e) {
-                            showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
-                            errorList.push(`Ngày ${singleDate} (Ghi đè T2-T6) - ${e.message}`);
-                            addLog("overwrite_manual_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
-                        }
+          if (!isDefaultHoliday) {
+            // 1. Trường hợp T2-T6 (Không phải Ngày nghỉ Mặc định)
+
+            if (!existingDoc) {
+              // 1.1. T2-T6 KHÔNG TRÙNG & KHÔNG PHẢI NGÀY NGHỈ MẶC ĐỊNH: Bản ghi vô nghĩa
+              hideLoading();
+
+              // ⭐️ SỬA LỖI: Dùng await Swal.fire() để chặn luồng và chờ người dùng nhấn OK ⭐️
+              // (Giả định bạn sử dụng SweetAlert2, thư viện được đề cập trong file HTML)
+              await Swal.fire({
+                icon: "info",
+                title: "Bản ghi dư!",
+                html: `Ngày (${singleDate}) là ngày làm việc bình thường nên KHÔNG cần bản ghi này.`,
+                confirmButtonText: "Đã hiểu",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+              });
+
+              addLog("form2_special_workday_meaningless", { email: userEmail, company: baseData.company, date: singleDate, ngay_ghi: singleDate, ghi_chu: baseData.ghi_chu });
+              skipped++;
+              continue; // 🛑 BỎ QUA NGÀY VÀ CHUYỂN SANG NGÀY TIẾP THEO
+
+            } else if (!existingData.isSpecialWorkday) {
+              // 1.2. T2-T6 TRÙNG VỚI TB NGHỈ THỦ CÔNG: Yêu cầu ghi đè (Thay thế TB nghỉ)
+              hideLoading();
+              let isConfirmed = await showConfirmSwal(
+                "Xác nhận Ghi Đè Bản Ghi", // Tiêu đề (Bạn nên đặt)
+                `[THÔNG BÁO NGHỈ THỦ CÔNG] Ngày ${singleDate} của ${baseData.company} hiện đang là **Thông báo nghỉ** thủ công. Bạn có muốn GHI ĐÈ bằng **Thông báo hủy bỏ** không?`, // Nội dung động
+                "Có, Ghi đè", // Text nút Yes
+                "Không, Bỏ qua" // Text nút No
+              );
+
+              if (isConfirmed) {
+                showLoading("Đang ghi đè dữ liệu...");
+                try {
+                  // Ghi chú mới: Thay thế TB nghỉ
+                  newRecordData.ghi_chu = "Thay thế TB nghỉ.";
+
+                  // Xóa và dọn dẹp file cũ 
+                  const fileIdToDelete = existingData.fileId;
+                  if (fileIdToDelete) {
+                    const qRemaining = query(collection(db, collectionName), where("fileId", "==", fileIdToDelete), where("__name__", "!=", existingDoc.id));
+                    const snapRemaining = await getDocs(qRemaining);
+                    if (snapRemaining.empty) {
+                      await deleteFileFromDrive(fileIdToDelete).catch(e => console.warn(`[CleanUp Error] Lỗi xóa File ID: ${fileIdToDelete} khỏi Drive:`, e));
+                      addLog("drive_cleanup_success", { email: userEmail, fileId: fileIdToDelete, reason: "overwrite_manual_no_ref" });
                     } else {
-                        skipped++;
-                        addLog("overwrite_manual_holiday_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionType, ghi_chu: newRecordData.ghi_chu });
+                      console.log(`[CleanUp] File ID: ${fileIdToDelete} vẫn còn ${snapRemaining.size} bản ghi tham chiếu.`);
                     }
-                    continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
-                    
-                } 
-                // 1.3. T2-T6 TRÙNG VỚI NLĐB cũ: FALL THROUGH để xử lý ghi đè chung
-                
-            } else {
-                // 2. Trường hợp T7/CN (Ngày nghỉ Mặc định)
-                if (!existingDoc) {
-                    // 2.1. T7/CN KHÔNG TRÙNG & KHÔNG CÓ BẢN GHI: Thêm mới (Ghi chú: Ngày làm đặc biệt)
-                    newRecordData.ghi_chu = baseData.ghi_chu || "Ngày làm đặc biệt";
-                    try {
-                        await addReportDoc(newRecordData, collectionName);
-                        addedCount++;
-                    } catch (e) {
-                        console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
-                        errorList.push(`Ngày ${singleDate} (Thêm mới T7/CN) - ${e.message}`);
-                        addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
-                    }
-                    continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
-                } 
-                // 2.2. T7/CN TRÙNG VỚI TB NGHỈ/NLĐB: FALL THROUGH để xử lý ghi đè chung
+                  }
+
+                  // Thực thi ghi đè
+                  await deleteDoc(doc(db, collectionName, existingDoc.id));
+                  await addReportDoc(newRecordData, collectionName);
+
+                  addLog("overwrite_manual_holiday_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionType, ghi_chu: newRecordData.ghi_chu });
+                  addedCount++;
+                } catch (e) {
+                  showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
+                  errorList.push(`Ngày ${singleDate} (Ghi đè T2-T6) - ${e.message}`);
+                  addLog("overwrite_manual_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
+                }
+              } else {
+                skipped++;
+                addLog("overwrite_manual_holiday_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionType, ghi_chu: newRecordData.ghi_chu });
+              }
+              continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
+
             }
+            // 1.3. T2-T6 TRÙNG VỚI NLĐB cũ: FALL THROUGH để xử lý ghi đè chung
+
+          } else {
+            // 2. Trường hợp T7/CN (Ngày nghỉ Mặc định)
+            if (!existingDoc) {
+              // 2.1. T7/CN KHÔNG TRÙNG & KHÔNG CÓ BẢN GHI: Thêm mới (Ghi chú: Ngày làm đặc biệt)
+              newRecordData.ghi_chu = baseData.ghi_chu || "Ngày làm đặc biệt";
+              try {
+                await addReportDoc(newRecordData, collectionName);
+                addedCount++;
+              } catch (e) {
+                console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
+                errorList.push(`Ngày ${singleDate} (Thêm mới T7/CN) - ${e.message}`);
+                addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
+              }
+              continue; // 🛑 CHUYỂN SANG NGÀY TIẾP THEO
+            }
+            // 2.2. T7/CN TRÙNG VỚI TB NGHỈ/NLĐB: FALL THROUGH để xử lý ghi đè chung
+          }
         }
         // --- HẾT LOGIC ĐẶC BIỆT CHO NGÀY LÀM VIỆC ĐẶC BIỆT ---
-        
+
 
         // --- LOGIC GHI ĐÈ CHUNG HOẶC THÊM MỚI NGÀY NGHỈ THƯỜNG ---
-        
+
         if (existingDoc) {
-            // PHÁT HIỆN TRÙNG -> Yêu cầu xác nhận ghi đè (Dùng cho các trường hợp NLĐB fall-through và Ngày nghỉ thường)
-            
-            // ⭐️ CẬP NHẬT GHI CHÚ THÔNG MINH CHO GHI ĐÈ NLĐB ⭐️
-            if (isSpecialWorkdaySubmission) { 
-                // Nếu là NLĐB (và đã fall-through)
-                const existingType = existingData.isSpecialWorkday ? "Ngày làm ĐB cũ" : (isDateADefaultHoliday(singleDate, baseData.company, config) ? "Ngày nghỉ Mặc định" : "Ngày nghỉ Thủ công");
-                const originalGhiChu = existingData.ghi_chu || 'Không có ghi chú cũ';
-                const userGhiChu = baseData.ghi_chu || "Ngày làm đặc biệt";
-                
-                newRecordData.ghi_chu = `${userGhiChu}. Ghi đè lên: ${existingType}. (Ghi chú cũ: ${originalGhiChu})`;
-                // Thuộc tính ngay_nghi đã được xóa ở 2b
-            }
+          // PHÁT HIỆN TRÙNG -> Yêu cầu xác nhận ghi đè (Dùng cho các trường hợp NLĐB fall-through và Ngày nghỉ thường)
 
-            hideLoading();
-            let confirmationMessage;
-            // Sử dụng hàm kiểm tra ngày nghỉ mặc định cho việc hiển thị loại cũ chính xác
-            const existingTypeDisplay = existingData.isSpecialWorkday 
-                ? "Ngày làm Đặc biệt" 
-                : (isDateADefaultHoliday(singleDate, baseData.company, config) 
-                    ? "Ngày nghỉ Mặc định" 
-                    : "Ngày nghỉ Thủ công");
-                    
-            const submissionTypeDisplay = isSpecialWorkdaySubmission ? "Ngày làm Đặc biệt" : "Ngày nghỉ";
-            
-            confirmationMessage = `Ngày ${singleDate} của ${baseData.company} đã tồn tại (loại: ${existingTypeDisplay}). Bạn có muốn GHI ĐÈ bằng **${submissionTypeDisplay}** không?`;
+          // ⭐️ CẬP NHẬT GHI CHÚ THÔNG MINH CHO GHI ĐÈ NLĐB ⭐️
+          if (isSpecialWorkdaySubmission) {
+            // Nếu là NLĐB (và đã fall-through)
+            const existingType = existingData.isSpecialWorkday ? "Ngày làm ĐB cũ" : (isDateADefaultHoliday(singleDate, baseData.company, config) ? "Ngày nghỉ Mặc định" : "Ngày nghỉ Thủ công");
+            const originalGhiChu = existingData.ghi_chu || 'Không có ghi chú cũ';
+            const userGhiChu = baseData.ghi_chu || "Ngày làm đặc biệt";
 
-            
-            let isConfirmed = await showConfirmSwal(
-                "Xác nhận Ghi Đè Bản Ghi",
-                confirmationMessage, // Sử dụng biến message động của bạn
-                "Có, Ghi đè",
-                "Không, Bỏ qua"
-            );
-            
-            if (isConfirmed) {
-              showLoading("Đang ghi đè dữ liệu...");              
-                // Ghi đè
-              try {
-                          const fileIdToDelete = existingData.fileId; 
-                          
-                          // ⭐️ BƯỚC 1: KIỂM TRA VÀ DỌN DẸP FILE ĐÍNH KÈM CŨ ⭐️
-                          if (fileIdToDelete) {
-                              
-                              const qRemaining = query(
-                                  collection(db, collectionName),
-                                  where("fileId", "==", fileIdToDelete),
-                                  where("__name__", "!=", existingDoc.id) 
-                              );
-                              const snapRemaining = await getDocs(qRemaining);
+            newRecordData.ghi_chu = `${userGhiChu}. Ghi đè lên: ${existingType}. (Ghi chú cũ: ${originalGhiChu})`;
+            // Thuộc tính ngay_nghi đã được xóa ở 2b
+          }
 
-                              if (snapRemaining.empty) {
-                                  try {
-                                      await deleteFileFromDrive(fileIdToDelete); 
-                                      addLog("drive_cleanup_success", { email: userEmail, fileId: fileIdToDelete, reason: "overwrite_no_ref" });
-                                  } catch(e) {
-                                      console.warn(`[CleanUp Error] Lỗi xóa File ID: ${fileIdToDelete} khỏi Drive:`, e);
-                                      addLog("drive_cleanup_fail", { email: userEmail, fileId: fileIdToDelete, error: e.message, reason: "overwrite" });
-                                  }
-                              } else {
-                                  console.log(`[CleanUp] File ID: ${fileIdToDelete} vẫn còn ${snapRemaining.size} bản ghi tham chiếu.`);
-                              }
-                          }
-                          
-                          // ⭐️ BƯỚC 2: THỰC THI GIAO DỊCH GHI ĐÈ BẢN GHI TRÊN FIRESTORE ⭐️
-                          await deleteDoc(doc(db, collectionName, existingDoc.id));
-                          await addReportDoc(newRecordData, collectionName);
-                          
-                          addLog("overwrite_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
+          hideLoading();
+          let confirmationMessage;
+          // Sử dụng hàm kiểm tra ngày nghỉ mặc định cho việc hiển thị loại cũ chính xác
+          const existingTypeDisplay = existingData.isSpecialWorkday
+            ? "Ngày làm Đặc biệt"
+            : (isDateADefaultHoliday(singleDate, baseData.company, config)
+              ? "Ngày nghỉ Mặc định"
+              : "Ngày nghỉ Thủ công");
 
-                          addedCount++;
-                      } catch (e) {
-                          showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
-                          errorList.push(`Ngày ${singleDate} (Ghi đè) - ${e.message}`);
-                          addLog("overwrite_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
-                      }
-            } else {
-                // Bỏ qua bản ghi này
-                skipped++;
-                addLog("overwrite_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
-            }
-        } 
-        
-        // --- LOGIC THÊM MỚI NGÀY NGHỈ THƯỜNG ---
-        else if (!isSpecialWorkdaySubmission) { 
-            // KHÔNG TRÙNG VÀ LÀ NGÀY NGHỈ THƯỜNG -> Thêm mới
+          const submissionTypeDisplay = isSpecialWorkdaySubmission ? "Ngày làm Đặc biệt" : "Ngày nghỉ";
+
+          confirmationMessage = `Ngày ${singleDate} của ${baseData.company} đã tồn tại (loại: ${existingTypeDisplay}). Bạn có muốn GHI ĐÈ bằng **${submissionTypeDisplay}** không?`;
+
+
+          let isConfirmed = await showConfirmSwal(
+            "Xác nhận Ghi Đè Bản Ghi",
+            confirmationMessage, // Sử dụng biến message động của bạn
+            "Có, Ghi đè",
+            "Không, Bỏ qua"
+          );
+
+          if (isConfirmed) {
+            showLoading("Đang ghi đè dữ liệu...");
+            // Ghi đè
             try {
-                await addReportDoc(newRecordData, collectionName); 
-                addedCount++;
+              const fileIdToDelete = existingData.fileId;
+
+              // ⭐️ BƯỚC 1: KIỂM TRA VÀ DỌN DẸP FILE ĐÍNH KÈM CŨ ⭐️
+              if (fileIdToDelete) {
+
+                const qRemaining = query(
+                  collection(db, collectionName),
+                  where("fileId", "==", fileIdToDelete),
+                  where("__name__", "!=", existingDoc.id)
+                );
+                const snapRemaining = await getDocs(qRemaining);
+
+                if (snapRemaining.empty) {
+                  try {
+                    await deleteFileFromDrive(fileIdToDelete);
+                    addLog("drive_cleanup_success", { email: userEmail, fileId: fileIdToDelete, reason: "overwrite_no_ref" });
+                  } catch (e) {
+                    console.warn(`[CleanUp Error] Lỗi xóa File ID: ${fileIdToDelete} khỏi Drive:`, e);
+                    addLog("drive_cleanup_fail", { email: userEmail, fileId: fileIdToDelete, error: e.message, reason: "overwrite" });
+                  }
+                } else {
+                  console.log(`[CleanUp] File ID: ${fileIdToDelete} vẫn còn ${snapRemaining.size} bản ghi tham chiếu.`);
+                }
+              }
+
+              // ⭐️ BƯỚC 2: THỰC THI GIAO DỊCH GHI ĐÈ BẢN GHI TRÊN FIRESTORE ⭐️
+              await deleteDoc(doc(db, collectionName, existingDoc.id));
+              await addReportDoc(newRecordData, collectionName);
+
+              addLog("overwrite_success", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, oldId: existingDoc.id, newType: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
+
+              addedCount++;
             } catch (e) {
-                console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
-                errorList.push(`Ngày ${singleDate} (Thêm mới) - ${e.message}`);
-                addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
+              showSwal("error", `Lỗi ghi đè ngày ${singleDate}: ${e.message}`);
+              errorList.push(`Ngày ${singleDate} (Ghi đè) - ${e.message}`);
+              addLog("overwrite_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
             }
+          } else {
+            // Bỏ qua bản ghi này
+            skipped++;
+            addLog("overwrite_skipped", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, type: submissionTypeDisplay, ghi_chu: newRecordData.ghi_chu });
+          }
+        }
+
+        // --- LOGIC THÊM MỚI NGÀY NGHỈ THƯỜNG ---
+        else if (!isSpecialWorkdaySubmission) {
+          // KHÔNG TRÙNG VÀ LÀ NGÀY NGHỈ THƯỜNG -> Thêm mới
+          try {
+            await addReportDoc(newRecordData, collectionName);
+            addedCount++;
+          } catch (e) {
+            console.error(`Lỗi thêm mới ngày ${singleDate}:`, e);
+            errorList.push(`Ngày ${singleDate} (Thêm mới) - ${e.message}`);
+            addLog("add_holiday_error", { email: userEmail, collection: collectionName, company: baseData.company, date: singleDate, ngay_ghi: singleDate, error: e.message, ghi_chu: newRecordData.ghi_chu });
+          }
         }
         // --- HẾT LOGIC THÊM MỚI NGÀY NGHỈ THƯỜNG ---
-    } // KẾT THÚC VÒNG LẶP
+      } // KẾT THÚC VÒNG LẶP
 
 
-    // Thông báo kết quả TỔNG HỢP VÀ CHÍNH XÁC
-    hideLoading();
-    if (errorList.length > 0) {
-      let errorMsg = `THẤT BẠI một phần: Đã gửi thành công ${addedCount} bản ghi, bỏ qua ${skipped} ngày (do trùng lặp hoặc vô nghĩa).`;
-      errorMsg += "\n\n**Các lỗi xảy ra:**\n";
-      errorList.forEach(err => errorMsg += `- ${err}\n`);
+      // Thông báo kết quả TỔNG HỢP VÀ CHÍNH XÁC
+      hideLoading();
+      if (errorList.length > 0) {
+        let errorMsg = `THẤT BẠI một phần: Đã gửi thành công ${addedCount} bản ghi, bỏ qua ${skipped} ngày (do trùng lặp hoặc vô nghĩa).`;
+        errorMsg += "\n\n**Các lỗi xảy ra:**\n";
+        errorList.forEach(err => errorMsg += `- ${err}\n`);
 
-      showSwal("warning", "Gửi báo cáo hoàn tất (Có lỗi)", errorMsg);
-      addLog("form2_submit_partial_error", { email: userEmail, company: baseData.company, added: addedCount, skipped: skipped, errors: errorList.length });
+        showSwal("warning", "Gửi báo cáo hoàn tất (Có lỗi)", errorMsg);
+        addLog("form2_submit_partial_error", { email: userEmail, company: baseData.company, added: addedCount, skipped: skipped, errors: errorList.length });
 
-    } else if (addedCount > 0) {
+      } else if (addedCount > 0) {
         const successMsg = `HOÀN TẤT: Đã thêm/ghi đè thành công ${addedCount} ngày, bỏ qua ${skipped} ngày.`;
         showSwal("success", "Gửi báo cáo thành công!", successMsg);
         addLog("form2_submit_success", { email: userEmail, company: baseData.company, added: addedCount, skipped: skipped });
 
         // 🚀 Thông báo nộp Form 2 (Ngày nghỉ/Làm việc đặc biệt)
         notifyAdmins(
-            "📅 Thông báo nghỉ/làm đặc biệt",
-            `Thông báo ${submissionType.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
+          "📅 Thông báo nghỉ/làm đặc biệt",
+          `Thông báo ${submissionType.toLowerCase()} Công ty ${baseData.company} - User: ${userEmail}`
         );
 
-    } else if (skipped > 0) {
+      } else if (skipped > 0) {
         showSwal("info", "Gửi báo cáo hoàn tất (Bị bỏ qua)", `Không có ngày nào được thêm mới. Đã bỏ qua ${skipped} ngày (do trùng lặp hoặc vô nghĩa).`);
         addLog("form2_submit_skipped_only", { email: userEmail, company: baseData.company, skipped: skipped });
-    } else {
+      } else {
         showSwal("error", "Lỗi dữ liệu", "Không có ngày hợp lệ nào được tìm thấy để xử lý.");
         addLog("form2_submit_no_dates", { email: userEmail, company: baseData.company });
-    }
+      }
 
 
 
@@ -1672,53 +1692,53 @@ if (formId === "registrationForm_2" && (data.ngay_nghi || data.ngay_lam_db)) {
 
       form.ngay_nghi.value = "";
       form.ngay_lam_db.value = "";
-      return; 
+      return;
     }
 
-    
+
     // --- BƯỚC 2: Xử lý Single-Date hoặc form khác (Chỉ áp dụng cho registrationForm_1) ---
 
-if (formId === "registrationForm_1") {
-    
-    showLoading("Đang kiểm tra dữ liệu và trùng lặp...");
-    
-    // Lấy dữ liệu cần kiểm tra
-    const { company, ngay_ghi, chi_so } = data;
-    const newChiSo = parseFloat(chi_so);
+    if (formId === "registrationForm_1") {
 
-// --- ⭐️ TỐI ƯU: KẾT HỢP 2 QUERY THÀNH 1 ---
-const qSameDay = query(
-  collection(db, collectionName),
-  where("company", "==", company),
-  where("ngay_ghi", "==", ngay_ghi)
-);
-const snapSameDay = await getDocs(qSameDay);
+      showLoading("Đang kiểm tra dữ liệu và trùng lặp...");
 
-// ⭐️ TÌM EXACT MATCH TRONG MEMORY (Không query thêm)
-const exactMatchDoc = snapSameDay.docs.find(
-  doc => parseFloat(doc.data().chi_so) === newChiSo
-);
+      // Lấy dữ liệu cần kiểm tra
+      const { company, ngay_ghi, chi_so } = data;
+      const newChiSo = parseFloat(chi_so);
 
-if (!snapSameDay.empty) {
-  let existingDoc = snapSameDay.docs[0];
-  if (snapSameDay.size > 1) {
-    existingDoc = snapSameDay.docs.reduce((a, b) => {
-      const aTime = a.data().createdAt?.toMillis?.() || 0;
-      const bTime = b.data().createdAt?.toMillis?.() || 0;
-      return bTime > aTime ? b : a;
-    });
-  }
-  const existingData = existingDoc.data();
-  const existingChi = parseFloat(existingData.chi_so);
+      // --- ⭐️ TỐI ƯU: KẾT HỢP 2 QUERY THÀNH 1 ---
+      const qSameDay = query(
+        collection(db, collectionName),
+        where("company", "==", company),
+        where("ngay_ghi", "==", ngay_ghi)
+      );
+      const snapSameDay = await getDocs(qSameDay);
 
-  if (!isNaN(existingChi) && !isNaN(newChiSo) && newChiSo < existingChi) {
-    const alreadyReset = snapSameDay.docs.some(d => d.data().isMeterReset === true);
-    hideLoading();
+      // ⭐️ TÌM EXACT MATCH TRONG MEMORY (Không query thêm)
+      const exactMatchDoc = snapSameDay.docs.find(
+        doc => parseFloat(doc.data().chi_so) === newChiSo
+      );
 
-    const swalResult = await Swal.fire({
-      icon: 'warning',
-      title: 'Chỉ số mới nhỏ hơn bản ghi cùng ngày',
-      html: `
+      if (!snapSameDay.empty) {
+        let existingDoc = snapSameDay.docs[0];
+        if (snapSameDay.size > 1) {
+          existingDoc = snapSameDay.docs.reduce((a, b) => {
+            const aTime = a.data().createdAt?.toMillis?.() || 0;
+            const bTime = b.data().createdAt?.toMillis?.() || 0;
+            return bTime > aTime ? b : a;
+          });
+        }
+        const existingData = existingDoc.data();
+        const existingChi = parseFloat(existingData.chi_so);
+
+        if (!isNaN(existingChi) && !isNaN(newChiSo) && newChiSo < existingChi) {
+          const alreadyReset = snapSameDay.docs.some(d => d.data().isMeterReset === true);
+          hideLoading();
+
+          const swalResult = await Swal.fire({
+            icon: 'warning',
+            title: 'Chỉ số mới nhỏ hơn bản ghi cùng ngày',
+            html: `
         <p>Chỉ số cũ: <b>${existingChi.toLocaleString('vi-VN')}</b>&emsp;&emsp;Chỉ số mới: <b>${newChiSo.toLocaleString('vi-VN')}</b></p>
         <label style="display:flex;align-items:center;margin-top:10px;">
           <input id="swal-checkbox-reset" type="checkbox" style="margin-right:8px;">
@@ -1726,284 +1746,284 @@ if (!snapSameDay.empty) {
         </label>
         <input id="swal-input-reason" class="swal2-input" placeholder="Lý do (bắt buộc)">
       `,
-      showCancelButton: true,
-      showDenyButton: !alreadyReset,
-      confirmButtonText: alreadyReset
-          ? 'Cập nhật bản reset hiện có'
-          : 'Ghi đè bản ghi cùng ngày',
-      denyButtonText: 'Thêm bản ghi mới',
-      cancelButtonText: 'Hủy',
-      preConfirm: () => {
-        const cb = document.getElementById('swal-checkbox-reset').checked;
-        const reason = document.getElementById('swal-input-reason').value.trim();
-        if (!cb) { Swal.showValidationMessage('Bạn phải tích xác nhận.'); return false; }
-        if (!reason) { Swal.showValidationMessage('Bạn phải nhập lý do.'); return false; }
-        return { reason, action: 'overwrite' };
-      },
-      preDeny: () => {
-        const cb = document.getElementById('swal-checkbox-reset').checked;
-        const reason = document.getElementById('swal-input-reason').value.trim();
-        if (!cb) { Swal.showValidationMessage('Bạn phải tích xác nhận.'); return false; }
-        if (!reason) { Swal.showValidationMessage('Bạn phải nhập lý do.'); return false; }
-        return { reason, action: 'append' };
-      }
-    });
+            showCancelButton: true,
+            showDenyButton: !alreadyReset,
+            confirmButtonText: alreadyReset
+              ? 'Cập nhật bản reset hiện có'
+              : 'Ghi đè bản ghi cùng ngày',
+            denyButtonText: 'Thêm bản ghi mới',
+            cancelButtonText: 'Hủy',
+            preConfirm: () => {
+              const cb = document.getElementById('swal-checkbox-reset').checked;
+              const reason = document.getElementById('swal-input-reason').value.trim();
+              if (!cb) { Swal.showValidationMessage('Bạn phải tích xác nhận.'); return false; }
+              if (!reason) { Swal.showValidationMessage('Bạn phải nhập lý do.'); return false; }
+              return { reason, action: 'overwrite' };
+            },
+            preDeny: () => {
+              const cb = document.getElementById('swal-checkbox-reset').checked;
+              const reason = document.getElementById('swal-input-reason').value.trim();
+              if (!cb) { Swal.showValidationMessage('Bạn phải tích xác nhận.'); return false; }
+              if (!reason) { Swal.showValidationMessage('Bạn phải nhập lý do.'); return false; }
+              return { reason, action: 'append' };
+            }
+          });
 
-    if (swalResult.isDismissed) {
-      hideLoading();
-      showSwal("info", "Đã hủy gửi báo cáo.");
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("meter_reset_canceled_sameday", { email: userEmail, company, ngay_ghi, newChiSo, reason: "dismissed", ghi_chu: data.ghi_chu });
-      return;
-    }
+          if (swalResult.isDismissed) {
+            hideLoading();
+            showSwal("info", "Đã hủy gửi báo cáo.");
+            // ⭐️ BỔ SUNG LOG ⭐️
+            addLog("meter_reset_canceled_sameday", { email: userEmail, company, ngay_ghi, newChiSo, reason: "dismissed", ghi_chu: data.ghi_chu });
+            return;
+          }
 
-    const reason = swalResult.value?.reason || "";
+          const reason = swalResult.value?.reason || "";
 
-    // --- Người dùng chọn GHI ĐÈ ---
-    if (swalResult.isConfirmed) {
-      try {
-        let fileUrl = existingData.fileUrl || "";
-        let fileId = existingData.fileId || "";
+          // --- Người dùng chọn GHI ĐÈ ---
+          if (swalResult.isConfirmed) {
+            try {
+              let fileUrl = existingData.fileUrl || "";
+              let fileId = existingData.fileId || "";
 
-        if (file) {
-          const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
-          // xóa file cũ nếu không còn tham chiếu
-          if (existingData.fileId && existingData.fileId !== uploaded.id) {
-            const qRemaining = query(
-              collection(db, collectionName),
-              where("fileId", "==", existingData.fileId),
-              where("__name__", "!=", existingDoc.id)
-            );
-            const snapRemaining = await getDocs(qRemaining);
-            if (snapRemaining.empty) {
-              await deleteFileFromDrive(existingData.fileId).catch(err => {
-                console.warn("Không thể xóa file cũ:", err);
-                // ⭐️ BỔ SUNG LOG ⭐️
-                addLog("drive_cleanup_fail", { email: userEmail, fileId: existingData.fileId, error: err.message, reason: "sameday_overwrite" });
-              });
+              if (file) {
+                const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
+                // xóa file cũ nếu không còn tham chiếu
+                if (existingData.fileId && existingData.fileId !== uploaded.id) {
+                  const qRemaining = query(
+                    collection(db, collectionName),
+                    where("fileId", "==", existingData.fileId),
+                    where("__name__", "!=", existingDoc.id)
+                  );
+                  const snapRemaining = await getDocs(qRemaining);
+                  if (snapRemaining.empty) {
+                    await deleteFileFromDrive(existingData.fileId).catch(err => {
+                      console.warn("Không thể xóa file cũ:", err);
+                      // ⭐️ BỔ SUNG LOG ⭐️
+                      addLog("drive_cleanup_fail", { email: userEmail, fileId: existingData.fileId, error: err.message, reason: "sameday_overwrite" });
+                    });
+                  }
+                }
+                fileUrl = uploaded.url;
+                fileId = uploaded.id;
+              }
+
+              const updatedRecord = {
+                ...existingData,
+                ...data,
+                chi_so: newChiSo,
+                fileUrl,
+                fileId,
+                isMeterReset: true,
+                ghi_chu: (existingData.ghi_chu ? existingData.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT CÙNG NGÀY: ${reason}]`,
+                updatedAt: serverTimestamp(),
+                adminEdited: false
+              };
+
+              await setDoc(doc(db, collectionName, existingDoc.id), updatedRecord, { merge: true });
+              addLog("updateReport", { email: userEmail, id: existingDoc.id, collection: collectionName, reason: reason, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
+
+              // 🚀 Gửi Push Notification Cảnh báo
+              notifyAdmins(
+                "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
+                `Công ty ${company} báo cáo giảm (Ghi đè). Lý do: ${reason} - User: ${userEmail}`
+              );
+              hideLoading();
+              showSwal("success", "Đã ghi đè bản ghi reset.");
+              form.reset();
+              if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+              return;
+            } catch (e) {
+              console.error("Lỗi khi ghi đè cùng ngày:", e);
+              hideLoading();
+              showSwal("error", "Lỗi ghi đè: " + e.message);
+              // ⭐️ BỔ SUNG LOG ⭐️
+              addLog("overwrite_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
+              return;
             }
           }
-          fileUrl = uploaded.url;
-          fileId = uploaded.id;
-        }
 
-        const updatedRecord = {
-          ...existingData,
-          ...data,
-          chi_so: newChiSo,
-          fileUrl,
-          fileId,
-          isMeterReset: true,
-          ghi_chu: (existingData.ghi_chu ? existingData.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT CÙNG NGÀY: ${reason}]`,
-          updatedAt: serverTimestamp(),
-          adminEdited: false
-        };
+          // --- Người dùng chọn THÊM MỚI ---
+          if (swalResult.isDenied) {
+            try {
+              if (file) {
+                const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
+                data.fileUrl = uploaded.url;
+                data.fileId = uploaded.id;
+              } else {
+                data.fileUrl = "";
+                data.fileId = "";
+              }
 
-        await setDoc(doc(db, collectionName, existingDoc.id), updatedRecord, { merge: true });
-        addLog("updateReport", { email: userEmail, id: existingDoc.id, collection: collectionName, reason: reason, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
+              data.isMeterReset = true;
+              data.ghi_chu = (data.ghi_chu ? data.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT CÙNG NGÀY (THÊM MỚI): ${reason}]`;
 
-        // 🚀 Gửi Push Notification Cảnh báo
-        notifyAdmins(
-            "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
-            `Công ty ${company} báo cáo giảm (Ghi đè). Lý do: ${reason} - User: ${userEmail}`
-        );
-        hideLoading();
-        showSwal("success", "Đã ghi đè bản ghi reset.");
-        form.reset();
-        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-        return;
-      } catch (e) {
-        console.error("Lỗi khi ghi đè cùng ngày:", e);
-        hideLoading();
-        showSwal("error", "Lỗi ghi đè: " + e.message);
-        // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("overwrite_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
-        return;
-      }
-    }
+              // Sẽ gọi addDoc_success trong addReportDoc
+              await addReportDoc(data, collectionName);
+              // Log cũ đã có: addLog("addReport (special)", { collection: collectionName, reason, newChiSo });
 
-    // --- Người dùng chọn THÊM MỚI ---
-    if (swalResult.isDenied) {
-      try {
-        if (file) {
-          const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
-          data.fileUrl = uploaded.url;
-          data.fileId = uploaded.id;
-        } else {
-          data.fileUrl = "";
-          data.fileId = "";
-        }
-
-        data.isMeterReset = true;
-        data.ghi_chu = (data.ghi_chu ? data.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT CÙNG NGÀY (THÊM MỚI): ${reason}]`;
-
-        // Sẽ gọi addDoc_success trong addReportDoc
-        await addReportDoc(data, collectionName);
-        // Log cũ đã có: addLog("addReport (special)", { collection: collectionName, reason, newChiSo });
-
-        // 🚀 Gửi Push Notification Cảnh báo
-        notifyAdmins(
-            "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
-            `Công ty ${company} báo cáo giảm (Thêm mới). Lý do: ${reason} - User: ${userEmail}`
-        );
-        hideLoading();
-        showSwal("success", "Đã thêm bản ghi reset mới.");
-        form.reset();
-        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-        return;
-      } catch (e) {
-        console.error("Lỗi khi thêm mới cùng ngày:", e);
-        hideLoading();
-        showSwal("error", "Lỗi thêm báo cáo: " + e.message);
-        // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("add_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
-        return;
-      }
-    }
-  } // end if new<existing
-} // end if same-day exists
-
-    
-    // ===============================================
-    // 1. ⭐️ KIỂM TRA TRÙNG LẶP (SỬ DỤNG KẾT QUẢ ĐÃ TÌM TRƯỚC ĐÓ)
-    // ===============================================
-if (exactMatchDoc) {
-  const exactDoc = exactMatchDoc;
-  const exactData = exactDoc.data();  // Trường hợp 1: Cũ KHÔNG có file
-  if (!exactData.fileUrl) {
-    if (!file) {
-      // Bản mới cũng không có file → coi là trùng, bỏ qua
-      hideLoading();
-      showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "No file & exact match", ghi_chu: data.ghi_chu });
-      return;
-    } else {
-      // Bản mới có file → cập nhật (ghi đè)
-      const uploaded = await uploadFileToDrive(file, company, folderId, formId, data);
-      const updatedRecord = {
-        ...exactData,
-        ...data,
-        chi_so: newChiSo,
-        fileUrl: uploaded.url,
-        fileId: uploaded.id,
-        updatedAt: serverTimestamp()
-      };
-      await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
-      await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
-      hideLoading();
-      showSwal("success", "Đã cập nhật file cho bản ghi.");
-      form.reset();
-      if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-      return;
-    }
-  }
-
-  // Trường hợp 2: Cũ CÓ file
-  else {
-    if (!file) {
-      // Bản mới không có file → trùng hoàn toàn, bỏ qua
-      hideLoading();
-      showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "File exists & exact match", ghi_chu: data.ghi_chu });
-      return;
-    } else {
-      // Bản mới có file → hỏi xác nhận
-      hideLoading(); // Ẩn loading trước khi hỏi
-      const result = await Swal.fire({
-        icon: "question",
-        title: "Bản ghi đã tồn tại kèm file",
-        text: "Bạn có muốn thay thế file cũ bằng file mới không?",
-        showCancelButton: true,
-        confirmButtonText: "Có, thay thế",
-        cancelButtonText: "Không"
-      });
-      showLoading("Đang xử lý báo cáo..."); // Hiện loading lại
-
-      if (result.isConfirmed) {
-        const uploaded = await uploadFileToDrive(file, company, folderId, formId, data);
-
-        // Nếu file cũ còn → xóa nếu không ai dùng
-        if (exactData.fileId) {
-          const qRemaining = query(
-            collection(db, collectionName),
-            where("fileId", "==", exactData.fileId),
-            where("__name__", "!=", exactDoc.id)
-          );
-          const snapRemaining = await getDocs(qRemaining);
-          if (snapRemaining.empty) {
-            await deleteFileFromDrive(exactData.fileId).catch(err => {
-              console.warn("Không thể xóa file cũ:", err);
+              // 🚀 Gửi Push Notification Cảnh báo
+              notifyAdmins(
+                "🚨 CẢNH BÁO: CHỈ SỐ GIẢM",
+                `Công ty ${company} báo cáo giảm (Thêm mới). Lý do: ${reason} - User: ${userEmail}`
+              );
+              hideLoading();
+              showSwal("success", "Đã thêm bản ghi reset mới.");
+              form.reset();
+              if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+              return;
+            } catch (e) {
+              console.error("Lỗi khi thêm mới cùng ngày:", e);
+              hideLoading();
+              showSwal("error", "Lỗi thêm báo cáo: " + e.message);
               // ⭐️ BỔ SUNG LOG ⭐️
-              addLog("drive_cleanup_fail", { email: userEmail, fileId: exactData.fileId, error: err.message, reason: "exact_match_replace" });
-            });
+              addLog("add_sameday_error", { email: userEmail, collection: collectionName, company, ngay_ghi, error: e.message, ghi_chu: data.ghi_chu });
+              return;
+            }
+          }
+        } // end if new<existing
+      } // end if same-day exists
+
+
+      // ===============================================
+      // 1. ⭐️ KIỂM TRA TRÙNG LẶP (SỬ DỤNG KẾT QUẢ ĐÃ TÌM TRƯỚC ĐÓ)
+      // ===============================================
+      if (exactMatchDoc) {
+        const exactDoc = exactMatchDoc;
+        const exactData = exactDoc.data();  // Trường hợp 1: Cũ KHÔNG có file
+        if (!exactData.fileUrl) {
+          if (!file) {
+            // Bản mới cũng không có file → coi là trùng, bỏ qua
+            hideLoading();
+            showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
+            // ⭐️ BỔ SUNG LOG ⭐️
+            addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "No file & exact match", ghi_chu: data.ghi_chu });
+            return;
+          } else {
+            // Bản mới có file → cập nhật (ghi đè)
+            const uploaded = await uploadFileToDrive(file, company, folderId, formId, data);
+            const updatedRecord = {
+              ...exactData,
+              ...data,
+              chi_so: newChiSo,
+              fileUrl: uploaded.url,
+              fileId: uploaded.id,
+              updatedAt: serverTimestamp()
+            };
+            await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
+            await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
+            hideLoading();
+            showSwal("success", "Đã cập nhật file cho bản ghi.");
+            form.reset();
+            if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+            return;
           }
         }
 
-        const updatedRecord = {
-          ...exactData,
-          ...data,
-          chi_so: newChiSo,
-          fileUrl: uploaded.url,
-          fileId: uploaded.id,
-          updatedAt: serverTimestamp()
-        };
-        await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
-        await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, oldFile: exactData.fileId, action: "replace", company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
-        
-        // 🚀 Gửi Push Notification Cập nhật ảnh
-        notifyAdmins("🔄 Cập nhật báo cáo", `Cập nhật hình ảnh chỉ số Công ty ${company} - User: ${userEmail}`);
-        hideLoading();
-        showSwal("success", "Đã thay thế file cho bản ghi.");
-        form.reset();
-        if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-        return;
-      } else {
-        hideLoading();
-        showSwal("info", "Đã hủy gửi báo cáo.");
-        // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("form_submit_canceled", { email: userEmail, formId, reason: "File replace confirmation" });
-        return;
+        // Trường hợp 2: Cũ CÓ file
+        else {
+          if (!file) {
+            // Bản mới không có file → trùng hoàn toàn, bỏ qua
+            hideLoading();
+            showSwal("info", "Bản ghi đã tồn tại, không cần gửi lại.");
+            // ⭐️ BỔ SUNG LOG ⭐️
+            addLog("report_skipped_exact_match", { email: userEmail, collection: collectionName, company, ngay_ghi, chi_so: newChiSo, reason: "File exists & exact match", ghi_chu: data.ghi_chu });
+            return;
+          } else {
+            // Bản mới có file → hỏi xác nhận
+            hideLoading(); // Ẩn loading trước khi hỏi
+            const result = await Swal.fire({
+              icon: "question",
+              title: "Bản ghi đã tồn tại kèm file",
+              text: "Bạn có muốn thay thế file cũ bằng file mới không?",
+              showCancelButton: true,
+              confirmButtonText: "Có, thay thế",
+              cancelButtonText: "Không"
+            });
+            showLoading("Đang xử lý báo cáo..."); // Hiện loading lại
+
+            if (result.isConfirmed) {
+              const uploaded = await uploadFileToDrive(file, company, folderId, formId, data);
+
+              // Nếu file cũ còn → xóa nếu không ai dùng
+              if (exactData.fileId) {
+                const qRemaining = query(
+                  collection(db, collectionName),
+                  where("fileId", "==", exactData.fileId),
+                  where("__name__", "!=", exactDoc.id)
+                );
+                const snapRemaining = await getDocs(qRemaining);
+                if (snapRemaining.empty) {
+                  await deleteFileFromDrive(exactData.fileId).catch(err => {
+                    console.warn("Không thể xóa file cũ:", err);
+                    // ⭐️ BỔ SUNG LOG ⭐️
+                    addLog("drive_cleanup_fail", { email: userEmail, fileId: exactData.fileId, error: err.message, reason: "exact_match_replace" });
+                  });
+                }
+              }
+
+              const updatedRecord = {
+                ...exactData,
+                ...data,
+                chi_so: newChiSo,
+                fileUrl: uploaded.url,
+                fileId: uploaded.id,
+                updatedAt: serverTimestamp()
+              };
+              await setDoc(doc(db, collectionName, exactDoc.id), updatedRecord, { merge: true });
+              await addLog("updateFile", { email: userEmail, id: exactDoc.id, collection: collectionName, newFile: uploaded.id, oldFile: exactData.fileId, action: "replace", company: company, ngay_ghi: ngay_ghi, chi_so: newChiSo, ghi_chu: updatedRecord.ghi_chu });
+
+              // 🚀 Gửi Push Notification Cập nhật ảnh
+              notifyAdmins("🔄 Cập nhật báo cáo", `Cập nhật hình ảnh chỉ số Công ty ${company} - User: ${userEmail}`);
+              hideLoading();
+              showSwal("success", "Đã thay thế file cho bản ghi.");
+              form.reset();
+              if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+              return;
+            } else {
+              hideLoading();
+              showSwal("info", "Đã hủy gửi báo cáo.");
+              // ⭐️ BỔ SUNG LOG ⭐️
+              addLog("form_submit_canceled", { email: userEmail, formId, reason: "File replace confirmation" });
+              return;
+            }
+          }
+        }
       }
-    }
-  }
-}
 
-    
-    // ===============================================
-    // 2. KIỂM TRA CHỈ SỐ GIẢM (VÀ XÁC NHẬN BẮT BUỘC) - VỚI BẢN GHI TRƯỚC ĐÓ
-    // ===============================================
 
-    // Chỉ kiểm tra nếu chi_so là số hợp lệ
-    if (!isNaN(newChiSo)) {
-        
+      // ===============================================
+      // 2. KIỂM TRA CHỈ SỐ GIẢM (VÀ XÁC NHẬN BẮT BUỘC) - VỚI BẢN GHI TRƯỚC ĐÓ
+      // ===============================================
+
+      // Chỉ kiểm tra nếu chi_so là số hợp lệ
+      if (!isNaN(newChiSo)) {
+
         // Lấy bản ghi mới nhất của công ty này TRƯỚC ngày hiện tại (hoặc cùng ngày nhưng tạo sớm hơn)
         const qLatest = query(
-            collection(db, collectionName),
-            where("company", "==", company),
-            // Sẽ cần logic phức tạp hơn để so sánh ngày và giờ tạo.
-            // Để đơn giản, ta chỉ lấy bản ghi mới nhất theo ngày ghi
-            where("ngay_ghi", "<=", ngay_ghi), // So sánh theo chuỗi YYYY-MM-DD
-            orderBy("ngay_ghi", "desc"),
-            orderBy("createdAt", "desc"), 
-            limit(1)
+          collection(db, collectionName),
+          where("company", "==", company),
+          // Sẽ cần logic phức tạp hơn để so sánh ngày và giờ tạo.
+          // Để đơn giản, ta chỉ lấy bản ghi mới nhất theo ngày ghi
+          where("ngay_ghi", "<=", ngay_ghi), // So sánh theo chuỗi YYYY-MM-DD
+          orderBy("ngay_ghi", "desc"),
+          orderBy("createdAt", "desc"),
+          limit(1)
         );
-        
+
         const snapLatest = await getDocs(qLatest);
         const latestDoc = snapLatest.docs[0];
 
         if (!snapLatest.empty && (latestDoc.data().ngay_ghi !== ngay_ghi)) { // Loại trừ trường hợp trùng ngày (đã xử lý ở trên)
-            const latestData = latestDoc.data();
-            const latestChiSo = parseFloat(latestData.chi_so);
+          const latestData = latestDoc.data();
+          const latestChiSo = parseFloat(latestData.chi_so);
 
-            if (!isNaN(latestChiSo) && newChiSo < latestChiSo) {
-                hideLoading();
+          if (!isNaN(latestChiSo) && newChiSo < latestChiSo) {
+            hideLoading();
 
-                const result = await Swal.fire({
-                    icon: 'error', 
-                    title: '❌ DỮ LIỆU ĐẶC BIỆT: Chỉ Số Đang Giảm!',
-                    html: `
+            const result = await Swal.fire({
+              icon: 'error',
+              title: '❌ DỮ LIỆU ĐẶC BIỆT: Chỉ Số Đang Giảm!',
+              html: `
                         <p style="text-align: center; color: #cc0000; font-weight: bold; font-size: 1.1em; margin-bottom: 10px;">
                             Chỉ số mới (${newChiSo}) < Chỉ số trước đó (${latestChiSo} ngày ${latestData.ngay_ghi}).
                         </p>
@@ -2018,133 +2038,133 @@ if (exactMatchDoc) {
                         </div>
                         <input id="swal-input-reason" class="swal2-input" placeholder="Lý do chi tiết (BẮT BUỘC)" style="margin-top: 20px;">
                     `,
-                    focusConfirm: false,
-                    showCancelButton: true,
-                    confirmButtonText: '✅ Gửi Dữ Liệu Đặc Biệt',
-                    cancelButtonText: '❌ Hủy & Quay Lại Sửa',
-                    allowOutsideClick: false, 
-                    allowEscapeKey: false,
-                    
-                    preConfirm: () => {
-                        const checkbox = document.getElementById('swal-checkbox-reset');
-                        const reason = document.getElementById('swal-input-reason').value.trim();
+              focusConfirm: false,
+              showCancelButton: true,
+              confirmButtonText: '✅ Gửi Dữ Liệu Đặc Biệt',
+              cancelButtonText: '❌ Hủy & Quay Lại Sửa',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
 
-                        if (!checkbox.checked) {
-                            Swal.showValidationMessage('Bạn PHẢI xác nhận bằng cách chọn hộp kiểm.');
-                            return false;
-                        }
-                        if (!reason) {
-                            Swal.showValidationMessage('Lý do là BẮT BUỘC để gửi dữ liệu đặc biệt này.');
-                            return false;
-                        }
-                        return { reason: reason };
-                    }
-                });
+              preConfirm: () => {
+                const checkbox = document.getElementById('swal-checkbox-reset');
+                const reason = document.getElementById('swal-input-reason').value.trim();
 
-                if (result.isConfirmed) {
-                    // Người dùng đã xác nhận
-                    data.isMeterReset = true; // Thêm cờ đặc biệt
-                    
-                    // Cập nhật trường ghi chú
-                    data.ghi_chu = (data.ghi_chu ? data.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT: ${result.value.reason}]`; 
-                    
-                    showSwal("warning", "Đã xác nhận gửi chỉ số thấp kèm lý do. Đang xử lý...");
-                    showLoading("Đang xử lý báo cáo đặc biệt..."); 
-                    // ⭐️ BỔ SUNG LOG ⭐️
-                    addLog("meter_reset_confirmed", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, reason: result.value.reason, ghi_chu: data.ghi_chu });
-
-                } else {
-                    // Người dùng nhấn Hủy Bỏ
-                    showSwal("info", "Đã hủy gửi báo cáo. Vui lòng kiểm tra lại chỉ số.");
-                    form.reset();
-                    if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-                    // ⭐️ BỔ SUNG LOG ⭐️
-                    addLog("meter_reset_canceled", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, ghi_chu: data.ghi_chu });
-                    return; 
+                if (!checkbox.checked) {
+                  Swal.showValidationMessage('Bạn PHẢI xác nhận bằng cách chọn hộp kiểm.');
+                  return false;
                 }
-            }
-        }
-    }
+                if (!reason) {
+                  Swal.showValidationMessage('Lý do là BẮT BUỘC để gửi dữ liệu đặc biệt này.');
+                  return false;
+                }
+                return { reason: reason };
+              }
+            });
 
-    // ===============================================
-    // 3. ⭐️ KIỂM TRA TRÙNG 2 TRƯỜNG (SỬ DỤNG snapSameDay ĐÃ CÓ)
-    // ===============================================
-    if (snapSameDay.docs.length > 0) {
+            if (result.isConfirmed) {
+              // Người dùng đã xác nhận
+              data.isMeterReset = true; // Thêm cờ đặc biệt
+
+              // Cập nhật trường ghi chú
+              data.ghi_chu = (data.ghi_chu ? data.ghi_chu + " | " : "") + `[CS GIẢM ĐẶC BIỆT: ${result.value.reason}]`;
+
+              showSwal("warning", "Đã xác nhận gửi chỉ số thấp kèm lý do. Đang xử lý...");
+              showLoading("Đang xử lý báo cáo đặc biệt...");
+              // ⭐️ BỔ SUNG LOG ⭐️
+              addLog("meter_reset_confirmed", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, reason: result.value.reason, ghi_chu: data.ghi_chu });
+
+            } else {
+              // Người dùng nhấn Hủy Bỏ
+              showSwal("info", "Đã hủy gửi báo cáo. Vui lòng kiểm tra lại chỉ số.");
+              form.reset();
+              if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+              // ⭐️ BỔ SUNG LOG ⭐️
+              addLog("meter_reset_canceled", { email: userEmail, company, ngay_ghi, newChiSo, oldChiSo: latestChiSo, ghi_chu: data.ghi_chu });
+              return;
+            }
+          }
+        }
+      }
+
+      // ===============================================
+      // 3. ⭐️ KIỂM TRA TRÙNG 2 TRƯỜNG (SỬ DỤNG snapSameDay ĐÃ CÓ)
+      // ===============================================
+      if (snapSameDay.docs.length > 0) {
         hideLoading();
         // Trùng 2 thông tin -> Hiện Confirm Ghi thêm
         let isConfirmed = await showConfirmSwal(
-            "Dữ liệu đã tồn tại", // Tiêu đề Swal.fire (nên có)
-            `Ngày ${ngay_ghi} của ${company} đã có báo cáo. Bạn muốn GHI THÊM DỮ LIỆU MỚI (${chi_so}) cùng ngày không?`,
-            "OK",           // Thay thế 'Có' bằng 'OK'
-            "Hủy bỏ",       // Thay thế 'Không' bằng 'Hủy bỏ'
-            "info"          // Sử dụng icon info vì đây là hành động ghi thêm, không phải lỗi
+          "Dữ liệu đã tồn tại", // Tiêu đề Swal.fire (nên có)
+          `Ngày ${ngay_ghi} của ${company} đã có báo cáo. Bạn muốn GHI THÊM DỮ LIỆU MỚI (${chi_so}) cùng ngày không?`,
+          "OK",           // Thay thế 'Có' bằng 'OK'
+          "Hủy bỏ",       // Thay thế 'Không' bằng 'Hủy bỏ'
+          "info"          // Sử dụng icon info vì đây là hành động ghi thêm, không phải lỗi
         );
 
         if (!isConfirmed) {
-            showSwal("info", "Đã hủy gửi báo cáo.");
-            form.reset();
-            if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-            // ⭐️ BỔ SUNG LOG ⭐️
-            addLog("form_submit_canceled", { email: userEmail, formId, reason: "Duplicate date confirmation" });
-            return; 
+          showSwal("info", "Đã hủy gửi báo cáo.");
+          form.reset();
+          if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+          // ⭐️ BỔ SUNG LOG ⭐️
+          addLog("form_submit_canceled", { email: userEmail, formId, reason: "Duplicate date confirmation" });
+          return;
         }
-        showLoading("Đang xử lý báo cáo..."); 
+        showLoading("Đang xử lý báo cáo...");
         // ⭐️ BỔ SUNG LOG ⭐️
         addLog("duplicate_date_accepted", { email: userEmail, company, ngay_ghi, newChiSo, ghi_chu: data.ghi_chu });
-    }
-    
+      }
 
 
-    // ===============================================
-    // 4. LƯU TRỮ DỮ LIỆU SAU KHI VƯỢT QUA CÁC BƯỚC KIỂM TRA
-    // ===============================================
 
-    let fileUrl = "";
-    let fileId = "";
+      // ===============================================
+      // 4. LƯU TRỮ DỮ LIỆU SAU KHI VƯỢT QUA CÁC BƯỚC KIỂM TRA
+      // ===============================================
 
-    if (file) {
+      let fileUrl = "";
+      let fileId = "";
+
+      if (file) {
         const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
         fileUrl = uploaded.url;
         fileId = uploaded.id;
-    }
-    
-    // Cập nhật lại data với thông tin file trước khi lưu
-    data.fileUrl = fileUrl;
-    data.fileId = fileId;
-    
-    // LƯU VÀO FIRESTORE (data đã có isMeterReset: true nếu chỉ số giảm)
-    // Sẽ gọi addDoc_success trong addReportDoc
-    const docRef = await addReportDoc(data, collectionName); 
+      }
 
-    // 🚀 Gửi Push Notification Form 1 (Chỉ số)
-    if (data.isMeterReset) {
+      // Cập nhật lại data với thông tin file trước khi lưu
+      data.fileUrl = fileUrl;
+      data.fileId = fileId;
+
+      // LƯU VÀO FIRESTORE (data đã có isMeterReset: true nếu chỉ số giảm)
+      // Sẽ gọi addDoc_success trong addReportDoc
+      const docRef = await addReportDoc(data, collectionName);
+
+      // 🚀 Gửi Push Notification Form 1 (Chỉ số)
+      if (data.isMeterReset) {
         notifyAdmins("🚨 CẢNH BÁO: CHỈ SỐ GIẢM", `Công ty ${data.company} báo cáo giảm chỉ số. User: ${userEmail}`);
-    } else {
+      } else {
         notifyAdmins("💧 Có chỉ số mới", `Công ty ${data.company} - User: ${userEmail}`);
+      }
+
+      showSwal("success", "Thành công", "Báo cáo đã được gửi!");
+      form.reset();
+      if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
+
+      // Đợi một chút rồi hỏi bật thông báo nếu họ chưa bật
+      setTimeout(() => {
+        if (Notification.permission === 'default') {
+          requestNotificationPermission();
+        }
+      }, 2500);
     }
 
-    showSwal("success", "Thành công", "Báo cáo đã được gửi!");
-    form.reset();
-    if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
-
-    // Đợi một chút rồi hỏi bật thông báo nếu họ chưa bật
-    setTimeout(() => {
-        if (Notification.permission === 'default') {
-            requestNotificationPermission();
-        }
-    }, 2500);
-}
-
-// ... (các khối xử lý form khác và khối finally) ...
+    // ... (các khối xử lý form khác và khối finally) ...
   } catch (err) {
     // Bắt các lỗi cấp cao (lỗi đăng nhập, lỗi upload file Drive, lỗi Form 1)
     console.error(`❌ Lỗi khi submit ${formId}:`, err);
     showSwal("error", "Thất bại", err.message);
     // ⭐️ BỔ SUNG LOG ⭐️
     addLog("form_submit_fatal_error", { email: userEmail, formId, error: err.message, collection: collectionName });
-    hideLoading(); 
+    hideLoading();
   } finally {
-    hideLoading(); 
+    hideLoading();
   }
 
 }
@@ -2153,9 +2173,9 @@ if (exactMatchDoc) {
 export function listenReports(collectionName, callback) {
   // ⭐️ GIỚI HẠN BẢN GHI ĐỂ TRÁNH ĐỐT CHI PHÍ (Mặc định 50 cho các luồng listen)
   const q = query(
-    collection(db, collectionName), 
+    collection(db, collectionName),
     orderBy("createdAt", "desc"),
-    limit(50) 
+    limit(50)
   );
   return onSnapshot(q, (snapshot) => {
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -2190,26 +2210,26 @@ export async function getReportsByDate(collectionName, dateField, startDate, end
       where(dateField, "<=", endDate),
       orderBy(dateField, "desc") // Sắp xếp theo ngày (mới nhất trước)
     );
-    
+
     if (limitCount && limitCount !== "all") {
       q = query(q, limit(parseInt(limitCount)));
     }
-    
+
     const snapshot = await getDocs(q);
     const reports = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    
+
     hideLoading();
     return reports; // Trả về mảng dữ liệu đã lọc
 
   } catch (err) {
     console.error("Lỗi getReportsByDate:", err);
     // ⭐️ BỔ SUNG LOG ⭐️
-    addLog("getReportsByDate_failure", { 
-        collection: collectionName, 
-        error: err.message, 
-        startDate, 
-        endDate,
-        limit: limitCount 
+    addLog("getReportsByDate_failure", {
+      collection: collectionName,
+      error: err.message,
+      startDate,
+      endDate,
+      limit: limitCount
     });
     hideLoading();
     showSwal("error", "Lỗi tải dữ liệu", err.message);
@@ -2246,44 +2266,44 @@ export async function deleteReport(collectionName, id) {
 
     // Bước 2: Ghi log chi tiết bản ghi trước khi xóa (Log cũ đã có)
     await addLog("deleteReport", {
-      ...reportData, 
+      ...reportData,
       id,
       collection: collectionName,
       email: userEmail
     });
-    
+
     // Bước 3: Nếu có file đính kèm, gọi hàm xóa file từ Google Drive
     const fileId = reportData.fileId;
     if (fileId) {
-        // Cần kiểm tra xem còn bản ghi nào khác tham chiếu đến file này không
-        const qRemaining = query(
-            collection(db, collectionName),
-            where("fileId", "==", fileId),
-            where("__name__", "!=", id),
-            limit(1)
-        );
-        const snapRemaining = await getDocs(qRemaining);
+      // Cần kiểm tra xem còn bản ghi nào khác tham chiếu đến file này không
+      const qRemaining = query(
+        collection(db, collectionName),
+        where("fileId", "==", fileId),
+        where("__name__", "!=", id),
+        limit(1)
+      );
+      const snapRemaining = await getDocs(qRemaining);
 
-        if (snapRemaining.empty) {
-            // Chỉ xóa file nếu không còn bản ghi nào khác tham chiếu
-            try {
-                await deleteFileFromDrive(fileId);
-                // log drive_delete_success sẽ được gọi bên trong deleteFileFromDrive
-            } catch(e) {
-                 // log drive_delete_failure sẽ được gọi bên trong deleteFileFromDrive
-                 console.warn(`[Drive Delete Error] Không thể xóa file ${fileId} khi xóa báo cáo ${id}:`, e);
-            }
-        } else {
-             // ⭐️ BỔ SUNG LOG ⭐️
-             addLog("deleteReport_file_skipped", { id, collection: collectionName, fileId, remainingRefs: snapRemaining.size });
+      if (snapRemaining.empty) {
+        // Chỉ xóa file nếu không còn bản ghi nào khác tham chiếu
+        try {
+          await deleteFileFromDrive(fileId);
+          // log drive_delete_success sẽ được gọi bên trong deleteFileFromDrive
+        } catch (e) {
+          // log drive_delete_failure sẽ được gọi bên trong deleteFileFromDrive
+          console.warn(`[Drive Delete Error] Không thể xóa file ${fileId} khi xóa báo cáo ${id}:`, e);
         }
+      } else {
+        // ⭐️ BỔ SUNG LOG ⭐️
+        addLog("deleteReport_file_skipped", { id, collection: collectionName, fileId, remainingRefs: snapRemaining.size });
+      }
     }
 
     // Bước 4: Xóa bản ghi + Lập Bia mộ (Tombstone) để đồng bộ IndexedDB
     const batch = writeBatch(db);
     batch.delete(docRef); // Xóa báo cáo thật
     batch.set(doc(collection(db, "sync_deletes")), { // Ghi sổ xóa
-        docId: id, collectionName: collectionName, deletedAt: serverTimestamp()
+      docId: id, collectionName: collectionName, deletedAt: serverTimestamp()
     });
     await batch.commit();
 
@@ -2304,24 +2324,24 @@ export async function deleteReport(collectionName, id) {
  * @returns {boolean} True nếu là ngày nghỉ mặc định.
  */
 export function isDateADefaultHoliday(isoDate, company, config) {
-    if (!isoDate) return false;
+  if (!isoDate) return false;
 
-    // Lấy ngày trong tuần: 0=CN, 1=T2, ..., 6=T7
-    const date = new Date(isoDate);
-    const dayOfWeek = date.getDay(); 
+  // Lấy ngày trong tuần: 0=CN, 1=T2, ..., 6=T7
+  const date = new Date(isoDate);
+  const dayOfWeek = date.getDay();
 
-    // Kiểm tra cấu hình nghỉ T7/CN của công ty
-    const defaultHolidaySetting = config?.defaultHolidays?.[company];
-    
-    if (defaultHolidaySetting === 'sat_sun' || defaultHolidaySetting === undefined) {
-        // Mặc định: nghỉ T7 & CN
-        return dayOfWeek === 0 || dayOfWeek === 6; 
-    } else if (defaultHolidaySetting === 'sun_only') {
-        // Chỉ nghỉ CN
-        return dayOfWeek === 0; 
-    }
-    // Nếu là 'none' hoặc các trường hợp khác (T2-T6)
-    return false;
+  // Kiểm tra cấu hình nghỉ T7/CN của công ty
+  const defaultHolidaySetting = config?.defaultHolidays?.[company];
+
+  if (defaultHolidaySetting === 'sat_sun' || defaultHolidaySetting === undefined) {
+    // Mặc định: nghỉ T7 & CN
+    return dayOfWeek === 0 || dayOfWeek === 6;
+  } else if (defaultHolidaySetting === 'sun_only') {
+    // Chỉ nghỉ CN
+    return dayOfWeek === 0;
+  }
+  // Nếu là 'none' hoặc các trường hợp khác (T2-T6)
+  return false;
 }
 // Hiện modal loading
 export function showLoading(msg = "Đang xử lý, vui lòng chờ...") {
@@ -2383,14 +2403,14 @@ export function showSwal(type, title, options = {}) { // Đổi 'message' thành
     position: options.position || 'top-end',
     icon: type,
     title: title, // Dùng title (Tiêu đề)
-    
-    html: options.html || null, 
+
+    html: options.html || null,
     // heightAuto: false, // Chống giật trang (Thuộc tính này không dùng chung với toasts)
 
     width: options.width || '400px',
     showConfirmButton: options.showConfirmButton || false,
     timer: options.timer || 2500, // Tăng mặc định lên 2,5 giây
-    timerProgressBar: true,    
+    timerProgressBar: true,
     showClass: { popup: '' }
   });
 }
@@ -2405,27 +2425,27 @@ export function showSwal(type, title, options = {}) { // Đổi 'message' thành
  * @returns {Promise<boolean>} Trả về true nếu người dùng nhấn nút xác nhận (confirm).
  */
 export async function showConfirmSwal(
-    title, 
-    htmlMessage, 
-    confirmText = 'Có', 
-    cancelText = 'Không',
-    icon = 'warning' 
+  title,
+  htmlMessage,
+  confirmText = 'Có',
+  cancelText = 'Không',
+  icon = 'warning'
 ) {
-    const result = await Swal.fire({
-        title: title,
-        html: htmlMessage,
-        icon: icon,
-        showCancelButton: true, // Hiển thị nút Hủy
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: confirmText, // Tên nút Đồng ý tùy chỉnh
-        cancelButtonText: cancelText,   // Tên nút Hủy tùy chỉnh
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        heightAuto: false, // Chống giật trang
-    });
-    
-    return result.isConfirmed; // Trả về true nếu nút confirm (OK/Có) được nhấn
+  const result = await Swal.fire({
+    title: title,
+    html: htmlMessage,
+    icon: icon,
+    showCancelButton: true, // Hiển thị nút Hủy
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: confirmText, // Tên nút Đồng ý tùy chỉnh
+    cancelButtonText: cancelText,   // Tên nút Hủy tùy chỉnh
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    heightAuto: false, // Chống giật trang
+  });
+
+  return result.isConfirmed; // Trả về true nếu nút confirm (OK/Có) được nhấn
 }
 
 
@@ -2481,14 +2501,14 @@ export async function getWeekDayStart() {
  */
 export async function saveRule(ruleData) {
   const user = auth.currentUser;
-  if (!user || !user.email) { showSwal("error","Vui lòng đăng nhập."); return; }
+  if (!user || !user.email) { showSwal("error", "Vui lòng đăng nhập."); return; }
 
   const { content, dayOfWeek, dayOfMonth } = ruleData;
 
-  const safeDayOfWeek = (dayOfWeek !== "" && !Number.isNaN(parseInt(dayOfWeek,10)))
-                        ? parseInt(dayOfWeek,10) : null;
-  const safeDayOfMonth = (dayOfMonth !== "" && !Number.isNaN(parseInt(dayOfMonth,10)))
-                        ? parseInt(dayOfMonth,10) : null;
+  const safeDayOfWeek = (dayOfWeek !== "" && !Number.isNaN(parseInt(dayOfWeek, 10)))
+    ? parseInt(dayOfWeek, 10) : null;
+  const safeDayOfMonth = (dayOfMonth !== "" && !Number.isNaN(parseInt(dayOfMonth, 10)))
+    ? parseInt(dayOfMonth, 10) : null;
 
   await addDoc(collection(db, "job"), {
     content,
@@ -2504,21 +2524,21 @@ export async function saveRule(ruleData) {
  * Xuất: Lấy danh sách tất cả người dùng từ collection 'users'.
  */
 export async function fetchAllUsers() { // <<< Bắt buộc phải có 'export'
-    try {
-        const usersCol = collection(db, "users");
-        const userSnapshot = await getDocs(usersCol);
-        const userList = userSnapshot.docs.map(doc => ({
-            id: doc.id,
-            email: doc.id, // Giả định email là document ID
-            ...doc.data()
-        }));
-        console.log("✅ Đã tải danh sách người dùng:", userList);
-        return userList;
-    } catch (error) {
-        console.error("❌ Lỗi khi tải danh sách người dùng:", error);
-        // Trả về mảng rỗng thay vì ném lỗi để không làm sập giao diện
-        return []; 
-    }
+  try {
+    const usersCol = collection(db, "users");
+    const userSnapshot = await getDocs(usersCol);
+    const userList = userSnapshot.docs.map(doc => ({
+      id: doc.id,
+      email: doc.id, // Giả định email là document ID
+      ...doc.data()
+    }));
+    console.log("✅ Đã tải danh sách người dùng:", userList);
+    return userList;
+  } catch (error) {
+    console.error("❌ Lỗi khi tải danh sách người dùng:", error);
+    // Trả về mảng rỗng thay vì ném lỗi để không làm sập giao diện
+    return [];
+  }
 }
 
 /**
@@ -2527,35 +2547,35 @@ export async function fetchAllUsers() { // <<< Bắt buộc phải có 'export'
  * @param {function} callback - Hàm sẽ được gọi mỗi khi dữ liệu thay đổi.
  * @returns {function} Hàm unsubscribe để ngừng lắng nghe.
  */
-export function listenJobData(collectionName, callback) { 
-    // Bắt buộc phải có 'export'
-    
-    // Lấy tham chiếu đến collection
-    const colRef = collection(db, collectionName);
+export function listenJobData(collectionName, callback) {
+  // Bắt buộc phải có 'export'
 
-    // Tạo query: Lấy tất cả document, sắp xếp theo thời gian tạo (giả định có trường 'createdAt')
-    // Nếu bạn không cần sắp xếp, bạn có thể chỉ dùng: const q = colRef;
-    const q = query(colRef, orderBy("createdAt", "desc")); 
+  // Lấy tham chiếu đến collection
+  const colRef = collection(db, collectionName);
 
-    // Thiết lập listener thời gian thực
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        // Ánh xạ (map) các document thành một mảng đối tượng JavaScript
-        const documents = snapshot.docs.map(doc => ({
-            id: doc.id, // Giữ lại ID của document
-            ...doc.data()
-        }));
-        
-        console.log(`✅ ${documents.length} document đã tải từ ${collectionName} (Real-time).`);
-        
-        // Gọi lại (callback) hàm trong h.html với dữ liệu đã tải
-        callback(documents);
-        
-    }, (error) => {
-        console.error(`❌ Lỗi khi lắng nghe collection ${collectionName}:`, error);
-        // Có thể thêm logic xử lý lỗi khác ở đây
-    });
+  // Tạo query: Lấy tất cả document, sắp xếp theo thời gian tạo (giả định có trường 'createdAt')
+  // Nếu bạn không cần sắp xếp, bạn có thể chỉ dùng: const q = colRef;
+  const q = query(colRef, orderBy("createdAt", "desc"));
 
-    return unsubscribe; // Rất quan trọng, cho phép ngắt kết nối khi cần
+  // Thiết lập listener thời gian thực
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Ánh xạ (map) các document thành một mảng đối tượng JavaScript
+    const documents = snapshot.docs.map(doc => ({
+      id: doc.id, // Giữ lại ID của document
+      ...doc.data()
+    }));
+
+    console.log(`✅ ${documents.length} document đã tải từ ${collectionName} (Real-time).`);
+
+    // Gọi lại (callback) hàm trong h.html với dữ liệu đã tải
+    callback(documents);
+
+  }, (error) => {
+    console.error(`❌ Lỗi khi lắng nghe collection ${collectionName}:`, error);
+    // Có thể thêm logic xử lý lỗi khác ở đây
+  });
+
+  return unsubscribe; // Rất quan trọng, cho phép ngắt kết nối khi cần
 }
 
 //
@@ -2680,60 +2700,60 @@ export async function saveDailyScheduleCache(dateStr, content) {
  * @param {string} filterGroup Lọc theo nhóm: 'group1' (Đồng hồ), 'group2' (Hóa đơn), 'group3' (Khoán), 'all' (Tất cả)
  */
 export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
-    try {
-        const selectElement = document.getElementById(selectId);
-        if (!selectElement) return;
+  try {
+    const selectElement = document.getElementById(selectId);
+    if (!selectElement) return;
 
-        // 1. Lấy dữ liệu từ cả 2 bảng cùng lúc để tiết kiệm thời gian
-        const [masterSnap, configSnap] = await Promise.all([
-            getDocs(collection(db, "companies_master")),
-            getDocs(collection(db, "company_configs"))
-        ]);
-        
-        const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
-        const configs = configSnap.docs.map(d => d.data());
-        const configCompanies = configs.map(c => c.company).filter(Boolean);
-        
-        // 2. Gộp danh sách và loại bỏ trùng lặp để có danh sách tổng thể nhất
-        // (Bao gồm cả cty thêm tay bên master và cty đã có trong configs)
-        let allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
+    // 1. Lấy dữ liệu từ cả 2 bảng cùng lúc để tiết kiệm thời gian
+    const [masterSnap, configSnap] = await Promise.all([
+      getDocs(collection(db, "companies_master")),
+      getDocs(collection(db, "company_configs"))
+    ]);
 
-        // 3. Tìm config mới nhất cho mỗi công ty để phân loại nhóm
-        const latestConfigs = {};
-        // Sắp xếp theo effectiveDate tăng dần để config mới nhất đè lên config cũ
-        configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
-        configs.forEach(c => {
-            if (c.company) latestConfigs[c.company] = c;
-        });
+    const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
+    const configs = configSnap.docs.map(d => d.data());
+    const configCompanies = configs.map(c => c.company).filter(Boolean);
 
-        // 4. Lọc danh sách theo yêu cầu
-        if (filterGroup !== 'all') {
-            allCompanies = allCompanies.filter(comp => {
-                const c = latestConfigs[comp];
-                // Lấy group từ cấu hình. Nếu công ty mới thêm tay chưa có cấu hình thì dùng fallback
-                const group = (c && c.group) ? c.group : (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
-                return group === filterGroup;
-            });
-        }
-        
-        // 5. Sắp xếp Alphabet
-        allCompanies.sort((a, b) => a.localeCompare(b));
+    // 2. Gộp danh sách và loại bỏ trùng lặp để có danh sách tổng thể nhất
+    // (Bao gồm cả cty thêm tay bên master và cty đã có trong configs)
+    let allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
 
-        // 6. Render ra giao diện
-        selectElement.innerHTML = '<option value="" disabled selected>- Chọn công ty -</option>';
-        allCompanies.forEach(comp => {
-            const option = document.createElement("option");
-            option.value = comp;
-            option.textContent = comp;
-            selectElement.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Lỗi tải danh sách công ty:", error);
-        const selectElement = document.getElementById(selectId);
-        if (selectElement) {
-            selectElement.innerHTML = '<option value="" disabled selected>- Lỗi tải dữ liệu -</option>';
-        }
+    // 3. Tìm config mới nhất cho mỗi công ty để phân loại nhóm
+    const latestConfigs = {};
+    // Sắp xếp theo effectiveDate tăng dần để config mới nhất đè lên config cũ
+    configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
+    configs.forEach(c => {
+      if (c.company) latestConfigs[c.company] = c;
+    });
+
+    // 4. Lọc danh sách theo yêu cầu
+    if (filterGroup !== 'all') {
+      allCompanies = allCompanies.filter(comp => {
+        const c = latestConfigs[comp];
+        // Lấy group từ cấu hình. Nếu công ty mới thêm tay chưa có cấu hình thì dùng fallback
+        const group = (c && c.group) ? c.group : (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
+        return group === filterGroup;
+      });
     }
+
+    // 5. Sắp xếp Alphabet
+    allCompanies.sort((a, b) => a.localeCompare(b));
+
+    // 6. Render ra giao diện
+    selectElement.innerHTML = '<option value="" disabled selected>- Chọn công ty -</option>';
+    allCompanies.forEach(comp => {
+      const option = document.createElement("option");
+      option.value = comp;
+      option.textContent = comp;
+      selectElement.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Lỗi tải danh sách công ty:", error);
+    const selectElement = document.getElementById(selectId);
+    if (selectElement) {
+      selectElement.innerHTML = '<option value="" disabled selected>- Lỗi tải dữ liệu -</option>';
+    }
+  }
 }
 
 // Export thêm các hàm Firestore cần thiết cho chatbot
