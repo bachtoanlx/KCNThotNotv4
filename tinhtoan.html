@@ -57,19 +57,30 @@
         padding-right: 8px;
       }
 
+      /* Giống kho/suco: layout wrapper quản lý khoảng cách cạnh */
+      .tinhtoan-layout {
+        padding: 0 2px 10px 2px;
+      }
+
       .scenario-card {
-        margin: 0 2px 10px 2px;
-        width: calc(100% - 4px);
+        margin: 0 0 8px 0;   /* bỏ margin ngang, layout đã lo */
+        width: 100%;
+        padding: 8px !important;  /* giảm padding ngoài card kịch bản */
+      }
+
+      /* Sub-cards bên trong kịch bản: giảm padding và gap */
+      .scenario-card > div[style] {
+        gap: 8px !important;
       }
 
       .calculator-container {
-        padding: 0 2px 10px 2px;
+        padding: 0;           /* bỏ padding ngang, layout đã lo */
         width: 100%;
       }
 
       .calc-card {
-        padding: 12px;
-        margin-bottom: 10px;
+        padding: 10px;
+        margin-bottom: 8px;
       }
 
       .form-field label {
