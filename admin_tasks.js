@@ -83,17 +83,13 @@ function getRuleChanges(oldData, newData) {
 
 onAuth(async (user) => {
     if (!user) {
-        notLogged.style.display = "flex";
-        pageContent.style.display = "none";
-        noPermission.style.display = "none";
+        window.location.replace("trangchu.html");
         return;
     }
 
     const role = await getRole(user.email);
     if (role !== "admin") {
-        notLogged.style.display = "none";
-        pageContent.style.display = "none";
-        noPermission.style.display = "block";
+        window.location.replace("trangchu.html");
         return;
     }
 

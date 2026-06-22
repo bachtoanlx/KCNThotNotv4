@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // CHO PHÉP LƯU FCM TOKEN:
+    match /users/{userEmail} {
+      allow read, write: if request.auth != null
+        && (request.auth.token.email == userEmail || isAdmin());
+    }
+
+    
+    // === HÀM HELPER BẢO MẬT ===
+    
+    function getRole(email) {
+      return get(/databases/$(database)/documents/roles/$(email)).data.role;
+    }
+    
+    function isAdmin() {
+      return request.auth != null && getRole(request.auth.token.email) == 'admin';
+    }
+
+    function isUser() {
+      return request.auth != null;
+    }
+
+    // === QUY TẮC CỤ THỂ CHO TỪNG COLLECTION ===
+
+    // 1. Collection 'logs' (An toàn)
+    match /logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+    
+    // Bảng Bia mộ phục vụ đồng bộ IndexedDB
+    match /sync_deletes/{docId} {
+      allow read: if isUser(); // Mọi người dùng đều được đọc để đồng bộ xóa ở client
+      allow create: if isAdmin(); // Chỉ Admin mới có quyền xóa báo cáo -> tạo bia mộ
+      allow update, delete: if false; // Không cho phép sửa hoặc xóa bia mộ từ web
+    }
+    
+    // 2. Collections Báo cáo (reports_1, reports_2, shift_reports)
+    match /reports_1/{docId} {
+      allow read, create: if isUser(); 
+      allow update, delete: if isAdmin(); 
+    }
+    match /reports_2/{docId} {
+      allow read, create: if isUser();
+      allow update, delete: if isAdmin();
+    }
+    match /shift_reports/{docId} {
+      allow read, create: if isUser();
+      allow update, delete: if isAdmin();
+    }
+    
+    // ⭐️ SỬA LỖI 1: THÊM QUY TẮC CHO 'report_shifts' ⭐️
+    match /report_shifts/{docId} {
+      allow read: if isUser(); // Cho phép mọi người dùng đọc danh sách ca
+      allow create, update, delete: if isAdmin(); // Chỉ Admin được sửa
+    }
+
+    // 3. Collections Cấu hình Lịch (autoplan)
+    match /work_rules/{docId} {
+      allow read: if isUser(); 
+      allow create, update, delete: if isAdmin(); 
+    }
+    match /manual_jobs/{docId} {
+      allow read: if isUser();
+      allow create, update, delete: if isAdmin();
+    }
+    match /work_patterns/{docId} {
+      allow read: if isUser();
+      allow create, update, delete: if isAdmin();
+    }
+     // Collection 'job' (Legacy - các hàm ghi chỉ dành cho Admin)
+    match /job/{document=**} {
+      allow read: if isUser();    // Mọi user đăng nhập được xem
+      allow write: if isAdmin();  // Chỉ Admin được tạo/sửa/xóa (các hàm đều log là admin_*)
+    }
+    // Collection 'shift_swaps' (Hoán đổi ca trực)
+    match /shift_swaps/{document} {
+      allow read: if isUser();   // Mọi user đăng nhập xem lịch hoán đổi
+      allow write: if isAdmin(); // Chỉ Admin được tạo/sửa/xóa hoán đổi ca
+    }
+    
+    // 4. Các collection cấu hình khác
+    match /company_configs/{docId} {
+         allow read: if isUser();
+         allow create, update, delete: if isAdmin();
+    }
+    match /companies_master/{docId} {
+         allow read: if isUser();
+         allow create, update, delete: if isAdmin();
+    }
+    match /settings/{docId} {
+         allow read: if isUser();
+         allow create, update, delete: if isAdmin();
+    }
+    match /config/{docId} {
+         allow read: if isUser();
+         allow create, update, delete: if isAdmin();
+    }
+
+    // ⭐️ QUY TẮC MỚI CHO QUẢN LÝ KHO HÓA CHẤT ⭐️
+    match /chemical_inventory/{docId} {
+      allow read, create, update: if request.auth != null; // Mọi user đăng nhập được đọc và cập nhật kho (trừ kho tự động)
+      allow delete: if isAdmin(); // Chỉ Admin được xóa bản ghi kho
+    }
+    match /chemical_receipts/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin(); // Chỉ Admin được tạo hóa đơn nhập kho
+    }
+
+    // ⭐️ QUY TẮC MỚI CHO QUẢN LÝ SỰ CỐ & BẢO TRÌ ⭐️
+    match /maintenance_tickets/{docId} {
+      allow read, create: if isUser(); // Mọi user đăng nhập được đọc và tạo phiếu báo lỗi
+      allow update: if isAdmin();       // Chỉ Admin được cập nhật trạng thái
+      allow delete: if isAdmin();       // Chỉ Admin được xóa phiếu lỗi rác
+    }
+
+    // 5. Collection 'roles' (Cực kỳ quan trọng)
+    // Dùng {email} vì document ID = email người dùng
+    match /roles/{email} {
+      allow read: if request.auth != null; // Mọi user đăng nhập đọc được (cần cho hàm getRole())
+      allow write: if isAdmin();           // Chỉ Admin được tạo/sửa/xóa vai trò
+    }
+  }
+}

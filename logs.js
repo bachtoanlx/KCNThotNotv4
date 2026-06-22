@@ -1450,14 +1450,9 @@ import { initMenu } from "./menu.js";
 
 
         } else {
-            notLogged.style.display = "none";
-            noPermission.style.display = "flex";
-            content.style.display = "none";
+            window.location.replace("trangchu.html");
         }
       } else {
-          notLogged.style.display = "flex";
-          noPermission.style.display = "none";
-          content.style.display = "none";
           if (unsubscribeRealtime) {
               unsubscribeRealtime();
               unsubscribeRealtime = null;
@@ -1466,5 +1461,6 @@ import { initMenu } from "./menu.js";
               unsubscribeRealtimeDel();
               unsubscribeRealtimeDel = null;
           }
+          window.location.replace("trangchu.html");
       }
     });

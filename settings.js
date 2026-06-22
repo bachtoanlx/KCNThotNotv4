@@ -395,9 +395,7 @@ async function manageMasterCompany(companyName, action, effectiveDateStr) {
 // === KIỂM TRA QUYỀN VÀ KHỞI TẠO ===
 onAuth(async (user) => {
     if (!user) {
-        notLogged.style.display = "block";
-        notLogged.innerHTML = `<h3><a href="trangchu.html" style="color: #e74c3c; text-decoration: none;">❌ Bạn cần đăng nhập để truy cập. Quay lại trang chủ.</a></h3>`;
-        pageContent.style.display = "none";
+        window.location.replace("trangchu.html");
         return;
     }
 
