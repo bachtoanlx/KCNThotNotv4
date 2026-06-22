@@ -222,9 +222,343 @@
         }
      }
 
+    /* --- BẢNG ĐIỀU KHIỂN DẠNG THẺ DASHBOARD (UNIFIED CARD GRID) --- */
+    .stats-dashboard-view {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        padding: 10px 0;
+    }
+
+    /* Thẻ Cảnh báo & Hóa chất kéo dài toàn bộ hàng trên Desktop */
+    #mobile-notes-card,
+    #mobile-card-chem {
+        grid-column: 1 / -1;
+    }
+
+    /* Thẻ chỉ số dọc */
+    .stat-card {
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    }
+
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card-icon {
+        font-size: 1.45rem;
+    }
+
+    .stat-card-title {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1rem;
+        flex: 1;
+    }
+
+    .stat-card-unit {
+        font-size: 0.75rem;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .stat-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Dòng chu kỳ (Tuần/Tháng/Năm/Kỳ) */
+    .stat-period-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        padding: 6px 0;
+        border-bottom: 1px dashed #f1f5f9;
+    }
+
+    .stat-period-row:last-of-type {
+        border-bottom: none;
+    }
+
+    .period-label {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .period-values {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+    }
+
+    .val-total {
+        font-weight: 700;
+        color: var(--text-color);
+        font-size: 1.05rem;
+    }
+
+    .val-avg {
+        font-weight: 500;
+        color: #475569;
+        font-size: 0.85rem;
+    }
+
+    .val-sep {
+        color: #cbd5e1;
+        margin: 0 4px;
+        font-size: 0.85rem;
+    }
+
+    .val-unit {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    /* Phần chi tiết hóa chất phụ */
+    .chem-sub-section {
+        margin-top: 15px;
+        border-top: 1px solid var(--border-color);
+        padding-top: 12px;
+    }
+
+    .chem-sub-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 10px;
+        padding-left: 2px;
+    }
+
+    .chem-sub-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .chem-sub-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+
+    .chem-sub-header {
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        border-bottom: 1px dashed #e2e8f0;
+        padding-bottom: 4px;
+    }
+
+    .chem-sub-body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .chem-sub-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+    }
+
+    .chem-sub-label {
+        color: #64748b;
+    }
+
+    .chem-sub-val {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .chem-sub-avg {
+        color: #64748b;
+    }
+
+    .chem-sub-sep {
+        color: #cbd5e1;
+        margin: 0 3px;
+    }
+
+    .chem-sub-unit {
+        font-size: 0.7rem;
+        color: #94a3b8;
+    }
+
+    /* Thẻ Cảnh báo & Ghi chú */
+    .mobile-notes-card {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 4px;
+    }
+
+    .mobile-notes-header {
+        font-weight: 600;
+        color: #b45309;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .mobile-notes-body {
+        font-size: 0.85rem;
+        color: #78350f;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+
+    @media (max-width: 1024px) {
+        .stats-dashboard-view {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* Điều chỉnh khi thu về màn hình nhỏ (Mobile) */
+    @media (max-width: 768px) {
+        .stats-dashboard-view {
+            grid-template-columns: 1fr;
+            padding: 8px 0px;
+        }
+
+        .chem-sub-list {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+    }
+    /* Làm đẹp bảng chi tiết theo ngày ở dưới cùng */
+    #detailsTableContainer {
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-top: 20px;
+    }
+
+    #detailsTableContainer h4 {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 12px;
+    }
+
+    #detailsScrollWrapper {
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #detailsTable {
+        border: none !important;
+        margin-top: 0 !important;
+    }
+
+    #detailsTable th {
+        background: #f1f5f9;
+        color: var(--text-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+    }
+
+    #detailsTable th:last-child {
+        border-right: none;
+    }
+
+    #detailsTable td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        border-bottom: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+    }
+
+    #detailsTable td:last-child {
+        border-right: none;
+    }
+
+    #detailsTable tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    /* --- VIEWPORT CỐ ĐỊNH CHO MENU & FOOTER --- */
+    #pageContent {
+        padding: 10px 8px;
+    }
+
+    body.fixed-viewport-layout .thongke-layout {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        margin-top: 0 !important;
+        padding: 0 0 15px 0;
+    }
+
+    body.fixed-viewport-layout #pageContent > .thongke-header-group {
+        flex-shrink: 0 !important;
+        padding: 5px 0 5px 0;
+        margin-bottom: 0 !important;
+    }
+
+    body.fixed-viewport-layout #pageContent > h2 {
+        padding-left: 0;
+        margin-top: 12px;
+        margin-bottom: 2px !important;
+    }
+
+    @media (max-width: 768px) {
+        body #pageContent {
+            padding: 5px 0px !important;
+        }
+        body.fixed-viewport-layout .thongke-layout {
+            padding: 0 2px 10px 2px !important;
+        }
+        body.fixed-viewport-layout #pageContent > h2 {
+            padding-left: 8px !important;
+            margin-top: 6px !important;
+            margin-bottom: 2px !important;
+        }
+        body.fixed-viewport-layout #pageContent > .thongke-header-group {
+            padding: 5px 8px 5px 8px !important;
+        }
+    }
+
   </style>
 </head>
-<body>
+<body class="fixed-viewport-layout">
   <div id="menu-placeholder"></div>
   <div id="loading-placeholder"></div>
   <div id="alert-placeholder"></div>
@@ -235,8 +569,7 @@
 
   <div id="pageContent" style="display:none;">
     <h2>📈 Thống Kê Báo Cáo Ca Trực</h2>
-    <div class="card-body">
-
+    
     <div class="thongke-header-group">
         <div class="filter-box thongke-page" style="margin: 0;">
           <label>Từ ngày: <input type="date" id="fromDate"></label>
@@ -244,7 +577,7 @@
           <label>Năm nhanh:
             <select id="yearSelect">
               <option value="">--Chọn năm--</option>
-              </select>
+            </select>
           </label>
           <button id="applyFilter" type="button" class="btn-action btn-primary">📊 Xem Thống Kê</button>
         </div>
@@ -258,98 +591,405 @@
         </label>
     </div>
 
-    <div id="accuracyWarning" style="display:none; color: var(--danger-color); font-style: italic; padding: 5px; margin-bottom: 10px;">
-        ⚠️ Dữ liệu có thể thiếu chính xác.
+    <div class="card-body thongke-layout">
+      <!-- GIAO DIỆN BẢNG ĐIỀU KHIỂN DẠNG THẺ DASHBOARD (UNIFIED GRID) -->
+    <div class="stats-dashboard-view">
+      <!-- Thẻ Cảnh báo & Ghi chú -->
+      <div class="mobile-notes-card" id="mobile-notes-card" style="display: none;">
+        <div class="mobile-notes-header">
+          <span>⚠️ Ghi Chú & Cảnh Báo</span>
+        </div>
+        <div class="mobile-notes-body" id="mobile-notes-content"></div>
+      </div>
+
+      <!-- Thẻ Điện tiêu thụ -->
+      <div class="stat-card" id="mobile-card-dien">
+        <div class="stat-card-header">
+          <span class="stat-card-icon">⚡</span>
+          <span class="stat-card-title">Điện tiêu thụ</span>
+          <span class="stat-card-unit">kWh</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-period-row" id="mobile-dien-row-tuan">
+            <span class="period-label">Tuần này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-dien-tong-tuan">--</span><span class="val-unit"> kWh</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-dien-tb-tuan">--</span><span class="val-unit"> kWh/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-dien-row-thang">
+            <span class="period-label">Tháng này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-dien-tong-thang">--</span><span class="val-unit"> kWh</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-dien-tb-thang">--</span><span class="val-unit"> kWh/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-dien-row-nam">
+            <span class="period-label">Năm nay:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-dien-tong-nam">--</span><span class="val-unit"> kWh</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-dien-tb-nam">--</span><span class="val-unit"> kWh/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-dien-row-ky" style="display:none;">
+            <span class="period-label">Kỳ tùy chỉnh:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-dien-tong-ky">--</span><span class="val-unit"> kWh</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-dien-tb-ky">--</span><span class="val-unit"> kWh/ngày</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ Nước cấp -->
+      <div class="stat-card" id="mobile-card-nuoc">
+        <div class="stat-card-header">
+          <span class="stat-card-icon">💧</span>
+          <span class="stat-card-title">Nước cấp</span>
+          <span class="stat-card-unit">m³</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-period-row" id="mobile-nuoc-row-tuan">
+            <span class="period-label">Tuần này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-nuoc-tong-tuan">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-nuoc-tb-tuan">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-nuoc-row-thang">
+            <span class="period-label">Tháng này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-nuoc-tong-thang">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-nuoc-tb-thang">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-nuoc-row-nam">
+            <span class="period-label">Năm nay:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-nuoc-tong-nam">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-nuoc-tb-nam">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-nuoc-row-ky" style="display:none;">
+            <span class="period-label">Kỳ tùy chỉnh:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-nuoc-tong-ky">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-nuoc-tb-ky">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ Lưu lượng Đầu vào -->
+      <div class="stat-card" id="mobile-card-flow_in">
+        <div class="stat-card-header">
+          <span class="stat-card-icon">📥</span>
+          <span class="stat-card-title">Lưu lượng Đầu vào</span>
+          <span class="stat-card-unit">m³</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-period-row" id="mobile-flow_in-row-tuan">
+            <span class="period-label">Tuần này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_in-tong-tuan">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_in-tb-tuan">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_in-row-thang">
+            <span class="period-label">Tháng này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_in-tong-thang">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_in-tb-thang">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_in-row-nam">
+            <span class="period-label">Năm nay:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_in-tong-nam">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_in-tb-nam">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_in-row-ky" style="display:none;">
+            <span class="period-label">Kỳ tùy chỉnh:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_in-tong-ky">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_in-tb-ky">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ Lưu lượng Đầu ra -->
+      <div class="stat-card" id="mobile-card-flow_out">
+        <div class="stat-card-header">
+          <span class="stat-card-icon">📤</span>
+          <span class="stat-card-title">Lưu lượng Đầu ra</span>
+          <span class="stat-card-unit">m³</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-period-row" id="mobile-flow_out-row-tuan">
+            <span class="period-label">Tuần này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_out-tong-tuan">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_out-tb-tuan">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_out-row-thang">
+            <span class="period-label">Tháng này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_out-tong-thang">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_out-tb-thang">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_out-row-nam">
+            <span class="period-label">Năm nay:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_out-tong-nam">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_out-tb-nam">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-flow_out-row-ky" style="display:none;">
+            <span class="period-label">Kỳ tùy chỉnh:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-flow_out-tong-ky">--</span><span class="val-unit"> m³</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-flow_out-tb-ky">--</span><span class="val-unit"> m³/ngày</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thẻ Hóa chất tiêu thụ -->
+      <div class="stat-card" id="mobile-card-chem">
+        <div class="stat-card-header">
+          <span class="stat-card-icon">🧪</span>
+          <span class="stat-card-title">Hóa chất tiêu thụ</span>
+          <span class="stat-card-unit">Kg</span>
+        </div>
+        <div class="stat-card-body">
+          <div class="stat-period-row" id="mobile-chem-row-tuan">
+            <span class="period-label">Tuần này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-chem-tong-tuan">--</span><span class="val-unit"> Kg</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-chem-tb-tuan">--</span><span class="val-unit"> Kg/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-chem-row-thang">
+            <span class="period-label">Tháng này:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-chem-tong-thang">--</span><span class="val-unit"> Kg</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-chem-tb-thang">--</span><span class="val-unit"> Kg/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-chem-row-nam">
+            <span class="period-label">Năm nay:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-chem-tong-nam">--</span><span class="val-unit"> Kg</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-chem-tb-nam">--</span><span class="val-unit"> Kg/ngày</span>
+            </div>
+          </div>
+          <div class="stat-period-row" id="mobile-chem-row-ky" style="display:none;">
+            <span class="period-label">Kỳ tùy chỉnh:</span>
+            <div class="period-values">
+              <span class="val-total" id="mobile-chem-tong-ky">--</span><span class="val-unit"> Kg</span>
+              <span class="val-sep">/</span>
+              <span class="val-avg" id="mobile-chem-tb-ky">--</span><span class="val-unit"> Kg/ngày</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chem-sub-section">
+          <div class="chem-sub-title">Chi tiết từng loại hóa chất:</div>
+          <div class="chem-sub-list">
+            <!-- Polymer Anion -->
+            <div class="chem-sub-card">
+              <div class="chem-sub-header">
+                <span class="chem-sub-name">Polymer Anion</span>
+              </div>
+              <div class="chem-sub-body">
+                <div class="chem-sub-row" id="mobile-Polymer Anion-row-tuan">
+                  <span class="chem-sub-label">Tuần:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Anion-tong-tuan">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Anion-tb-tuan">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Anion-row-thang">
+                  <span class="chem-sub-label">Tháng:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Anion-tong-thang">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Anion-tb-thang">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Anion-row-nam">
+                  <span class="chem-sub-label">Năm:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Anion-tong-nam">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Anion-tb-nam">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Anion-row-ky" style="display:none;">
+                  <span class="chem-sub-label">Kỳ:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Anion-tong-ky">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Anion-tb-ky">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PAC -->
+            <div class="chem-sub-card">
+              <div class="chem-sub-header">
+                <span class="chem-sub-name">PAC</span>
+              </div>
+              <div class="chem-sub-body">
+                <div class="chem-sub-row" id="mobile-PAC-row-tuan">
+                  <span class="chem-sub-label">Tuần:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-PAC-tong-tuan">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-PAC-tb-tuan">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-PAC-row-thang">
+                  <span class="chem-sub-label">Tháng:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-PAC-tong-thang">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-PAC-tb-thang">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-PAC-row-nam">
+                  <span class="chem-sub-label">Năm:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-PAC-tong-nam">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-PAC-tb-nam">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-PAC-row-ky" style="display:none;">
+                  <span class="chem-sub-label">Kỳ:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-PAC-tong-ky">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-PAC-tb-ky">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chlorine -->
+            <div class="chem-sub-card">
+              <div class="chem-sub-header">
+                <span class="chem-sub-name">Chlorine</span>
+              </div>
+              <div class="chem-sub-body">
+                <div class="chem-sub-row" id="mobile-Chlorine-row-tuan">
+                  <span class="chem-sub-label">Tuần:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Chlorine-tong-tuan">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Chlorine-tb-tuan">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Chlorine-row-thang">
+                  <span class="chem-sub-label">Tháng:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Chlorine-tong-thang">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Chlorine-tb-thang">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Chlorine-row-nam">
+                  <span class="chem-sub-label">Năm:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Chlorine-tong-nam">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Chlorine-tb-nam">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Chlorine-row-ky" style="display:none;">
+                  <span class="chem-sub-label">Kỳ:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Chlorine-tong-ky">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Chlorine-tb-ky">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Polymer Cation -->
+            <div class="chem-sub-card">
+              <div class="chem-sub-header">
+                <span class="chem-sub-name">Polymer Cation</span>
+              </div>
+              <div class="chem-sub-body">
+                <div class="chem-sub-row" id="mobile-Polymer Cation-row-tuan">
+                  <span class="chem-sub-label">Tuần:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Cation-tong-tuan">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Cation-tb-tuan">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Cation-row-thang">
+                  <span class="chem-sub-label">Tháng:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Cation-tong-thang">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Cation-tb-thang">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Cation-row-nam">
+                  <span class="chem-sub-label">Năm:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Cation-tong-nam">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Cation-tb-nam">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+                <div class="chem-sub-row" id="mobile-Polymer Cation-row-ky" style="display:none;">
+                  <span class="chem-sub-label">Kỳ:</span>
+                  <div>
+                    <span class="chem-sub-val" id="mobile-Polymer Cation-tong-ky">--</span><span class="chem-sub-unit"> Kg</span>
+                    <span class="chem-sub-sep">/</span>
+                    <span class="chem-sub-avg" id="mobile-Polymer Cation-tb-ky">--</span><span class="chem-sub-unit"> Kg/ngày</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Other Chemicals for Mobile -->
+            <div id="mobile-other-chemicals-container"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="table-container">
-    <table id="summaryTable">
-      <thead>
-        <tr>
-          <th>Các chỉ số</th>
-          <th id="col-week-total">Tổng tuần</th>
-          <th id="col-week-avg">Trung bình tuần</th>
-          <th id="col-month-total">Tổng tháng</th>
-          <th id="col-month-avg">Trung bình tháng</th>
-          <th id="col-year-total">Tổng năm</th>
-          <th id="col-year-avg">Trung bình năm</th>
-          <th id="col-period-total" style="display:none;">Tổng Kỳ</th>
-          <th id="col-period-avg" style="display:none;">Trung bình Kỳ</th>
-          <th>Ghi chú</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Điện (kWh)</td>
-          <td id="dien-tong-tuan"></td> <td id="dien-tb-tuan"></td>
-          <td id="dien-tong-thang"></td> <td id="dien-tb-thang"></td>
-          <td id="dien-tong-nam"></td> <td id="dien-tb-nam"></td>
-          <td id="dien-tong-ky" style="display:none;"></td> <td id="dien-tb-ky" style="display:none;"></td>
-          <td id="dien-ghichu" rowspan="4"></td> </tr>
-        <tr>
-          <td>Nước cấp (m³)</td>
-          <td id="nuoc-tong-tuan"></td> <td id="nuoc-tb-tuan"></td>
-          <td id="nuoc-tong-thang"></td> <td id="nuoc-tb-thang"></td>
-          <td id="nuoc-tong-nam"></td> <td id="nuoc-tb-nam"></td>
-          <td id="nuoc-tong-ky" style="display:none;"></td> <td id="nuoc-tb-ky" style="display:none;"></td>
-        </tr>
-        <tr>
-          <td>Lưu lượng Đầu vào (m³)</td>
-          <td id="flow_in-tong-tuan"></td> <td id="flow_in-tb-tuan"></td>
-          <td id="flow_in-tong-thang"></td> <td id="flow_in-tb-thang"></td>
-          <td id="flow_in-tong-nam"></td> <td id="flow_in-tb-nam"></td>
-          <td id="flow_in-tong-ky" style="display:none;"></td> <td id="flow_in-tb-ky" style="display:none;"></td>
-        </tr>
-        <tr>
-          <td>Lưu lượng Đầu ra (m³)</td>
-          <td id="flow_out-tong-tuan"></td> <td id="flow_out-tb-tuan"></td>
-          <td id="flow_out-tong-thang"></td> <td id="flow_out-tb-thang"></td>
-          <td id="flow_out-tong-nam"></td> <td id="flow_out-tb-nam"></td>
-          <td id="flow_out-tong-ky" style="display:none;"></td> <td id="flow_out-tb-ky" style="display:none;"></td>
-        </tr>
-        <tr>
-          <td>Hóa chất (Kg)</td>
-          <td id="chem-tong-tuan"></td> <td id="chem-tb-tuan"></td>
-          <td id="chem-tong-thang"></td> <td id="chem-tb-thang"></td>
-          <td id="chem-tong-nam"></td> <td id="chem-tb-nam"></td>
-          <td id="chem-tong-ky" style="display:none;"></td> <td id="chem-tb-ky" style="display:none;"></td>
-          <td id="chem-ghichu"></td>
-        </tr>
-        <tr class="chemical-sub-item">
-          <td>+ Polymer Anion</td>
-          <td id="Polymer Anion-tong-tuan"></td> <td id="Polymer Anion-tb-tuan"></td>
-          <td id="Polymer Anion-tong-thang"></td> <td id="Polymer Anion-tb-thang"></td>
-          <td id="Polymer Anion-tong-nam"></td> <td id="Polymer Anion-tb-nam"></td>
-          <td id="Polymer Anion-tong-ky" style="display:none;"></td> <td id="Polymer Anion-tb-ky" style="display:none;"></td>
-          <td></td> </tr>
-         <tr class="chemical-sub-item">
-          <td>+ PAC</td>
-          <td id="PAC-tong-tuan"></td> <td id="PAC-tb-tuan"></td>
-          <td id="PAC-tong-thang"></td> <td id="PAC-tb-thang"></td>
-          <td id="PAC-tong-nam"></td> <td id="PAC-tb-nam"></td>
-          <td id="PAC-tong-ky" style="display:none;"></td> <td id="PAC-tb-ky" style="display:none;"></td>
-          <td></td>
-        </tr>
-         <tr class="chemical-sub-item">
-          <td>+ Chlorine</td>
-          <td id="Chlorine-tong-tuan"></td> <td id="Chlorine-tb-tuan"></td>
-          <td id="Chlorine-tong-thang"></td> <td id="Chlorine-tb-thang"></td>
-          <td id="Chlorine-tong-nam"></td> <td id="Chlorine-tb-nam"></td>
-          <td id="Chlorine-tong-ky" style="display:none;"></td> <td id="Chlorine-tb-ky" style="display:none;"></td>
-          <td></td>
-        </tr>
-         <tr class="chemical-sub-item">
-          <td>+ Polymer Cation</td>
-          <td id="Polymer Cation-tong-tuan"></td> <td id="Polymer Cation-tb-tuan"></td>
-          <td id="Polymer Cation-tong-thang"></td> <td id="Polymer Cation-tb-thang"></td>
-          <td id="Polymer Cation-tong-nam"></td> <td id="Polymer Cation-tb-nam"></td>
-          <td id="Polymer Cation-tong-ky" style="display:none;"></td> <td id="Polymer Cation-tb-ky" style="display:none;"></td>
-          <td></td>
-        </tr>
-        </tbody>
-      <tbody id="other-chemicals-body"></tbody>
-    </table>
-    </div>
     <div id="detailsTableContainer" class="mt-20" style="display: none;">
             <h4>Chi tiết theo ngày:</h4>
             <div id="detailsScrollWrapper" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); position: relative;">
@@ -399,7 +1039,5 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
   <script type="module" src="thongke.js"></script>
-    
-  </script>
 </body>
 </html>
