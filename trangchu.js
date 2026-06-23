@@ -2,22 +2,26 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey } from "./chatbot-ai.js";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse } from "./chatbot-ai.js";
+
 // Import Firebase query functions
-import { 
-    getLatestCompanyIndex, 
+import {
+    getLatestCompanyIndex,
     getCompanyIndexHistory,
     getTotalCompanies,
     getAllCompanies,
-    getHolidays, 
+    getHolidays,
     getNextHoliday,
     getSpecialWorkdays,
     getAutoplanRules,
     getCachedSchedule,
     calculateAndCacheSchedule,
     getAdvancedStatistics,
-    getCompanyHolidayConfig
-} from "./chatbot-firebase-queries.js?v=2";
+    getCompanyHolidayConfig,
+    getDefaultHolidays,
+    syncDeltaReports1,
+    syncDeltaReports2
+} from "./chatbot-firebase-queries.js?v=3";
 
 // load menu
 fetch("menu.html").then(r => r.text()).then(h => {
@@ -38,7 +42,7 @@ fetch("menu.html").then(r => r.text()).then(h => {
                 homeForm.reset();
             } catch (err) {
                 console.error('LOGIN FAIL (home):', err);
-                try { await addLog('login_failure', { email, status: 'error', error_code: err.code, error_message: err.message, timestamp: new Date().toISOString(), userAgent: navigator.userAgent }); } catch(e){}
+                try { await addLog('login_failure', { email, status: 'error', error_code: err.code, error_message: err.message, timestamp: new Date().toISOString(), userAgent: navigator.userAgent }); } catch (e) { }
                 showSwal('error', 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản.');
             }
         });
@@ -57,25 +61,25 @@ fetch("footer.html").then(r => r.text()).then(h => {
 // Loại bỏ hoàn toàn logic kiểm tra đăng nhập để trang luôn hiển thị
 
 // Setup footer date and marquee behavior
-(function(){
-  const dEl = document.getElementById('homeFooterDate');
-  if (dEl) dEl.textContent = new Date().toLocaleDateString('vi-VN');
-  const mq = document.getElementById('homeMarquee');
-  if (mq) {
-    mq.addEventListener('mouseenter', ()=> mq.style.animationPlayState = 'paused');
-    mq.addEventListener('mouseleave', ()=> mq.style.animationPlayState = 'running');
-  }
+(function () {
+    const dEl = document.getElementById('homeFooterDate');
+    if (dEl) dEl.textContent = new Date().toLocaleDateString('vi-VN');
+    const mq = document.getElementById('homeMarquee');
+    if (mq) {
+        mq.addEventListener('mouseenter', () => mq.style.animationPlayState = 'paused');
+        mq.addEventListener('mouseleave', () => mq.style.animationPlayState = 'running');
+    }
 })();
 
 // Chat functionality
-(function(){ // Đơn giản hóa thành một IIFE duy nhất
+(function () { // Đơn giản hóa thành một IIFE duy nhất
     const chatToggle = document.getElementById('chatToggle');
     const chatContainer = document.getElementById('chatContainer');
     const chatClose = document.getElementById('chatClose');
     const chatInput = document.getElementById('chatInput');
     const chatSubmit = document.getElementById('chatSubmit');
     const chatMessages = document.getElementById('chatMessages');
-    
+
     let allCompanies = []; // Biến lưu danh sách công ty
     let fuse; // Biến cho Fuse.js
     let lastMentionedCompany = null; // Biến lưu tên công ty được nhắc đến gần nhất
@@ -125,21 +129,21 @@ fetch("footer.html").then(r => r.text()).then(h => {
             let parsedContent = content
                 .replace(/\$m\^3\$/g, 'm³') // Gọt lỗi hiển thị m3 dạng LaTeX 1
                 .replace(/m\^3/g, 'm³')     // Gọt lỗi hiển thị m3 dạng LaTeX 2
-                
+
                 // 1. Phải xử lý `code` trước để tránh các ký tự bên trong code block bị dính định dạng khác
-                .replace(/`(.+?)`/g, '<code>$1</code>') 
-                
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+
                 // 2. Xử lý BOLD (dấu ** đôi) TRƯỚC dấu * đơn
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') 
-                
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+
                 // 3. Xử lý ITALIC (dấu * đơn) SAU, dùng [^*] để ép nó không ăn vào thẻ strong
-                .replace(/\*([^*]+?)\*/g, '<em>$1</em>') 
-                
+                .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+
                 // 4. Sửa lại Regex của BUTTON (Thêm ngoặc tròn () để tạo nhóm $1)
-                .replace(new RegExp('\\[BUTTON\\](.*?)\\[/BUTTON\\]', 'g'), '<button class="suggestion-btn">$1</button>') 
-                
+                .replace(new RegExp('\\[BUTTON\\](.*?)\\[/BUTTON\\]', 'g'), '<button class="suggestion-btn">$1</button>')
+
                 // 5. Xuống dòng xử lý cuối cùng
-                .replace(/\n/g, '<br>'); 
+                .replace(/\n/g, '<br>');
 
             messageDiv.innerHTML = parsedContent;
         }
@@ -173,14 +177,14 @@ fetch("footer.html").then(r => r.text()).then(h => {
 
         if (isConfirmed) {
             lastMentionedCompany = companyName; // Set lastMentionedCompany on confirmation
-            
+
             // Hiện "đang gõ..." khi đang chui vào Firebase lấy dữ liệu
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message bot-message typing-message';
             typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
             chatMessages.appendChild(typingDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-            
+
             const response = await getLatestCompanyIndexFromFirebase(companyName);
             setTimeout(() => addMessage(response), 300);
         } else { setTimeout(() => addMessage("Xin lỗi, vậy bạn vui lòng gõ lại tên công ty chính xác hơn nhé."), 300); }
@@ -250,13 +254,13 @@ fetch("footer.html").then(r => r.text()).then(h => {
         chatSubmit.style.background = '#6c757d';
 
         const lowerMsg = userMessage.toLowerCase();
-        
+
         // ====== AI-POWERED CHATBOT ======
         // Bước 1: Kiểm tra xem có cần truy vấn database không
         const dataQuery = detectDataQuery(userMessage);
         console.log('🔍 detectDataQuery result:', dataQuery);
         let contextData = null;
-        
+
         // --- XỬ LÝ QUY TẮC REDIRECT CHO LỊCH SỬ LƯU LƯỢNG CỤ THỂ ---
         if (dataQuery && dataQuery.requiresRedirect) {
             setTimeout(() => {
@@ -268,7 +272,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
             }, 500);
             return; // Dừng, không gọi AI và Firebase (Tiết kiệm tài nguyên)
         }
-        
+
         // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
         if (dataQuery) {
             // KIỂM TRA ĐĂNG NHẬP: Nếu cần dữ liệu mà chưa đăng nhập thì chặn lại
@@ -326,25 +330,28 @@ fetch("footer.html").then(r => r.text()).then(h => {
                         // Lấy ngày nghỉ theo thời gian yêu cầu
                         let hYear = dataQuery.targetYear || new Date().getFullYear();
                         let hMonth = dataQuery.targetMonth || (new Date().getMonth() + 1);
-                        let startDate = `${hYear}-${String(hMonth).padStart(2,'0')}-01`;
-                        let endDate = `${hYear}-${String(hMonth).padStart(2,'0')}-31`;
-                        
+                        let startDate = `${hYear}-${String(hMonth).padStart(2, '0')}-01`;
+                        let endDate = `${hYear}-${String(hMonth).padStart(2, '0')}-31`;
+
                         let holidays = await getHolidays(startDate, endDate);
                         let defaultHolidayConfig = null;
+                        let allDefaultHolidays = null;
                         // Lọc đúng công ty nếu người dùng có nhắc đến tên công ty
                         if (dataQuery.company) {
                             holidays = holidays.filter(h => h.company === dataQuery.company);
                             defaultHolidayConfig = await getCompanyHolidayConfig(dataQuery.company);
+                        } else {
+                            allDefaultHolidays = await getDefaultHolidays();
                         }
                         const nextHoliday = await getNextHoliday();
-                        contextData = { holidays, nextHoliday, company: dataQuery.company, defaultHolidayConfig };
+                        contextData = { holidays, nextHoliday, company: dataQuery.company, defaultHolidayConfig, allDefaultHolidays };
                         break;
 
                     case 'specialWorkday':
                         // Lấy ngày làm việc đặc biệt
                         const now2 = new Date();
-                        const start2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}-01`;
-                        const end2 = `${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}-31`;
+                        const start2 = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}-01`;
+                        const end2 = `${now2.getFullYear()}-${String(now2.getMonth() + 1).padStart(2, '0')}-31`;
                         const specialDays = await getSpecialWorkdays(start2, end2);
                         contextData = { specialWorkdays: specialDays };
                         break;
@@ -353,7 +360,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
                         // Phân tích Timeframe
                         // Động cơ detectDataQuery đã chuẩn hóa timeframe thành 'week', 'month', 'billing', 'year'
                         const timeMode = dataQuery.timeframe;
-                        
+
                         // Phân tích Target Date (Cỗ máy thời gian)
                         let targetDateObj = null;
                         if (dataQuery.targetDateExact) {
@@ -381,18 +388,18 @@ fetch("footer.html").then(r => r.text()).then(h => {
                             contextData = { history, company: dataQuery.company };
                         }
                         break;
-                    
+
                     case 'autoplan':
                         // Lấy danh sách Autoplan
-                        
+
                         // --- LOGIC MỚI: Thử tìm ngày cụ thể trong câu hỏi để lấy Cache ---
                         let cachedData = null;
                         let targetDateStr = "";
-                        
+
                         const lowerMsgStr = userMessage.toLowerCase();
                         const dateMatch = lowerMsgStr.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
                         const dNow = new Date();
-                        
+
                         if (dateMatch) {
                             const day = dateMatch[1].padStart(2, '0');
                             const month = dateMatch[2].padStart(2, '0');
@@ -400,18 +407,18 @@ fetch("footer.html").then(r => r.text()).then(h => {
                             targetDateStr = `${year}-${month}-${day}`;
                         } else if (lowerMsgStr.includes("ngày mai") || lowerMsgStr.includes("mai")) {
                             dNow.setDate(dNow.getDate() + 1);
-                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
+                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
                         } else if (lowerMsgStr.includes("hôm qua") || lowerMsgStr.includes("qua")) {
                             dNow.setDate(dNow.getDate() - 1);
-                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
+                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
                         } else {
                             // Mặc định là hôm nay
-                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth()+1).padStart(2,'0')}-${String(dNow.getDate()).padStart(2,'0')}`;
+                            targetDateStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
                         }
-                        
+
                         console.log(`🔍 Đang kiểm tra lịch trực ngày: ${targetDateStr}`);
                         cachedData = await getCachedSchedule(targetDateStr);
-                        
+
                         let finalScheduleContent = "";
 
                         if (cachedData) {
@@ -425,7 +432,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
                         // ----------------------------------------------------------------
 
                         // Gửi thêm ngày hiện tại để AI tính toán lịch cho năm nay
-                        contextData = { 
+                        contextData = {
                             calculatedSchedule: finalScheduleContent, // Chỉ gửi kết quả cuối cùng
                             targetDate: targetDateStr,
                             currentDate: new Date().toLocaleDateString('vi-VN'),
@@ -443,10 +450,35 @@ fetch("footer.html").then(r => r.text()).then(h => {
             }
         }
 
-        // Bước 3: Gọi AI để xử lý và trả lời
-        const aiResponse = await getAIResponse(userMessage, contextData);
-        
-        // Bước 4: Hiển thị phản hồi từ AI
+        // Bước 3: Nếu đã có dữ liệu cấu trúc → format trực tiếp, KHÔNG gọi AI
+        const directResponse = formatDataResponse(contextData, userMessage);
+        if (directResponse) {
+            setTimeout(() => {
+                addMessage(directResponse);
+                chatSubmit.disabled = false;
+                chatInput.disabled = false;
+                chatSubmit.textContent = 'Gửi';
+                chatSubmit.style.background = '#1f3765';
+            }, 300);
+            return;
+        }
+
+        // Bước 4: Không có dữ liệu cấu trúc → gọi AI (câu hỏi hội thoại thuần tuý)
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Yêu cầu quá hạn (Timeout 30s)")), 30000)
+        );
+
+        let aiResponse;
+        try {
+            aiResponse = await Promise.race([
+                getAIResponse(userMessage, contextData),
+                timeoutPromise
+            ]);
+        } catch (e) {
+            console.error("AI Request failed or timed out:", e);
+            aiResponse = `⚠️ **Yêu cầu không phản hồi.**\n\nKết nối với máy chủ AI bị quá hạn. Vui lòng thử lại sau.\n\n*(Chi tiết: ${e.message})*`;
+        }
+
         setTimeout(() => {
             addMessage(aiResponse);
             chatSubmit.disabled = false;
@@ -455,6 +487,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
             chatSubmit.style.background = '#1f3765';
         }, 500);
     }
+
 
     // Handle submit button click
     chatSubmit.addEventListener('click', () => {
@@ -494,11 +527,25 @@ fetch("footer.html").then(r => r.text()).then(h => {
     // Chỉ khởi tạo dữ liệu tìm kiếm nếu đã đăng nhập (để tránh lỗi permission denied trong console)
     auth.onAuthStateChanged(user => {
         const homeLoginBox = document.querySelector('.home-login-box');
-        
+
         if (user) {
             initializeChatbot();
             // Ẩn box đăng nhập nhanh nếu đã đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'none';
+
+            // Chạy đồng bộ ngầm IndexedDB cho reports_1 và reports_2
+            console.log("🔄 Khởi chạy đồng bộ ngầm IndexedDB...");
+            syncDeltaReports1().then(() => {
+                console.log("✅ Đồng bộ ngầm reports_1 hoàn tất.");
+            }).catch(err => {
+                console.warn("❌ Đồng bộ ngầm reports_1 thất bại:", err);
+            });
+
+            syncDeltaReports2().then(() => {
+                console.log("✅ Đồng bộ ngầm reports_2 hoàn tất.");
+            }).catch(err => {
+                console.warn("❌ Đồng bộ ngầm reports_2 thất bại:", err);
+            });
         } else {
             // Hiện box đăng nhập nhanh nếu chưa đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'block';
@@ -513,7 +560,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
             addMessage(welcomeMessage);
         }
     });
-    
+
     // Kiểm tra và hiển thị trạng thái AI
     const aiStatusEl = document.getElementById('aiStatus');
     if (aiStatusEl) {
@@ -530,7 +577,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
 })();
 
 // Digital Clock Logic
-(function() {
+(function () {
     const h1 = document.getElementById('hour1');
     const h2 = document.getElementById('hour2');
     const m1 = document.getElementById('min1');

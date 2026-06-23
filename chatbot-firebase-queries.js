@@ -8,6 +8,9 @@
 import { db, auth } from "./script.js";
 import { formatISODate, getCompanyConfigAtDate, getPeriodsInFilter, getBillingPeriodsInFilter } from "./core-calculator.js";
 
+// Import IndexedDB
+import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
+
 // Import Firestore functions trực tiếp từ Firebase
 import {
     collection,
@@ -18,11 +21,184 @@ import {
     getDocs,
     getDoc,
     doc,
+    setDoc,
+    serverTimestamp,
     getAggregateFromServer,
     sum,
     average,
     count
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// Helper để xác định thời điểm bắt đầu của dữ liệu đã cache trong IndexedDB
+function getStoreCacheStartDate(localData, dateField1, dateField2) {
+    if (!localData || localData.length === 0) return null;
+    let minDate = null;
+    for (const item of localData) {
+        const d = item[dateField1] || (dateField2 ? item[dateField2] : null);
+        if (d) {
+            if (!minDate || d < minDate) {
+                minDate = d;
+            }
+        }
+    }
+    return minDate;
+}
+
+/**
+ * Đồng bộ ngầm delta cho reports_1 (xả thải)
+ */
+export async function syncDeltaReports1() {
+    try {
+        const lastSync = await getLastSyncTime("reports_1");
+        let maxTime = lastSync;
+
+        // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
+        if (lastSync > 0) {
+            const qDel = query(collection(db, "sync_deletes"), 
+                where("deletedAt", ">", new Date(lastSync))
+            );
+            const snapDel = await getDocs(qDel);
+            if (!snapDel.empty) {
+                const relevantDeletes = snapDel.docs
+                    .map(d => d.data())
+                    .filter(data => data.collectionName === "reports_1");
+                
+                relevantDeletes.forEach(data => {
+                    const t = data.deletedAt?.toMillis?.() || 0;
+                    if (t > maxTime) maxTime = t;
+                });
+
+                const idsToDelete = relevantDeletes.map(data => data.docId);
+                if (idsToDelete.length > 0) {
+                    await deleteFromLocalDB("reports_1", idsToDelete);
+                }
+            }
+        }
+
+        // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
+        let newRecords = [];
+        if (lastSync === 0) {
+            // TỐI ƯU FIREBASE: Lần đầu chỉ tải 60 ngày gần nhất thay vì TOÀN BỘ
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+            const qInit = query(collection(db, "reports_1"), where("ngay_ghi", ">=", formatISODate(sixtyDaysAgo)));
+            const snapInit = await getDocs(qInit);
+            newRecords = snapInit.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        } else {
+            // Tải dữ liệu thay đổi
+            const qCreated = query(collection(db, "reports_1"), where("createdAt", ">", new Date(lastSync)));
+            const qUpdated = query(collection(db, "reports_1"), where("updatedAt", ">", new Date(lastSync)));
+            const [snapC, snapU] = await Promise.all([getDocs(qCreated), getDocs(qUpdated)]);
+            const map = new Map();
+            snapC.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            snapU.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            newRecords = Array.from(map.values());
+        }
+
+        if (newRecords.length > 0) {
+            const parsedRecords = newRecords.map(data => ({
+                ...data,
+                _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+            }));
+            await saveToLocalDB("reports_1", parsedRecords);
+
+            newRecords.forEach(r => {
+                const t = r.updatedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+                if (t > maxTime) maxTime = t;
+            });
+        }
+
+        // Cập nhật mốc thời gian đồng bộ sử dụng thời gian của Server (maxTime)
+        if (maxTime > lastSync) {
+            await setLastSyncTime("reports_1", maxTime);
+        }
+    } catch (e) {
+        console.warn("Lỗi đồng bộ reports_1:", e);
+    }
+}
+
+/**
+ * Đồng bộ ngầm delta cho reports_2 (ngày nghỉ/làm đặc biệt)
+ */
+export async function syncDeltaReports2() {
+    try {
+        const lastSync = await getLastSyncTime("reports_2");
+        let maxTime = lastSync;
+
+        // 1. Đồng bộ Tombstone (Dữ liệu bị xóa)
+        if (lastSync > 0) {
+            const qDel = query(collection(db, "sync_deletes"), 
+                where("deletedAt", ">", new Date(lastSync))
+            );
+            const snapDel = await getDocs(qDel);
+            if (!snapDel.empty) {
+                const relevantDeletes = snapDel.docs
+                    .map(d => d.data())
+                    .filter(data => data.collectionName === "reports_2");
+                
+                relevantDeletes.forEach(data => {
+                    const t = data.deletedAt?.toMillis?.() || 0;
+                    if (t > maxTime) maxTime = t;
+                });
+
+                const idsToDelete = relevantDeletes.map(data => data.docId);
+                if (idsToDelete.length > 0) {
+                    await deleteFromLocalDB("reports_2", idsToDelete);
+                }
+            }
+        }
+
+        // 2. Đồng bộ Upserts (Dữ liệu Mới/Sửa)
+        let newRecords = [];
+        if (lastSync === 0) {
+            // TỐI ƯU FIREBASE: Lần đầu Deep Search chỉ tải 60 ngày gần nhất
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+            const iso60 = formatISODate(sixtyDaysAgo);
+            
+            const qInit1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", iso60));
+            const qInit2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", iso60));
+            const [snap1, snap2] = await Promise.all([getDocs(qInit1), getDocs(qInit2)]);
+            
+            const map = new Map();
+            snap1.docs.forEach(doc => map.set(doc.id, {id: doc.id, ...doc.data()}));
+            snap2.docs.forEach(doc => map.set(doc.id, {id: doc.id, ...doc.data()}));
+            newRecords = Array.from(map.values());
+        } else {
+            // Tải dữ liệu thay đổi. Dùng song song 2 truy vấn để bắt cả mới và sửa
+            const qCreated = query(collection(db, "reports_2"), where("createdAt", ">", new Date(lastSync)));
+            const qUpdated = query(collection(db, "reports_2"), where("updatedAt", ">", new Date(lastSync)));
+            const [snapC, snapU] = await Promise.all([getDocs(qCreated), getDocs(qUpdated)]);
+            const map = new Map();
+            snapC.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            snapU.docs.forEach(d => map.set(d.id, {id: d.id, ...d.data()}));
+            newRecords = Array.from(map.values());
+        }
+
+        if (newRecords.length > 0) {
+            const parsedRecords = newRecords.map(data => ({
+                ...data,
+                _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+            }));
+            await saveToLocalDB("reports_2", parsedRecords);
+
+            newRecords.forEach(r => {
+                const t = r.updatedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0;
+                if (t > maxTime) maxTime = t;
+            });
+        }
+
+        // Cập nhật mốc thời gian đồng bộ sử dụng thời gian của Server (maxTime)
+        if (maxTime > lastSync) {
+            await setLastSyncTime("reports_2", maxTime);
+        }
+    } catch (e) {
+        console.warn("Lỗi đồng bộ reports_2:", e);
+    }
+}
+
 
 // ============================================
 // 1. QUERIES CHO reports_1 (Chỉ số nước)
@@ -33,17 +209,44 @@ import {
  */
 export async function getLatestCompanyIndex(companyName) {
     try {
+        // 1. Thử tìm trong store reports_1 của IndexedDB trước
+        const localData = await getAllFromLocalDB("reports_1");
+        const companyData = localData.filter(item => item.company === companyName);
+        if (companyData.length > 0) {
+            companyData.sort((a, b) => (b.ngay_ghi || '').localeCompare(a.ngay_ghi || ''));
+            const current = companyData[0];
+            return {
+                company: companyName,
+                chi_so_dong_ho_hien_tai: current.chi_so || 0,
+                ngay_ghi_hien_tai: current.ngay_ghi || 'N/A'
+            };
+        }
+
+        // 2. Fallback Firebase Firestore
         const q = query(
             collection(db, "reports_1"),
             where("company", "==", companyName),
             orderBy("ngay_ghi", "desc"),
-            limit(1) // ⭐️ Chỉ lấy 1 bản ghi gần nhất để đọc mặt đồng hồ
+            limit(1)
         );
         const snapshot = await getDocs(q);
         
         if (!snapshot.empty) {
-            const current = snapshot.docs[0].data();
+            const docSnap = snapshot.docs[0];
+            const current = docSnap.data();
+            const record = { id: docSnap.id, ...current };
             
+            try {
+                const parsed = {
+                    ...record,
+                    _createdAtMillis: record.createdAt?.toMillis ? record.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: record.updatedAt?.toMillis ? record.updatedAt.toMillis() : Date.now()
+                };
+                await saveToLocalDB("reports_1", [parsed]);
+            } catch (cacheErr) {
+                console.warn("Lỗi lưu cache getLatestCompanyIndex:", cacheErr);
+            }
+
             return {
                 company: companyName,
                 chi_so_dong_ho_hien_tai: current.chi_so || 0,
@@ -62,6 +265,21 @@ export async function getLatestCompanyIndex(companyName) {
  */
 export async function getCompanyIndexHistory(companyName, startDate, endDate) {
     try {
+        // 1. Thử tìm trong store reports_1 của IndexedDB trước nếu khoảng ngày được bao phủ
+        const localData = await getAllFromLocalDB("reports_1");
+        const cacheStartDate = getStoreCacheStartDate(localData, "ngay_ghi");
+        
+        if (cacheStartDate && startDate >= cacheStartDate) {
+            const companyData = localData.filter(item => 
+                item.company === companyName && 
+                item.ngay_ghi >= startDate && 
+                item.ngay_ghi <= endDate
+            );
+            companyData.sort((a, b) => (b.ngay_ghi || '').localeCompare(a.ngay_ghi || ''));
+            return companyData;
+        }
+
+        // 2. Fallback Firebase Firestore
         const q = query(
             collection(db, "reports_1"),
             where("company", "==", companyName),
@@ -70,11 +288,25 @@ export async function getCompanyIndexHistory(companyName, startDate, endDate) {
             orderBy("ngay_ghi", "desc")
         );
         const snapshot = await getDocs(q);
-        
-        return snapshot.docs.map(doc => ({
+        const records = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
+
+        if (records.length > 0) {
+            try {
+                const parsedRecords = records.map(data => ({
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                }));
+                await saveToLocalDB("reports_1", parsedRecords);
+            } catch (cacheErr) {
+                console.warn("Lỗi lưu cache getCompanyIndexHistory:", cacheErr);
+            }
+        }
+        
+        return records;
     } catch (error) {
         console.error('Error fetching company index history:', error);
         return [];
@@ -133,17 +365,48 @@ export async function getAllCompanies() {
  */
 export async function getHolidays(startDate, endDate) {
     try {
+        // 1. Thử tìm trong store reports_2 của IndexedDB trước nếu khoảng ngày được bao phủ
+        const localData = await getAllFromLocalDB("reports_2");
+        const cacheStartDate = getStoreCacheStartDate(localData, "ngay_nghi", "ngay_lam_db");
+        
+        if (cacheStartDate && startDate >= cacheStartDate) {
+            const holidays = localData
+                .filter(item => item.ngay_nghi && item.ngay_nghi >= startDate && item.ngay_nghi <= endDate)
+                .map(item => ({
+                    date: item.ngay_nghi,
+                    ...item
+                }));
+            holidays.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            return holidays;
+        }
+
+        // 2. Fallback Firebase Firestore
         const q = query(
             collection(db, "reports_2"),
             where("ngay_nghi", ">=", startDate),
             where("ngay_nghi", "<=", endDate)
         );
         const snapshot = await getDocs(q);
-        
-        return snapshot.docs.map(doc => ({
+        const records = snapshot.docs.map(doc => ({
             date: doc.data().ngay_nghi,
+            id: doc.id,
             ...doc.data()
         }));
+
+        if (records.length > 0) {
+            try {
+                const parsedRecords = records.map(data => ({
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                }));
+                await saveToLocalDB("reports_2", parsedRecords);
+            } catch (cacheErr) {
+                console.warn("Lỗi lưu cache getHolidays:", cacheErr);
+            }
+        }
+        
+        return records;
     } catch (error) {
         console.error('Error fetching holidays:', error);
         return [];
@@ -155,7 +418,16 @@ export async function getHolidays(startDate, endDate) {
  */
 export async function getNextHoliday() {
     try {
+        // 1. Thử tìm trong store reports_2 của IndexedDB trước
+        const localData = await getAllFromLocalDB("reports_2");
         const today = new Date().toISOString().split('T')[0];
+        const futureHolidays = localData.filter(item => item.ngay_nghi && item.ngay_nghi >= today);
+        if (futureHolidays.length > 0) {
+            futureHolidays.sort((a, b) => (a.ngay_nghi || '').localeCompare(b.ngay_nghi || ''));
+            return futureHolidays[0];
+        }
+
+        // 2. Fallback Firebase Firestore
         const q = query(
             collection(db, "reports_2"),
             where("ngay_nghi", ">=", today),
@@ -165,7 +437,22 @@ export async function getNextHoliday() {
         const snapshot = await getDocs(q);
         
         if (!snapshot.empty) {
-            return snapshot.docs[0].data();
+            const docSnap = snapshot.docs[0];
+            const current = docSnap.data();
+            const record = { id: docSnap.id, ...current };
+            
+            try {
+                const parsed = {
+                    ...record,
+                    _createdAtMillis: record.createdAt?.toMillis ? record.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: record.updatedAt?.toMillis ? record.updatedAt.toMillis() : Date.now()
+                };
+                await saveToLocalDB("reports_2", [parsed]);
+            } catch (cacheErr) {
+                console.warn("Lỗi lưu cache getNextHoliday:", cacheErr);
+            }
+
+            return current;
         }
         return null;
     } catch (error) {
@@ -179,6 +466,22 @@ export async function getNextHoliday() {
  */
 export async function getSpecialWorkdays(startDate, endDate) {
     try {
+        // 1. Thử tìm trong store reports_2 của IndexedDB trước nếu khoảng ngày được bao phủ
+        const localData = await getAllFromLocalDB("reports_2");
+        const cacheStartDate = getStoreCacheStartDate(localData, "ngay_nghi", "ngay_lam_db");
+        
+        if (cacheStartDate && startDate >= cacheStartDate) {
+            const workdays = localData
+                .filter(item => item.isSpecialWorkday === true && item.ngay_lam_db && item.ngay_lam_db >= startDate && item.ngay_lam_db <= endDate)
+                .map(item => ({
+                    date: item.ngay_lam_db,
+                    ...item
+                }));
+            workdays.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            return workdays;
+        }
+
+        // 2. Fallback Firebase Firestore
         const q = query(
             collection(db, "reports_2"),
             where("isSpecialWorkday", "==", true),
@@ -186,11 +489,26 @@ export async function getSpecialWorkdays(startDate, endDate) {
             where("ngay_lam_db", "<=", endDate)
         );
         const snapshot = await getDocs(q);
-        
-        return snapshot.docs.map(doc => ({
+        const records = snapshot.docs.map(doc => ({
             date: doc.data().ngay_lam_db,
+            id: doc.id,
             ...doc.data()
         }));
+
+        if (records.length > 0) {
+            try {
+                const parsedRecords = records.map(data => ({
+                    ...data,
+                    _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                    _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                }));
+                await saveToLocalDB("reports_2", parsedRecords);
+            } catch (cacheErr) {
+                console.warn("Lỗi lưu cache getSpecialWorkdays:", cacheErr);
+            }
+        }
+        
+        return records;
     } catch (error) {
         console.error('Error fetching special workdays:', error);
         return [];
@@ -293,13 +611,47 @@ export async function getStartDaySettings() {
  */
 export async function getDefaultHolidays() {
     try {
-        const docRef = doc(db, "settings", "reportConfig");
-        const docSnap = await getDoc(docRef);
+        const snap = await getDocs(collection(db, "company_configs"));
+        const latestConfigs = {};
         
-        if (docSnap.exists()) {
-            return docSnap.data().defaultHolidays || {};
+        snap.forEach(doc => {
+            const data = doc.data();
+            const comp = data.company;
+            if (comp) {
+                if (!latestConfigs[comp] || (data.effectiveDate || "").localeCompare(latestConfigs[comp].effectiveDate || "") > 0) {
+                    latestConfigs[comp] = data;
+                }
+            }
+        });
+
+        const dayMap = { 0: "Chủ nhật", 1: "Thứ 2", 2: "Thứ 3", 3: "Thứ 4", 4: "Thứ 5", 5: "Thứ 6", 6: "Thứ 7" };
+        const results = {};
+        
+        for (const [comp, cfg] of Object.entries(latestConfigs)) {
+            if (cfg.defaultHolidays) {
+                if (cfg.defaultHolidays.length === 0) {
+                    results[comp] = "Không nghỉ";
+                } else {
+                    const sorted = cfg.defaultHolidays.sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b));
+                    results[comp] = sorted.map(d => dayMap[d]).join(", ");
+                }
+            }
         }
-        return {};
+        
+        // Fallback sang settings/reportConfig cho các cty chưa cấu hình mới
+        const oldRef = doc(db, "settings", "reportConfig");
+        const oldSnap = await getDoc(oldRef);
+        if (oldSnap.exists()) {
+            const oldDef = oldSnap.data().defaultHolidays || {};
+            const oldDayMap = { 'sat_sun': 'Thứ 7, Chủ nhật', 'sat-sun': 'Thứ 7, Chủ nhật', 'sun_only': 'Chủ nhật', 'sun': 'Chủ nhật', 'sat': 'Thứ 7' };
+            for (const [comp, config] of Object.entries(oldDef)) {
+                if (!results[comp] && config && config !== 'none') {
+                    results[comp] = oldDayMap[config] || config;
+                }
+            }
+        }
+        
+        return results;
     } catch (error) {
         console.error('Error fetching default holidays:', error);
         return {};
@@ -353,22 +705,91 @@ export async function getAdvancedStatistics(timeframe, targetCompany = null, tar
         fetchEnd.setDate(fetchEnd.getDate() + 45); // Dư dả thời gian về tương lai để chốt mốc cuối
         const fetchEndStr = formatISODate(fetchEnd);
 
-        // 3. TẢI DỮ LIỆU ĐỂ TÍNH TOÁN
-        const qReports = query(collection(db, "reports_1"), where("ngay_ghi", ">=", fetchStartStr), where("ngay_ghi", "<=", fetchEndStr));
-        const snapReports = await getDocs(qReports);
-        const allReadings = snapReports.docs.map(d => ({ date: new Date(d.data().ngay_ghi + "T00:00:00"), value: parseFloat(d.data().chi_so), company: d.data().company }));
-
-        const qHolidays1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", fetchStartStr), where("ngay_nghi", "<=", fetchEndStr));
-        const qHolidays2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", fetchStartStr), where("ngay_lam_db", "<=", fetchEndStr));
-        const [snapH1, snapH2] = await Promise.all([getDocs(qHolidays1), getDocs(qHolidays2)]);
-        
+        // 3. TẢI DỮ LIỆU ĐỂ TÍNH TOÁN (LOCAL-FIRST)
+        let allReadings = [];
         const processedHolidays = {};
-        [...snapH1.docs, ...snapH2.docs].forEach(doc => {
-            const r = doc.data();
-            if (!processedHolidays[r.company]) processedHolidays[r.company] = { dayOffs: new Set(), specialWorkdays: new Set() };
-            if (r.ngay_nghi) processedHolidays[r.company].dayOffs.add(r.ngay_nghi);
-            if (r.ngay_lam_db) processedHolidays[r.company].specialWorkdays.add(r.ngay_lam_db);
-        });
+
+        const localReports1 = await getAllFromLocalDB("reports_1");
+        const localReports2 = await getAllFromLocalDB("reports_2");
+        
+        const cacheStartDate1 = getStoreCacheStartDate(localReports1, "ngay_ghi");
+        const cacheStartDate2 = getStoreCacheStartDate(localReports2, "ngay_nghi", "ngay_lam_db");
+
+        const hasLocalCache1 = cacheStartDate1 && fetchStartStr >= cacheStartDate1;
+        const hasLocalCache2 = cacheStartDate2 && fetchStartStr >= cacheStartDate2;
+
+        if (hasLocalCache1 && hasLocalCache2) {
+            // Sử dụng dữ liệu cache từ IndexedDB
+            const readingsLocal = localReports1.filter(item => item.ngay_ghi >= fetchStartStr && item.ngay_ghi <= fetchEndStr);
+            allReadings = readingsLocal.map(item => ({
+                date: new Date(item.ngay_ghi + "T00:00:00"),
+                value: parseFloat(item.chi_so),
+                company: item.company
+            }));
+
+            const holidaysLocal = localReports2.filter(item => 
+                (item.ngay_nghi && item.ngay_nghi >= fetchStartStr && item.ngay_nghi <= fetchEndStr) ||
+                (item.ngay_lam_db && item.ngay_lam_db >= fetchStartStr && item.ngay_lam_db <= fetchEndStr)
+            );
+            
+            holidaysLocal.forEach(item => {
+                if (!processedHolidays[item.company]) processedHolidays[item.company] = { dayOffs: new Set(), specialWorkdays: new Set() };
+                if (item.ngay_nghi) processedHolidays[item.company].dayOffs.add(item.ngay_nghi);
+                if (item.ngay_lam_db) processedHolidays[item.company].specialWorkdays.add(item.ngay_lam_db);
+            });
+            console.log("📊 [Advanced Stats] Loaded from local IndexedDB cache.");
+        } else {
+            // Fallback truy vấn Firestore
+            console.log("📊 [Advanced Stats] Cache miss, querying Firestore...");
+            const qReports = query(collection(db, "reports_1"), where("ngay_ghi", ">=", fetchStartStr), where("ngay_ghi", "<=", fetchEndStr));
+            const snapReports = await getDocs(qReports);
+            const reports1Docs = snapReports.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const qHolidays1 = query(collection(db, "reports_2"), where("ngay_nghi", ">=", fetchStartStr), where("ngay_nghi", "<=", fetchEndStr));
+            const qHolidays2 = query(collection(db, "reports_2"), where("ngay_lam_db", ">=", fetchStartStr), where("ngay_lam_db", "<=", fetchEndStr));
+            const [snapH1, snapH2] = await Promise.all([getDocs(qHolidays1), getDocs(qHolidays2)]);
+            
+            const mapH = new Map();
+            snapH1.docs.forEach(doc => mapH.set(doc.id, { id: doc.id, ...doc.data() }));
+            snapH2.docs.forEach(doc => mapH.set(doc.id, { id: doc.id, ...doc.data() }));
+            const holidaysDocs = Array.from(mapH.values());
+
+            // Cache vào IndexedDB
+            if (reports1Docs.length > 0) {
+                try {
+                    const parsedReports1 = reports1Docs.map(data => ({
+                        ...data,
+                        _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                        _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                    }));
+                    await saveToLocalDB("reports_1", parsedReports1);
+                } catch (cacheErr) {
+                    console.warn("Lỗi lưu cache reports_1 trong stats:", cacheErr);
+                }
+            }
+
+            if (holidaysDocs.length > 0) {
+                try {
+                    const parsedReports2 = holidaysDocs.map(data => ({
+                        ...data,
+                        _createdAtMillis: data.createdAt?.toMillis ? data.createdAt.toMillis() : Date.now(),
+                        _updatedAtMillis: data.updatedAt?.toMillis ? data.updatedAt.toMillis() : Date.now()
+                    }));
+                    await saveToLocalDB("reports_2", parsedReports2);
+                } catch (cacheErr) {
+                    console.warn("Lỗi lưu cache reports_2 trong stats:", cacheErr);
+                }
+            }
+
+            // Map thành cấu trúc mong muốn
+            allReadings = reports1Docs.map(d => ({ date: new Date(d.ngay_ghi + "T00:00:00"), value: parseFloat(d.chi_so), company: d.company }));
+            
+            holidaysDocs.forEach(r => {
+                if (!processedHolidays[r.company]) processedHolidays[r.company] = { dayOffs: new Set(), specialWorkdays: new Set() };
+                if (r.ngay_nghi) processedHolidays[r.company].dayOffs.add(r.ngay_nghi);
+                if (r.ngay_lam_db) processedHolidays[r.company].specialWorkdays.add(r.ngay_lam_db);
+            });
+        }
 
         // 4. TÍNH TOÁN CHO TỪNG CÔNG TY
         const companyList = targetCompany ? [targetCompany] : [...new Set(allReadings.map(r => r.company))];
@@ -399,10 +820,11 @@ export async function getAdvancedStatistics(timeframe, targetCompany = null, tar
             let workingDays = currentData.workingDaysForAvg || 0;
 
             // Tính Khoán (Nếu là tuần/tháng/năm nhưng công ty có áp khoán, AI vẫn cần đọc)
+            const periodEndStr = currentData.end ? formatISODate(currentData.end) : null;
+            const cCfg = periodEndStr ? getCompanyConfigAtDate(comp, periodEndStr, allCompanyConfigs) : null;
+            const qMult = cCfg ? (Number(cCfg.quotaMultiplier) || 0) : (Number(sysConfig.quotaMultipliers?.[comp]) || 0);
+
             if (timeframe !== 'billing' && total !== null) {
-                const periodEndStr = formatISODate(currentData.end);
-                const cCfg = getCompanyConfigAtDate(comp, periodEndStr, allCompanyConfigs);
-                const qMult = cCfg ? (Number(cCfg.quotaMultiplier) || 0) : (Number(sysConfig.quotaMultipliers?.[comp]) || 0);
                 if (qMult > 0) {
                     quota = parseFloat((workingDays * qMult).toFixed(0));
                 } else {
@@ -420,6 +842,7 @@ export async function getAdvancedStatistics(timeframe, targetCompany = null, tar
                 avg: avg,
                 quota: quota,
                 workingDays: workingDays,
+                quotaMultiplier: qMult,
                 startMark: currentData.start ? formatISODate(currentData.start) : 'N/A',
                 endMark: currentData.end ? formatISODate(currentData.end) : 'N/A',
                 hasData: total !== null
@@ -533,15 +956,18 @@ export async function calculateAndCacheSchedule(dateStr) {
 
         const resultString = workers.length > 0 ? workers.join(", ") : "Không có ai trực";
 
-        const { setDoc, doc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js");
-        
-        await setDoc(doc(db, "daily_schedules", dateStr), {
-            content: resultString,
-            updatedAt: serverTimestamp(),
-            source: "auto_calculation_js"
-        });
+        // Lưu cache nhưng không để lỗi ghi database (ví dụ permission denied) chặn luồng trả kết quả
+        try {
+            await setDoc(doc(db, "daily_schedules", dateStr), {
+                content: resultString,
+                updatedAt: serverTimestamp(),
+                source: "auto_calculation_js"
+            });
+            console.log(`✅ Đã tính toán và cache lịch cho ngày ${dateStr}: ${resultString}`);
+        } catch (dbError) {
+            console.warn(`⚠️ Không thể lưu cache lịch trực ngày ${dateStr} vào Firestore:`, dbError);
+        }
 
-        console.log(`✅ Đã tính toán và cache lịch cho ngày ${dateStr}: ${resultString}`);
         return resultString;
 
     } catch (error) {

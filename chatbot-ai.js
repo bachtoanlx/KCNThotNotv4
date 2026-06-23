@@ -4,15 +4,12 @@ import { db, auth } from "./script.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // ========== CẤU HÌNH PROXY ==========
-// CÁCH 1: Sử dụng Google Apps Script Proxy (bảo mật API Key)
-const USE_PROXY = true; // Đổi thành true khi đã setup proxy
-const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec'; // Thay bằng URL từ Apps Script
+const USE_PROXY = true;
+const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec';
 
-// CÁCH 2: Gọi trực tiếp (KHÔNG an toàn khi public)
 // Chỉ dùng khi USE_PROXY = false (local development)
 let DIRECT_API_KEY = '';
 if (!USE_PROXY) {
-    // Chỉ import config.js khi cần thiết (local dev)
     try {
         const { CONFIG } = await import('./config.js');
         DIRECT_API_KEY = CONFIG.GEMINI_API_KEY;
@@ -21,25 +18,20 @@ if (!USE_PROXY) {
     }
 }
 
-// API Key từ config.js (chỉ dùng khi USE_PROXY = false)
 const OVERRIDE_KEY = typeof localStorage !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY') : null;
 const GEMINI_API_KEY = OVERRIDE_KEY || DIRECT_API_KEY;
 
-// Danh sách model fallback. Thử nhiều biến thể để tương thích tài khoản/khu vực.
-const GEMINI_MODELS = [
-    'gemini-flash-latest',      // Model này có trong log của bạn
-    'gemini-pro-latest',        // Model này có trong log của bạn
-    'gemini-2.5-flash',         // Model này cũng có, thêm vào dự phòng
-    'gemini-2.5-pro'            // Model này cũng có, thêm vào dự phòng
-];
-// Cơ sở endpoint: ưu tiên v1beta (ổn định cho generateContent), sau đó thử v1.
+// Model ưu tiên gửi lên Proxy (Proxy sẽ tự fallback sang model khác nếu bị quota)
+const PREFERRED_MODEL = 'gemini-2.5-flash';
+
+// Các model + endpoint dùng cho chế độ gọi trực tiếp (USE_PROXY = false)
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
 const GEMINI_API_BASES = [
     'https://generativelanguage.googleapis.com/v1beta',
     'https://generativelanguage.googleapis.com/v1'
 ];
 const buildGeminiUrl = (base, model) => `${base}/models/${model}:generateContent`;
 
-// Kiểm tra API key có hợp lệ không
 const isValidAPIKey = (USE_PROXY && PROXY_URL) || (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' && GEMINI_API_KEY.startsWith('AIza'));
 
 // System prompt để định nghĩa vai trò và kiến thức của chatbot
@@ -65,57 +57,46 @@ CÁC CÔNG TY TRONG KCN:
 QUY TẮC MỐC NEO THỜI GIAN (CỰC KỲ QUAN TRỌNG):
 - "Tuần", "Tháng", "Năm" và "Kỳ thu phí" trong hệ thống này KHÔNG được tính theo lịch thông thường. Chúng phụ thuộc hoàn toàn vào các "Mốc neo" do quản trị viên cài đặt.
 - Ví dụ: "Tháng 5" có thể được tính từ ngày 05/05 đến 04/06 nếu mốc neo là ngày 5.
-- DO ĐÓ: Khi trả lời về thống kê, bạn BẮT BUỘC phải trích dẫn khoảng thời gian chính xác từ trường \`periodLabel\` trong \`contextData\` để người dùng hiểu rõ. Ví dụ: "Trong Tháng hiện tại (từ 05/05 đến 04/06), tổng lưu lượng là...".
+- DO ĐÓ: Khi trả lời về thống kê, bạn BẮT BUỘC phải trích dẫn khoảng thời gian chính xác từ trường \`periodLabel\` trong \`contextData\` để người dùng hiểu rõ.
 - TUYỆT ĐỐI KHÔNG tự suy luận lịch hoặc giả định ngày tháng. Chỉ đọc dữ liệu đã được tính sẵn.
 
 KHẢ NĂNG TRUY VẤN DỮ LIỆU:
 1. Phân biệt rạch ròi THÁNG, KỲ THU PHÍ và KHOÁN (Tuyệt đối tuân thủ):
-   - Nếu user hỏi "THÁNG" (Lưu lượng tháng): Đọc giá trị Total (Tổng). Dữ liệu này đã được hệ thống lấy theo mốc neo Ngày đầu tháng.
-   - Nếu user hỏi "KỲ THU PHÍ" (Lưu lượng kỳ): Đọc giá trị Total (Tổng). Dữ liệu này đã được hệ thống lấy theo mốc neo Ngày chốt kỳ (Chỉ số sau - Chỉ số trước).
-   - Nếu user hỏi "KHOÁN" (Khối lượng khoán): CHỈ ĐỌC giá trị Quota (Khối lượng khoán). Bản chất: Dùng mốc neo của kỳ thu phí để đếm ngày làm việc ròng x Hệ số khoán.
+   - Nếu user hỏi "THÁNG" (Lưu lượng tháng): Đọc giá trị Total (Tổng).
+   - Nếu user hỏi "KỲ THU PHÍ": Đọc giá trị Total theo mốc neo Ngày chốt kỳ.
+   - Nếu user hỏi "KHOÁN": CHỈ ĐỌC giá trị Quota (Khối lượng khoán).
    - BẮT BUỘC: Bạn CHỈ ĐỌC số liệu có sẵn trong \`contextData\`. Không giải thích dài dòng cách tính nếu không được yêu cầu.
 2. Các chỉ số khác:
    - LƯU LƯỢNG TRUNG BÌNH: Chỉ đọc giá trị Avg (Trung bình/ngày). KHÔNG tự chia.
    - Chỉ số (chi_so): Là số đọc trên mặt đồng hồ.
-3. Ngày nghỉ/làm việc: Nếu có \`defaultHolidayConfig\`, hãy thông báo quy tắc nghỉ hàng tuần trước, sau đó mới liệt kê danh sách ngày nghỉ đột xuất/lễ từ \`holidays\`.
+3. Ngày nghỉ/làm việc/Lịch làm việc của công ty:
+   - Nếu có \`defaultHolidayConfig\`, hãy thông báo quy tắc nghỉ/làm việc hàng tuần trước.
+   - Nếu có \`holidays\` (danh sách ngày nghỉ đột xuất), hãy liệt kê các ngày nghỉ cụ thể.
 4. Thống kê KCN: Tổng lượng xả thải toàn KCN tuần/tháng/kỳ, top 5 công ty xả thải nhiều nhất.
 5. Danh sách công ty: Tổng số công ty, tên tất cả công ty chia theo nhóm.
 
 LOGIC AUTOPLAN (LỊCH TRỰC TỰ ĐỘNG) - QUAN TRỌNG:
-Hệ thống đã tự động tính toán lịch trực và cung cấp kết quả trong trường \`calculatedSchedule\`.
 Khi được hỏi về việc "ai trực", "lịch làm việc", BẠN CHỈ ĐƯỢC PHÉP ĐỌC giá trị từ \`calculatedSchedule\`.
-Ví dụ trả lời: "Theo lịch hệ thống, ngày [Ngày] là ca trực của: [calculatedSchedule]". Tuyệt đối không tự suy đoán.
-
-CÂU HỎI MẪU BẠN CÓ THỂ TRẢ LỜI:
-- "Chỉ số mới nhất của NTSF là bao nhiêu?"
-- "Ngày nghỉ tháng này có những ngày nào?"
-- "Tổng lượng xả thải tuần này của toàn KCN?"
-- "Top 5 công ty xả thải nhiều nhất tháng này"
-- "Lượng xả thải kỳ thu phí này của VNPT là bao nhiêu? Có vượt khoán không?"
-- "Có bao nhiêu công ty trong KCN?"
-- "Hôm nay ai trực?" hoặc "Ngày 12/12 là ca của ai?"
+Tuyệt đối không tự suy đoán.
 
 NHIỆM VỤ CỦA BẠN:
 1. Trả lời các câu hỏi về KCN Thốt Nốt dựa trên dữ liệu thực từ Firebase
 2. Hỗ trợ người dùng tìm hiểu về hệ thống quản lý
 3. Giải thích các chức năng, báo cáo, thống kê
-4. Hướng dẫn sử dụng hệ thống khi được hỏi
-5. Định dạng số liệu rõ ràng (dùng dấu chấm phân cách hàng nghìn)
+4. Định dạng số liệu rõ ràng (dùng dấu chấm phân cách hàng nghìn)
 
 QUY TẮC TRẢ LỜI:
 - Luôn luôn thân thiện, chủ động và sử dụng văn phong tự nhiên, gần gũi.
 - Sử dụng tiếng Việt
 - Nếu có contextData từ database, dùng nó để trả lời chính xác
-- **QUAN TRỌNG:** Sau khi trả lời xong một câu hỏi về dữ liệu (thống kê, chỉ số...), hãy luôn chủ động đưa ra 1-2 gợi ý câu hỏi liên quan mà người dùng có thể muốn hỏi tiếp. Ví dụ: "Bạn có muốn xem chi tiết theo tuần không?", "So sánh với công ty khác?". Hãy trình bày các gợi ý này dưới dạng các nút bấm bằng cách sử dụng định dạng đặc biệt: [BUTTON]Nội dung gợi ý[/BUTTON].
-- Khi chào hỏi, hãy đưa ra một vài gợi ý ban đầu để người dùng bắt đầu.
+- **QUAN TRỌNG:** Sau khi trả lời xong một câu hỏi về dữ liệu, hãy chủ động đưa ra 1-2 gợi ý bằng: [BUTTON]Nội dung gợi ý[/BUTTON].
 - Ngắn gọn, rõ ràng.
 - Định dạng số đẹp (VD: 1.234.567 thay vì 1234567)
-- Đơn vị khối lượng nước sử dụng là m³ (tuyệt đối không dùng định dạng toán học như $m^3$ hay m^3).
+- Đơn vị khối lượng nước sử dụng là m³ (tuyệt đối không dùng $m^3$ hay m^3).
 - Với danh sách dài, chỉ hiển thị top 5-10 kèm tổng số
 - Nếu không có dữ liệu, giải thích rõ ràng
 `;
 
-// Lịch sử hội thoại để duy trì ngữ cảnh
 const WELCOME_MESSAGE = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
 
 Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
@@ -124,28 +105,29 @@ Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các
 [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
 
 let conversationHistory = [
-    {
-        role: "user",
-        parts: [{ text: SYSTEM_CONTEXT }]
-    },
-    {
-        role: "model",
-        parts: [{ text: WELCOME_MESSAGE }]
-    }
+    { role: "user", parts: [{ text: SYSTEM_CONTEXT }] },
+    { role: "model", parts: [{ text: WELCOME_MESSAGE }] }
 ];
 
-// Khởi tạo rỗng, danh sách sẽ được nạp tự động qua hàm initDynamicChatbotData()
-// Nếu bạn có các từ gọi tắt đặc biệt không trùng tên (ví dụ gọi Agribank là ngân hàng), hãy giữ lại những từ đó.
 let companyNameMap = {
     'ngân hàng': 'Agribank',
-    'ngan hang': 'Agribank'
+    'ngan hang': 'Agribank',
+    'agri': 'Agribank',
+    'agribank': 'Agribank',
+    'ấn độ': 'Ấn Độ Dương',
+    'an do': 'Ấn Độ Dương',
+    'đại tây': 'Đại Tây Dương',
+    'dai tay': 'Đại Tây Dương',
+    'cá việt nam': 'Cá Việt Nam',
+    'ca viet nam': 'Cá Việt Nam',
+    'ntsf': 'NTSF',
+    'amicogen': 'Amicogen'
 };
 
 function removeAccents(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 
-// Hàm khởi tạo dữ liệu động (chạy ngầm không chặn luồng)
 async function initDynamicChatbotData() {
     try {
         const [masterSnap, configSnap] = await Promise.all([
@@ -160,7 +142,6 @@ async function initDynamicChatbotData() {
         const allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
         if (allCompanies.length === 0) return;
 
-        // 1. Cập nhật từ điển tìm kiếm (Fuzzy search map)
         const newMap = {};
         allCompanies.forEach(comp => {
             const lower = comp.toLowerCase();
@@ -168,12 +149,39 @@ async function initDynamicChatbotData() {
             newMap[lower] = comp;
             if (lower !== noAccent) newMap[noAccent] = comp;
         });
-        // Bổ sung một số từ khóa gọi tắt thủ công
+
+        // Từ viết tắt và gọi tắt thủ công
         newMap['ấn độ'] = 'Ấn Độ Dương';
+        newMap['an do'] = 'Ấn Độ Dương';
+        newMap['ấn độ dương'] = 'Ấn Độ Dương';
+        newMap['an do duong'] = 'Ấn Độ Dương';
+        newMap['add'] = 'Ấn Độ Dương';
+
         newMap['đại tây'] = 'Đại Tây Dương';
+        newMap['dai tay'] = 'Đại Tây Dương';
+        newMap['đại tây dương'] = 'Đại Tây Dương';
+        newMap['dai tay duong'] = 'Đại Tây Dương';
+        newMap['dtd'] = 'Đại Tây Dương';
+
+        newMap['cá việt nam'] = 'Cá Việt Nam';
+        newMap['ca viet nam'] = 'Cá Việt Nam';
+        newMap['ca vn'] = 'Cá Việt Nam';
+        newMap['cá vn'] = 'Cá Việt Nam';
+        newMap['cavietnam'] = 'Cá Việt Nam';
+
+        newMap['ngân hàng'] = 'Agribank';
+        newMap['ngan hang'] = 'Agribank';
+        newMap['agri'] = 'Agribank';
+
+        newMap['ntsf'] = 'NTSF';
+        newMap['n t s f'] = 'NTSF';
+
+        newMap['amicogen'] = 'Amicogen';
+        newMap['ami'] = 'Amicogen';
+        newMap['amico'] = 'Amicogen';
+
         companyNameMap = newMap;
 
-        // 2. Phân nhóm động để dạy AI
         const latestConfigs = {};
         configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
         configs.forEach(c => { if (c.company) latestConfigs[c.company] = c; });
@@ -188,10 +196,8 @@ async function initDynamicChatbotData() {
 
         const dynamicGroupsText = `CÁC CÔNG TY TRONG KCN (Dữ liệu động):\n- Nhóm 1 (Đồng hồ): ${group1.join(', ') || 'Trống'}\n- Nhóm 2 (Hóa đơn): ${group2.join(', ') || 'Trống'}\n- Nhóm 3 (Khoán): ${group3.join(', ') || 'Trống'}\n\n`;
 
-        // Thay thế khối thông tin cứng bằng thông tin động trong SYSTEM_CONTEXT
-        SYSTEM_CONTEXT = SYSTEM_CONTEXT.replace(/CÁC CÔNG TY TRONG KCN:[\s\S]*?(?=KHẢ NĂNG TRUY VẤN DỮ LIỆU:)/, dynamicGroupsText);
-        
-        // Nhồi lại vào não Chatbot cho phiên hiện tại
+        SYSTEM_CONTEXT = SYSTEM_CONTEXT.replace(/CÁC CÔNG TY TRONG KCN:\s*\(Danh sách công ty sẽ được nạp tự động từ Database\)/, dynamicGroupsText);
+
         if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
             conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
         }
@@ -200,142 +206,133 @@ async function initDynamicChatbotData() {
         console.error("⚠️ Lỗi tải dữ liệu động cho chatbot:", e);
     }
 }
-// Kích hoạt tiến trình học ngay khi tải xong file
 initDynamicChatbotData();
 
 /**
  * Gọi Gemini API để xử lý câu hỏi
- * @param {string} userMessage - Tin nhắn từ người dùng
- * @param {object} contextData - Dữ liệu ngữ cảnh từ Firebase (nếu có)
- * @returns {Promise<string>} - Câu trả lời từ AI
  */
 export async function getAIResponse(userMessage, contextData = null) {
-    // Nếu chưa có API key hợp lệ, dùng fallback responses
     if (!isValidAPIKey) {
         console.warn('⚠️ Gemini API key chưa được cấu hình. Sử dụng chế độ fallback.');
+        if (typeof document !== 'undefined') {
+            const aiStatusEl = document.getElementById('aiStatus');
+            if (aiStatusEl) {
+                aiStatusEl.textContent = '(Chế độ cơ bản)';
+                aiStatusEl.title = 'Chưa cấu hình API Key. Chatbot hoạt động ở Chế độ cơ bản.';
+                aiStatusEl.style.color = '#ffa500';
+            }
+        }
         return getFallbackResponse(userMessage, contextData);
     }
 
     try {
-        // Thêm ngữ cảnh dữ liệu nếu có
         let enhancedMessage = userMessage;
         if (contextData) {
             enhancedMessage = `${userMessage}\n\n[Dữ liệu hệ thống: ${JSON.stringify(contextData)}]`;
         }
 
-                // Thêm tin nhắn người dùng vào lịch sử (dạng chat)
-                conversationHistory.push({ role: 'user', parts: [{ text: enhancedMessage }] });
+        conversationHistory.push({ role: 'user', parts: [{ text: enhancedMessage }] });
 
-                // Payload đơn giản (nhiều tài khoản chưa hỗ trợ system_instruction). Giữ SYSTEM_CONTEXT là message đầu tiên.
-                const payload = {
-                    contents: conversationHistory,
-                    generationConfig: {
-                        temperature: 0.7,
-                        topK: 40,
-                        topP: 0.95,
-                        maxOutputTokens: 768
-                    }
-                };
+        let data = null;
 
-                let data = null;
-                let lastStatus = null;
-                let lastErrorBody = null;
-                
-                // ========== GỌI API THEO CÁCH ĐÃ CHỌN ==========
-                if (USE_PROXY) {
-                    // CÁCH 1: Gọi qua Google Apps Script Proxy
-                    try {
-                        const currentUser = auth.currentUser;
-                        if (!currentUser) throw new Error("Vui lòng đăng nhập để sử dụng AI Chatbot.");
-                        const idToken = await currentUser.getIdToken();
+        if (USE_PROXY) {
+            // ========== GỌI PROXY - CHỈ 1 LẦN ==========
+            // Toàn bộ logic model fallback + exponential backoff retry
+            // đã được xử lý ở phía Google Apps Script server.
+            // Client không cần retry, giảm tải băng thông và tránh lỗi quota lan rộng.
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                return "⚠️ Bạn cần **đăng nhập** để sử dụng trợ lý ảo AI Chatbot.";
+            }
+            const idToken = await currentUser.getIdToken();
 
-                        const formData = new URLSearchParams();
-                        formData.append("action", "chatAI");
-                        formData.append("idToken", idToken);
-                        formData.append("data", JSON.stringify({ model: GEMINI_MODELS[0], contents: conversationHistory }));
+            const formData = new URLSearchParams();
+            formData.append("action", "chatAI");
+            formData.append("idToken", idToken);
+            formData.append("data", JSON.stringify({
+                model: PREFERRED_MODEL,
+                contents: conversationHistory
+            }));
 
-                        const response = await fetch(PROXY_URL, {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        if (!response.ok) {
-                            const errorText = await response.text();
-                            console.error('Proxy error:', response.status, errorText);
-                            throw new Error(`Proxy error: ${response.status}`);
-                        }
-                        
-                        data = await response.json();
-                        
-                        // ⭐️ SỬA LỖI: Bắt lỗi nếu Proxy trả về object error (chạm giới hạn, lỗi token...)
-                        if (data.error || data.success === false) {
-                            const errDetail = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : (data.error || 'Lỗi không xác định');
-                            throw new Error(`Hệ thống API từ chối: ${errDetail}`);
-                        }
-                        console.log('✅ Proxy call success');
-                        
-                    } catch (error) {
-                        console.error('❌ Proxy call failed:', error);
-                        throw error;
-                    }
-                } else {
-                    // CÁCH 2: Gọi trực tiếp Gemini API (không an toàn khi public)
-                    // Thử lần lượt các base và model
-                    for (const base of GEMINI_API_BASES) {
-                        for (const model of GEMINI_MODELS) {
-                            const url = `${buildGeminiUrl(base, model)}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-                            const resp = await fetch(url, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            lastStatus = resp.status;
-                            if (!resp.ok) {
-                                try { lastErrorBody = await resp.json(); } catch { lastErrorBody = null; }
-                                // Nếu 404 thì thử model/endpoint tiếp theo
-                                if (resp.status === 404) continue;
-                                // Nếu 400 có thể do model không có quyền hoặc payload không đúng -> thử model khác / base khác
-                                if (resp.status === 400) continue;
-                                // Các lỗi khác tạm dừng để fallback
-                                continue;
-                            }
-                            data = await resp.json();
-                            if (data) break;
-                        }
-                        if (data) break;
-                    }
+            const response = await fetch(PROXY_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            data = await response.json();
+
+            if (data.error || data.success === false) {
+                const errDetail = typeof data.error === 'object'
+                    ? (data.error.message || JSON.stringify(data.error))
+                    : (data.error || 'Lỗi không xác định');
+                throw new Error(errDetail);
+            }
+
+            console.log('✅ Gọi thành công qua Proxy');
+
+        } else {
+            // ========== GỌI TRỰC TIẾP (USE_PROXY = false, local dev) ==========
+            const payload = {
+                contents: conversationHistory,
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 768
                 }
+            };
+            let lastStatus = null;
 
-                        if (!data) {
-                            console.error('Gemini request failed details:', { status: lastStatus, error: lastErrorBody });
-                            // Thử gọi danh sách model để chẩn đoán (nếu key hợp lệ, API bật sẽ trả về list)
-                            try {
-                                const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(GEMINI_API_KEY)}`);
-                                const listJson = await listResp.json();
-                                if (listJson.models) {
-    const modelNames = listJson.models.map(m => m.name); // m.name có dạng "models/gemini-pro"
-    console.warn('CÁC MODEL BẠN CÓ THỂ DÙNG (DEBUG):', JSON.stringify(modelNames, null, 2));
-} else {
-    console.warn('Available models response (DEBUG):', listResp.status, listJson);
-}
-                            } catch (e) {
-                                console.warn('Failed to fetch model list for diagnostics:', e);
-                            }
-                    throw new Error(`API Error: ${lastStatus || 'unknown'}`);
+            for (const base of GEMINI_API_BASES) {
+                for (const model of GEMINI_MODELS) {
+                    const url = `${buildGeminiUrl(base, model)}?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+                    const resp = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    lastStatus = resp.status;
+                    if (!resp.ok) {
+                        if (resp.status === 429 || resp.status === 503) break;
+                        continue;
+                    }
+                    data = await resp.json();
+                    if (data) break;
                 }
+                if (data) break;
+            }
 
-                const parts = data?.candidates?.[0]?.content?.parts;
-                const aiResponse = parts && parts.length ? parts.map(p => p.text).join('\n') : 'Xin lỗi, tôi chưa có câu trả lời cho câu hỏi này.';
+            if (!data) {
+                throw new Error(`API Error: ${lastStatus || 'unknown'}`);
+            }
+        }
 
-                // Thêm phản hồi vào lịch sử
-                conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
+        const parts = data?.candidates?.[0]?.content?.parts;
+        const aiResponse = parts && parts.length
+            ? parts.map(p => p.text).join('\n')
+            : 'Xin lỗi, tôi chưa có câu trả lời cho câu hỏi này.';
 
-        // Giới hạn lịch sử (giữ system prompt + 10 lượt hội thoại gần nhất)
+        if (typeof document !== 'undefined') {
+            const aiStatusEl = document.getElementById('aiStatus');
+            if (aiStatusEl) {
+                aiStatusEl.textContent = '(AI)';
+                aiStatusEl.title = 'Chatbot đang sử dụng Google Gemini AI';
+                aiStatusEl.style.color = '#00ff00';
+            }
+        }
+
+        conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
+
         if (conversationHistory.length > 22) {
             conversationHistory = [
-                conversationHistory[0], // System context
-                conversationHistory[1], // Initial response
-                ...conversationHistory.slice(-20) // 10 lượt hội thoại gần nhất
+                conversationHistory[0],
+                conversationHistory[1],
+                ...conversationHistory.slice(-20)
             ];
         }
 
@@ -343,48 +340,47 @@ export async function getAIResponse(userMessage, contextData = null) {
 
     } catch (error) {
         console.error('Gemini AI Error:', error);
-        // ⭐️ SỬA LỖI: Xóa tin nhắn rác để bảo vệ chuỗi luân phiên User/Model khi có lỗi API
         if (conversationHistory.length > 0 && conversationHistory[conversationHistory.length - 1].role === 'user') {
             conversationHistory.pop();
         }
-        // Nếu lỗi API, dùng fallback và truyền kèm thông tin lỗi để dễ debug
+        if (typeof document !== 'undefined') {
+            const aiStatusEl = document.getElementById('aiStatus');
+            if (aiStatusEl) {
+                aiStatusEl.textContent = '(Chế độ cơ bản)';
+                aiStatusEl.title = 'Hệ thống AI đang quá tải hoặc gặp lỗi. Đang chạy ở Chế độ cơ bản.';
+                aiStatusEl.style.color = '#ffa500';
+            }
+        }
         return getFallbackResponse(userMessage, contextData, error.message);
     }
 }
 
 /**
  * Fallback response khi không có API key hoặc API lỗi
- * @param {string} userMessage - Tin nhắn từ người dùng
- * @param {object} contextData - Dữ liệu ngữ cảnh
- * @returns {string} - Câu trả lời đơn giản
  */
 function getFallbackResponse(userMessage, contextData, errorMessage = null) {
     const lowerMsg = userMessage.toLowerCase();
-    
+
     let errorNotice = "";
     if (errorMessage) {
         errorNotice = `*(Hệ thống AI đang bận: ${errorMessage})*\n\n`;
     }
 
-    // Xử lý hiển thị đẹp các loại dữ liệu thô từ Firebase
     if (contextData) {
         let responseText = `📊 **Kết quả tra cứu (Chế độ cơ bản):**\n${errorNotice}`;
 
-        // 1. Chỉ số công ty (companyData)
         if (contextData.companyData) {
             const data = contextData.companyData;
             responseText += `- Công ty: **${data.company}**\n`;
             responseText += `- Chỉ số ĐH hiện tại: **${data.chi_so_dong_ho_hien_tai.toLocaleString('vi-VN')}** (ngày ${data.ngay_ghi_hien_tai})\n`;
             return responseText;
         }
-        
-        // 2. Lịch trực (calculatedSchedule)
+
         if (contextData.calculatedSchedule) {
             responseText += `Lịch làm việc ngày ${contextData.targetDate || "được yêu cầu"}:\n👉 **${contextData.calculatedSchedule}**`;
             return responseText;
         }
 
-        // 3. Số lượng công ty (companyList)
         if (contextData.companyList) {
             const list = contextData.companyList;
             responseText += `Hiện tại có **${list.total}** công ty trong KCN, được chia thành 3 nhóm:\n`;
@@ -393,8 +389,7 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
             responseText += `- **Nhóm 3 (Khoán):** ${list.group3.length} công ty${list.group3.length > 0 ? ` gồm ${list.group3.join(', ')}` : ''}\n`;
             return responseText;
         }
-        
-        // 4. Thống kê nâng cao KCN / Công ty
+
         if (contextData.advancedStats) {
             const stats = contextData.advancedStats;
             responseText += `📌 **${stats.periodLabel}**\n\n`;
@@ -415,12 +410,27 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
             return responseText;
         }
 
-        // 5. Ngày nghỉ (holidayData)
         if (contextData.holidays) {
             const hols = contextData.holidays;
             if (contextData.company && contextData.defaultHolidayConfig) {
                 responseText += `**Cấu hình nghỉ định kỳ của ${contextData.company}:** ${contextData.defaultHolidayConfig}\n\n`;
+            } else if (contextData.allDefaultHolidays) {
+                const dayMap = { 'sat_sun': 'Thứ 7 & Chủ nhật', 'sat-sun': 'Thứ 7 & Chủ nhật', 'sun_only': 'Chủ nhật', 'sun': 'Chủ nhật', 'sat': 'Thứ 7' };
+                responseText += `**Cấu hình nghỉ định kỳ các công ty:**\n`;
+                let hasDefault = false;
+                for (const [comp, config] of Object.entries(contextData.allDefaultHolidays)) {
+                    if (config && config !== 'none') {
+                        let displayVal = dayMap[config] || config;
+                        responseText += displayVal === 'Không nghỉ'
+                            ? `- **${comp}**: Không nghỉ (làm việc full tuần)\n`
+                            : `- **${comp}**: Nghỉ ${displayVal}\n`;
+                        hasDefault = true;
+                    }
+                }
+                if (!hasDefault) responseText += `- Không có cấu hình ngày nghỉ hàng tuần mặc định nào được thiết lập.\n`;
+                responseText += `\n`;
             }
+
             if (hols.length === 0) {
                 responseText += "Không có báo cáo thông báo nghỉ lễ/đột xuất nào trong khoảng thời gian được tra cứu.";
             } else {
@@ -434,11 +444,9 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
             return responseText;
         }
 
-        // Fallback chung
         return "Dữ liệu tra cứu thành công, nhưng chế độ cơ bản chưa hỗ trợ định dạng hiển thị cho loại thông tin này.";
     }
-    
-    // Các câu trả lời tĩnh cơ bản
+
     const responses = {
         'xin chào': WELCOME_MESSAGE,
         'hello': 'Hello! Xin chào bạn.',
@@ -450,17 +458,12 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
         'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
         'chức năng': 'Công cụ ghi nhận: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc,...là thành viên nên bạn có thể xem chi tiết ở menu hệ thống',
     };
-    
-    // Tìm response phù hợp
+
     for (const [key, value] of Object.entries(responses)) {
-        if (lowerMsg.includes(key)) {
-            return value;
-        }
+        if (lowerMsg.includes(key)) return value;
     }
-    
-    // Thông báo lỗi mặc định thân thiện hơn
+
     let fallbackMsg = `⚠️ **Hệ thống AI đang tạm thời gián đoạn.**\n\nTôi đang ở chế độ cơ bản và chưa hiểu câu hỏi này.\n\nBạn có thể thử hỏi các câu tra cứu dữ liệu ngắn gọn hơn (VD: *"Chỉ số của NTSF"*, *"Có bao nhiêu công ty"*).`;
-    
     if (errorMessage) {
         fallbackMsg += `\n\n*(Chi tiết lỗi hệ thống: ${errorMessage})*`;
     }
@@ -469,150 +472,338 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
 
 /**
  * Kiểm tra xem câu hỏi có cần truy vấn database không
- * @param {string} message - Tin nhắn từ người dùng
- * @returns {object|null} - Thông tin truy vấn cần thực hiện hoặc null
  */
 export function detectDataQuery(message) {
-    const lowerMsg = message.toLowerCase();
-    
-    // Các pattern cần truy vấn dữ liệu (MỞ RỘNG)
-    const patterns = [
-        // 1. Thống kê & So sánh nâng cao (Gộp chung logic Tính toán) - ĐƯỢC ĐƯA LÊN ĐẦU ĐỂ ƯU TIÊN
-        {
-            keywords: ['thống kê', 'báo cáo', 'tổng', 'trung bình', 'tiêu thụ', 'xả thải', 'lưu lượng', 'so sánh', 'nhiều nhất', 'top', 'khoán', 'vượt khoán', 'khối', 'bao nhiêu khối'],
-            timeKeywords: ['tuần', 'tháng', 'kỳ', 'thu phí', 'kỳ này', 'năm'],
-            type: 'statistics'
-        },
-        
-        // 2. Chỉ số nước của công ty cụ thể (Chỉ đọc mặt đồng hồ, không tính toán)
-        {
-            keywords: ['chỉ số', 'đồng hồ', 'nước', 'mới nhất', 'hiện tại'],
-            type: 'companyData'
-        },
-        
-        // 3. Danh sách ngày nghỉ
-        {
-            keywords: ['ngày nghỉ', 'nghỉ việc', 'holiday', 'nghỉ lễ', 'nghỉ phép', 'ngày lễ'],
-            type: 'holidayData'
-        },
-        
-        // 3. Ngày làm việc đặc biệt
-        {
-            keywords: ['ngày làm đặc biệt', 'làm việc đặc biệt', 'làm thêm', 'tăng ca'],
-            type: 'specialWorkday'
-        },
-        
-        // 6. Danh sách công ty
-        {
-            keywords: ['danh sách công ty', 'các công ty', 'có bao nhiêu công ty', 'liệt kê công ty', 'tất cả công ty'],
-            type: 'companyList'
-        },
-        
-        // 9. Lịch sử tiêu thụ
-        {
-            keywords: ['lịch sử', 'theo thời gian', 'xu hướng', 'biến động'],
-            type: 'history'
-        },
+    const lowerMsg = message.toLowerCase().trim();
 
-        // 10. Autoplan / Lịch trực
+    let isCompanyRelatedHolidayOrWorkday = false;
+    if (lowerMsg.includes('lịch làm việc') || lowerMsg.includes('ngày làm việc') || lowerMsg.includes('lịch nghỉ') || lowerMsg.includes('ngày nghỉ') || lowerMsg.includes('nghỉ')) {
+        const hasCompanyWord = lowerMsg.includes('công ty') || lowerMsg.includes('doanh nghiệp');
+        let hasCompanyName = false;
+        for (const lowerName of Object.keys(companyNameMap)) {
+            if (lowerMsg.includes(lowerName)) { hasCompanyName = true; break; }
+        }
+        if (hasCompanyWord || hasCompanyName) isCompanyRelatedHolidayOrWorkday = true;
+    }
+
+    const patterns = [
         {
-            keywords: ['autoplan', 'lịch trực', 'quy tắc', 'công việc tự động', 'lịch làm việc', 'job', 'ai trực', 'ca làm', 'ca trực', 'người trực'],
-            type: 'autoplan'
+            type: 'statistics',
+            customCheck: (msg) => {
+                const direct = [
+                    'thống kê', 'báo cáo', 'tổng', 'trung bình', 'tiêu thụ', 'xả thải', 'lưu lượng',
+                    'so sánh', 'nhiều nhất', 'top', 'khoán', 'vượt khoán', 'khối', 'bao nhiêu khối',
+                    'khối lượng', 'lượng nước', 'nước ra', 'nước thoát', 'mét khối', 'm3', 'số khối',
+                    'lượng xả', 'lượng nước thải', 'dung tích', 'thể tích', 'sản lượng',
+                    'lượng dùng', 'nước thải', 'nước xả', 'cbm', 'nước xả ra', 'm³'
+                ];
+                if (direct.some(kw => msg.includes(kw))) return true;
+                if ((msg.includes('xả') || msg.includes('dùng') || msg.includes('tiêu thụ') || msg.includes('thoát')) && (msg.includes('bao nhiêu') || msg.includes('mấy') || msg.includes('nhiều hay ít'))) return true;
+                const timeShortcuts = [
+                    'tuần trước', 'tuần này', 'tháng trước', 'tháng này', 'kỳ trước', 'kỳ này',
+                    'tuần rồi', 'tháng rồi', 'kỳ rồi', 'tuần qua', 'tháng qua', 'năm ngoái',
+                    'năm nay', 'năm trước', 'kỳ qua', 'đợt này', 'đợt trước', 'kỳ thu phí trước'
+                ];
+                if (timeShortcuts.some(ts => msg.includes(ts))) {
+                    const isOther = msg.includes('trực') || msg.includes('nghỉ') || msg.includes('lễ') || msg.includes('ca') || msg.includes('gác');
+                    if (!isOther) return true;
+                }
+                return false;
+            }
+        },
+        {
+            type: 'companyData',
+            customCheck: (msg) => {
+                const direct = [
+                    'chỉ số', 'đồng hồ', 'mới nhất', 'hiện tại', 'mặt đồng hồ', 'số nước',
+                    'chỉ số nước', 'số mét khối', 'số m3', 'đồng hồ nước', 'chỉ số mới', 'chỉ số hiện tại',
+                    'mặt số', 'số đọc', 'số ghi', 'chỉ số ghi', 'chỉ số cuối', 'số cuối',
+                    'số mới', 'số đầu', 'chỉ số đầu', 'ghi nước'
+                ];
+                if (direct.some(kw => msg.includes(kw))) return true;
+                if (msg.includes('bao nhiêu') && (msg.includes('số') || msg.includes('đồng hồ') || msg.includes('ghi'))) return true;
+                if (msg.includes('mấy') && (msg.includes('số') || msg.includes('ghi'))) return true;
+                const hasCompany = Object.keys(companyNameMap).some(n => msg.includes(n));
+                if (hasCompany && (msg.includes('số') || msg.includes('chỉ') || msg.includes('ghi') || msg.includes('đồng hồ') || msg.includes('mới nhất') || msg.includes('hiện tại'))) return true;
+                return false;
+            }
+        },
+        {
+            type: 'holidayData',
+            keywords: [
+                'ngày nghỉ', 'nghỉ việc', 'holiday', 'nghỉ lễ', 'nghỉ phép', 'ngày lễ', 'lịch nghỉ',
+                'thông báo nghỉ', 'nghỉ đột xuất', 'nghỉ công ty', 'được nghỉ',
+                'cho nghỉ', 'không đi làm', 'nghỉ ca', 'cúp ca', 'off', 'day off', 'xin nghỉ',
+                'báo nghỉ', 'ngưng sản xuất', 'tạm ngưng', 'tạm dừng', 'không làm việc', 'ngừng hoạt động',
+                'không chạy máy', 'lịch off', 'ngày off', 'nghỉ chủ nhật', 'không hoạt động'
+            ],
+            customCheck: (msg) => {
+                const direct = [
+                    'ngày nghỉ', 'nghỉ việc', 'holiday', 'nghỉ lễ', 'nghỉ phép', 'ngày lễ', 'lịch nghỉ',
+                    'thông báo nghỉ', 'nghỉ đột xuất', 'nghỉ công ty', 'được nghỉ',
+                    'cho nghỉ', 'không đi làm', 'nghỉ ca', 'cúp ca', 'off', 'day off', 'xin nghỉ',
+                    'báo nghỉ', 'ngưng sản xuất', 'tạm ngưng', 'tạm dừng', 'không làm việc', 'ngừng hoạt động',
+                    'không chạy máy', 'lịch off', 'ngày off', 'nghỉ chủ nhật', 'không hoạt động'
+                ];
+                if (direct.some(kw => msg.includes(kw))) return true;
+                if ((msg.includes('nghỉ') || msg.includes('off') || msg.includes('ngưng') || msg.includes('dừng')) && (msg.includes('lịch') || msg.includes('ngày') || msg.includes('hôm nay') || msg.includes('ngày mai') || msg.includes('được') || msg.includes('cho') || msg.includes('phép') || msg.includes('báo'))) return true;
+                if (msg.includes('không') && (msg.includes('đi làm') || msg.includes('chạy máy') || msg.includes('sản xuất') || msg.includes('hoạt động') || msg.includes('vận hành'))) return true;
+                return false;
+            }
+        },
+        {
+            type: 'specialWorkday',
+            keywords: [
+                'ngày làm đặc biệt', 'làm việc đặc biệt', 'làm thêm', 'tăng ca', 'làm bù', 'lịch làm bù',
+                'ngày làm bù', 'làm đặc biệt', 'làm chủ nhật', 'tăng ca chủ nhật', 'làm thêm giờ',
+                'làm bù lễ', 'đi làm bù', 'chạy máy chủ nhật', 'làm ngày nghỉ',
+                'làm ngoài giờ', 'ot', 'overtime', 'chạy bù', 'chạy ngày lễ'
+            ]
+        },
+        {
+            type: 'companyList',
+            keywords: [
+                'danh sách công ty', 'các công ty', 'có bao nhiêu công ty', 'liệt kê công ty',
+                'tất cả công ty', 'danh sách doanh nghiệp', 'các doanh nghiệp', 'bao nhiêu doanh nghiệp',
+                'có những công ty nào', 'tên công ty', 'nhóm công ty', 'phân nhóm', 'tên các doanh nghiệp',
+                'nhà máy nào', 'các nhà máy', 'các đơn vị', 'danh sách đơn vị',
+                'bao nhiêu đơn vị', 'những ai', 'gồm những ai', 'bao nhiêu bên'
+            ]
+        },
+        {
+            type: 'history',
+            keywords: [
+                'lịch sử', 'theo thời gian', 'xu hướng', 'biến động', 'lịch sử xả thải',
+                'lịch sử tiêu thụ', 'quá trình', 'quá khứ', 'lịch sử chỉ số', 'biểu đồ',
+                'biểu đồ xả thải', 'diễn biến', 'tra cứu lịch sử', 'lịch sử ghi', 'lịch sử đồng hồ',
+                'biểu đồ xả', 'biểu đồ lưu lượng', 'đồ thị', 'xu hướng xả', 'dòng thời gian'
+            ]
+        },
+        {
+            type: 'autoplan',
+            keywords: [
+                'autoplan', 'lịch trực', 'quy tắc', 'công việc tự động', 'lịch làm việc', 'job',
+                'ai trực', 'ca làm', 'ca trực', 'người trực', 'ca ai', 'ca của ai', 'ai làm',
+                'phân công', 'ca kíp', 'lịch ca', 'ai gác', 'gác ca', 'lịch gác', 'kíp trực',
+                'phân công kíp', 'lịch bảo vệ', 'vận hành trực', 'lịch vận hành', 'lịch trực vận hành',
+                'lịch trực bảo vệ', 'ca gác', 'lịch gác bảo vệ'
+            ],
+            customCheck: (msg) => {
+                const direct = [
+                    'autoplan', 'lịch trực', 'lịch làm việc', 'ai trực', 'ca làm', 'ca trực',
+                    'người trực', 'ca ai', 'ca của ai', 'ai làm', 'phân công', 'ca kíp', 'lịch ca',
+                    'ai gác', 'gác ca', 'lịch gác', 'kíp trực', 'phân công kíp', 'lịch bảo vệ'
+                ];
+                if (direct.some(kw => msg.includes(kw))) return true;
+                if ((msg.includes('ca') || msg.includes('kíp') || msg.includes('gác')) && (msg.includes('ai') || msg.includes('nào') || msg.includes('người'))) return true;
+                if (msg.includes('trực') && (msg.includes('ai') || msg.includes('nào') || msg.includes('ngày') || msg.includes('hôm nay') || msg.includes('ngày mai'))) return true;
+                if (msg.includes('gác') && (msg.includes('hôm nay') || msg.includes('ngày mai') || msg.includes('ngày') || msg.includes('kcn'))) return true;
+                return false;
+            }
         }
     ];
 
     for (const pattern of patterns) {
-        const hasKeyword = pattern.keywords.some(kw => lowerMsg.includes(kw));
+        let hasKeyword = false;
+        if (pattern.customCheck) {
+            hasKeyword = pattern.customCheck(lowerMsg);
+        } else if (pattern.keywords) {
+            hasKeyword = pattern.keywords.some(kw => lowerMsg.includes(kw));
+        }
+
+        if (isCompanyRelatedHolidayOrWorkday) {
+            if (pattern.type === 'holidayData') hasKeyword = true;
+            else if (pattern.type === 'autoplan') hasKeyword = false;
+        }
+
         if (hasKeyword) {
             const result = { type: pattern.type, query: message };
-            
-            // Tìm tên công ty chung cho mọi pattern nếu có xuất hiện
-            for (const [lowerName, realName] of Object.entries(companyNameMap)) {
-                if (lowerMsg.includes(lowerName)) {
-                    result.company = realName;
-                    break;
-                }
+
+            const sortedCompanyKeywords = Object.entries(companyNameMap).sort((a, b) => b[0].length - a[0].length);
+            for (const [lowerName, realName] of sortedCompanyKeywords) {
+                if (lowerMsg.includes(lowerName)) { result.company = realName; break; }
             }
-            
+
             if (pattern.type === 'statistics') {
                 const specificWeekMatch = lowerMsg.match(/tuần\s*(\d+)/);
                 const specificMonthMatch = lowerMsg.match(/tháng\s*(\d+)/);
                 const specificYearMatch = lowerMsg.match(/năm\s*(\d{4})/);
                 const specificQuarterMatch = lowerMsg.match(/quý\s*(\d+)/);
 
-                // QUY TẮC MỚI: Nếu hỏi sâu vào lịch sử (Có số tháng/tuần/năm/quý cụ thể) -> REDIRECT TẤT CẢ
                 if (specificWeekMatch || specificMonthMatch || specificYearMatch || specificQuarterMatch) {
                     result.requiresRedirect = true;
-                    return result; 
+                    return result;
                 }
 
-                // KIỂM TRA QUÁ KHỨ GẦN NHẤT (Trạng thái an toàn được phép xử lý)
                 const isKhoan = lowerMsg.includes('khoán');
                 const isKyThuPhi = lowerMsg.includes('kỳ') || lowerMsg.includes('thu phí') || isKhoan;
 
                 if (lowerMsg.includes('năm trước') || lowerMsg.includes('năm ngoái')) {
                     result.timeframe = isKyThuPhi ? 'billing' : 'year';
-                    const d = new Date();
-                    d.setFullYear(d.getFullYear() - 1);
+                    const d = new Date(); d.setFullYear(d.getFullYear() - 1);
                     result.targetDateExact = d.toISOString();
-                } else if (lowerMsg.includes('kỳ trước')) {
-                    result.timeframe = 'billing'; // Bắt buộc là billing
-                    const d = new Date();
-                    d.setMonth(d.getMonth() - 1);
-                    d.setDate(15); // Neo vào giữa tháng trước để lọt đúng kỳ cũ
+                } else if (lowerMsg.includes('kỳ trước') || lowerMsg.includes('kỳ rồi') || lowerMsg.includes('kỳ qua')) {
+                    result.timeframe = 'billing';
+                    const d = new Date(); d.setMonth(d.getMonth() - 1); d.setDate(15);
                     result.targetDateExact = d.toISOString();
-                } else if (lowerMsg.includes('tháng trước')) {
-                    result.timeframe = isKyThuPhi ? 'billing' : 'month'; // Hỗ trợ câu "Khoán tháng trước"
-                    const d = new Date();
-                    d.setMonth(d.getMonth() - 1);
-                    d.setDate(15);
+                } else if (lowerMsg.includes('tháng trước') || lowerMsg.includes('tháng rồi') || lowerMsg.includes('tháng qua')) {
+                    result.timeframe = isKyThuPhi ? 'billing' : 'month';
+                    const d = new Date(); d.setMonth(d.getMonth() - 1); d.setDate(15);
                     result.targetDateExact = d.toISOString();
-                } else if (lowerMsg.includes('tuần trước')) {
-                    result.timeframe = 'week'; 
-                    const d = new Date();
-                    d.setDate(d.getDate() - 7);
+                } else if (lowerMsg.includes('tuần trước') || lowerMsg.includes('tuần rồi') || lowerMsg.includes('tuần qua')) {
+                    result.timeframe = 'week';
+                    const d = new Date(); d.setDate(d.getDate() - 7);
                     result.targetDateExact = d.toISOString();
                 } else {
-                    // TRƯỜNG HỢP HỎI HIỆN TẠI (tuần này, tháng này, kỳ này...)
                     if (lowerMsg.includes('tuần')) result.timeframe = 'week';
                     else if (isKyThuPhi) result.timeframe = 'billing';
                     else if (lowerMsg.includes('tháng')) result.timeframe = 'month';
                     else if (lowerMsg.includes('năm')) result.timeframe = 'year';
                 }
+
+                if (!result.timeframe) result.timeframe = 'billing';
             }
-            
-            // NẾU LÀ CÂU HỎI LƯU LƯỢNG MÀ KHÔNG GHI THỜI GIAN -> MẶC ĐỊNH TÍNH THEO KỲ THU PHÍ
-            // SỬA LỖI: Mặc định phải là 'kỳ thu phí' (billing) vì đây là mục đích chính của hệ thống.
-            // Chỉ tính theo 'tháng' khi người dùng nói rõ "tháng này", "tháng trước", v.v.
-            if (pattern.type === 'statistics' && !result.timeframe) {
-                result.timeframe = 'billing';
-            }
-            
+
             return result;
         }
     }
-    
+
     return null;
 }
 
-/**
- * Reset lịch sử hội thoại
- */
 export function resetConversation() {
     conversationHistory = [
-        {
-            role: "user",
-            parts: [{ text: SYSTEM_CONTEXT }]
-        },
-        {
-            role: "model",
-        parts: [{ text: WELCOME_MESSAGE }]
-        }
+        { role: "user", parts: [{ text: SYSTEM_CONTEXT }] },
+        { role: "model", parts: [{ text: WELCOME_MESSAGE }] }
     ];
 }
-/**
- * Kiểm tra API key có hợp lệ không
- */
+
 export function hasValidAPIKey() {
     return isValidAPIKey;
+}
+
+/**
+ * Format dữ liệu có cấu trúc thành chuỗi văn bản đẹp — KHÔNG cần gọi AI.
+ * Dùng cho mọi truy vấn dữ liệu (statistics, companyData, holidays...).
+ * AI chỉ được gọi khi contextData = null (câu hỏi hội thoại thuần tuý).
+ */
+export function formatDataResponse(contextData, userMessage) {
+    if (!contextData) return null; // Không có dữ liệu → để AI xử lý
+
+    // ===== THỐNG KÊ NÂNG CAO =====
+    if (contextData.advancedStats) {
+        const stats = contextData.advancedStats;
+        let r = `📌 **${stats.periodLabel || 'Thống kê'}**\n\n`;
+
+        if (stats.companyData) {
+            const d = stats.companyData;
+            if (!d.hasData) {
+                return r + `⚠️ Công ty **${d.company}** bị thiếu chỉ số mốc đầu kỳ, không thể tính toán.`;
+            }
+            r += `🏭 Công ty: **${d.company}**\n`;
+            r += `💧 Tổng lưu lượng: **${d.total.toLocaleString('vi-VN')} m³**\n`;
+            if (d.avg !== null) r += `📊 Trung bình: **${d.avg.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} m³/ngày** (${d.workingDays} ngày làm việc)\n`;
+            if (d.quota !== null) r += `📦 Khối lượng khoán: **${d.quota.toLocaleString('vi-VN')} m³**\n`;
+        } else if (stats.tong_luong_xa_thai_kcn !== undefined) {
+            r += `💧 **Tổng KCN: ${stats.tong_luong_xa_thai_kcn.toLocaleString('vi-VN')} m³**`;
+            if (stats.so_cong_ty_co_du_lieu) r += ` _(${stats.so_cong_ty_co_du_lieu} công ty)_`;
+            r += `\n\n`;
+            if (stats.topConsumers && stats.topConsumers.length > 0) {
+                r += `🏆 **Top xả thải nhiều nhất:**\n`;
+                stats.topConsumers.forEach((c, i) => {
+                    r += `${i + 1}. **${c.company}**: ${c.total.toLocaleString('vi-VN')} m³\n`;
+                });
+            }
+            if (stats.companies && stats.companies.length > 0) {
+                const allZero = stats.companies.every(c => (c.total || 0) === 0);
+                if (allZero) {
+                    r += `\n⚠️ Có vẻ như chưa có dữ liệu xả thải được ghi nhận trong kỳ này.`;
+                }
+            }
+        }
+
+        r += `\n[BUTTON]Xem kỳ trước[/BUTTON]\n[BUTTON]Xem từng công ty[/BUTTON]`;
+        return r;
+    }
+
+    // ===== CHỈ SỐ CÔNG TY =====
+    if (contextData.companyData) {
+        const d = contextData.companyData;
+        let r = `📋 **Chỉ số mới nhất của ${d.company}**\n\n`;
+        r += `📅 Ngày ghi: **${d.ngay_ghi_hien_tai || 'N/A'}**\n`;
+        r += `🔢 Chỉ số: **${(d.chi_so_dong_ho_hien_tai || 0).toLocaleString('vi-VN')}**\n`;
+        r += `\n[BUTTON]Lịch sử chỉ số ${d.company}[/BUTTON]`;
+        return r;
+    }
+
+    // ===== DANH SÁCH CÔNG TY =====
+    if (contextData.companyList) {
+        const list = contextData.companyList;
+        let r = `🏭 **Danh sách công ty KCN Thốt Nốt** _(${list.total} công ty)_\n\n`;
+        if (list.group1.length) r += `🔵 **Nhóm 1 (Đồng hồ):** ${list.group1.join(', ')}\n`;
+        if (list.group2.length) r += `🟢 **Nhóm 2 (Hóa đơn):** ${list.group2.join(', ')}\n`;
+        if (list.group3.length) r += `🟡 **Nhóm 3 (Khoán):** ${list.group3.join(', ')}\n`;
+        r += `\n[BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]\n[BUTTON]Tổng xả thải tháng này[/BUTTON]`;
+        return r;
+    }
+
+    // ===== NGÀY NGHỈ / LỊCH NGHỈ =====
+    if (contextData.holidays !== undefined) {
+        const hols = contextData.holidays;
+        let r = ``;
+
+        const dayMap = { 'sat_sun': 'Thứ 7 & Chủ nhật', 'sat-sun': 'Thứ 7 & Chủ nhật', 'sun_only': 'Chủ nhật', 'sun': 'Chủ nhật', 'sat': 'Thứ 7', 'none': 'Không nghỉ' };
+
+        if (contextData.company && contextData.defaultHolidayConfig) {
+            const cfg = contextData.defaultHolidayConfig;
+            r += `📋 **Cấu hình nghỉ định kỳ của ${contextData.company}:** ${dayMap[cfg] || cfg}\n\n`;
+        } else if (contextData.allDefaultHolidays) {
+            r += `📋 **Cấu hình nghỉ định kỳ các công ty:**\n`;
+            for (const [comp, cfg] of Object.entries(contextData.allDefaultHolidays)) {
+                if (cfg && cfg !== 'none') {
+                    r += `- **${comp}**: Nghỉ ${dayMap[cfg] || cfg}\n`;
+                }
+            }
+            r += `\n`;
+        }
+
+        if (hols.length === 0) {
+            r += `✅ Không có thông báo nghỉ đột xuất nào trong khoảng thời gian tra cứu.`;
+        } else {
+            r += `📅 **${hols.length} thông báo nghỉ:**\n`;
+            hols.forEach(h => {
+                const parts = h.date.split('-');
+                const disp = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : h.date;
+                r += `- **${h.company}**: Ngày ${disp}${h.ghi_chu ? ` _(${h.ghi_chu})_` : ''}\n`;
+            });
+        }
+
+        r += `\n[BUTTON]Xem lịch trực hôm nay[/BUTTON]`;
+        return r;
+    }
+
+    // ===== LỊCH TRỰC (AUTOPLAN) =====
+    if (contextData.calculatedSchedule !== undefined) {
+        const schedule = contextData.calculatedSchedule;
+        const dateLabel = contextData.targetDate
+            ? (() => {
+                const p = contextData.targetDate.split('-');
+                return `ngày ${p[2]}/${p[1]}/${p[0]}`;
+              })()
+            : 'hôm nay';
+
+        if (!schedule) {
+            return `📅 Không tìm thấy lịch trực cho ${dateLabel}.\n\n[BUTTON]Xem lịch tuần này[/BUTTON]`;
+        }
+
+        let r = `📅 **Lịch trực ${dateLabel}:**\n\n${schedule}\n\n[BUTTON]Ngày mai ai trực?[/BUTTON]`;
+        return r;
+    }
+
+    // ===== LỖI =====
+    if (contextData.error) {
+        return `⚠️ **Không thể tải dữ liệu:** ${contextData.error}\n\nVui lòng thử lại sau.`;
+    }
+
+    return null; // Không nhận dạng được → để AI xử lý
 }
