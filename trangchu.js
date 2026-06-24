@@ -2,7 +2,7 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse } from "./chatbot-ai.js";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage } from "./chatbot-ai.js";
 
 // Import Firebase query functions
 import {
@@ -514,13 +514,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
     chatReset.addEventListener('click', () => {
         resetConversation();
         chatMessages.innerHTML = '';
-        // Tái tạo tin nhắn chào mừng với các nút gợi ý
-        const welcomeMessage = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
-        Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
-        [BUTTON]Hôm nay ai trực?[/BUTTON]
-        [BUTTON]Tổng xả thải tháng này?[/BUTTON]
-        [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
-        addMessage(welcomeMessage);
+        addMessage(getWelcomeMessage());
     });
 
     // Khởi tạo chatbot khi trang tải xong
@@ -550,15 +544,11 @@ fetch("footer.html").then(r => r.text()).then(h => {
             // Hiện box đăng nhập nhanh nếu chưa đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'block';
         }
-        // Luôn hiển thị tin nhắn chào mừng khi tải trang, dù đăng nhập hay chưa
-        if (chatMessages.children.length === 0) {
-            const welcomeMessage = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
-            Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
-            [BUTTON]Hôm nay ai trực?[/BUTTON]
-            [BUTTON]Tổng xả thải tháng này?[/BUTTON]
-            [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
-            addMessage(welcomeMessage);
-        }
+        
+        // Luôn hiển thị hoặc cập nhật tin nhắn chào mừng phù hợp với quyền hạn của user
+        resetConversation();
+        chatMessages.innerHTML = '';
+        addMessage(getWelcomeMessage());
     });
 
     // Kiểm tra và hiển thị trạng thái AI

@@ -45,16 +45,27 @@ Khi trả lời về số liệu từ [Dữ liệu hệ thống]: đọc đúng 
 Sau khi trả lời, gợi ý 1-2 câu hỏi tiếp theo bằng [BUTTON]...[/BUTTON].`;
 
 
-const WELCOME_MESSAGE = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+export const WELCOME_MESSAGE_MEMBER = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
 
 Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
 [BUTTON]Hôm nay ai trực?[/BUTTON]
 [BUTTON]Tổng xả thải tháng này?[/BUTTON]
 [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
 
+export const WELCOME_MESSAGE_GUEST = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+
+Bạn có thể tìm hiểu thông tin cơ bản về KCN Thốt Nốt, hoặc thử một trong các gợi ý sau:
+[BUTTON]Địa chỉ KCN ở đâu?[/BUTTON]
+[BUTTON]Giờ làm việc của KCN?[/BUTTON]
+[BUTTON]Liên hệ hỗ trợ kỹ thuật[/BUTTON]`;
+
+export function getWelcomeMessage() {
+    return auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST;
+}
+
 let conversationHistory = [
     { role: "user", parts: [{ text: SYSTEM_CONTEXT }] },
-    { role: "model", parts: [{ text: WELCOME_MESSAGE }] }
+    { role: "model", parts: [{ text: WELCOME_MESSAGE_GUEST }] }
 ];
 
 let companyNameMap = {
@@ -160,6 +171,37 @@ initDynamicChatbotData();
  * Gọi Gemini API để xử lý câu hỏi
  */
 export async function getAIResponse(userMessage, contextData = null) {
+    const lowerMsg = userMessage.toLowerCase().trim();
+    const responses = {
+        'địa chỉ': '📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.',
+        'giờ làm việc': '⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).',
+        'liên hệ hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.',
+        'hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.',
+        'liên hệ': '📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408',
+        'xin chào': auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST,
+        'hello': 'Hello! Xin chào bạn.',
+        'cám ơn': 'Rất vui được giúp bạn! 😊',
+        'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
+        'chức năng': auth.currentUser 
+            ? 'Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...'
+            : 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.',
+    };
+
+    for (const [key, value] of Object.entries(responses)) {
+        if (lowerMsg.includes(key)) {
+            conversationHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+            conversationHistory.push({ role: 'model', parts: [{ text: value }] });
+            if (conversationHistory.length > 14) {
+                conversationHistory = [
+                    conversationHistory[0],
+                    conversationHistory[1],
+                    ...conversationHistory.slice(-12)
+                ];
+            }
+            return value;
+        }
+    }
+
     if (!isValidAPIKey) {
         console.warn('⚠️ Gemini API key chưa được cấu hình. Sử dụng chế độ fallback.');
         if (typeof document !== 'undefined') {
@@ -198,7 +240,7 @@ export async function getAIResponse(userMessage, contextData = null) {
             // Client không cần retry, giảm tải băng thông và tránh lỗi quota lan rộng.
             const currentUser = auth.currentUser;
             if (!currentUser) {
-                return "⚠️ Bạn cần **đăng nhập** để sử dụng trợ lý ảo AI Chatbot.";
+                return "⚠️ Bạn cần **đăng nhập** để sử dụng đầy đủ tính năng của trợ lý ảo AI Chatbot (hỏi đáp tự do, tra cứu số liệu...).";
             }
             const idToken = await currentUser.getIdToken();
 
@@ -407,15 +449,18 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
     }
 
     const responses = {
-        'xin chào': WELCOME_MESSAGE,
-        'hello': 'Hello! Xin chào bạn.',
-        'địa chỉ': '📍 Trung tâm tọa lạc tại: KV Thới Hòa 1, P. Thốt Nốt, TP Cần Thơ',
-        'giờ làm việc': '⏰ Giờ làm việc: 7:30 - 17:00 (Thứ 2 - Thứ 6)',
+        'địa chỉ': '📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.',
+        'giờ làm việc': '⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).',
+        'liên hệ hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.',
+        'hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.',
         'liên hệ': '📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408',
-        'hỗ trợ': '📞 Mr Toàn - Số điện thoại: 0946.000.865',
+        'xin chào': auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST,
+        'hello': 'Hello! Xin chào bạn.',
         'cám ơn': 'Rất vui được giúp bạn! 😊',
         'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
-        'chức năng': 'Công cụ ghi nhận: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc,...là thành viên nên bạn có thể xem chi tiết ở menu hệ thống',
+        'chức năng': auth.currentUser 
+            ? 'Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...'
+            : 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.',
     };
 
     for (const [key, value] of Object.entries(responses)) {
@@ -633,7 +678,7 @@ export function detectDataQuery(message) {
 export function resetConversation() {
     conversationHistory = [
         { role: "user", parts: [{ text: SYSTEM_CONTEXT }] },
-        { role: "model", parts: [{ text: WELCOME_MESSAGE }] }
+        { role: "model", parts: [{ text: getWelcomeMessage() }] }
     ];
 }
 
