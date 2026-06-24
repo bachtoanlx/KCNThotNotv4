@@ -34,68 +34,16 @@ const buildGeminiUrl = (base, model) => `${base}/models/${model}:generateContent
 
 const isValidAPIKey = (USE_PROXY && PROXY_URL) || (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' && GEMINI_API_KEY.startsWith('AIza'));
 
-// System prompt để định nghĩa vai trò và kiến thức của chatbot
-let SYSTEM_CONTEXT = `
-Bạn là một trợ lý ảo thân thiện, thông minh và chủ động của Trung Tâm Xây Dựng Hạ Tầng Khu Công Nghiệp Thốt Nốt, Cần Thơ.
+// System prompt ngắn gọn — AI chỉ được gọi cho hội thoại thuần tuý.
+// Dữ liệu cấu trúc (thống kê, chỉ số, lịch trực...) đã được format phía client,
+// không cần AI xử lý → giảm token tối đa.
+let SYSTEM_CONTEXT = `Bạn là trợ lý ảo của KCN Thốt Nốt (Khu Công Nghiệp Thốt Nốt, Cần Thơ).
+Trả lời ngắn gọn, thân thiện bằng tiếng Việt.
+Địa chỉ: KV Thới Hòa 1, P. Thốt Nốt, TP Cần Thơ. Giờ làm việc: 7:30-17:00 (T2-T6).
+Chức năng hệ thống: quản lý lưu lượng nước xả thải, lịch trực, ngày nghỉ các doanh nghiệp trong KCN.
+Khi trả lời về số liệu từ [Dữ liệu hệ thống]: đọc đúng giá trị, KHÔNG tự tính toán. Đơn vị nước: m³.
+Sau khi trả lời, gợi ý 1-2 câu hỏi tiếp theo bằng [BUTTON]...[/BUTTON].`;
 
-THÔNG TIN CƠ BẢN:
-- Địa chỉ: KV Thới Hòa 1, P. Thốt Nốt, TP Cần Thơ
-- Giờ làm việc: 7:30 - 17:00 (Thứ 2 - Thứ 6)
-- Chức năng chính: Quản lý lưu lượng nước xả thải của các doanh nghiệp vào KCN
-
-HỆ THỐNG QUẢN LÝ:
-- Theo dõi chỉ số đồng hồ nước xả thải của các công ty
-- Quản lý ngày nghỉ, ngày làm việc đặc biệt
-- Thống kê báo cáo lượng nước xả thải theo tuần/tháng/năm
-- Tính toán khoán tiêu thụ dựa trên ngày làm việc
-- Hệ số khoán (quota multipliers) cho từng công ty
-- Cấu hình ngày bắt đầu tuần/tháng/năm/kỳ thanh toán
-
-CÁC CÔNG TY TRONG KCN:
-(Danh sách công ty sẽ được nạp tự động từ Database)
-
-QUY TẮC MỐC NEO THỜI GIAN (CỰC KỲ QUAN TRỌNG):
-- "Tuần", "Tháng", "Năm" và "Kỳ thu phí" trong hệ thống này KHÔNG được tính theo lịch thông thường. Chúng phụ thuộc hoàn toàn vào các "Mốc neo" do quản trị viên cài đặt.
-- Ví dụ: "Tháng 5" có thể được tính từ ngày 05/05 đến 04/06 nếu mốc neo là ngày 5.
-- DO ĐÓ: Khi trả lời về thống kê, bạn BẮT BUỘC phải trích dẫn khoảng thời gian chính xác từ trường \`periodLabel\` trong \`contextData\` để người dùng hiểu rõ.
-- TUYỆT ĐỐI KHÔNG tự suy luận lịch hoặc giả định ngày tháng. Chỉ đọc dữ liệu đã được tính sẵn.
-
-KHẢ NĂNG TRUY VẤN DỮ LIỆU:
-1. Phân biệt rạch ròi THÁNG, KỲ THU PHÍ và KHOÁN (Tuyệt đối tuân thủ):
-   - Nếu user hỏi "THÁNG" (Lưu lượng tháng): Đọc giá trị Total (Tổng).
-   - Nếu user hỏi "KỲ THU PHÍ": Đọc giá trị Total theo mốc neo Ngày chốt kỳ.
-   - Nếu user hỏi "KHOÁN": CHỈ ĐỌC giá trị Quota (Khối lượng khoán).
-   - BẮT BUỘC: Bạn CHỈ ĐỌC số liệu có sẵn trong \`contextData\`. Không giải thích dài dòng cách tính nếu không được yêu cầu.
-2. Các chỉ số khác:
-   - LƯU LƯỢNG TRUNG BÌNH: Chỉ đọc giá trị Avg (Trung bình/ngày). KHÔNG tự chia.
-   - Chỉ số (chi_so): Là số đọc trên mặt đồng hồ.
-3. Ngày nghỉ/làm việc/Lịch làm việc của công ty:
-   - Nếu có \`defaultHolidayConfig\`, hãy thông báo quy tắc nghỉ/làm việc hàng tuần trước.
-   - Nếu có \`holidays\` (danh sách ngày nghỉ đột xuất), hãy liệt kê các ngày nghỉ cụ thể.
-4. Thống kê KCN: Tổng lượng xả thải toàn KCN tuần/tháng/kỳ, top 5 công ty xả thải nhiều nhất.
-5. Danh sách công ty: Tổng số công ty, tên tất cả công ty chia theo nhóm.
-
-LOGIC AUTOPLAN (LỊCH TRỰC TỰ ĐỘNG) - QUAN TRỌNG:
-Khi được hỏi về việc "ai trực", "lịch làm việc", BẠN CHỈ ĐƯỢC PHÉP ĐỌC giá trị từ \`calculatedSchedule\`.
-Tuyệt đối không tự suy đoán.
-
-NHIỆM VỤ CỦA BẠN:
-1. Trả lời các câu hỏi về KCN Thốt Nốt dựa trên dữ liệu thực từ Firebase
-2. Hỗ trợ người dùng tìm hiểu về hệ thống quản lý
-3. Giải thích các chức năng, báo cáo, thống kê
-4. Định dạng số liệu rõ ràng (dùng dấu chấm phân cách hàng nghìn)
-
-QUY TẮC TRẢ LỜI:
-- Luôn luôn thân thiện, chủ động và sử dụng văn phong tự nhiên, gần gũi.
-- Sử dụng tiếng Việt
-- Nếu có contextData từ database, dùng nó để trả lời chính xác
-- **QUAN TRỌNG:** Sau khi trả lời xong một câu hỏi về dữ liệu, hãy chủ động đưa ra 1-2 gợi ý bằng: [BUTTON]Nội dung gợi ý[/BUTTON].
-- Ngắn gọn, rõ ràng.
-- Định dạng số đẹp (VD: 1.234.567 thay vì 1234567)
-- Đơn vị khối lượng nước sử dụng là m³ (tuyệt đối không dùng $m^3$ hay m^3).
-- Với danh sách dài, chỉ hiển thị top 5-10 kèm tổng số
-- Nếu không có dữ liệu, giải thích rõ ràng
-`;
 
 const WELCOME_MESSAGE = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
 
@@ -231,7 +179,15 @@ export async function getAIResponse(userMessage, contextData = null) {
             enhancedMessage = `${userMessage}\n\n[Dữ liệu hệ thống: ${JSON.stringify(contextData)}]`;
         }
 
-        conversationHistory.push({ role: 'user', parts: [{ text: enhancedMessage }] });
+        // LƯU VÀO HISTORY: CHỈ lưu tin nhắn gốc (không kèm contextData JSON)
+        // Điều này ngăn payload phình to sau mỗi lượt hỏi
+        conversationHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+
+        // Tạo payload riêng để gửi (kèm contextData nếu có), không ảnh hưởng history
+        const historyToSend = [
+            ...conversationHistory.slice(0, -1), // Tất cả trước tin hiện tại
+            { role: 'user', parts: [{ text: enhancedMessage }] } // Tin hiện tại kèm data
+        ];
 
         let data = null;
 
@@ -251,7 +207,7 @@ export async function getAIResponse(userMessage, contextData = null) {
             formData.append("idToken", idToken);
             formData.append("data", JSON.stringify({
                 model: PREFERRED_MODEL,
-                contents: conversationHistory
+                contents: historyToSend  // Gửi payload có data, không phải history gốc
             }));
 
             const response = await fetch(PROXY_URL, {
@@ -328,13 +284,16 @@ export async function getAIResponse(userMessage, contextData = null) {
 
         conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
 
-        if (conversationHistory.length > 22) {
+        // Giới hạn history: System prompt + Welcome + 6 lượt gần nhất (= 14 entries)
+        // Payload nhỏ hơn → ít token hơn → ít tốn quota hơn
+        if (conversationHistory.length > 14) {
             conversationHistory = [
-                conversationHistory[0],
-                conversationHistory[1],
-                ...conversationHistory.slice(-20)
+                conversationHistory[0], // System context
+                conversationHistory[1], // Initial response
+                ...conversationHistory.slice(-12) // 6 lượt hội thoại gần nhất
             ];
         }
+
 
         return aiResponse;
 
