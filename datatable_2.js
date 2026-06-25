@@ -471,8 +471,8 @@
                         copyDocIdToClipboard('reports_2', r.id);
                     }, 800);
                 }, { passive: true });
-                tr.addEventListener('touchend', () => clearTimeout(pressTimer));
-                tr.addEventListener('touchmove', () => clearTimeout(pressTimer));
+                tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
+                tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
             }
 
             if (noteCell) {

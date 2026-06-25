@@ -825,7 +825,7 @@ export function initAutoLogout(timeoutInDays = 7) {
   window.addEventListener('mousemove', updateLastActivity);
   window.addEventListener('keydown', updateLastActivity);
   window.addEventListener('click', updateLastActivity);
-  window.addEventListener('scroll', updateLastActivity);
+  window.addEventListener('scroll', updateLastActivity, { passive: true });
 
   // 2. Khởi tạo mốc thời gian lần đầu nếu chưa có
   if (!localStorage.getItem('lastActivityTime')) {

@@ -2,7 +2,9 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage } from "./chatbot-ai.js";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js";
+
+
 
 // Import Firebase query functions
 import {
@@ -90,6 +92,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
     // Hàm khởi tạo: Tải danh sách công ty một lần
     async function initializeChatbot() {
         try {
+            await initDynamicChatbotData();
             // ⭐️ TỐI ƯU HÓA: Chỉ đọc Master List thay vì quét toàn bộ reports_1
             const companiesRef = collection(db, "companies_master");
             const snapshot = await getDocs(companiesRef);
@@ -138,6 +141,9 @@ fetch("footer.html").then(r => r.text()).then(h => {
 
                 // 3. Xử lý ITALIC (dấu * đơn) SAU, dùng [^*] để ép nó không ăn vào thẻ strong
                 .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+
+                // Xử lý LINK markdown [text](url)
+                .replace(/\[([^\]]+?)\]\((https?:\/\/[^\s)]+?)\)/g, '<a href="$2" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">$1</a>')
 
                 // 4. Sửa lại Regex của BUTTON (Thêm ngoặc tròn () để tạo nhóm $1)
                 .replace(new RegExp('\\[BUTTON\\](.*?)\\[/BUTTON\\]', 'g'), '<button class="suggestion-btn">$1</button>')
@@ -287,6 +293,11 @@ fetch("footer.html").then(r => r.text()).then(h => {
 
             try {
                 switch (dataQuery.type) {
+                    case 'rag_knowledge':
+                        const matches = searchAIKnowledge(userMessage);
+                        contextData = { rag_knowledge: matches };
+                        break;
+
                     case 'companyList':
                         // Lấy danh sách và số lượng công ty được phân nhóm
                         const companyList = await getAllCompanies();
@@ -521,11 +532,13 @@ fetch("footer.html").then(r => r.text()).then(h => {
     // Chỉ khởi tạo dữ liệu tìm kiếm nếu đã đăng nhập (để tránh lỗi permission denied trong console)
     auth.onAuthStateChanged(user => {
         const homeLoginBox = document.querySelector('.home-login-box');
+        const chatDisclaimer = document.querySelector('.chat-disclaimer');
 
         if (user) {
             initializeChatbot();
             // Ẩn box đăng nhập nhanh nếu đã đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'none';
+            if (chatDisclaimer) chatDisclaimer.style.display = 'block';
 
             // Chạy đồng bộ ngầm IndexedDB cho reports_1 và reports_2
             console.log("🔄 Khởi chạy đồng bộ ngầm IndexedDB...");
@@ -543,6 +556,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
         } else {
             // Hiện box đăng nhập nhanh nếu chưa đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'block';
+            if (chatDisclaimer) chatDisclaimer.style.display = 'none';
         }
         
         // Luôn hiển thị hoặc cập nhật tin nhắn chào mừng phù hợp với quyền hạn của user

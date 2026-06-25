@@ -1,7 +1,28 @@
 // Chatbot AI using Google Gemini
 
-import { db, auth } from "./script.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { db, auth, getRole } from "./script.js";
+import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getAIKnowledgeBase } from "./chatbot-firebase-queries.js";
+
+let cachedAIKnowledge = [];
+let currentUserRole = "guest";
+
+// Theo dõi vai trò người dùng hiện tại để phân quyền quy chế RAG
+if (auth) {
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                currentUserRole = await getRole(user.email);
+            } catch (e) {
+                console.error("Lỗi lấy vai trò chatbot:", e);
+                currentUserRole = "user";
+            }
+        } else {
+            currentUserRole = "guest";
+        }
+    });
+}
+
 
 // ========== CẤU HÌNH PROXY ==========
 const USE_PROXY = true;
@@ -34,31 +55,13 @@ const buildGeminiUrl = (base, model) => `${base}/models/${model}:generateContent
 
 const isValidAPIKey = (USE_PROXY && PROXY_URL) || (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' && GEMINI_API_KEY.startsWith('AIza'));
 
-// System prompt ngắn gọn — AI chỉ được gọi cho hội thoại thuần tuý.
-// Dữ liệu cấu trúc (thống kê, chỉ số, lịch trực...) đã được format phía client,
-// không cần AI xử lý → giảm token tối đa.
-let SYSTEM_CONTEXT = `Bạn là trợ lý ảo của KCN Thốt Nốt (Khu Công Nghiệp Thốt Nốt, Cần Thơ).
-Trả lời ngắn gọn, thân thiện bằng tiếng Việt.
-Địa chỉ: KV Thới Hòa 1, P. Thốt Nốt, TP Cần Thơ. Giờ làm việc: 7:30-17:00 (T2-T6).
-Chức năng hệ thống: quản lý lưu lượng nước xả thải, lịch trực, ngày nghỉ các doanh nghiệp trong KCN.
-Khi trả lời về số liệu từ [Dữ liệu hệ thống]: đọc đúng giá trị, KHÔNG tự tính toán. Đơn vị nước: m³.
-Sau khi trả lời, gợi ý 1-2 câu hỏi tiếp theo bằng [BUTTON]...[/BUTTON].`;
+// System prompt ngắn gọn (Fallback bảo mật, thông tin thực tế tải từ Firestore)
+let SYSTEM_CONTEXT = `Bạn là trợ lý ảo. Trả lời ngắn gọn, thân thiện bằng tiếng Việt.`;
 
 
-export const WELCOME_MESSAGE_MEMBER = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+export let WELCOME_MESSAGE_MEMBER = `Xin chào! Tôi là trợ lý ảo hỗ trợ bạn.`;
 
-Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
-[BUTTON]Hôm nay ai trực?[/BUTTON]
-[BUTTON]Tổng xả thải tháng này?[/BUTTON]
-[BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
-
-export const WELCOME_MESSAGE_GUEST = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
-
-Bạn có thể tìm hiểu thông tin cơ bản về KCN Thốt Nốt, hoặc thử một trong các gợi ý sau:
-[BUTTON]Giới thiệu về KCN Thốt Nốt[/BUTTON]
-[BUTTON]Địa chỉ KCN ở đâu?[/BUTTON]
-[BUTTON]Giờ làm việc của KCN?[/BUTTON]
-[BUTTON]Liên hệ hỗ trợ kỹ thuật[/BUTTON]`;
+export let WELCOME_MESSAGE_GUEST = `Xin chào! Tôi là trợ lý ảo hỗ trợ bạn. Vui lòng đăng nhập để sử dụng đầy đủ tính năng.`;
 
 export function getWelcomeMessage() {
     return auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST;
@@ -69,31 +72,38 @@ let conversationHistory = [
     { role: "model", parts: [{ text: WELCOME_MESSAGE_GUEST }] }
 ];
 
-let companyNameMap = {
-    'ngân hàng': 'Agribank',
-    'ngan hang': 'Agribank',
-    'agri': 'Agribank',
-    'agribank': 'Agribank',
-    'ấn độ': 'Ấn Độ Dương',
-    'an do': 'Ấn Độ Dương',
-    'đại tây': 'Đại Tây Dương',
-    'dai tay': 'Đại Tây Dương',
-    'cá việt nam': 'Cá Việt Nam',
-    'ca viet nam': 'Cá Việt Nam',
-    'ntsf': 'NTSF',
-    'amicogen': 'Amicogen'
-};
+let companyNameMap = {};
+let staticResponsesMap = {};
 
 function removeAccents(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 
-async function initDynamicChatbotData() {
+export async function initDynamicChatbotData() {
     try {
-        const [masterSnap, configSnap] = await Promise.all([
+        const [masterSnap, configSnap, aiConfigSnap] = await Promise.all([
             getDocs(collection(db, "companies_master")),
-            getDocs(collection(db, "company_configs"))
+            getDocs(collection(db, "company_configs")),
+            getDoc(doc(db, "settings", "ai_config"))
         ]);
+
+        if (aiConfigSnap.exists()) {
+            const aiData = aiConfigSnap.data();
+            if (aiData.systemContext) {
+                SYSTEM_CONTEXT = aiData.systemContext;
+                // Cập nhật lại prompt trong history đầu tiên nếu cuộc gọi reset chưa diễn ra
+                if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
+                    conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
+                }
+            }
+            if (aiData.welcomeGuest) WELCOME_MESSAGE_GUEST = aiData.welcomeGuest;
+            if (aiData.welcomeMember) WELCOME_MESSAGE_MEMBER = aiData.welcomeMember;
+            if (aiData.staticResponses) {
+                staticResponsesMap = typeof aiData.staticResponses === 'string'
+                    ? JSON.parse(aiData.staticResponses)
+                    : aiData.staticResponses;
+            }
+        }
 
         const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
         const configs = configSnap.docs.map(d => d.data());
@@ -110,35 +120,19 @@ async function initDynamicChatbotData() {
             if (lower !== noAccent) newMap[noAccent] = comp;
         });
 
-        // Từ viết tắt và gọi tắt thủ công
-        newMap['ấn độ'] = 'Ấn Độ Dương';
-        newMap['an do'] = 'Ấn Độ Dương';
-        newMap['ấn độ dương'] = 'Ấn Độ Dương';
-        newMap['an do duong'] = 'Ấn Độ Dương';
-        newMap['add'] = 'Ấn Độ Dương';
-
-        newMap['đại tây'] = 'Đại Tây Dương';
-        newMap['dai tay'] = 'Đại Tây Dương';
-        newMap['đại tây dương'] = 'Đại Tây Dương';
-        newMap['dai tay duong'] = 'Đại Tây Dương';
-        newMap['dtd'] = 'Đại Tây Dương';
-
-        newMap['cá việt nam'] = 'Cá Việt Nam';
-        newMap['ca viet nam'] = 'Cá Việt Nam';
-        newMap['ca vn'] = 'Cá Việt Nam';
-        newMap['cá vn'] = 'Cá Việt Nam';
-        newMap['cavietnam'] = 'Cá Việt Nam';
-
-        newMap['ngân hàng'] = 'Agribank';
-        newMap['ngan hang'] = 'Agribank';
-        newMap['agri'] = 'Agribank';
-
-        newMap['ntsf'] = 'NTSF';
-        newMap['n t s f'] = 'NTSF';
-
-        newMap['amicogen'] = 'Amicogen';
-        newMap['ami'] = 'Amicogen';
-        newMap['amico'] = 'Amicogen';
+        // Nạp các từ viết tắt và gọi tắt thủ công từ Firestore để bảo mật
+        if (aiConfigSnap.exists()) {
+            const aiData = aiConfigSnap.data();
+            if (aiData.companyAbbreviations) {
+                const manualMap = typeof aiData.companyAbbreviations === 'string'
+                    ? JSON.parse(aiData.companyAbbreviations)
+                    : aiData.companyAbbreviations;
+                
+                Object.keys(manualMap).forEach(key => {
+                    newMap[key.toLowerCase()] = manualMap[key];
+                });
+            }
+        }
 
         companyNameMap = newMap;
 
@@ -162,11 +156,18 @@ async function initDynamicChatbotData() {
             conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
         }
         console.log("🤖 Chatbot AI: Đã tự động học xong danh sách công ty mới nhất từ Database!");
+
+        // Tải và cache danh sách quy chế RAG từ Firestore
+        try {
+            cachedAIKnowledge = await getAIKnowledgeBase();
+            console.log(`🤖 Chatbot AI: Đã tải và cache ${cachedAIKnowledge.length} tài liệu quy chế.`);
+        } catch (knowledgeErr) {
+            console.warn("⚠️ Không thể tải quy chế AI:", knowledgeErr);
+        }
     } catch (e) {
         console.error("⚠️ Lỗi tải dữ liệu động cho chatbot:", e);
     }
 }
-initDynamicChatbotData();
 
 /**
  * Gọi Gemini API để xử lý câu hỏi
@@ -174,19 +175,19 @@ initDynamicChatbotData();
 export async function getAIResponse(userMessage, contextData = null) {
     const lowerMsg = userMessage.toLowerCase().trim();
     const responses = {
-        'giới thiệu': '🏢 Khu công nghiệp (KCN) Thốt Nốt là trung tâm công nghiệp trọng điểm tại cửa ngõ phía Bắc TP. Cần Thơ, giáp ranh tỉnh An Giang. Với quy mô lên tới 600 ha, đây là hạt nhân thu hút đầu tư, tập trung chế biến nông - thủy sản và logistics, tận dụng vị trí đắc địa tiếp giáp sông Hậu. Nằm tiếp giáp trung tâm vùng nguyên liệu nông nghiệp trù phú miền Tây (An Giang, Đồng Tháp, Cần Thơ) và mặt tiền sông Hậu, vô cùng thuận lợi cho vận tải thủy nội địa và xuất nhập khẩu. Được định hướng trở thành trung tâm công nghiệp, tiểu thủ công nghiệp trọng điểm – đặc biệt tập trung chế biến lương thực, thủy sản (cá tra, gạo) và các ngành công nghiệp phụ trợ, kho bãi.\n\n🔗 Bạn có thể xem chi tiết tại: <a href="https://www.google.com/search?q=t%E1%BB%95ng+quan+kcn+th%E1%BB%91t+n%E1%BB%91t&sca_esv=a05e7dbab888ec56&sxsrf=APpeQnuqPq_BOimAI5s5zkWwc1s1TcMluA%3A1782308889386&source=hp&ei=GeA7aoLBFJKnvr0PoJ2CsA4&iflsig=ABILxe8AAAAAajvuKUK9g1RrNljrWhNCiIgxR4cVWIoM&ved=0ahUKEwjCseqBgqCVAxWSk68BHaCOAOYQ4dUDCDc&uact=5&oq=t%E1%BB%95ng+quan+kcn+th%E1%BB%91t+n%E1%BB%91t&gs_lp=Egdnd3Mtd2l6Ihx04buVbmcgcXVhbiBrY24gdGjhu5F0IG7hu5F0MgUQIRigATIFECEYoAEyBRAhGJ8FMgUQIRifBTIFECEYnwUyBRAhGJ8FMgUQIRifBTIFECEYnwVIhEFQ_wZYwz9wDXgAkAEDmAHCAaABpR-qAQQxLjMxuAEDyAEA-AEBmAIioALcF6gCCsICDRAjGPAFGJ4GGOoCGCfCAgcQIxjqAhgnwgINECMYngYY8AUY6gIYJ8ICChAjGJ4GGPAFGCfCAg4QABiABBiKBRixAxiDAcICCxAAGIAEGLEDGIMBwgIIEAAYgAQYsQPCAgUQLhiABMICERAuGIAEGLEDGIMBGMcBGNEDwgIOEC4YgAQYigUYsQMYgwHCAggQLhiABBixA8ICBRAAGIAEwgIEEAAYA8ICCxAuGIAEGLEDGIMBwgIMEAAYgAQYChgLGLEDwgIEECMYJ8ICChAjGIAEGIoFGCfCAgQQIRgVmAMi8QWIi3SKmIdYvJIHBzEyLjIxLjGgB5HXAbIHBjEuMjEuMbgHjRfCBwsxLjE1LjE2LjEuMcgHigGACAE&sclient=gws-wiz" target="_blank" style="color: #034892; font-weight: bold; text-decoration: underline;">Tổng quan KCN Thốt Nốt</a>',
-        'địa chỉ': '📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.',
-        'giờ làm việc': '⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).',
-        'liên hệ hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.',
-        'hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.',
-        'liên hệ': '📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408',
+        'giới thiệu': staticResponsesMap['giới thiệu'] || '🏢 Thông tin giới thiệu về Khu công nghiệp.',
+        'địa chỉ': staticResponsesMap['địa chỉ'] || '📍 Vui lòng tham khảo thông tin địa chỉ trên trang liên hệ chính thức.',
+        'giờ làm việc': staticResponsesMap['giờ làm việc'] || '⏰ Giờ làm việc hành chính từ Thứ 2 đến Thứ 6.',
+        'liên hệ hỗ trợ': staticResponsesMap['liên hệ hỗ trợ'] || '📞 Vui lòng liên hệ Văn phòng Quản lý để được hỗ trợ.',
+        'hỗ trợ': staticResponsesMap['hỗ trợ'] || '📞 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được hỗ trợ.',
+        'liên hệ': staticResponsesMap['liên hệ'] || '📞 Vui lòng tham khảo thông tin liên hệ chính thức.',
         'xin chào': auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST,
         'hello': 'Hello! Xin chào bạn.',
         'cám ơn': 'Rất vui được giúp bạn! 😊',
         'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
         'chức năng': auth.currentUser 
-            ? 'Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...'
-            : 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.',
+            ? (staticResponsesMap['chức năng_member'] || 'Hỗ trợ tra cứu thông tin hệ thống (chỉ số, lịch trực, thống kê...).')
+            : (staticResponsesMap['chức năng_guest'] || 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về Khu công nghiệp. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.'),
     };
 
     for (const [key, value] of Object.entries(responses)) {
@@ -220,8 +221,14 @@ export async function getAIResponse(userMessage, contextData = null) {
     try {
         let enhancedMessage = userMessage;
         if (contextData) {
-            enhancedMessage = `${userMessage}\n\n[Dữ liệu hệ thống: ${JSON.stringify(contextData)}]`;
+            if (contextData.rag_knowledge && contextData.rag_knowledge.length > 0) {
+                const knowledgeText = contextData.rag_knowledge.map(k => `Tiêu đề: ${k.title}\nNội dung: ${k.content}`).join('\n---\n');
+                enhancedMessage = `${userMessage}\n\n[Tài liệu quy chế tham khảo chính thức:\n${knowledgeText}\n]`;
+            } else {
+                enhancedMessage = `${userMessage}\n\n[Dữ liệu hệ thống: ${JSON.stringify(contextData)}]`;
+            }
         }
+
 
         // LƯU VÀO HISTORY: CHỈ lưu tin nhắn gốc (không kèm contextData JSON)
         // Điều này ngăn payload phình to sau mỗi lượt hỏi
@@ -313,9 +320,22 @@ export async function getAIResponse(userMessage, contextData = null) {
         }
 
         const parts = data?.candidates?.[0]?.content?.parts;
-        const aiResponse = parts && parts.length
+        let aiResponse = parts && parts.length
             ? parts.map(p => p.text).join('\n')
             : 'Xin lỗi, tôi chưa có câu trả lời cho câu hỏi này.';
+
+        // Đính kèm nguồn trích dẫn nếu sử dụng RAG
+        if (contextData && contextData.rag_knowledge && contextData.rag_knowledge.length > 0) {
+            const sources = contextData.rag_knowledge.map(k => {
+                const titlePart = `**${k.title}**`;
+                if (k.sourceUrl) {
+                    return `Cấu hình quy chế - [${titlePart}](${k.sourceUrl})`;
+                }
+                return `Cấu hình quy chế - ${titlePart}`;
+            }).join(', ');
+            aiResponse += `\n\n*(Nguồn tham khảo: ${sources})*`;
+        }
+
 
         if (typeof document !== 'undefined') {
             const aiStatusEl = document.getElementById('aiStatus');
@@ -371,6 +391,14 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
 
     if (contextData) {
         let responseText = `📊 **Kết quả tra cứu (Chế độ cơ bản):**\n${errorNotice}`;
+
+        if (contextData.rag_knowledge) {
+            let ragText = `📖 **Tra cứu quy chế (Chế độ cơ bản):**\n${errorNotice}`;
+            contextData.rag_knowledge.forEach(k => {
+                ragText += `\n**${k.title}**:\n${k.content}\n`;
+            });
+            return ragText;
+        }
 
         if (contextData.companyData) {
             const data = contextData.companyData;
@@ -478,10 +506,54 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
 }
 
 /**
+ * Tìm kiếm mờ trong quy chế/kiến thức AI được cache
+ */
+export function searchAIKnowledge(queryText) {
+    // Lọc danh sách quy chế theo quyền truy cập của vai trò người dùng hiện tại
+    const allowedKnowledge = cachedAIKnowledge.filter(item => {
+        const itemTarget = item.targetGroup || "user";
+        if (currentUserRole === "admin") return true;
+        if (currentUserRole === "user") return itemTarget === "guest" || itemTarget === "user";
+        return itemTarget === "guest"; // guest
+    });
+
+    const FuseConstructor = typeof window !== 'undefined' && window.Fuse ? window.Fuse : (typeof Fuse !== 'undefined' ? Fuse : null);
+    if (!FuseConstructor || !allowedKnowledge || allowedKnowledge.length === 0) {
+        const lowerQuery = queryText.toLowerCase();
+        return allowedKnowledge.filter(item => {
+            const title = (item.title || "").toLowerCase();
+            const content = (item.content || "").toLowerCase();
+            const keywords = (item.keywords || "").toLowerCase();
+            return title.includes(lowerQuery) || content.includes(lowerQuery) || keywords.split(',').some(k => lowerQuery.includes(k.trim()));
+        });
+    }
+
+    const fuse = new FuseConstructor(allowedKnowledge, {
+        keys: [
+            { name: 'keywords', weight: 0.6 },
+            { name: 'title', weight: 0.3 },
+            { name: 'content', weight: 0.1 }
+        ],
+        threshold: 0.5
+    });
+    const results = fuse.search(queryText);
+    return results.map(r => r.item);
+}
+
+/**
  * Kiểm tra xem câu hỏi có cần truy vấn database không
  */
 export function detectDataQuery(message) {
     const lowerMsg = message.toLowerCase().trim();
+
+    // Kiểm tra câu hỏi quy chế RAG trước tiên
+    if (cachedAIKnowledge && cachedAIKnowledge.length > 0) {
+        const matches = searchAIKnowledge(message);
+        if (matches && matches.length > 0) {
+            return { type: 'rag_knowledge', query: message };
+        }
+    }
+
 
     let isCompanyRelatedHolidayOrWorkday = false;
     if (lowerMsg.includes('lịch làm việc') || lowerMsg.includes('ngày làm việc') || lowerMsg.includes('lịch nghỉ') || lowerMsg.includes('ngày nghỉ') || lowerMsg.includes('nghỉ')) {

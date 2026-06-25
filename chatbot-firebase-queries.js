@@ -1043,3 +1043,22 @@ export async function getAutoplanRules() {
         return [];
     }
 }
+
+/**
+ * Lấy toàn bộ danh sách quy chế/kiến thức AI từ collection 'ai_knowledge'
+ */
+export async function getAIKnowledgeBase() {
+    try {
+        const q = query(collection(db, "ai_knowledge"));
+        const snapshot = await getDocs(q);
+        console.log(`✅ [AI Knowledge] Đã tải ${snapshot.size} quy chế từ Firestore.`);
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error('❌ Lỗi lấy danh sách quy chế/kiến thức AI:', error);
+        return [];
+    }
+}
+
