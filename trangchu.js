@@ -2,7 +2,7 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=7";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=9";
 
 
 
@@ -167,7 +167,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
     // Lắng nghe sự kiện click trên các nút gợi ý
     chatMessages.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('suggestion-btn')) {
-            const question = e.target.textContent;
+            const question = e.target.dataset.query || e.target.textContent;
             handleUserInput(question);
         }
     });
@@ -297,6 +297,10 @@ fetch("footer.html").then(r => r.text()).then(h => {
                     case 'rag_knowledge':
                         const matches = searchAIKnowledge(userMessage);
                         contextData = { rag_knowledge: matches };
+                        break;
+
+                    case 'ambiguous':
+                        contextData = { ambiguousData: dataQuery };
                         break;
 
                     case 'companyList':

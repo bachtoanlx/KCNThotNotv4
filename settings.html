@@ -195,12 +195,23 @@
             }
 
             .settings-main {
-                padding: 15px;
+                padding: 0 8px 10px 8px;
+            }
+
+            /* Thu gọn padding của các khối dạng card có inline style trên mobile */
+            .settings-main div[style*="padding: 15px"] {
+                padding: 10px !important;
+            }
+
+            body #pageContent .card-body {
+                padding-top: 0px !important;
             }
 
             .settings-header {
-                margin-bottom: 10px;
-                padding-bottom: 5px;
+                margin-top: 0;
+                margin-bottom: 8px;
+                padding-top: 0;
+                padding-bottom: 4px;
             }
 
             .settings-header h2 {
@@ -249,6 +260,10 @@
                 content: '💾 Lưu';
                 font-size: 14px;
                 /* Đặt lại font-size cho text mới */
+            }
+
+            #addAiKnowledgeBtn {
+                margin-left: auto !important;
             }
         }
 
@@ -319,6 +334,57 @@
             overflow: visible;
             text-overflow: clip;
             max-width: none;
+        }
+
+        /* Đồng bộ kích thước input và nút nhấn phần Thông tin AI */
+        #addAiKnowledgeBtn,
+        #aiGlobalConfigForm button[type="submit"] {
+            height: 33px !important;
+            padding: 0 16px !important;
+            font-size: 13px !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 4px !important;
+        }
+
+        #aiKnowledgeSearchInput {
+            height: 33px !important;
+            padding: 6px 10px !important;
+            font-size: 13px !important;
+            box-sizing: border-box !important;
+            border-radius: 4px !important;
+        }
+
+        #aiGlobalConfigForm textarea {
+            font-size: 13px !important;
+            padding: 8px 10px !important;
+            border-radius: 4px !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        @media (max-width: 768px) {
+            #addAiKnowledgeBtn,
+            #aiGlobalConfigForm button[type="submit"] {
+                height: 27px !important;
+                padding: 0 12px !important;
+                font-size: 12px !important;
+                border-radius: 4px !important;
+            }
+
+            #aiKnowledgeSearchInput {
+                height: 27px !important;
+                padding: 4px 8px !important;
+                font-size: 12px !important;
+                border-radius: 4px !important;
+            }
+
+            #aiGlobalConfigForm textarea {
+                font-size: 12px !important;
+                padding: 6px 8px !important;
+                border-radius: 4px !important;
+            }
         }
     </style>
 </head>

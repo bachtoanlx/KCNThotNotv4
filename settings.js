@@ -2865,7 +2865,7 @@ async function openAiKnowledgeForm(docData = null) {
                     text-align: left; 
                     display: flex; 
                     flex-direction: column; 
-                    gap: 14px; 
+                    gap: 12px; 
                     font-family: 'Outfit', 'Inter', sans-serif;
                 }
                 .swal-custom-group {
@@ -2880,10 +2880,10 @@ async function openAiKnowledgeForm(docData = null) {
                 }
                 .swal-custom-input {
                     width: 100%; 
-                    height: 40px; 
-                    padding: 8px 12px; 
+                    height: 33px; 
+                    padding: 6px 10px; 
                     border: 1.5px solid #cbd5e1; 
-                    border-radius: 8px; 
+                    border-radius: 6px; 
                     font-size: 13px; 
                     box-sizing: border-box; 
                     transition: all 0.2s ease-in-out; 
@@ -2897,10 +2897,10 @@ async function openAiKnowledgeForm(docData = null) {
                 }
                 .swal-custom-textarea {
                     width: 100%; 
-                    height: 140px; 
-                    padding: 10px 12px; 
+                    height: 120px; 
+                    padding: 8px 10px; 
                     border: 1.5px solid #cbd5e1; 
-                    border-radius: 8px; 
+                    border-radius: 6px; 
                     font-size: 13px; 
                     box-sizing: border-box; 
                     resize: vertical; 
@@ -2916,10 +2916,10 @@ async function openAiKnowledgeForm(docData = null) {
                 }
                 .swal-custom-select {
                     width: 100%; 
-                    height: 40px; 
-                    padding: 8px 12px; 
+                    height: 33px; 
+                    padding: 6px 10px; 
                     border: 1.5px solid #cbd5e1; 
-                    border-radius: 8px; 
+                    border-radius: 6px; 
                     font-size: 13px; 
                     box-sizing: border-box; 
                     outline: none; 
@@ -2942,6 +2942,44 @@ async function openAiKnowledgeForm(docData = null) {
                     color: #b45309;
                     margin-top: 4px;
                     line-height: 1.4;
+                }
+
+                /* Đồng bộ nút bấm SweetAlert2 trên PC */
+                .swal2-popup .swal2-actions button {
+                    height: 33px !important;
+                    font-size: 13px !important;
+                    padding: 0 16px !important;
+                    border-radius: 6px !important;
+                    font-weight: 500 !important;
+                    display: inline-flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+
+                /* Mobile: 27px */
+                @media (max-width: 768px) {
+                    .swal-custom-input,
+                    .swal-custom-select {
+                        height: 27px;
+                        padding: 4px 8px;
+                        font-size: 12px;
+                        border-radius: 4px;
+                    }
+                    .swal-custom-textarea {
+                        height: 90px;
+                        padding: 6px 8px;
+                        font-size: 12px;
+                        border-radius: 4px;
+                    }
+                    .swal-custom-label {
+                        font-size: 12px;
+                    }
+                    .swal2-popup .swal2-actions button {
+                        height: 27px !important;
+                        font-size: 12px !important;
+                        padding: 0 12px !important;
+                        border-radius: 4px !important;
+                    }
                 }
             </style>
             <div class="swal-custom-container">

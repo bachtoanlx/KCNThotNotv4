@@ -248,7 +248,7 @@ export async function getAIResponse(userMessage, contextData = null) {
         if (contextData) {
             if (contextData.rag_knowledge && contextData.rag_knowledge.length > 0) {
                 const knowledgeText = contextData.rag_knowledge.map(k => `Tiêu đề: ${k.title}\nNội dung: ${k.content}`).join('\n---\n');
-                enhancedMessage = `${userMessage}\n\n[Tài liệu quy chế tham khảo chính thức:\n${knowledgeText}\n]`;
+                enhancedMessage = `${userMessage}\n\n[Tài liệu quy chế tham khảo chính thức:\n${knowledgeText}\n(GHI CHÚ DÀNH CHO AI: Hệ thống đã tự động hiển thị nguồn tham khảo bên dưới câu trả lời rồi, vì vậy AI TUYỆT ĐỐI KHÔNG ĐƯỢC trích dẫn nguồn hay ghi chú "Nguồn tham khảo" ở cuối câu trả lời của mình nữa)]`;
             } else {
                 enhancedMessage = `${userMessage}\n\n[Dữ liệu hệ thống: ${JSON.stringify(contextData)}]`;
             }
@@ -345,9 +345,14 @@ export async function getAIResponse(userMessage, contextData = null) {
         }
 
         const parts = data?.candidates?.[0]?.content?.parts;
-        let aiResponse = parts && parts.length
+        let aiResponseRaw = parts && parts.length
             ? parts.map(p => p.text).join('\n')
             : 'Xin lỗi, tôi chưa có câu trả lời cho câu hỏi này.';
+
+        // LƯU VÀO HISTORY BẢN GỐC (Tránh việc AI học lõm nguồn trích dẫn ở các lượt sau)
+        conversationHistory.push({ role: 'model', parts: [{ text: aiResponseRaw }] });
+
+        let finalAiResponse = aiResponseRaw;
 
         // Đính kèm nguồn trích dẫn nếu sử dụng RAG
         if (contextData && contextData.rag_knowledge && contextData.rag_knowledge.length > 0) {
@@ -358,7 +363,7 @@ export async function getAIResponse(userMessage, contextData = null) {
                 }
                 return `KCN - ${titlePart}`;
             }).join(', ');
-            aiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">*(Nguồn tham khảo: ${sources})*</span>`;
+            finalAiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">*(Nguồn tham khảo: ${sources})*</span>`;
         }
 
 
@@ -371,8 +376,6 @@ export async function getAIResponse(userMessage, contextData = null) {
             }
         }
 
-        conversationHistory.push({ role: 'model', parts: [{ text: aiResponse }] });
-
         // Giới hạn history: System prompt + Welcome + 6 lượt gần nhất (= 14 entries)
         // Payload nhỏ hơn → ít token hơn → ít tốn quota hơn
         if (conversationHistory.length > 14) {
@@ -384,7 +387,7 @@ export async function getAIResponse(userMessage, contextData = null) {
         }
 
 
-        return aiResponse;
+        return finalAiResponse;
 
     } catch (error) {
         console.error('Gemini AI Error:', error);
@@ -596,6 +599,66 @@ export function detectDataQuery(message) {
     ];
 
     const isInformational = informationalKeywords.some(kw => lowerMsg.includes(kw));
+
+    // 0. Kiểm tra câu hỏi quá ngắn gây ngờ vực
+    const wordCount = lowerMsg.split(/\s+/).length;
+    if (wordCount <= 4) {
+        if (lowerMsg === 'xả thải' || lowerMsg === 'nước thải' || lowerMsg === 'lưu lượng' || lowerMsg === 'số liệu') {
+            return { 
+                type: 'ambiguous', 
+                query: message,
+                message: 'Ý bạn muốn tra cứu số liệu thống kê hay xem quy định về xả thải?',
+                options: [
+                    { label: '📊 Tra cứu Số liệu', query: 'Thống kê xả thải' },
+                    { label: '📖 Xem Quy định xả thải', query: 'Quy định xả thải' }
+                ]
+            };
+        }
+        if (lowerMsg === 'lịch trực' || lowerMsg === 'trực' || lowerMsg === 'ca trực') {
+            return { 
+                type: 'ambiguous', 
+                query: message,
+                message: 'Ý bạn muốn xem lịch phân công trực hay xem quy chế tổ chức ca trực?',
+                options: [
+                    { label: '📅 Xem Lịch trực hôm nay', query: 'Lịch trực hôm nay' },
+                    { label: '📖 Xem Quy định trực', query: 'Quy định ca trực' }
+                ]
+            };
+        }
+        if (lowerMsg === 'chỉ số' || lowerMsg === 'số nước' || lowerMsg === 'ghi nước' || lowerMsg === 'đồng hồ') {
+            return { 
+                type: 'ambiguous', 
+                query: message,
+                message: 'Ý bạn muốn tra cứu chỉ số nước hiện tại của một nhà máy hay tìm hiểu cách ghi chỉ số?',
+                options: [
+                    { label: '💧 Tra cứu Chỉ số nước', query: 'Chỉ số nước' },
+                    { label: '📖 Quy trình ghi chỉ số', query: 'Quy trình ghi chỉ số' }
+                ]
+            };
+        }
+        if (lowerMsg === 'nghỉ' || lowerMsg === 'ngày nghỉ' || lowerMsg === 'lịch nghỉ' || lowerMsg === 'phép') {
+            return { 
+                type: 'ambiguous', 
+                query: message,
+                message: 'Ý bạn muốn kiểm tra lịch nghỉ phép của KCN hay quy định về ngày nghỉ?',
+                options: [
+                    { label: '📅 Lịch nghỉ phép KCN', query: 'Lịch nghỉ' },
+                    { label: '📖 Quy định nghỉ phép', query: 'Quy định nghỉ phép' }
+                ]
+            };
+        }
+        if (lowerMsg === 'phạt' || lowerMsg === 'vượt khoán') {
+            return { 
+                type: 'ambiguous', 
+                query: message,
+                message: 'Ý bạn muốn xem danh sách các đơn vị vượt khoán tháng này hay xem quy định phạt?',
+                options: [
+                    { label: '📊 Danh sách vượt khoán', query: 'Danh sách vượt khoán' },
+                    { label: '📖 Quy định xử phạt', query: 'Quy định xử phạt vượt khoán' }
+                ]
+            };
+        }
+    }
 
     // 1. Nếu chứa từ khóa RAG rõ ràng -> Ưu tiên quét quy chế RAG trước tiên
     if (isInformational && cachedAIKnowledge && cachedAIKnowledge.length > 0) {
@@ -831,6 +894,17 @@ export function hasValidAPIKey() {
  */
 export function formatDataResponse(contextData, userMessage) {
     if (!contextData) return null; // Không có dữ liệu → để AI xử lý
+
+    // ===== KIỂM TRA CÂU HỎI NGỜ VỰC =====
+    if (contextData.ambiguousData) {
+        let html = `<p>${contextData.ambiguousData.message}</p><div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+        contextData.ambiguousData.options.forEach(opt => {
+            html += `<button class="suggestion-btn" data-query="${opt.query}" style="background: #e2e8f0; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; color: #334155; font-weight: 500;">${opt.label}</button>`;
+        });
+        html += `</div>`;
+        return html;
+    }
+
 
     // ===== THỐNG KÊ NÂNG CAO =====
     if (contextData.advancedStats) {

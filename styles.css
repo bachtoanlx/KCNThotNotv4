@@ -2647,9 +2647,212 @@ body.fixed-viewport-layout .scenario-card .btn-action {
     font-size: 11px !important;
   }
 }
+.ticket-desc {
+  font-size: 0.8rem;
+  color: var(--text-color);
+  margin: 6px 0;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-line;
+}
+
+.ticket-meta {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.ticket-image-preview {
+  width: 100%;
+  height: 90px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: opacity 0.2s;
+}
+
+.ticket-image-preview:hover {
+  opacity: 0.9;
+}
+
+.ticket-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px dashed var(--border-color);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.status-indicator {
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.status-pending {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
+.status-fixing {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-resolved {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.ticket-admin-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.ticket-admin-btn {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.ticket-notes-box {
+  background-color: #f8fafc;
+  border-left: 3px solid #27ae60;
+  padding: 4px 8px;
+  margin-top: 6px;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.75rem;
+  color: #334155;
+  font-style: italic;
+}
+
+/* ===== HỆ THỐNG LAYOUT CỐ ĐỊNH MENU/FOOTER (FIXED VIEWPORT) ===== */
+body.fixed-viewport-layout {
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+body.fixed-viewport-layout #pageContent {
+  flex: 1 !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.fixed-viewport-layout #pageContent:not([style*="display: none"]):not([style*="display:none"]) {
+  display: flex !important;
+}
+
+/* Đảm bảo tiêu đề h2 và p không bị bóp méo khi nội dung chính co giãn */
+body.fixed-viewport-layout #pageContent>h2,
+body.fixed-viewport-layout #pageContent>p {
+  flex-shrink: 0 !important;
+}
+
+/* Tối ưu khoảng cách (margin) do Flexbox không tự động gộp lề */
+body.fixed-viewport-layout #pageContent>h2 {
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+
+body.fixed-viewport-layout #pageContent>p {
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+}
+
+/* Các vùng cuộn nội dung độc lập của 3 trang */
+body.fixed-viewport-layout .kho-layout,
+body.fixed-viewport-layout .suco-layout,
+body.fixed-viewport-layout .tinhtoan-layout {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin-top: 0 !important;
+  /* Gỡ bỏ margin-top tránh cộng dồn khoảng cách */
+}
+
+/* ===== CHUẨN HÓA KÍCH THƯỚC INPUT & NÚT BẤM CHO 3 TRANG CHÍNH ===== */
+/* Desktop: 33px (theo chuẩn hệ thống) */
+body.fixed-viewport-layout .form-field input.form-control,
+body.fixed-viewport-layout .form-field select.form-control,
+body.fixed-viewport-layout input.form-control:not([type="hidden"]),
+body.fixed-viewport-layout select.form-control {
+  height: 33px !important;
+  padding: 6px 10px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+}
+
+body.fixed-viewport-layout .submit-btn,
+body.fixed-viewport-layout .btn-action,
+body.fixed-viewport-layout .calc-btn {
+  height: 33px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Mobile: 27px (theo chuẩn hệ thống) */
+@media (max-width: 768px) {
+
+  body.fixed-viewport-layout .form-field input.form-control,
+  body.fixed-viewport-layout .form-field select.form-control,
+  body.fixed-viewport-layout input.form-control:not([type="hidden"]),
+  body.fixed-viewport-layout select.form-control {
+    height: 27px !important;
+    padding: 4px 8px !important;
+    font-size: 13px !important;
+  }
+
+  body.fixed-viewport-layout .submit-btn,
+  body.fixed-viewport-layout .btn-action,
+  body.fixed-viewport-layout .calc-btn {
+    height: 27px !important;
+    padding: 0 12px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ===== NÚT TẢI / LƯU TRONG KịCH BẢN (NHỎ HƠN CHUẨN 4px) ===== */
+/* Desktop: 33 - 4 = 29px */
+body.fixed-viewport-layout .scenario-card .btn-action {
+  height: 29px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important;
+}
+
+/* Mobile: 27 - 4 = 23px */
+@media (max-width: 768px) {
+  body.fixed-viewport-layout .scenario-card .btn-action {
+    height: 23px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+  }
+}
 
 /* Đường kẻ phân cách trong menu Quản trị */
 .dropdown-divider {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin: 6px 0;
+}
+
+/* Ẩn các tab settings trên mobile */
+@media (max-width: 768px) {
+  .settings-sidebar,
+  div:has(> .settings-tab-btn) {
+    display: none !important;
+  }
 }
