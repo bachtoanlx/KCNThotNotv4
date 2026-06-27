@@ -1,5 +1,5 @@
 // suco.js
-import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage, notifyAdmins } from "./script.js";
+import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage, notifyAdmins, loadTemplate } from "./script.js";
 import { 
   collection, 
   onSnapshot, 
@@ -16,16 +16,12 @@ import {
 import { initMenu } from "./menu.js";
 
 // === Tải menu và footer ===
-fetch("menu.html").then(r => r.text()).then(h => {
-  document.getElementById("menu-placeholder").innerHTML = h;
+loadTemplate("menu-placeholder", "menu.html", () => {
   if (typeof initMenu === "function") initMenu();
 });
-fetch("modal.html").then(r => r.text()).then(h => {
-  document.getElementById("loading-placeholder").innerHTML = h;
-});
-fetch("footer.html").then(r => r.text()).then(h => {
-  document.getElementById("footer-placeholder").innerHTML = h;
-});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 const notLogged = document.getElementById("notLogged");
 const pageContent = document.getElementById("pageContent");

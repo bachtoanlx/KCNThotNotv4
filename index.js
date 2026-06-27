@@ -1,20 +1,16 @@
-import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db, loadCompanyDropdown } from "./script.js";
+import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db, loadCompanyDropdown, loadTemplate } from "./script.js";
     import { initMenu } from "./menu.js";
     import { collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
     // load menu
-    fetch("menu.html").then(r => r.text()).then(h => {
-      document.getElementById("menu-placeholder").innerHTML = h;
+    loadTemplate("menu-placeholder", "menu.html", () => {
       initMenu();
     });
     // load modal 
-    fetch("modal.html").then(r => r.text()).then(h => {
-      document.getElementById("loading-placeholder").innerHTML = h;
-    });
+    loadTemplate("loading-placeholder", "modal.html");
     // TẢI FOOTER (thêm đoạn này vào)
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+    loadTemplate("footer-placeholder", "footer.html");
+
 
     const notLogged = document.getElementById("notLogged");
     const content = document.getElementById("pageContent");

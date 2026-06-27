@@ -1,4 +1,4 @@
-import { onAuth, getRole, showLoading, hideLoading, showSwal, getReportsByDate, db } from "./script.js";
+import { onAuth, getRole, showLoading, hideLoading, showSwal, getReportsByDate, db, loadTemplate } from "./script.js";
 import { formatISODate, findLatestReadingBeforeOrOnMark } from "./core-calculator.js";
 import { initMenu } from "./menu.js";
 import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
@@ -8,9 +8,12 @@ let unsubscribeRealtime = null;
 let unsubscribeRealtimeDel = null;
 
 // Tải giao diện chung
-fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
-fetch("modal.html").then(r => r.text()).then(h => document.getElementById("loading-placeholder").innerHTML = h);
-fetch("footer.html").then(r => r.text()).then(h => document.getElementById("footer-placeholder").innerHTML = h);
+loadTemplate("menu-placeholder", "menu.html", () => {
+    initMenu();
+});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 // DOM Elements
 const notLogged = document.getElementById("notLogged");

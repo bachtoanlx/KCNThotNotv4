@@ -1,5 +1,5 @@
 import { initMenu } from "./menu.js"; // Giữ nguyên
-import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
+import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit, loadTemplate } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
 import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=16";
@@ -26,8 +26,7 @@ import {
 } from "./chatbot-firebase-queries.js?v=6";
 
 // load menu
-fetch("menu.html").then(r => r.text()).then(h => {
-    document.getElementById("menu-placeholder").innerHTML = h;
+loadTemplate("menu-placeholder", "menu.html", () => {
     initMenu();
 
     // Attach submit handler to the inline homepage login form (if present)
@@ -52,13 +51,11 @@ fetch("menu.html").then(r => r.text()).then(h => {
 });
 
 // load modal 
-fetch("modal.html").then(r => r.text()).then(h => {
-    document.getElementById("loading-placeholder").innerHTML = h;
-});
+loadTemplate("loading-placeholder", "modal.html");
+
 // TẢI FOOTER (thêm đoạn này vào)
-fetch("footer.html").then(r => r.text()).then(h => {
-    document.getElementById("footer-placeholder").innerHTML = h;
-});
+loadTemplate("footer-placeholder", "footer.html");
+
 
 // Loại bỏ hoàn toàn logic kiểm tra đăng nhập để trang luôn hiển thị
 

@@ -1,20 +1,16 @@
-import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth } from "./script.js";
+import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth, loadTemplate } from "./script.js";
 import { doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { formatISODate } from "./core-calculator.js";
 import { getDaysDifference, isRuleActiveOnDate, sortShiftRules, getNormalizedFirstChar } from "./autoplan-core.js";
 
 // === Load menu, modal và footer ===
-fetch("menu.html").then(r => r.text()).then(h => {
-    document.getElementById("menu-placeholder").innerHTML = h;
+loadTemplate("menu-placeholder", "menu.html", () => {
     if (typeof initMenu === "function") initMenu();
 });
-fetch("modal.html").then(r => r.text()).then(h => {
-    document.getElementById("loading-placeholder").innerHTML = h;
-});
-fetch("footer.html").then(r => r.text()).then(h => {
-    document.getElementById("footer-placeholder").innerHTML = h;
-});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 const notLogged = document.getElementById("notLogged");
 const pageContent = document.getElementById("pageContent");

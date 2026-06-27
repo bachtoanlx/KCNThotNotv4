@@ -1,5 +1,5 @@
 // --- IMPORT ---
-import { db, onAuth, getRole, showLoading, hideLoading, showSwal } from "./script.js";
+import { db, onAuth, getRole, showLoading, hideLoading, showSwal, loadTemplate } from "./script.js";
 import { collection, getDocs, query, orderBy, where, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
@@ -8,9 +8,12 @@ let unsubscribeRealtime = null;
 let unsubscribeRealtimeDel = null;
 
 // --- TẢI GIAO DIỆN CHUNG ---
-fetch("menu.html").then(r => r.text()).then(h => document.getElementById("menu-placeholder").innerHTML = h).then(initMenu);
-fetch("modal.html").then(r => r.text()).then(h => document.getElementById("loading-placeholder").innerHTML = h);
-fetch("footer.html").then(r => r.text()).then(h => document.getElementById("footer-placeholder").innerHTML = h);
+loadTemplate("menu-placeholder", "menu.html", () => {
+    initMenu();
+});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 // --- THAM CHIẾU DOM ---
 const notLogged = document.getElementById("notLogged");

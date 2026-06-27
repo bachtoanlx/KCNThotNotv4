@@ -1,5 +1,5 @@
 import { initMenu } from "./menu.js";
-    import { db, onAuth, getRole, showSwal, fetchAllUsers } from "./script.js";
+    import { db, onAuth, getRole, showSwal, fetchAllUsers, loadTemplate } from "./script.js";
     import {
       collection,
       query,
@@ -13,17 +13,13 @@ import { initMenu } from "./menu.js";
     import { saveToLocalDB, getAllFromLocalDB, setLastSyncTime, getLastSyncTime, deleteFromLocalDB } from "./localDB.js";
 
     // Load menu
-    fetch("menu.html")
-      .then(r => r.text())
-      .then(h => {
-        document.getElementById("menu-placeholder").innerHTML = h;
-        initMenu();
-      });
+    loadTemplate("menu-placeholder", "menu.html", () => {
+      initMenu();
+    });
 
     // Load footer
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+    loadTemplate("footer-placeholder", "footer.html");
+
 
   const notLogged = document.getElementById("notLogged");
   const noPermission = document.getElementById("noPermission");

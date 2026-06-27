@@ -1,19 +1,15 @@
-import { db, onAuth, getRole, showLoading, hideLoading } from "./script.js";
+import { db, onAuth, getRole, showLoading, hideLoading, loadTemplate } from "./script.js";
 import { collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { getWeekNumber, getDaysDifference, isRuleActiveOnDate, sortShiftRules, ruleMatchesDate, getLastMatchDate, getNextMatchDate, getNormalizedFirstChar, getWorkersForDateMonth } from "./autoplan-core.js";
 
 // === Load menu, modal và footer===
-fetch("menu.html").then(r => r.text()).then(h => {
-  document.getElementById("menu-placeholder").innerHTML = h;
+loadTemplate("menu-placeholder", "menu.html", () => {
   initMenu();
 });
-fetch("modal.html").then(r => r.text()).then(h => {
-  document.getElementById("loading-placeholder").innerHTML = h;
-});
-fetch("footer.html").then(r => r.text()).then(h => {
-    document.getElementById("footer-placeholder").innerHTML = h;
-});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 const notLogged = document.getElementById("notLogged");
 const content = document.getElementById("pageContent");
@@ -43,6 +39,10 @@ let patternsLoaded = false;
 let swapsLoaded = false;
 let initialLoadComplete = false; 
 
+let unsubscribeRules = null;
+let unsubscribePatterns = null;
+let unsubscribeSwaps = null;
+
 const personalScheduleModal = document.getElementById("personalScheduleModal");
 const closeModalBtn = document.getElementById("closeModal");
 const personalScheduleDetails = document.getElementById("personalScheduleDetails");
@@ -55,6 +55,16 @@ onAuth(async (user) => {
         notLogged.style.display = "flex";
         content.style.display = "none";
         if (footerPlaceholder) footerPlaceholder.style.display = "block";
+        
+        // Hủy lắng nghe thời gian thực khi đăng xuất để tránh lỗi quyền và trùng lặp
+        if (unsubscribeRules) { unsubscribeRules(); unsubscribeRules = null; }
+        if (unsubscribePatterns) { unsubscribePatterns(); unsubscribePatterns = null; }
+        if (unsubscribeSwaps) { unsubscribeSwaps(); unsubscribeSwaps = null; }
+        
+        rulesLoaded = false;
+        patternsLoaded = false;
+        swapsLoaded = false;
+        initialLoadComplete = false;
         return;
     }
     showLoading("Đang tải dữ liệu lịch làm việc...");
@@ -71,15 +81,27 @@ function checkAllDataLoadedAndRender(email, role) {
     const searchVal = searchInputEl ? searchInputEl.value : "";
     
     if (initialLoadComplete) {
-        renderSchedule(searchVal, currentlyViewedDate);
+        try {
+            renderSchedule(searchVal, currentlyViewedDate);
+        } catch (e) {
+            console.error("Lỗi khi render lịch tuần:", e);
+        }
         return;
     }
     
     if (rulesLoaded && patternsLoaded && swapsLoaded) {
         initialLoadComplete = true; 
-        renderSchedule(searchVal, currentlyViewedDate);
+        try {
+            renderSchedule(searchVal, currentlyViewedDate);
+        } catch (e) {
+            console.error("Lỗi khi render lịch tuần:", e);
+        }
         if (role !== 'admin') {
-            showPersonalScheduleModal(email, role); 
+            try {
+                showPersonalScheduleModal(email, role); 
+            } catch (e) {
+                console.error("Lỗi khi hiển thị lịch cá nhân:", e);
+            }
         }
         hideLoading(); 
     }
@@ -87,8 +109,13 @@ function checkAllDataLoadedAndRender(email, role) {
 
 // --- HÀM 3: setupRealtimeListeners ---
 function setupRealtimeListeners(email, role) {
+    // Hủy các listener cũ nếu có trước khi đăng ký mới
+    if (unsubscribeRules) unsubscribeRules();
+    if (unsubscribePatterns) unsubscribePatterns();
+    if (unsubscribeSwaps) unsubscribeSwaps();
+
     const qRules = query(collection(db, "work_rules"));
-    onSnapshot(qRules, (snapshot) => {
+    unsubscribeRules = onSnapshot(qRules, (snapshot) => {
         allRulesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
         allRulesData.sort((a, b) => {
             const groupA = getNormalizedFirstChar(a.job);
@@ -106,7 +133,7 @@ function setupRealtimeListeners(email, role) {
     });
 
     const qPatterns = query(collection(db, "work_patterns"));
-    onSnapshot(qPatterns, (snapshot) => {
+    unsubscribePatterns = onSnapshot(qPatterns, (snapshot) => {
         allPatternsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
         allPatternsData.sort((a, b) => {
             return (a.user || "").localeCompare(b.user || "");
@@ -120,7 +147,7 @@ function setupRealtimeListeners(email, role) {
     });
 
     const qSwaps = query(collection(db, "shift_swaps"));
-    onSnapshot(qSwaps, (snapshot) => {
+    unsubscribeSwaps = onSnapshot(qSwaps, (snapshot) => {
         allSwapsData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
         if (!swapsLoaded) swapsLoaded = true;
         checkAllDataLoadedAndRender(email, role);
@@ -130,6 +157,7 @@ function setupRealtimeListeners(email, role) {
         checkAllDataLoadedAndRender(email, role);
     });
 }
+
 
 // --- HÀM 4: renderSchedule ---
 async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
@@ -206,65 +234,67 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             for (const group in shiftGroups) {
                 const groupRules = shiftGroups[group];
                 const sortedGroupRules = [...groupRules].sort(sortShiftRules);
-                const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
+                const groupRefDate = (sortedGroupRules[0] && sortedGroupRules[0].patternStartDate) ? new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00') : null;
                 
-                const membersYesterday = groupRules
-                    .filter(rule => isRuleActiveOnDate(rule, yesterday))
-                    .sort(sortShiftRules);
-                
-                const membersToday = groupRules
-                    .filter(rule => isRuleActiveOnDate(rule, d))
-                    .sort(sortShiftRules);
-
-                let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
-
-                if (membersYesterday.length > 0) {
-                    const n_yesterday = membersYesterday.length;
-                    const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
-                    const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                if (groupRefDate && !isNaN(groupRefDate.getTime())) {
+                    const membersYesterday = groupRules
+                        .filter(rule => isRuleActiveOnDate(rule, yesterday))
+                        .sort(sortShiftRules);
                     
-                    workerYesterday = membersYesterday[workerIndexYesterday];
-                    workerYesterdayName = workerYesterday.displayName;
-                    if (workerYesterday) {
-                        const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
-                        const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+                    const membersToday = groupRules
+                        .filter(rule => isRuleActiveOnDate(rule, d))
+                        .sort(sortShiftRules);
 
-                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
-                            isNightYesterday = true;
-                        } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
-                            isNightYesterday = true; // Ca 24h
+                    let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
+
+                    if (membersYesterday.length > 0) {
+                        const n_yesterday = membersYesterday.length;
+                        const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
+                        const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+                        
+                        workerYesterday = membersYesterday[workerIndexYesterday];
+                        if (workerYesterday) {
+                            workerYesterdayName = workerYesterday.displayName;
+                            const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
+                            const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+
+                            if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                                isNightYesterday = true;
+                            } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
+                                isNightYesterday = true; // Ca 24h
+                            }
                         }
                     }
-                }
 
-                if (membersToday.length > 0) {
-                    const n_today = membersToday.length;
-                    const daysSinceToday = getDaysDifference(d, groupRefDate);
-                    const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
-                    const workerToday = membersToday[workerIndexToday];
-                    
-                    if (workerToday) {
-                        let isNightToday = false;
-                        const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
-                        const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+                    if (membersToday.length > 0) {
+                        const n_today = membersToday.length;
+                        const daysSinceToday = getDaysDifference(d, groupRefDate);
+                        const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+                        const workerToday = membersToday[workerIndexToday];
+                        
+                        if (workerToday) {
+                            let isNightToday = false;
+                            const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+                            const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
 
-                        if ( (endH < startH) || (endH === startH && endM < startM) ) {
-                            isNightToday = true;
-                        } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
-                            isNightToday = true; // Ca 24h
-                        }
-                        if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
-                            let displayName = workerToday.displayName;
-                            
-                            const swap = swapsForDate.find(s => s.user1 === displayName);
-                            let swapText = "";
-                            if (swap) {
-                                displayName = swap.user2;
-                                swapText = ` 🔄 (Thay ${swap.user1})`;
+                            if ( (endH < startH) || (endH === startH && endM < startM) ) {
+                                isNightToday = true;
+                            } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
+                                isNightToday = true; // Ca 24h
                             }
-                            const groupTag = Object.keys(shiftGroups).length > 1 ? ` [${group}]` : "";
-                            const shiftLabel = `- ${displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})${groupTag}${swapText}`;
-                            people.push(shiftLabel);
+                            if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                                let displayName = workerToday.displayName;
+                                
+                                const swap = swapsForDate.find(s => s.user1 === displayName);
+                                let swapText = "";
+                                if (swap) {
+                                    displayName = swap.user2;
+                                    swapText = ` 🔄 (Thay ${swap.user1})`;
+                                }
+                                const groupTag = Object.keys(shiftGroups).length > 1 ? ` [${group}]` : "";
+                                const shiftLabel = `- ${displayName} (${workerToday.startTime} – ${workerToday.endTime}${isNightToday ? " hôm sau" : ""})${groupTag}${swapText}`;
+                                people.push(shiftLabel);
+                            }
                         }
                     }
                 }
@@ -560,9 +590,9 @@ async function showPersonalScheduleModal(email, currentUserRole) {
                 for (const group in shiftGroups) {
                     const groupRules = shiftGroups[group];
                     const sortedGroupRules = [...groupRules].sort(sortShiftRules);
-                    const groupRefDate = groupRules.length > 0 ? new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00') : null;
+                    const groupRefDate = (sortedGroupRules[0] && sortedGroupRules[0].patternStartDate) ? new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00') : null;
 
-                    if (groupRefDate) {
+                    if (groupRefDate && !isNaN(groupRefDate.getTime())) {
                         const allMembersToday = groupRules.filter(r => isRuleActiveOnDate(r, checkDate)).sort(sortShiftRules);
                         if (allMembersToday.length > 0) {
                             const n_today = allMembersToday.length;

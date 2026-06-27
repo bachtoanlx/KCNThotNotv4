@@ -1,16 +1,16 @@
 
-import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail } from "./script.js";
+import { auth, db, onAuth, getRole, addLog, showSwal, showLoading, hideLoading, getCurrentUserEmail, loadTemplate } from "./script.js";
 import { collection, updateDoc, doc, onSnapshot, query, where, addDoc, serverTimestamp, deleteDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { getLastMatchDate, getNextMatchDate, ruleMatchesDate } from "./autoplan-core.js";
 
 // === Load menu, modal và footer===
-fetch("menu.html").then(r => r.text()).then(h => {
-    document.getElementById("menu-placeholder").innerHTML = h;
+loadTemplate("menu-placeholder", "menu.html", () => {
     initMenu();
 });
-fetch("modal.html").then(r => r.text()).then(h => document.getElementById("loading-placeholder").innerHTML = h);
-fetch("footer.html").then(r => r.text()).then(h => document.getElementById("footer-placeholder").innerHTML = h);
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
+
 
 const notLogged = document.getElementById("notLogged");
 const noPermission = document.getElementById("noPermission");

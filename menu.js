@@ -237,4 +237,29 @@ export function initMenu() {
       }
     }
   });
+
+  // Tải trước (Prefetch) các trang khi người dùng di chuột qua các liên kết menu
+  const prefetchLinks = () => {
+    const links = document.querySelectorAll("a[href$='.html'], .quick-menu-item[href]");
+    links.forEach(link => {
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("http") || href.startsWith("#") || href.includes("logout")) return;
+      
+      link.addEventListener("mouseenter", () => {
+        // Loại bỏ phần query params khi đặt ID để tránh trùng lặp
+        const cleanHref = href.split('?')[0];
+        const id = `prefetch-${cleanHref.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        if (document.getElementById(id)) return; // Đã prefetch rồi
+        
+        const linkElem = document.createElement("link");
+        linkElem.id = id;
+        linkElem.rel = "prefetch";
+        linkElem.href = href;
+        document.head.appendChild(linkElem);
+      }, { once: true });
+    });
+  };
+  
+  prefetchLinks();
 }
+

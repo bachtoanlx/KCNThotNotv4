@@ -1,0 +1,18 @@
+{
+  "name": "Quản lý KCN Thốt Nốt",
+  "short_name": "QL KCN",
+  "description": "Hệ thống quản lý khu công nghiệp Thốt Nốt",
+  "start_url": "./trangchu.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#273668",
+  "theme_color": "#273668",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/6846/6846274.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

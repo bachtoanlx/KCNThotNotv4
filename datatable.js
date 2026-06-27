@@ -2,7 +2,7 @@
     
     // Import các hàm TÙY CHỈNH (custom helpers) từ file script.js
     import { auth, onAuth, deleteReport, getRole, showLoading, hideLoading, showSwal, showConfirmSwal, 
-             getReportsByDate, db } from "./script.js";
+             getReportsByDate, db, loadTemplate } from "./script.js";
              
     // Import các hàm GỐC (native) của Firebase SDK
     import { collection, query, where, orderBy, getDocs, limit, onSnapshot, startAfter } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
@@ -13,16 +13,12 @@
     import { initMenu } from "./menu.js";
 
     // === 2. TẢI GIAO DIỆN CHUNG ===
-    fetch("menu.html").then(r => r.text()).then(h => {
-      document.getElementById("menu-placeholder").innerHTML = h;
+    loadTemplate("menu-placeholder", "menu.html", () => {
       initMenu();
     });
-    fetch("modal.html").then(r => r.text()).then(h => {
-      document.getElementById("loading-placeholder").innerHTML = h;
-    });
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+    loadTemplate("loading-placeholder", "modal.html");
+    loadTemplate("footer-placeholder", "footer.html");
+
 
     // === 3. THAM CHIẾU DOM VÀ BIẾN TOÀN CỤC ===
     const notLogged = document.getElementById("notLogged");

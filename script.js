@@ -2693,6 +2693,21 @@ export async function saveDailyScheduleCache(dateStr, content) {
 // 🔹 CÁC HÀM QUẢN LÝ DANH SÁCH CÔNG TY
 // ===================================================================
 
+// Helper để render các option của dropdown công ty bảo toàn giá trị cũ
+function renderCompanyOptions(selectElement, companies) {
+  const currentVal = selectElement.value;
+  selectElement.innerHTML = '<option value="" disabled selected>- Chọn công ty -</option>';
+  companies.forEach(comp => {
+    const option = document.createElement("option");
+    option.value = comp;
+    option.textContent = comp;
+    selectElement.appendChild(option);
+  });
+  if (currentVal && companies.includes(currentVal)) {
+    selectElement.value = currentVal;
+  }
+}
+
 /**
  * Tải danh sách công ty từ Firestore và tự động render vào thẻ select.
  * Tận dụng bảng companies_master và company_configs để xác định nhóm.
@@ -2700,11 +2715,23 @@ export async function saveDailyScheduleCache(dateStr, content) {
  * @param {string} filterGroup Lọc theo nhóm: 'group1' (Đồng hồ), 'group2' (Hóa đơn), 'group3' (Khoán), 'all' (Tất cả)
  */
 export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
-  try {
-    const selectElement = document.getElementById(selectId);
-    if (!selectElement) return;
+  const selectElement = document.getElementById(selectId);
+  if (!selectElement) return;
 
-    // 1. Lấy dữ liệu từ cả 2 bảng cùng lúc để tiết kiệm thời gian
+  const cacheKey = `company_dropdown_${filterGroup}`;
+  
+  // 1. Render nhanh từ cache sessionStorage nếu có
+  try {
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      renderCompanyOptions(selectElement, JSON.parse(cachedData));
+    }
+  } catch (e) {
+    console.warn("Lỗi đọc cache dropdown từ sessionStorage:", e);
+  }
+
+  try {
+    // 2. Lấy dữ liệu mới nhất từ Firestore chạy ngầm
     const [masterSnap, configSnap] = await Promise.all([
       getDocs(collection(db, "companies_master")),
       getDocs(collection(db, "company_configs"))
@@ -2714,47 +2741,88 @@ export async function loadCompanyDropdown(selectId, filterGroup = 'all') {
     const configs = configSnap.docs.map(d => d.data());
     const configCompanies = configs.map(c => c.company).filter(Boolean);
 
-    // 2. Gộp danh sách và loại bỏ trùng lặp để có danh sách tổng thể nhất
-    // (Bao gồm cả cty thêm tay bên master và cty đã có trong configs)
+    // Gộp danh sách và loại bỏ trùng lặp
     let allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
 
-    // 3. Tìm config mới nhất cho mỗi công ty để phân loại nhóm
+    // Tìm config mới nhất cho mỗi công ty để phân loại nhóm
     const latestConfigs = {};
-    // Sắp xếp theo effectiveDate tăng dần để config mới nhất đè lên config cũ
     configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
     configs.forEach(c => {
       if (c.company) latestConfigs[c.company] = c;
     });
 
-    // 4. Lọc danh sách theo yêu cầu
+    // Lọc danh sách theo yêu cầu
     if (filterGroup !== 'all') {
       allCompanies = allCompanies.filter(comp => {
         const c = latestConfigs[comp];
-        // Lấy group từ cấu hình. Nếu công ty mới thêm tay chưa có cấu hình thì dùng fallback
         const group = (c && c.group) ? c.group : (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
         return group === filterGroup;
       });
     }
 
-    // 5. Sắp xếp Alphabet
+    // Sắp xếp Alphabet
     allCompanies.sort((a, b) => a.localeCompare(b));
 
-    // 6. Render ra giao diện
-    selectElement.innerHTML = '<option value="" disabled selected>- Chọn công ty -</option>';
-    allCompanies.forEach(comp => {
-      const option = document.createElement("option");
-      option.value = comp;
-      option.textContent = comp;
-      selectElement.appendChild(option);
-    });
+    // 3. Cập nhật cache sessionStorage
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(allCompanies));
+    } catch (e) {
+      console.warn("Lỗi ghi cache dropdown vào sessionStorage:", e);
+    }
+
+    // 4. Render lại dropdown với dữ liệu mới nhất
+    renderCompanyOptions(selectElement, allCompanies);
   } catch (error) {
     console.error("Lỗi tải danh sách công ty:", error);
-    const selectElement = document.getElementById(selectId);
-    if (selectElement) {
+    // Nếu không có cả cache lẫn dữ liệu mới, báo lỗi
+    if (!selectElement.value || selectElement.options.length <= 1) {
       selectElement.innerHTML = '<option value="" disabled selected>- Lỗi tải dữ liệu -</option>';
     }
   }
 }
 
+/**
+ * Tải động HTML template từ cache sessionStorage hoặc fetch qua mạng
+ * @param {string} placeholderId ID của phần tử chứa trên DOM
+ * @param {string} url Đường dẫn tới file HTML template
+ * @param {Function} callback Hàm chạy sau khi chèn HTML xong
+ */
+export function loadTemplate(placeholderId, url, callback) {
+  const container = document.getElementById(placeholderId);
+  if (!container) return;
+
+  const cacheKey = `cached_html_${url}`;
+  
+  try {
+    const cachedHTML = sessionStorage.getItem(cacheKey);
+    if (cachedHTML) {
+      container.innerHTML = cachedHTML;
+      if (typeof callback === "function") callback();
+      return;
+    }
+  } catch (e) {
+    console.warn("Lỗi đọc cache template từ sessionStorage:", e);
+  }
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
+      return r.text();
+    })
+    .then(html => {
+      try {
+        sessionStorage.setItem(cacheKey, html);
+      } catch (e) {
+        console.warn("Lỗi ghi cache template vào sessionStorage:", e);
+      }
+      container.innerHTML = html;
+      if (typeof callback === "function") callback();
+    })
+    .catch(err => {
+      console.error(`Lỗi khi load template ${url}:`, err);
+    });
+}
+
 // Export thêm các hàm Firestore cần thiết cho chatbot
 export { query, orderBy, limit, where, getDocs, collection, doc, getDoc };
+

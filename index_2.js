@@ -1,5 +1,5 @@
 import { collection, getDocs, addDoc, deleteDoc, doc, query, where, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-    import { onAuth, addReport, showLoading, hideLoading, showSwal, promptForReAuth, db, getRole, showConfirmSwal, loadCompanyDropdown } from "./script.js";
+    import { onAuth, addReport, showLoading, hideLoading, showSwal, promptForReAuth, db, getRole, showConfirmSwal, loadCompanyDropdown, loadTemplate } from "./script.js";
     import { initMenu } from "./menu.js";
 
     let fpNgayLamDB; 
@@ -7,17 +7,13 @@ import { collection, getDocs, addDoc, deleteDoc, doc, query, where, getDoc, setD
     let loggedInUserEmail = null; 
 
     // ================== MENU + MODAL ==================
-    fetch("menu.html").then(r => r.text()).then(h => {
-      document.getElementById("menu-placeholder").innerHTML = h;
+    loadTemplate("menu-placeholder", "menu.html", () => {
       initMenu();
     });
-    fetch("modal.html").then(r => r.text()).then(h => {
-      document.getElementById("loading-placeholder").innerHTML = h;
-    });
+    loadTemplate("loading-placeholder", "modal.html");
     // TẢI FOOTER (thêm đoạn này vào)
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+    loadTemplate("footer-placeholder", "footer.html");
+
 
     const notLogged = document.getElementById("notLogged");
     const content = document.getElementById("pageContent");

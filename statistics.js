@@ -1,24 +1,20 @@
 import { doc, getDoc, deleteDoc, addDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate, auth, addLog} from "./script.js";
+import {listenReports, listenCollection, onAuth, getRole, db, showLoading, hideLoading, showSwal, showConfirmSwal, getReportsByDate, auth, addLog, loadTemplate} from "./script.js";
 import { initMenu } from "./menu.js";
 import { formatISODate, formatVNDate, safeFixed, getCompanyConfigAtDate, getPeriodsInFilter, getBillingPeriodsInFilter } from "./core-calculator.js";
 
 
 
 // load menu
-    fetch("menu.html").then(r => r.text()).then(h => {
-      document.getElementById("menu-placeholder").innerHTML = h;
-      if (typeof initMenu === "function") initMenu();
-    });    
+loadTemplate("menu-placeholder", "menu.html", () => {
+  if (typeof initMenu === "function") initMenu();
+});    
 
 // load modal loading
-    fetch("modal.html").then(r => r.text()).then(h => {
-      document.getElementById("loading-placeholder").innerHTML = h;
-    });
+loadTemplate("loading-placeholder", "modal.html");
 // TẢI FOOTER (thêm đoạn này vào)
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+loadTemplate("footer-placeholder", "footer.html");
+
     const notLogged = document.getElementById("notLogged");
     const content   = document.getElementById("pageContent");
     const tbody     = document.querySelector("#reportTable tbody");
@@ -27,6 +23,10 @@ import { formatISODate, formatVNDate, safeFixed, getCompanyConfigAtDate, getPeri
     const holidayDetailReportDiv = document.getElementById('holidayDetailReport');
     const holidayDetailTableBody = document.querySelector('#holidayDetailTable tbody');
     const holidayDetailTableHead = document.querySelector('#holidayDetailTable thead');
+
+    const statsDashboardView = document.getElementById("statsDashboardView");
+    const viewDetailsCheckbox = document.getElementById("viewDetailsCheckbox");
+    const reportTableContainer = document.getElementById("reportTableContainer");
 
     let userRole = null;
 
@@ -42,6 +42,31 @@ import { formatISODate, formatVNDate, safeFixed, getCompanyConfigAtDate, getPeri
     
     // DOM ref cho công tắc 3 nấc
     const reportModeToggle = document.getElementById('reportModeToggle');
+
+    // === START: XEM DẠNG THẺ TOGGLE LOGIC ===
+    if (viewDetailsCheckbox) {
+        const savedViewDetails = localStorage.getItem("viewDetailsStatistics");
+        if (savedViewDetails === "true") {
+            viewDetailsCheckbox.checked = true;
+        } else {
+            viewDetailsCheckbox.checked = false; // Mặc định: Xem dạng bảng
+        }
+
+        const updateVisibility = () => {
+            const isChecked = viewDetailsCheckbox.checked; // true nghĩa là xem dạng thẻ
+            localStorage.setItem("viewDetailsStatistics", isChecked);
+            if (reportTableContainer) {
+                reportTableContainer.style.display = isChecked ? "none" : "block"; // Ẩn bảng khi xem dạng thẻ
+            }
+            if (statsDashboardView) {
+                statsDashboardView.style.display = isChecked ? "block" : "none"; // Hiện thẻ khi xem dạng thẻ
+            }
+        };
+
+        viewDetailsCheckbox.addEventListener("change", updateVisibility);
+        setTimeout(updateVisibility, 0);
+    }
+    // === END: XEM DẠNG THẺ TOGGLE LOGIC ===
 
 
     // data & config
@@ -166,6 +191,13 @@ import { formatISODate, formatVNDate, safeFixed, getCompanyConfigAtDate, getPeri
         // 4. Lọc bảng chi tiết ngày nghỉ (nếu có)
         filterHolidayDetailTableByCompanyGroup(companies);
 
+        // 5. Ẩn/Hiện thẻ card dashboard
+        const cards = document.querySelectorAll('.stat-card');
+        cards.forEach(card => {
+            const companyName = card.dataset.companyName;
+            const isAllowed = selectedGroup === 'all' || getCompanyGroup(companyName) === selectedGroup;
+            card.style.display = isAllowed ? '' : 'none';
+        });
 
         console.log(`LOG: Đã áp dụng bộ lọc nhóm công ty: ${selectedGroup}.`);
     }
@@ -809,6 +841,305 @@ import { formatISODate, formatVNDate, safeFixed, getCompanyConfigAtDate, getPeri
         const yearData = companies.map(c => ({ company: c, data: getPeriodsInFilter(byCompany[c] || [], from, to, "year", config, allProcessedHolidays, c, allCompanyConfigs) }));
         reportHTML += renderPeriod("Năm", yearData, "year", reportMode);
 
+        const sanitizeClass = (str) => str.replace(/[^a-zA-Z0-9]/g, '_');
+
+        // RENDER CARD DASHBOARD
+        let cardsHTML = '';
+        companies.forEach(c => {
+            const w = weekData.find(d => d.company === c)?.data?.current;
+            const m = monthData.find(d => d.company === c)?.data?.current;
+            const b = billingData.find(d => d.company === c)?.data?.current;
+            const y = yearData.find(d => d.company === c)?.data?.current;
+
+            const wPast = weekData.find(d => d.company === c)?.data?.past || [];
+            const mPast = monthData.find(d => d.company === c)?.data?.past || [];
+            const bPast = billingData.find(d => d.company === c)?.data?.past || [];
+            const yPast = yearData.find(d => d.company === c)?.data?.past || [];
+
+            // Formatted values
+            const wTotal = w ? safeFixed(w.total, 1) : 'N/A';
+            const wAvg = w ? safeFixed(w.avg, 1, true) : 'N/A';
+            const wDayOffs = w?.dayOffsCount || 0;
+            const wTooltip = w ? formatHolidayDates(w.holidayDates) : '';
+            const wWorkingDays = w?.workingDaysForAvg != null ? w.workingDaysForAvg : 'N/A';
+            const wStartVal = w && w.startValue != null ? w.startValue.toLocaleString('vi-VN') : 'N/A';
+            const wEndVal = w && w.endValue != null ? w.endValue.toLocaleString('vi-VN') : 'N/A';
+            const wTotalTooltip = `Phép tính: ${wEndVal} - ${wStartVal}`;
+            const wAvgTooltip = `Phép tính: (${wEndVal} - ${wStartVal}) / ${wWorkingDays} ngày`;
+
+            const mTotal = m ? safeFixed(m.total, 1) : 'N/A';
+            const mAvg = m ? safeFixed(m.avg, 1, true) : 'N/A';
+            const mDayOffs = m?.dayOffsCount || 0;
+            const mTooltip = m ? formatHolidayDates(m.holidayDates) : '';
+            const mWorkingDays = m?.workingDaysForAvg != null ? m.workingDaysForAvg : 'N/A';
+            const mStartVal = m && m.startValue != null ? m.startValue.toLocaleString('vi-VN') : 'N/A';
+            const mEndVal = m && m.endValue != null ? m.endValue.toLocaleString('vi-VN') : 'N/A';
+            const mTotalTooltip = `Phép tính: ${mEndVal} - ${mStartVal}`;
+            const mAvgTooltip = `Phép tính: (${mEndVal} - ${mStartVal}) / ${mWorkingDays} ngày`;
+
+            const bTotal = b ? safeFixed(b.total, 1) : 'N/A';
+            const bAvg = b ? safeFixed(b.avg, 1, true) : 'N/A';
+            const bDayOffs = b?.dayOffsCount || 0;
+            const bTooltip = b ? formatHolidayDates(b.holidayDates) : '';
+            const bQuota = b ? safeFixed(b.quota, 0) : 'N/A';
+            const bWorkingDays = b?.workingDaysForAvg != null ? b.workingDaysForAvg : 'N/A';
+            const bStartVal = b && b.startValue != null ? b.startValue.toLocaleString('vi-VN') : 'N/A';
+            const bEndVal = b && b.endValue != null ? b.endValue.toLocaleString('vi-VN') : 'N/A';
+            const bQuotaMult = b && b.quotaMultiplier != null ? b.quotaMultiplier : 'N/A';
+            const bTotalTooltip = `Phép tính: ${bEndVal} - ${bStartVal}`;
+            const bAvgTooltip = `Phép tính: (${bEndVal} - ${bStartVal}) / ${bWorkingDays} ngày`;
+            const bQuotaTooltip = `Phép tính: ${bWorkingDays} ngày * ${bQuotaMult}`;
+
+            const yTotal = y ? safeFixed(y.total, 1) : 'N/A';
+            const yAvg = y ? safeFixed(y.avg, 1, true) : 'N/A';
+            const yDayOffs = y?.dayOffsCount || 0;
+            const yTooltip = y ? formatHolidayDates(y.holidayDates) : '';
+            const yWorkingDays = y?.workingDaysForAvg != null ? y.workingDaysForAvg : 'N/A';
+            const yStartVal = y && y.startValue != null ? y.startValue.toLocaleString('vi-VN') : 'N/A';
+            const yEndVal = y && y.endValue != null ? y.endValue.toLocaleString('vi-VN') : 'N/A';
+            const yTotalTooltip = `Phép tính: ${yEndVal} - ${yStartVal}`;
+            const yAvgTooltip = `Phép tính: (${yEndVal} - ${yStartVal}) / ${yWorkingDays} ngày`;
+
+            const wDaysOffHtml = (reportMode !== 0 && wDayOffs > 0) ? `<span class="val-days-off" title="${wTooltip}">(${wDayOffs} ngày nghỉ)</span>` : '';
+            const mDaysOffHtml = (reportMode !== 0 && mDayOffs > 0) ? `<span class="val-days-off" title="${mTooltip}">(${mDayOffs} ngày nghỉ)</span>` : '';
+            const bDaysOffHtml = (reportMode !== 0 && bDayOffs > 0) ? `<span class="val-days-off" title="${bTooltip}">(${bDayOffs} ngày nghỉ)</span>` : '';
+            const yDaysOffHtml = (reportMode !== 0 && yDayOffs > 0) ? `<span class="val-days-off" title="${yTooltip}">(${yDayOffs} ngày nghỉ)</span>` : '';
+
+            // Past periods HTML builders
+            let wPastHtml = '';
+            if (wPast.length > 0) {
+                wPastHtml += `<div class="card-past-container w-past-${sanitizeClass(c)}" style="display: none; padding: 4px 0 4px 12px; border-left: 2px solid #cbd5e1; margin-bottom: 6px; font-size: 0.8rem; flex-direction: column; gap: 4px; width: 100%;">`;
+                wPast.forEach((p, idx) => {
+                    const totalFixed = safeFixed(p.total, 1);
+                    const avgFixed = safeFixed(p.avg, 1, true);
+                    const dayOffs = p.dayOffsCount || 0;
+                    const holidayDates = p.holidayDates || [];
+                    const tooltipDates = formatHolidayDates(holidayDates);
+                    const tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+                    
+                    const workingDays = p.workingDaysForAvg != null ? p.workingDaysForAvg : 'N/A';
+                    const startVal = p.startValue != null ? p.startValue.toLocaleString('vi-VN') : 'N/A';
+                    const endVal = p.endValue != null ? p.endValue.toLocaleString('vi-VN') : 'N/A';
+                    const totalTooltip = `Phép tính: ${endVal} - ${startVal}`;
+                    const avgTooltip = `Phép tính: (${endVal} - ${startVal}) / ${workingDays} ngày`;
+                    
+                    const daysOffHtml = (reportMode !== 0 && dayOffs > 0) ? `<span class="val-days-off" style="font-size: 0.75rem; color: #b45309; margin-left: 4px; font-weight: 500;" ${tooltipAttr}>(${dayOffs} nghỉ)</span>` : '';
+                    
+                    let rowLabel = p.label;
+                    rowLabel = rowLabel.replace(/Tuần: |Tháng: |Năm: /, '');
+
+                    wPastHtml += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; border-bottom: 1px dashed #f1f5f9; padding-bottom: 2px; width: 100%;">
+                      <span>${rowLabel}</span>
+                      <div>
+                        <span style="font-weight: 600;" title="${totalTooltip}">${totalFixed}</span> / <span style="font-weight: 500;" title="${avgTooltip}">${avgFixed}</span> <span style="font-size: 0.7rem; color: #94a3b8;">m³/n</span>
+                        ${daysOffHtml}
+                      </div>
+                    </div>`;
+                });
+                wPastHtml += `</div>`;
+            }
+
+            let mPastHtml = '';
+            if (mPast.length > 0) {
+                mPastHtml += `<div class="card-past-container m-past-${sanitizeClass(c)}" style="display: none; padding: 4px 0 4px 12px; border-left: 2px solid #cbd5e1; margin-bottom: 6px; font-size: 0.8rem; flex-direction: column; gap: 4px; width: 100%;">`;
+                mPast.forEach((p, idx) => {
+                    const totalFixed = safeFixed(p.total, 1);
+                    const avgFixed = safeFixed(p.avg, 1, true);
+                    const dayOffs = p.dayOffsCount || 0;
+                    const holidayDates = p.holidayDates || [];
+                    const tooltipDates = formatHolidayDates(holidayDates);
+                    const tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+                    
+                    const workingDays = p.workingDaysForAvg != null ? p.workingDaysForAvg : 'N/A';
+                    const startVal = p.startValue != null ? p.startValue.toLocaleString('vi-VN') : 'N/A';
+                    const endVal = p.endValue != null ? p.endValue.toLocaleString('vi-VN') : 'N/A';
+                    const totalTooltip = `Phép tính: ${endVal} - ${startVal}`;
+                    const avgTooltip = `Phép tính: (${endVal} - ${startVal}) / ${workingDays} ngày`;
+                    
+                    const daysOffHtml = (reportMode !== 0 && dayOffs > 0) ? `<span class="val-days-off" style="font-size: 0.75rem; color: #b45309; margin-left: 4px; font-weight: 500;" ${tooltipAttr}>(${dayOffs} nghỉ)</span>` : '';
+                    
+                    let rowLabel = p.label;
+                    rowLabel = rowLabel.replace(/Tuần: |Tháng: |Năm: /, '');
+
+                    mPastHtml += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; border-bottom: 1px dashed #f1f5f9; padding-bottom: 2px; width: 100%;">
+                      <span>${rowLabel}</span>
+                      <div>
+                        <span style="font-weight: 600;" title="${totalTooltip}">${totalFixed}</span> / <span style="font-weight: 500;" title="${avgTooltip}">${avgFixed}</span> <span style="font-size: 0.7rem; color: #94a3b8;">m³/n</span>
+                        ${daysOffHtml}
+                      </div>
+                    </div>`;
+                });
+                mPastHtml += `</div>`;
+            }
+
+            let bPastHtml = '';
+            if (bPast.length > 0) {
+                bPastHtml += `<div class="card-past-container b-past-${sanitizeClass(c)}" style="display: none; padding: 4px 0 4px 12px; border-left: 2px solid #cbd5e1; margin-bottom: 6px; font-size: 0.8rem; flex-direction: column; gap: 4px; width: 100%;">`;
+                bPast.forEach((p, idx) => {
+                    const totalFixed = safeFixed(p.total, 1);
+                    const avgFixed = safeFixed(p.avg, 1, true);
+                    const quotaFixed = safeFixed(p.quota, 0);
+                    const dayOffs = p.dayOffsCount || 0;
+                    const holidayDates = p.holidayDates || [];
+                    const tooltipDates = formatHolidayDates(holidayDates);
+                    const tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+                    
+                    const workingDays = p.workingDaysForAvg != null ? p.workingDaysForAvg : 'N/A';
+                    const startVal = p.startValue != null ? p.startValue.toLocaleString('vi-VN') : 'N/A';
+                    const endVal = p.endValue != null ? p.endValue.toLocaleString('vi-VN') : 'N/A';
+                    const quotaMult = p.quotaMultiplier != null ? p.quotaMultiplier : 'N/A';
+                    const totalTooltip = `Phép tính: ${endVal} - ${startVal}`;
+                    const avgTooltip = `Phép tính: (${endVal} - ${startVal}) / ${workingDays} ngày`;
+                    const quotaTooltip = `Phép tính: ${workingDays} ngày * ${quotaMult}`;
+                    
+                    const daysOffHtml = (reportMode !== 0 && dayOffs > 0) ? `<span class="val-days-off" style="font-size: 0.75rem; color: #b45309; margin-left: 4px; font-weight: 500;" ${tooltipAttr}>(${dayOffs} nghỉ)</span>` : '';
+                    
+                    let rowLabel = `Kỳ trước ${idx + 1}`;
+
+                    bPastHtml += `
+                    <div style="display: flex; flex-direction: column; color: #64748b; border-bottom: 1px dashed #f1f5f9; padding-bottom: 4px; gap: 2px; width: 100%;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <span>${rowLabel}</span>
+                        <div>
+                          <span style="font-weight: 600;" title="${totalTooltip}">${totalFixed}</span> / <span style="font-weight: 500;" title="${avgTooltip}">${avgFixed}</span> <span style="font-size: 0.7rem; color: #94a3b8;">m³/n</span>
+                          ${daysOffHtml}
+                        </div>
+                      </div>
+                      <div style="font-size: 0.75rem; color: #0284c7; font-weight: 600; text-align: right;" title="${quotaTooltip}">
+                        Khoán: ${quotaFixed} m³
+                      </div>
+                    </div>`;
+                });
+                bPastHtml += `</div>`;
+            }
+
+            let yPastHtml = '';
+            if (yPast.length > 0) {
+                yPastHtml += `<div class="card-past-container y-past-${sanitizeClass(c)}" style="display: none; padding: 4px 0 4px 12px; border-left: 2px solid #cbd5e1; margin-bottom: 6px; font-size: 0.8rem; flex-direction: column; gap: 4px; width: 100%;">`;
+                yPast.forEach((p, idx) => {
+                    const totalFixed = safeFixed(p.total, 1);
+                    const avgFixed = safeFixed(p.avg, 1, true);
+                    const dayOffs = p.dayOffsCount || 0;
+                    const holidayDates = p.holidayDates || [];
+                    const tooltipDates = formatHolidayDates(holidayDates);
+                    const tooltipAttr = tooltipDates ? `title="${tooltipDates}"` : '';
+                    
+                    const workingDays = p.workingDaysForAvg != null ? p.workingDaysForAvg : 'N/A';
+                    const startVal = p.startValue != null ? p.startValue.toLocaleString('vi-VN') : 'N/A';
+                    const endVal = p.endValue != null ? p.endValue.toLocaleString('vi-VN') : 'N/A';
+                    const totalTooltip = `Phép tính: ${endVal} - ${startVal}`;
+                    const avgTooltip = `Phép tính: (${endVal} - ${startVal}) / ${workingDays} ngày`;
+                    
+                    const daysOffHtml = (reportMode !== 0 && dayOffs > 0) ? `<span class="val-days-off" style="font-size: 0.75rem; color: #b45309; margin-left: 4px; font-weight: 500;" ${tooltipAttr}>(${dayOffs} nghỉ)</span>` : '';
+                    
+                    let rowLabel = p.label;
+                    rowLabel = rowLabel.replace(/Tuần: |Tháng: |Năm: /, '');
+
+                    yPastHtml += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; border-bottom: 1px dashed #f1f5f9; padding-bottom: 2px; width: 100%;">
+                      <span>${rowLabel}</span>
+                      <div>
+                        <span style="font-weight: 600;" title="${totalTooltip}">${totalFixed}</span> / <span style="font-weight: 500;" title="${avgTooltip}">${avgFixed}</span> <span style="font-size: 0.7rem; color: #94a3b8;">m³/n</span>
+                        ${daysOffHtml}
+                      </div>
+                    </div>`;
+                });
+                yPastHtml += `</div>`;
+            }
+
+            const wToggleBtn = wPast.length > 0 ? `<span class="card-toggle-btn" data-target="w-past-${sanitizeClass(c)}" style="cursor: pointer; color: var(--focus-color); font-weight: bold; margin-left: 4px; display: inline-block;">▶</span>` : '';
+            const mToggleBtn = mPast.length > 0 ? `<span class="card-toggle-btn" data-target="m-past-${sanitizeClass(c)}" style="cursor: pointer; color: var(--focus-color); font-weight: bold; margin-left: 4px; display: inline-block;">▶</span>` : '';
+            const bToggleBtn = bPast.length > 0 ? `<span class="card-toggle-btn" data-target="b-past-${sanitizeClass(c)}" style="cursor: pointer; color: var(--focus-color); font-weight: bold; margin-left: 4px; display: inline-block;">▶</span>` : '';
+            const yToggleBtn = yPast.length > 0 ? `<span class="card-toggle-btn" data-target="y-past-${sanitizeClass(c)}" style="cursor: pointer; color: var(--focus-color); font-weight: bold; margin-left: 4px; display: inline-block;">▶</span>` : '';
+
+            cardsHTML += `
+            <div class="stat-card" data-company-name="${c}">
+              <div class="stat-card-header">
+                <span class="stat-card-icon">🏢</span>
+                <span class="stat-card-title">${c}</span>
+                <span class="stat-card-unit">m³</span>
+              </div>
+              <div class="stat-card-body">
+                <div class="stat-period-row">
+                  <span class="period-label">Tuần này${wToggleBtn}</span>
+                  <div class="period-values">
+                    <span class="val-total" title="${wTotalTooltip}">${wTotal}</span>
+                    <span class="val-sep">/</span>
+                    <span class="val-avg" title="${wAvgTooltip}">${wAvg}</span>
+                    <span class="val-unit">m³/ngày</span>
+                    ${wDaysOffHtml}
+                  </div>
+                </div>
+                ${wPastHtml}
+                
+                <div class="stat-period-row">
+                  <span class="period-label">Tháng này${mToggleBtn}</span>
+                  <div class="period-values">
+                    <span class="val-total" title="${mTotalTooltip}">${mTotal}</span>
+                    <span class="val-sep">/</span>
+                    <span class="val-avg" title="${mAvgTooltip}">${mAvg}</span>
+                    <span class="val-unit">m³/ngày</span>
+                    ${mDaysOffHtml}
+                  </div>
+                </div>
+                ${mPastHtml}
+                
+                <div class="stat-period-row">
+                  <span class="period-label">Kỳ thu phí${bToggleBtn}</span>
+                  <div class="period-values" style="flex-wrap: wrap; justify-content: flex-end; gap: 4px;">
+                    <div>
+                      <span class="val-total" title="${bTotalTooltip}">${bTotal}</span>
+                      <span class="val-sep">/</span>
+                      <span class="val-avg" title="${bAvgTooltip}">${bAvg}</span>
+                      <span class="val-unit">m³/ngày</span>
+                      ${bDaysOffHtml}
+                    </div>
+                    <div class="val-quota" style="font-size: 0.75rem; color: #0284c7; font-weight: 600; width: 100%; text-align: right;" title="${bQuotaTooltip}">
+                      Khoán: ${bQuota} m³
+                    </div>
+                  </div>
+                </div>
+                ${bPastHtml}
+                
+                <div class="stat-period-row">
+                  <span class="period-label">Năm nay${yToggleBtn}</span>
+                  <div class="period-values">
+                    <span class="val-total" title="${yTotalTooltip}">${yTotal}</span>
+                    <span class="val-sep">/</span>
+                    <span class="val-avg" title="${yAvgTooltip}">${yAvg}</span>
+                    <span class="val-unit">m³/ngày</span>
+                    ${yDaysOffHtml}
+                  </div>
+                </div>
+                ${yPastHtml}
+              </div>
+            </div>`;
+        });
+        if (statsDashboardView) {
+            statsDashboardView.innerHTML = cardsHTML;
+            
+            // Add click delegation for card past periods toggle if not already added
+            if (!statsDashboardView.dataset.listenerAdded) {
+                statsDashboardView.addEventListener('click', (e) => {
+                    const btn = e.target.closest('.card-toggle-btn');
+                    if (!btn) return;
+                    e.stopPropagation();
+
+                    const targetClass = btn.dataset.target;
+                    const container = btn.closest('.stat-card').querySelector('.' + targetClass);
+                    if (!container) return;
+
+                    const isHidden = container.style.display === 'none';
+                    container.style.display = isHidden ? 'flex' : 'none';
+                    btn.textContent = isHidden ? '▼' : '▶';
+                    btn.style.color = isHidden ? 'var(--primary-color)' : '';
+                });
+                statsDashboardView.dataset.listenerAdded = 'true';
+            }
+        }
+
         tbody.innerHTML = reportHTML;
         
         // BƯỚC CUỐI: Nếu là Mode 2, render bảng chi tiết ngày nghỉ
@@ -1071,6 +1402,16 @@ async function exportTableToPDF(element, filename) {
     // 7) Loại bỏ các control không mong muốn trên bản sao
     content.querySelectorAll('.toggle-btn').forEach(btn => btn.remove());
     content.querySelector('#reportModeToggle')?.remove();
+
+    // Ẩn Card Dashboard & Hiện Table Grid trong bản sao PDF để in ra bảng chính thức
+    const copyDashboard = content.querySelector('#statsDashboardView');
+    if (copyDashboard) {
+      copyDashboard.style.display = 'none';
+    }
+    const copyTableContainer = content.querySelector('#reportTableContainer');
+    if (copyTableContainer) {
+      copyTableContainer.style.display = 'block';
+    }
 
     // Gỡ bỏ thanh cuộn và giới hạn chiều cao để PDF in đầy đủ toàn bộ bảng
     content.querySelectorAll('.table-container').forEach(c => {

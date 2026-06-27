@@ -1,5 +1,5 @@
 // 1. IMPORT CÁC HÀM DÙNG CHUNG
-    import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage } from "./script.js";
+    import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage, loadTemplate } from "./script.js";
     import { collection, getDocs, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, setDoc, getDoc, query, where, orderBy, limit, documentId, writeBatch, increment } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
     import { initMenu } from "./menu.js";
 
@@ -155,16 +155,11 @@
         // --- KẾT THÚC HÀM MỚI ---
 
     // 2. TẢI CÁC THÀNH PHẦN GIAO DIỆN CHUNG
-    fetch("menu.html").then(r => r.text()).then(h => {
-        document.getElementById("menu-placeholder").innerHTML = h;
+    loadTemplate("menu-placeholder", "menu.html", () => {
         initMenu();        
     });
-    fetch("modal.html").then(r => r.text()).then(h => {
-        document.getElementById("loading-placeholder").innerHTML = h;
-    });
-    fetch("footer.html").then(r => r.text()).then(h => {
-        document.getElementById("footer-placeholder").innerHTML = h;
-    });
+    loadTemplate("loading-placeholder", "modal.html");
+    loadTemplate("footer-placeholder", "footer.html");
     
     const notLogged = document.getElementById("notLogged");
     const pageContent = document.getElementById("pageContent");

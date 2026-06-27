@@ -1,20 +1,14 @@
 // tinhtoan.js
-import { onAuth } from "./script.js";
+import { onAuth, loadTemplate } from "./script.js";
 import { initMenu } from "./menu.js";
 
 // --- TẢI GIAO DIỆN CHUNG ---
-fetch("menu.html")
-  .then((r) => r.text())
-  .then((h) => (document.getElementById("menu-placeholder").innerHTML = h))
-  .then(initMenu);
+loadTemplate("menu-placeholder", "menu.html", () => {
+  initMenu();
+});
+loadTemplate("loading-placeholder", "modal.html");
+loadTemplate("footer-placeholder", "footer.html");
 
-fetch("modal.html")
-  .then((r) => r.text())
-  .then((h) => (document.getElementById("loading-placeholder").innerHTML = h));
-
-fetch("footer.html")
-  .then((r) => r.text())
-  .then((h) => (document.getElementById("footer-placeholder").innerHTML = h));
 
 // --- KIỂM TRA ĐĂNG NHẬP ---
 const notLogged = document.getElementById("notLogged");

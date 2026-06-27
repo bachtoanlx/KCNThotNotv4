@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+  <!-- PWA & Mobile Fullscreen -->
+  <link rel='manifest' href='manifest.json'>
+  <meta name='theme-color' content='#273668'>
+  <meta name='apple-mobile-web-app-capable' content='yes'>
+  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+  <meta name='apple-mobile-web-app-title' content='QL KCN'>
+  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Báo cáo thống kê</title>
@@ -8,20 +15,60 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <style>
     /* CSS CŨ (GIỮ NGUYÊN) */
-    table { border-collapse: separate; border-spacing: 0; width: 100%; margin-top: 20px; }
-    #reportTable th { text-align: center; vertical-align: middle; background: var(--primary-color); color: white; } 
-    #reportTable td:first-child { text-align: left; } 
+    table { 
+        border-collapse: separate; 
+        border-spacing: 0; 
+        width: 100%; 
+        margin-top: 20px; 
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    #reportTable th { 
+        text-align: center; 
+        vertical-align: middle; 
+        background: var(--primary-color); 
+        color: white; 
+        font-weight: 600;
+        font-size: 0.9rem;
+    } 
+    #reportTable td:first-child { 
+        text-align: left; 
+        font-weight: 600;
+        color: var(--primary-color);
+    } 
     #reportTable td:not(:first-child) { text-align: center; } 
     
     th, td { 
-        border: none; border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; 
-        padding: 6px; text-align: center; 
+        border: none; 
+        border-bottom: 1px solid var(--border-color); 
+        border-right: 1px solid var(--border-color); 
+        padding: 8px 10px; 
+        text-align: center; 
+        font-size: 0.9rem;
     }
-    th:first-child, td:first-child { border-left: 1px solid #ccc; }
-    th { border-top: 1px solid #ccc; background-clip: padding-box; position: sticky; top: 0; z-index: 10; }
+    th:first-child, td:first-child { border-left: 1px solid var(--border-color); }
+    th { 
+        border-top: 1px solid var(--border-color); 
+        background-clip: padding-box; 
+        position: sticky; 
+        top: 0; 
+        z-index: 10; 
+    }
     
-    .toggle-btn { cursor: pointer; margin-left: 8px; color: rgba(0, 0, 255, 0.527); }
-    .child-row { display: none; background: #f0f0f0; } 
+    .toggle-btn { 
+        cursor: pointer; 
+        margin-left: 6px; 
+        color: var(--focus-color); 
+        font-weight: bold;
+        display: inline-block;
+        transition: transform 0.2s ease;
+        user-select: none;
+    }
+    .toggle-btn:hover {
+        color: var(--primary-hover);
+        transform: scale(1.15);
+    }
+    .child-row { display: none; background: #fafafa; } 
     /* Compact filter row: use flex layout so controls are tighter and responsive */
     .filter-box {
       margin: 8px 0; /* reduce vertical gap */
@@ -47,9 +94,13 @@
     .admin-settings { border: 1px solid #ccc; padding: 10px; margin-top: 20px; display: none; }
     .admin-settings h3 { margin-top: 0; }
     tr.current-row td { font-weight: bold; }
-    tr.past-row td { font-size: 0.85em; color: #444; }
-    tr.total-current-row { background: #eef6ff; }
-    body tr.detail-current-row { background: white; }
+    tr.past-row td { font-size: 0.85em; color: #64748b; }
+    tr.total-current-row { background: #f1f7ff; }
+    body tr.detail-current-row { background: #fafcff; }
+    #reportTable tbody tr:hover {
+        background-color: #f8fafc !important;
+        transition: background-color 0.15s ease;
+    }
 
     /* Bảng có thanh cuộn để giữ cố định tiêu đề (sticky header) */
     .table-container {
@@ -527,6 +578,246 @@
             gap: 10px;
         }
     }
+
+    /* --- VIEWPORT CỐ ĐỊNH & ĐỒNG BỘ CHIỀU RỘNG TRANG --- */
+    #pageContent {
+        padding: 10px 8px;
+    }
+
+    body.fixed-viewport-layout .card-body {
+        flex: 1 !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 0 0 15px 0 !important;
+        margin-top: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.fixed-viewport-layout .sticky-filter {
+        flex-shrink: 0 !important;
+        top: 0 !important;
+        margin-top: 0 !important;
+        padding-bottom: 6px !important;
+    }
+
+    body.fixed-viewport-layout #pdfReport {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    body.fixed-viewport-layout .table-container {
+        max-height: none !important;
+        overflow-y: visible !important;
+        overflow-x: auto !important;
+        margin-bottom: 15px;
+    }
+
+    body.fixed-viewport-layout #pageContent > h2 {
+        padding-left: 0;
+        margin-top: 12px;
+        margin-bottom: 2px !important;
+    }
+
+    @media (max-width: 768px) {
+        body #pageContent {
+            padding: 5px 0px !important;
+        }
+        body.fixed-viewport-layout #pageContent > h2 {
+            padding-left: 8px !important;
+            margin-top: 6px !important;
+            margin-bottom: 2px !important;
+        }
+        body.fixed-viewport-layout .card-body {
+            padding: 0 2px 10px 2px !important;
+        }
+        body.fixed-viewport-layout .sticky-filter {
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+        }
+        .stats-dashboard-view {
+            grid-template-columns: 1fr !important;
+            padding: 8px 0px !important;
+        }
+    }
+
+    /* --- BẢNG ĐIỀU KHIỂN DẠNG THẺ DASHBOARD --- */
+    .stats-dashboard-view {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        padding: 10px 0;
+    }
+
+    .stat-card {
+        background: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    }
+
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card-icon {
+        font-size: 1.45rem;
+    }
+
+    .stat-card-title {
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 1rem;
+        flex: 1;
+    }
+
+    .stat-card-unit {
+        font-size: 0.75rem;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .stat-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .stat-period-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        padding: 6px 0;
+        border-bottom: 1px dashed #f1f5f9;
+    }
+
+    .stat-period-row:last-of-type {
+        border-bottom: none;
+    }
+
+    .period-label {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .period-values {
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+    }
+
+    .val-total {
+        font-weight: 700;
+        color: var(--text-color);
+        font-size: 1.05rem;
+    }
+
+    .val-avg {
+        font-weight: 500;
+        color: #475569;
+        font-size: 0.85rem;
+    }
+
+    .val-sep {
+        color: #cbd5e1;
+        margin: 0 4px;
+        font-size: 0.85rem;
+    }
+
+    .val-unit {
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .val-days-off {
+        font-size: 0.75rem;
+        color: #b45309;
+        margin-left: 4px;
+        font-weight: 500;
+    }
+    
+    /* Style for special filter checkbox label */
+    .special-filter-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        color: var(--primary-color);
+        font-size: 13px;
+        cursor: pointer;
+        padding: 6px 10px;
+        background: #f0f6ff;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        transition: background 0.2s, border-color 0.2s;
+        user-select: none;
+    }
+    .special-filter-label:hover {
+        background: #e2efff;
+        border-color: var(--focus-color);
+    }
+    .special-filter-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        cursor: pointer;
+        accent-color: var(--primary-color);
+    }
+    .special-text-long {
+        display: inline;
+    }
+    .special-text-short {
+        display: none;
+    }
+    @media (max-width: 768px) {
+        .special-text-long {
+            display: none;
+        }
+        .special-text-short {
+            display: inline;
+        }
+        .special-filter-label {
+            margin-left: 0 !important;
+            width: 100%;
+            justify-content: center;
+            font-size: 12px;
+            padding: 5px 8px;
+            height: 27px; /* Align with select elements height on mobile */
+        }
+    }
+    
+    .card-toggle-btn {
+        transition: transform 0.2s ease, color 0.2s ease;
+        user-select: none;
+    }
+    .card-toggle-btn:hover {
+        transform: scale(1.2);
+    }
+    .card-past-container {
+        animation: fadeInPast 0.2s ease;
+    }
+    @keyframes fadeInPast {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -554,6 +845,12 @@
       
       <button id="applyFilter">Áp dụng</button>
       <button type="button" id="exportPDF">Xuất BC - PDF</button>
+      
+      <label class="special-filter-label view-details-label" style="margin-left: auto;">
+        <input type="checkbox" id="viewDetailsCheckbox"> 
+        <span class="special-text-long">Xem dạng thẻ</span>
+        <span class="special-text-short">Dạng thẻ</span>
+      </label>
     </div>
     
     <div class="report-header-controls">
@@ -568,10 +865,10 @@
             <div id="reportModeToggle" class="switch-toggle switch-3-n">
                 <input id="mode-normal" name="report-mode" type="radio" value="0" checked />
                 <label for="mode-normal">Chuẩn</label>
-
+ 
                 <input id="mode-count" name="report-mode" type="radio" value="1" />
                 <label for="mode-count">Ngày nghỉ</label>
-
+ 
                 <input id="mode-list" name="report-mode" type="radio" value="2" />
                 <label for="mode-list">Chi tiết</label>
                 <a></a>
@@ -585,17 +882,20 @@
                 <option value="all">Tất cả 3 nhóm</option>
             </select>
         </div>
-
+ 
     </div>
     </div> <!-- KẾT THÚC KHỐI BỌC STICKY -->
-
+ 
     <div id="pdfReport"> 
     <div class="pdf-only">
       <h2 style="text-align:center">TRUNG TÂM XÂY DỰNG HẠ TẦNG KCN THỐT NỐT</h2>
       <h2 style="text-align:left">📊 Báo cáo thống kê</h2>
     </div>
 
-    <div class="table-container">
+    <!-- Bảng điều khiển dạng thẻ Dashboard -->
+    <div class="stats-dashboard-view" id="statsDashboardView" style="display: none;"></div>
+
+    <div class="table-container" id="reportTableContainer">
     <table id="reportTable">
       <thead>
         <tr>
