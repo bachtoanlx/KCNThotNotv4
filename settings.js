@@ -2751,8 +2751,6 @@ function renderAIKnowledgeTable() {
                 </tr>
             `;
             group.items.forEach(k => {
-                const contentSnippet = k.content && k.content.length > 100 ? k.content.substring(0, 100) + "..." : (k.content || "-");
-                
                 let badgeColor = "#2ecc71"; // guest
                 let badgeText = "Khách";
                 if (k.targetGroup === "user") {
@@ -2771,8 +2769,12 @@ function renderAIKnowledgeTable() {
                 html += `
                     <tr>
                         <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; font-weight: bold; text-align: left; padding-left: 20px;">${titleHtml}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; white-space: normal; word-break: break-all;">${contentSnippet}</td>
-                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left;">${k.keywords || "-"}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; vertical-align: middle;">
+                            <div class="ai-content-wrapper" title="Nhấn để xem chi tiết">${k.content || "-"}</div>
+                        </td>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; vertical-align: middle;">
+                            <div class="ai-keywords-wrapper" title="Nhấn để xem chi tiết">${k.keywords || "-"}</div>
+                        </td>
                         <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; white-space: nowrap;">
                             <button class="edit-ai-btn btn-action" data-id="${k.id}" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">✏️ Sửa</button>
                             <button class="delete-ai-btn btn-action" data-id="${k.id}" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Xóa</button>
@@ -2784,6 +2786,17 @@ function renderAIKnowledgeTable() {
     });
 
     tbody.innerHTML = html;
+
+    // Đăng ký sự kiện nhấp để thu gọn/mở rộng nội dung kiến thức và từ khóa
+    tbody.querySelectorAll(".ai-content-wrapper, .ai-keywords-wrapper").forEach(div => {
+        div.addEventListener("click", (e) => {
+            e.stopPropagation();
+            tbody.querySelectorAll(".ai-content-wrapper.expanded, .ai-keywords-wrapper.expanded").forEach(otherDiv => {
+                if (otherDiv !== div) otherDiv.classList.remove("expanded");
+            });
+            div.classList.toggle("expanded");
+        });
+    });
 
     tbody.querySelectorAll(".edit-ai-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {

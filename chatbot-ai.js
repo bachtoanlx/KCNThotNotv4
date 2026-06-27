@@ -588,8 +588,17 @@ export function searchAIKnowledge(queryText) {
 export function detectDataQuery(message) {
     const lowerMsg = message.toLowerCase().trim();
 
-    // Kiểm tra câu hỏi quy chế RAG trước tiên
-    if (cachedAIKnowledge && cachedAIKnowledge.length > 0) {
+    // Các từ khóa chỉ định câu hỏi dạng Quy chế/Kiến thức/Hướng dẫn (RAG) rõ ràng
+    const informationalKeywords = [
+        'quy định', 'quy chế', 'tiêu chuẩn', 'phạt', 'cách pha', 'quy trình', 
+        'hướng dẫn', 'định nghĩa', 'là gì', 'thế nào', 'làm sao', 'liên hệ', 
+        'địa chỉ', 'giờ làm', 'chức năng', 'hỗ trợ'
+    ];
+
+    const isInformational = informationalKeywords.some(kw => lowerMsg.includes(kw));
+
+    // 1. Nếu chứa từ khóa RAG rõ ràng -> Ưu tiên quét quy chế RAG trước tiên
+    if (isInformational && cachedAIKnowledge && cachedAIKnowledge.length > 0) {
         const matches = searchAIKnowledge(message);
         if (matches && matches.length > 0) {
             return { type: 'rag_knowledge', query: message };
@@ -790,6 +799,14 @@ export function detectDataQuery(message) {
             }
 
             return result;
+        }
+    }
+
+    // 2. Fallback: Nếu không khớp ý định hệ thống nào và chưa quét RAG -> Quét RAG làm cứu cánh cuối cùng
+    if (!isInformational && cachedAIKnowledge && cachedAIKnowledge.length > 0) {
+        const matches = searchAIKnowledge(message);
+        if (matches && matches.length > 0) {
+            return { type: 'rag_knowledge', query: message };
         }
     }
 

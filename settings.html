@@ -293,6 +293,33 @@
         .table-container thead {
             background-color: transparent !important;
         }
+        /* CSS cho nội dung kiến thức và từ khóa rút gọn */
+        .ai-content-wrapper, .ai-keywords-wrapper {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+        .ai-content-wrapper {
+            max-width: 300px;
+        }
+        .ai-keywords-wrapper {
+            max-width: 130px;
+        }
+        .ai-content-wrapper:hover, .ai-keywords-wrapper:hover {
+            background-color: #f1f5f9;
+            color: #1e3a8a;
+        }
+        .ai-content-wrapper.expanded, .ai-keywords-wrapper.expanded {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
+            max-width: none;
+        }
     </style>
 </head>
 
@@ -729,31 +756,27 @@
                         </div>
                         <div id="system-content-placeholder">
                             <!-- Phân quyền người dùng -->
-                            <div
-                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
-                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người
-                                    dùng</h3>
-                                <div class="table-container"
-                                    style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
-                                    <table id="usersTable"
-                                        style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                        <thead
-                                            style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                            <tr>
-                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Email</th>
-                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập cuối</th>
-                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Thiết bị tin cậy</th>
-                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Vai trò</th>
-                                                <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="usersTableBody">
-                                            <tr>
-                                                <td colspan="5" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người dùng</h3>
+                            <div class="table-container"
+                                style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 20px;">
+                                <table id="usersTable"
+                                    style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <thead
+                                        style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                        <tr>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Email</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập cuối</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Thiết bị tin cậy</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Vai trò</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="5" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
 
                             <!-- Sao lưu và Khôi phục -->
@@ -820,14 +843,13 @@
                             </div>
                         </div>
 
-                        <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
                             <div class="table-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
                                 <table id="aiKnowledgeTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                                     <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
                                         <tr>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 20%;">Tiêu đề</th>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 45%;">Nội dung quy chế</th>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 20%;">Từ khóa</th>
+                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">Tiêu đề</th>
+                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">Nội dung quy chế</th>
+                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 15%;">Từ khóa</th>
                                             <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 15%;">Hành động</th>
                                         </tr>
                                     </thead>
@@ -838,7 +860,6 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
 
                         <!-- Cấu hình Prompt & Lời chào AI -->
                         <div style="margin-top: 25px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
@@ -1349,7 +1370,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="settings.js?v=5"></script>
+    <script type="module" src="settings.js?v=8"></script>
 
 </body>
 
