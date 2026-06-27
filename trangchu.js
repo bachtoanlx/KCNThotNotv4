@@ -2,7 +2,7 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=9";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=16";
 
 
 
@@ -267,17 +267,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
         console.log('🔍 detectDataQuery result:', dataQuery);
         let contextData = null;
 
-        // --- XỬ LÝ QUY TẮC REDIRECT CHO LỊCH SỬ LƯU LƯỢNG CỤ THỂ ---
-        if (dataQuery && dataQuery.requiresRedirect) {
-            setTimeout(() => {
-                addMessage(`Dữ liệu đã được tải, bạn có thể truy cập <a href="https://bachtoanlx.github.io/KCNThotNotv4/statistics.html" target="_blank" style="color: #034892; font-weight: bold; text-decoration: underline;">Thống kê lưu lượng</a> để xem chi tiết. Thank!`, false, true);
-                chatSubmit.disabled = false;
-                chatInput.disabled = false;
-                chatSubmit.textContent = 'Gửi';
-                chatSubmit.style.background = '#1f3765';
-            }, 500);
-            return; // Dừng, không gọi AI và Firebase (Tiết kiệm tài nguyên)
-        }
+        // --- XỬ LÝ QUY TẮC REDIRECT CHO LỊCH SỬ LƯU LƯỢNG CỤ THỂ ĐÃ BỊ LOẠI BỎ ĐỂ ĐỒNG BỘ UX ---
 
         // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
         if (dataQuery) {
@@ -386,6 +376,7 @@ fetch("footer.html").then(r => r.text()).then(h => {
                         // Sử dụng Động cơ Thống kê mới
                         const advStats = await getAdvancedStatistics(timeMode, dataQuery.company || null, targetDateObj);
                         if (advStats) {
+                            advStats.pastTimeframeRequested = dataQuery.pastTimeframeRequested;
                             contextData = { advancedStats: advStats };
                         } else {
                             contextData = { error: 'Lỗi tính toán mốc thời gian.' };

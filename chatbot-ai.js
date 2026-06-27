@@ -363,7 +363,7 @@ export async function getAIResponse(userMessage, contextData = null) {
                 }
                 return `KCN - ${titlePart}`;
             }).join(', ');
-            finalAiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">*(Nguồn tham khảo: ${sources})*</span>`;
+            finalAiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">(Nguồn tham khảo: ${sources}) - AI tổng hợp</span>`;
         }
 
 
@@ -549,22 +549,36 @@ export function searchAIKnowledge(queryText) {
 
     const lowerQuery = queryText.toLowerCase().trim();
 
-    // 1. Ưu tiên tìm kiếm chính xác (Exact matching) để luôn chính xác 100% khi khớp từ khóa/tiêu đề
-    const exactMatches = allowedKnowledge.filter(item => {
+    // 1. Ưu tiên tìm kiếm chính xác (Exact matching) có chấm điểm (Scoring)
+    const scoredMatches = [];
+    
+    allowedKnowledge.forEach(item => {
         const title = (item.title || "").toLowerCase();
         const content = (item.content || "").toLowerCase();
         const keywords = (item.keywords || "").toLowerCase();
+        
+        let score = 0;
         
         const keywordMatch = keywords.split(',').some(k => {
             const trimmedKey = k.trim();
             return trimmedKey && (lowerQuery.includes(trimmedKey) || trimmedKey.includes(lowerQuery));
         });
         
-        return title.includes(lowerQuery) || content.includes(lowerQuery) || keywordMatch;
+        // Trọng số xếp hạng
+        if (keywordMatch) score += 30; // Ưu tiên tuyệt đối: Trúng Keyword do admin cấu hình
+        if (title.includes(lowerQuery)) score += 20; // Ưu tiên 2: Xuất hiện trong Tiêu đề
+        if (content.includes(lowerQuery)) score += 10; // Ưu tiên 3: Xuất hiện trong Nội dung
+        
+        if (score > 0) {
+            scoredMatches.push({ item, score });
+        }
     });
 
-    if (exactMatches.length > 0) {
-        return exactMatches;
+    if (scoredMatches.length > 0) {
+        // Sắp xếp theo điểm số từ cao xuống thấp
+        scoredMatches.sort((a, b) => b.score - a.score);
+        // GIỚI HẠN TỐI ĐA 3 TÀI LIỆU liên quan nhất để chống quá tải Token
+        return scoredMatches.slice(0, 3).map(m => m.item);
     }
 
     // 2. Nếu không có khớp chính xác, dùng Fuse.js tìm kiếm mờ (Fuzzy matching)
@@ -582,7 +596,8 @@ export function searchAIKnowledge(queryText) {
         threshold: 0.5
     });
     const results = fuse.search(queryText);
-    return results.map(r => r.item);
+    // GIỚI HẠN TỐI ĐA 3 TÀI LIỆU (ưu tiên điểm số phù hợp cao nhất từ Fuse)
+    return results.slice(0, 3).map(r => r.item);
 }
 
 /**
@@ -598,7 +613,13 @@ export function detectDataQuery(message) {
         'địa chỉ', 'giờ làm', 'chức năng', 'hỗ trợ'
     ];
 
+    const strongInformationalKeywords = [
+        'là gì', 'định nghĩa', 'cách pha', 'nguyên lý', 'vì sao', 'tại sao', 
+        'ý nghĩa', 'có tác dụng gì', 'như thế nào', 'khái niệm'
+    ];
+
     const isInformational = informationalKeywords.some(kw => lowerMsg.includes(kw));
+    const isStrongInformational = strongInformationalKeywords.some(kw => lowerMsg.includes(kw));
 
     // 0. Kiểm tra câu hỏi quá ngắn gây ngờ vực
     const wordCount = lowerMsg.split(/\s+/).length;
@@ -668,6 +689,12 @@ export function detectDataQuery(message) {
         }
     }
 
+    // NẾU CHỨA CÁC TỪ KHÓA LÝ THUYẾT MẠNH (như "là gì", "tại sao") MÀ RAG KHÔNG CÓ,
+    // TUYỆT ĐỐI không phân luồng xuống các bộ tra cứu Database (tránh bắt nhầm từ khóa).
+    if (isStrongInformational) {
+        return null; // Bàn giao hoàn toàn cho AI dùng kiến thức Internet tự trả lời
+    }
+
 
     let isCompanyRelatedHolidayOrWorkday = false;
     if (lowerMsg.includes('lịch làm việc') || lowerMsg.includes('ngày làm việc') || lowerMsg.includes('lịch nghỉ') || lowerMsg.includes('ngày nghỉ') || lowerMsg.includes('nghỉ')) {
@@ -695,7 +722,11 @@ export function detectDataQuery(message) {
                     'nước xả ra', 'nước thoát'
                 ];
                 if (direct.some(kw => msg.includes(kw))) return true;
-                if ((msg.includes('xả') || msg.includes('dùng') || msg.includes('tiêu thụ') || msg.includes('thoát')) && (msg.includes('bao nhiêu') || msg.includes('mấy') || msg.includes('nhiều hay ít'))) return true;
+                if ((msg.includes('xả') || msg.includes('tiêu thụ') || msg.includes('thoát')) && (msg.includes('bao nhiêu') || msg.includes('mấy') || msg.includes('nhiều hay ít'))) return true;
+                if (msg.includes('dùng') && (msg.includes('bao nhiêu') || msg.includes('mấy') || msg.includes('nhiều hay ít'))) {
+                    // Tránh nhầm lẫn "chất khử trùng dùng bao nhiêu" (hỏi về hóa chất)
+                    if (msg.includes('nước') || msg.includes('khối') || msg.includes('m3') || msg.includes('m³')) return true;
+                }
                 const timeShortcuts = [
                     'tuần trước', 'tuần này', 'tháng trước', 'tháng này', 'kỳ trước', 'kỳ này',
                     'tuần rồi', 'tháng rồi', 'kỳ rồi', 'tuần qua', 'tháng qua', 'năm ngoái',
@@ -828,8 +859,8 @@ export function detectDataQuery(message) {
                 const specificQuarterMatch = lowerMsg.match(/quý\s*(\d+)/);
 
                 if (specificWeekMatch || specificMonthMatch || specificYearMatch || specificQuarterMatch) {
-                    result.requiresRedirect = true;
-                    return result;
+                    result.pastTimeframeRequested = true;
+                    result.timeframe = 'billing'; // Fallback to current period
                 }
 
                 const isKhoan = lowerMsg.includes('khoán');
@@ -909,7 +940,13 @@ export function formatDataResponse(contextData, userMessage) {
     // ===== THỐNG KÊ NÂNG CAO =====
     if (contextData.advancedStats) {
         const stats = contextData.advancedStats;
-        let r = `📌 **${stats.periodLabel || 'Thống kê'}**\n\n`;
+        let r = '';
+
+        if (stats.pastTimeframeRequested) {
+            r += `⚠️ Hệ thống hiện chưa hỗ trợ thống kê lưu lượng cho từng khoảng thời gian cụ thể trong quá khứ qua chat. Dưới đây là dữ liệu của kỳ hiện tại:\n\n`;
+        }
+
+        r += `📌 **${stats.periodLabel || 'Thống kê'}**\n\n`;
 
         if (stats.companyData) {
             const d = stats.companyData;
@@ -938,17 +975,28 @@ export function formatDataResponse(contextData, userMessage) {
             }
         }
 
-        r += `\n[BUTTON]Xem kỳ trước[/BUTTON]\n[BUTTON]Xem từng công ty[/BUTTON]`;
+        r += `\n<br><a href="statistics.html" target="_blank" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; text-decoration: none; margin-top: 5px;">📊 Xem Thống kê quá khứ ↗</a>`;
+        r += `\n<br><button class="suggestion-btn" data-query="Xem từng công ty" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; outline: 1px solid #cbd5e1; margin-top: 5px; margin-left: 5px;">🏭 Xem từng công ty</button>`;
         return r;
     }
 
     // ===== CHỈ SỐ CÔNG TY =====
     if (contextData.companyData) {
         const d = contextData.companyData;
-        let r = `📋 **Chỉ số mới nhất của ${d.company}**\n\n`;
+        let r = '';
+
+        // Bắt lỗi nếu người dùng tra ngày cụ thể (vd: 1/1/2026, 20/10)
+        const specificDatePattern = /(\d{1,2}[\/\-\.]\d{1,2})|(\d{4})|(hôm qua)|(tháng \d)|(ngày \d)/i;
+        if (userMessage && specificDatePattern.test(userMessage)) {
+            r += `⚠️ Hệ thống hiện chưa hỗ trợ tra cứu chỉ số vào một ngày cụ thể trong quá khứ. Dưới đây là kết quả mới nhất:\n\n`;
+        }
+
+        r += `📋 **Chỉ số mới nhất của ${d.company}**\n\n`;
         r += `📅 Ngày ghi: **${d.ngay_ghi_hien_tai || 'N/A'}**\n`;
         r += `🔢 Chỉ số: **${(d.chi_so_dong_ho_hien_tai || 0).toLocaleString('vi-VN')}**\n`;
-        r += `\n[BUTTON]Lịch sử chỉ số ${d.company}[/BUTTON]`;
+        
+        // Dùng link HTML trực tiếp dẫn qua trang chủ (chứa bảng thống kê) thay vì tạo nút bấm gây vòng lặp chat
+        r += `\n<br><a href="datatable.html" target="_blank" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; text-decoration: none; margin-top: 5px;">📊 Xem Lịch sử chỉ số ↗</a>`;
         return r;
     }
 
