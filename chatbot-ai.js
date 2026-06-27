@@ -2,7 +2,7 @@
 
 import { db, auth, getRole } from "./script.js";
 import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { getAIKnowledgeBase } from "./chatbot-firebase-queries.js";
+import { getAIKnowledgeBase } from "./chatbot-firebase-queries.js?v=6";
 
 let cachedAIKnowledge = [];
 let currentUserRole = "guest";
@@ -19,6 +19,14 @@ if (auth) {
             }
         } else {
             currentUserRole = "guest";
+        }
+        
+        // Cập nhật lại cachedAIKnowledge theo vai trò mới của người dùng
+        try {
+            cachedAIKnowledge = await getAIKnowledgeBase(currentUserRole);
+            console.log(`🤖 Chatbot AI: Đã tải và cache quy chế cho vai trò: ${currentUserRole} (${cachedAIKnowledge.length} tài liệu).`);
+        } catch (knowledgeErr) {
+            console.warn("⚠️ Không thể tải quy chế AI sau khi đổi vai trò:", knowledgeErr);
         }
     });
 }
@@ -81,13 +89,30 @@ function removeAccents(str) {
 
 export async function initDynamicChatbotData() {
     try {
-        const [masterSnap, configSnap, aiConfigSnap] = await Promise.all([
-            getDocs(collection(db, "companies_master")),
-            getDocs(collection(db, "company_configs")),
-            getDoc(doc(db, "settings", "ai_config"))
-        ]);
+        let masterSnap = null;
+        let configSnap = null;
+        let aiConfigSnap = null;
 
-        if (aiConfigSnap.exists()) {
+        // Tải độc lập để tránh lỗi chặn quyền truy cập của một bảng làm hỏng cả quá trình
+        try {
+            masterSnap = await getDocs(collection(db, "companies_master"));
+        } catch (e) {
+            console.warn("⚠️ Không thể tải companies_master (Có thể do chưa đăng nhập):", e.message);
+        }
+
+        try {
+            configSnap = await getDocs(collection(db, "company_configs"));
+        } catch (e) {
+            console.warn("⚠️ Không thể tải company_configs (Có thể do chưa đăng nhập):", e.message);
+        }
+
+        try {
+            aiConfigSnap = await getDoc(doc(db, "settings", "ai_config"));
+        } catch (e) {
+            console.warn("⚠️ Không thể tải ai_config:", e.message);
+        }
+
+        if (aiConfigSnap && aiConfigSnap.exists()) {
             const aiData = aiConfigSnap.data();
             if (aiData.systemContext) {
                 SYSTEM_CONTEXT = aiData.systemContext;
@@ -105,62 +130,62 @@ export async function initDynamicChatbotData() {
             }
         }
 
-        const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
-        const configs = configSnap.docs.map(d => d.data());
+        const masterCompanies = masterSnap ? masterSnap.docs.map(doc => doc.data().company).filter(Boolean) : [];
+        const configs = configSnap ? configSnap.docs.map(d => d.data()) : [];
         const configCompanies = configs.map(c => c.company).filter(Boolean);
 
         const allCompanies = [...new Set([...masterCompanies, ...configCompanies])];
-        if (allCompanies.length === 0) return;
+        if (allCompanies.length > 0) {
+            const newMap = {};
+            allCompanies.forEach(comp => {
+                const lower = comp.toLowerCase();
+                const noAccent = removeAccents(lower);
+                newMap[lower] = comp;
+                if (lower !== noAccent) newMap[noAccent] = comp;
+            });
 
-        const newMap = {};
-        allCompanies.forEach(comp => {
-            const lower = comp.toLowerCase();
-            const noAccent = removeAccents(lower);
-            newMap[lower] = comp;
-            if (lower !== noAccent) newMap[noAccent] = comp;
-        });
-
-        // Nạp các từ viết tắt và gọi tắt thủ công từ Firestore để bảo mật
-        if (aiConfigSnap.exists()) {
-            const aiData = aiConfigSnap.data();
-            if (aiData.companyAbbreviations) {
-                const manualMap = typeof aiData.companyAbbreviations === 'string'
-                    ? JSON.parse(aiData.companyAbbreviations)
-                    : aiData.companyAbbreviations;
-                
-                Object.keys(manualMap).forEach(key => {
-                    newMap[key.toLowerCase()] = manualMap[key];
-                });
+            // Nạp các từ viết tắt và gọi tắt thủ công từ Firestore để bảo mật
+            if (aiConfigSnap && aiConfigSnap.exists()) {
+                const aiData = aiConfigSnap.data();
+                if (aiData.companyAbbreviations) {
+                    const manualMap = typeof aiData.companyAbbreviations === 'string'
+                        ? JSON.parse(aiData.companyAbbreviations)
+                        : aiData.companyAbbreviations;
+                    
+                    Object.keys(manualMap).forEach(key => {
+                        newMap[key.toLowerCase()] = manualMap[key];
+                    });
+                }
             }
+
+            companyNameMap = newMap;
+
+            const latestConfigs = {};
+            configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
+            configs.forEach(c => { if (c.company) latestConfigs[c.company] = c; });
+
+            const group1 = [], group2 = [], group3 = [];
+            allCompanies.forEach(comp => {
+                const group = latestConfigs[comp]?.group || (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
+                if (group === 'group1') group1.push(comp);
+                else if (group === 'group2') group2.push(comp);
+                else group3.push(comp);
+            });
+
+            const dynamicGroupsText = `CÁC CÔNG TY TRONG KCN (Dữ liệu động):\n- Nhóm 1 (Đồng hồ): ${group1.join(', ') || 'Trống'}\n- Nhóm 2 (Hóa đơn): ${group2.join(', ') || 'Trống'}\n- Nhóm 3 (Khoán): ${group3.join(', ') || 'Trống'}\n\n`;
+
+            SYSTEM_CONTEXT = SYSTEM_CONTEXT.replace(/CÁC CÔNG TY TRONG KCN:\s*\(Danh sách công ty sẽ được nạp tự động từ Database\)/, dynamicGroupsText);
+
+            if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
+                conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
+            }
+            console.log("🤖 Chatbot AI: Đã tự động học xong danh sách công ty mới nhất từ Database!");
         }
-
-        companyNameMap = newMap;
-
-        const latestConfigs = {};
-        configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
-        configs.forEach(c => { if (c.company) latestConfigs[c.company] = c; });
-
-        const group1 = [], group2 = [], group3 = [];
-        allCompanies.forEach(comp => {
-            const group = latestConfigs[comp]?.group || (['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam'].includes(comp) ? 'group1' : 'group3');
-            if (group === 'group1') group1.push(comp);
-            else if (group === 'group2') group2.push(comp);
-            else group3.push(comp);
-        });
-
-        const dynamicGroupsText = `CÁC CÔNG TY TRONG KCN (Dữ liệu động):\n- Nhóm 1 (Đồng hồ): ${group1.join(', ') || 'Trống'}\n- Nhóm 2 (Hóa đơn): ${group2.join(', ') || 'Trống'}\n- Nhóm 3 (Khoán): ${group3.join(', ') || 'Trống'}\n\n`;
-
-        SYSTEM_CONTEXT = SYSTEM_CONTEXT.replace(/CÁC CÔNG TY TRONG KCN:\s*\(Danh sách công ty sẽ được nạp tự động từ Database\)/, dynamicGroupsText);
-
-        if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
-            conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
-        }
-        console.log("🤖 Chatbot AI: Đã tự động học xong danh sách công ty mới nhất từ Database!");
 
         // Tải và cache danh sách quy chế RAG từ Firestore
         try {
-            cachedAIKnowledge = await getAIKnowledgeBase();
-            console.log(`🤖 Chatbot AI: Đã tải và cache ${cachedAIKnowledge.length} tài liệu quy chế.`);
+            cachedAIKnowledge = await getAIKnowledgeBase(currentUserRole);
+            console.log(`🤖 Chatbot AI: Đã tải và cache ${cachedAIKnowledge.length} tài liệu quy chế (Vai trò: ${currentUserRole}).`);
         } catch (knowledgeErr) {
             console.warn("⚠️ Không thể tải quy chế AI:", knowledgeErr);
         }
@@ -329,11 +354,11 @@ export async function getAIResponse(userMessage, contextData = null) {
             const sources = contextData.rag_knowledge.map(k => {
                 const titlePart = `**${k.title}**`;
                 if (k.sourceUrl) {
-                    return `Cấu hình quy chế - [${titlePart}](${k.sourceUrl})`;
+                    return `KCN - [${titlePart}](${k.sourceUrl})`;
                 }
-                return `Cấu hình quy chế - ${titlePart}`;
+                return `KCN - ${titlePart}`;
             }).join(', ');
-            aiResponse += `\n\n*(Nguồn tham khảo: ${sources})*`;
+            aiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">*(Nguồn tham khảo: ${sources})*</span>`;
         }
 
 
@@ -513,19 +538,36 @@ export function searchAIKnowledge(queryText) {
     const allowedKnowledge = cachedAIKnowledge.filter(item => {
         const itemTarget = item.targetGroup || "user";
         if (currentUserRole === "admin") return true;
-        if (currentUserRole === "user") return itemTarget === "guest" || itemTarget === "user";
+        if (currentUserRole !== "guest") return itemTarget === "guest" || itemTarget === "user";
         return itemTarget === "guest"; // guest
     });
 
-    const FuseConstructor = typeof window !== 'undefined' && window.Fuse ? window.Fuse : (typeof Fuse !== 'undefined' ? Fuse : null);
-    if (!FuseConstructor || !allowedKnowledge || allowedKnowledge.length === 0) {
-        const lowerQuery = queryText.toLowerCase();
-        return allowedKnowledge.filter(item => {
-            const title = (item.title || "").toLowerCase();
-            const content = (item.content || "").toLowerCase();
-            const keywords = (item.keywords || "").toLowerCase();
-            return title.includes(lowerQuery) || content.includes(lowerQuery) || keywords.split(',').some(k => lowerQuery.includes(k.trim()));
+    if (!allowedKnowledge || allowedKnowledge.length === 0) return [];
+
+    const lowerQuery = queryText.toLowerCase().trim();
+
+    // 1. Ưu tiên tìm kiếm chính xác (Exact matching) để luôn chính xác 100% khi khớp từ khóa/tiêu đề
+    const exactMatches = allowedKnowledge.filter(item => {
+        const title = (item.title || "").toLowerCase();
+        const content = (item.content || "").toLowerCase();
+        const keywords = (item.keywords || "").toLowerCase();
+        
+        const keywordMatch = keywords.split(',').some(k => {
+            const trimmedKey = k.trim();
+            return trimmedKey && (lowerQuery.includes(trimmedKey) || trimmedKey.includes(lowerQuery));
         });
+        
+        return title.includes(lowerQuery) || content.includes(lowerQuery) || keywordMatch;
+    });
+
+    if (exactMatches.length > 0) {
+        return exactMatches;
+    }
+
+    // 2. Nếu không có khớp chính xác, dùng Fuse.js tìm kiếm mờ (Fuzzy matching)
+    const FuseConstructor = typeof window !== 'undefined' && window.Fuse ? window.Fuse : (typeof Fuse !== 'undefined' ? Fuse : null);
+    if (!FuseConstructor) {
+        return [];
     }
 
     const fuse = new FuseConstructor(allowedKnowledge, {
@@ -570,11 +612,15 @@ export function detectDataQuery(message) {
             type: 'statistics',
             customCheck: (msg) => {
                 const direct = [
-                    'thống kê', 'báo cáo', 'tổng', 'trung bình', 'tiêu thụ', 'xả thải', 'lưu lượng',
-                    'so sánh', 'nhiều nhất', 'top', 'khoán', 'vượt khoán', 'khối', 'bao nhiêu khối',
-                    'khối lượng', 'lượng nước', 'nước ra', 'nước thoát', 'mét khối', 'm3', 'số khối',
-                    'lượng xả', 'lượng nước thải', 'dung tích', 'thể tích', 'sản lượng',
-                    'lượng dùng', 'nước thải', 'nước xả', 'cbm', 'nước xả ra', 'm³'
+                    'thống kê lưu lượng', 'thống kê xả thải', 'thống kê nước',
+                    'báo cáo lưu lượng', 'báo cáo xả thải', 'báo cáo nước',
+                    'tổng xả', 'tổng dùng', 'tổng lưu lượng', 'tổng lượng nước', 'tổng khối',
+                    'trung bình xả', 'trung bình dùng', 'trung bình lưu lượng', 'trung bình nước',
+                    'lưu lượng', 'so sánh lưu lượng', 'so sánh xả thải', 'nhiều nhất', 'top',
+                    'vượt khoán', 'mức khoán', 'sản lượng khoán',
+                    'bao nhiêu khối', 'mét khối', 'm3', 'm³', 'số khối', 'cbm',
+                    'lượng xả', 'lượng nước thải', 'lượng tiêu thụ', 'lượng nước', 'lượng dùng',
+                    'nước xả ra', 'nước thoát'
                 ];
                 if (direct.some(kw => msg.includes(kw))) return true;
                 if ((msg.includes('xả') || msg.includes('dùng') || msg.includes('tiêu thụ') || msg.includes('thoát')) && (msg.includes('bao nhiêu') || msg.includes('mấy') || msg.includes('nhiều hay ít'))) return true;

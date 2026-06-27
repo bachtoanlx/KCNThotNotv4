@@ -45,24 +45,6 @@
     let autoLoadCount = 0; // Bộ đếm số lần tự động cuộn
     const MAX_AUTO_LOADS = 5; // Cuộn tự động tối đa 5 lần (75 dòng) trước khi yêu cầu click thủ công
 
-    const copyDocIdToClipboard = (collectionName, docId) => {
-        const textToCopy = `${collectionName}:${docId}`;
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            if (window.Swal) {
-                window.Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: `Đã sao chép định danh bản ghi (${collectionName}) vào Clipboard!`,
-                    showConfirmButton: false,
-                    timer: 2500,
-                    timerProgressBar: true
-                });
-            }
-        }).catch(err => {
-            console.error('Không thể sao chép:', err);
-        });
-    };
 
     // === STATE VÀ HÀM CHO DEEP SEARCH ===
     let isDeepSearchMode = false;
@@ -458,22 +440,7 @@
             
             const noteCell = tr.querySelector('.clickable-cell');
             
-            // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
-            if (isAdmin) {
-                tr.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    copyDocIdToClipboard('reports_2', r.id);
-                });
 
-                let pressTimer;
-                tr.addEventListener('touchstart', () => {
-                    pressTimer = window.setTimeout(() => {
-                        copyDocIdToClipboard('reports_2', r.id);
-                    }, 800);
-                }, { passive: true });
-                tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-                tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
-            }
 
             if (noteCell) {
                 noteCell._fullContent = combinedGhiChu || "Không có ghi chú";

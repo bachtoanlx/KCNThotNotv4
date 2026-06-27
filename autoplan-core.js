@@ -49,6 +49,9 @@ export function sortShiftRules(a, b) {
 export function ruleMatchesDate(rule, d) {
     const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+    if (rule.ruleStartDate && rule.ruleStartDate !== "") {
+        if (isoDate < rule.ruleStartDate) return false;
+    }
     if (rule.ruleEndDate && rule.ruleEndDate !== "") {
         if (isoDate > rule.ruleEndDate) return false;
     }

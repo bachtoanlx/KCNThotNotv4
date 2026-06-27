@@ -1047,16 +1047,59 @@ export async function getAutoplanRules() {
 /**
  * Lấy toàn bộ danh sách quy chế/kiến thức AI từ collection 'ai_knowledge'
  */
-export async function getAIKnowledgeBase() {
+export async function getAIKnowledgeBase(role = "guest") {
     try {
-        const q = query(collection(db, "ai_knowledge"));
+        let q;
+        const colRef = collection(db, "ai_knowledge");
+        
+        if (role === "admin") {
+            q = query(colRef, where("targetGroup", "in", ["guest", "user", "admin"]));
+        } else if (role === "guest") {
+            q = query(colRef, where("targetGroup", "==", "guest"));
+        } else {
+            // Mọi vai trò đã đăng nhập khác (user, staff, doanhnghiep...) đều xem được tài liệu công cộng + nội bộ
+            q = query(colRef, where("targetGroup", "in", ["guest", "user"]));
+        }
+
         const snapshot = await getDocs(q);
-        console.log(`✅ [AI Knowledge] Đã tải ${snapshot.size} quy chế từ Firestore.`);
+        const docsCount = snapshot.size;
+        
+        try {
+            // Import động hoặc gọi trực tiếp addLog từ script.js (được import ở đầu file)
+            const { addLog: scriptAddLog } = await import("./script.js");
+            if (scriptAddLog) {
+                await scriptAddLog("debug_ai_knowledge", {
+                    role: role,
+                    status: "success",
+                    count: docsCount,
+                    email: auth.currentUser?.email || "anonymous",
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } catch (logErr) {
+            console.warn("Failed to write success log:", logErr);
+        }
+
+        console.log(`✅ [AI Knowledge] Đã tải ${snapshot.size} quy chế từ Firestore (Vai trò: ${role}).`);
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
     } catch (error) {
+        try {
+            const { addLog: scriptAddLog } = await import("./script.js");
+            if (scriptAddLog) {
+                await scriptAddLog("debug_ai_knowledge", {
+                    role: role,
+                    status: "error",
+                    error: error.message,
+                    email: auth.currentUser?.email || "anonymous",
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } catch (logErr) {
+            console.warn("Failed to write error log:", logErr);
+        }
         console.error('❌ Lỗi lấy danh sách quy chế/kiến thức AI:', error);
         return [];
     }

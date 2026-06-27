@@ -218,4 +218,23 @@ export function initMenu() {
       }
     });
   }
+
+  // Xử lý sự kiện click trên các mục của menu cài đặt nhanh
+  document.addEventListener("click", (e) => {
+    const menuItem = e.target.closest(".quick-menu-item");
+    if (menuItem) {
+      const isSettingsPage = window.location.pathname.toLowerCase().includes("settings.html");
+      if (isSettingsPage) {
+        e.preventDefault();
+        const tabName = menuItem.getAttribute("data-tab");
+        const tabBtn = document.querySelector(`.settings-tab-btn[data-target="${tabName}"]`);
+        if (tabBtn) {
+          tabBtn.click();
+          // Cập nhật đường dẫn URL mà không tải lại trang
+          const newUrl = window.location.pathname + "?tab=" + tabName.replace("tab-", "");
+          window.history.pushState({ path: newUrl }, "", newUrl);
+        }
+      }
+    }
+  });
 }

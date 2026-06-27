@@ -539,6 +539,7 @@ import { initMenu } from "./menu.js";
                                 day: "Thứ trong tuần",
                                 week: "Tuần trong tháng",
                                 month: "Tháng trong năm",
+                                ruleStartDate: "Ngày bắt đầu",
                                 ruleEndDate: "Ngày kết thúc",
                                 note: "Ghi chú",
                                 is_admin_job: "Việc Admin",

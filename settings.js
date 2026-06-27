@@ -71,31 +71,30 @@ function initTabs() {
             if (targetPane) {
                 targetPane.classList.add("active");
             }
+
+            // Đồng bộ trạng thái active với menu nổi
+            document.querySelectorAll(".quick-menu-item").forEach(item => {
+                if (item.getAttribute("data-tab") === targetId) {
+                    item.classList.add("active");
+                } else {
+                    item.classList.remove("active");
+                }
+            });
         });
     });
+
+    // Tự động kích hoạt tab dựa trên tham số query từ URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+        const targetBtn = document.querySelector(`.settings-tab-btn[data-target="tab-${tabParam}"]`);
+        if (targetBtn) {
+            targetBtn.click();
+        }
+    }
 }
 
-// === BIẾN TOÀN CỤC CHO TAB 4 & TRUY VẤN EXPLORER ===
-let triggerAdminExplore = null;
 
-const copyDocIdToClipboard = (collectionName, docId) => {
-    const textToCopy = `${collectionName}:${docId}`;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        if (window.Swal) {
-            window.Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: `Đã sao chép định danh bản ghi (${collectionName}) vào Clipboard!`,
-                showConfirmButton: false,
-                timer: 2500,
-                timerProgressBar: true
-            });
-        }
-    }).catch(err => {
-        console.error('Không thể sao chép:', err);
-    });
-};
 
 // === BIẾN TOÀN CỤC CHO TAB 1 ===
 let allMasterCompanies = [];
@@ -952,6 +951,7 @@ function initScheduleModalsUI() {
                     document.getElementById("daySelect").value = exactMatchRule.day || "";
                     document.getElementById("weekSelect").value = exactMatchRule.week || "";
                     document.getElementById("monthSelect").value = exactMatchRule.month || "";
+                    document.getElementById("addRuleStartDate").value = exactMatchRule.ruleStartDate || "";
                     document.getElementById("addRuleEndDate").value = exactMatchRule.ruleEndDate || "";
                     document.getElementById("isAdminJobRuleCheckbox").checked = exactMatchRule.is_admin_job || false;
                     document.getElementById("isCommonJobRuleCheckbox").checked = exactMatchRule.is_common_job || false;
@@ -1006,7 +1006,7 @@ function closeEditPatternModalFn() {
 function closeEditRuleModalFn() {
     document.getElementById("editRuleModal").style.display = "none";
     toggleBodyScroll(false);
-    ["editRuleId", "editRuleJobName", "editRuleTime", "editRuleExactDate", "editRuleDom", "editRuleDay", "editRuleWeek", "editRuleMonth", "editRuleEndDate", "editRuleNote", "editRuleLastCompletedDate", "editRuleActualCompletedDate", "editRuleCompletedNoteSelect", "editRuleCompletedNoteCustom"].forEach(id => {
+    ["editRuleId", "editRuleJobName", "editRuleTime", "editRuleExactDate", "editRuleDom", "editRuleDay", "editRuleWeek", "editRuleMonth", "editRuleStartDate", "editRuleEndDate", "editRuleNote", "editRuleLastCompletedDate", "editRuleActualCompletedDate", "editRuleCompletedNoteSelect", "editRuleCompletedNoteCustom"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
@@ -1023,7 +1023,7 @@ function closeEditRuleModalFn() {
 function closeAddRuleModalFn() {
     document.getElementById("addRuleModal").style.display = "none";
     toggleBodyScroll(false);
-    ["jobName", "daySelect", "weekSelect", "monthSelect", "domSelect", "exactDate", "jobNote", "jobTime", "addRuleEndDate"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
+    ["jobName", "daySelect", "weekSelect", "monthSelect", "domSelect", "exactDate", "jobNote", "jobTime", "addRuleStartDate", "addRuleEndDate"].forEach(id => { const el = document.getElementById(id); if(el) el.value = ""; });
     if (document.getElementById("isAdminJobRuleCheckbox")) document.getElementById("isAdminJobRuleCheckbox").checked = false;
     if (document.getElementById("isCommonJobRuleCheckbox")) document.getElementById("isCommonJobRuleCheckbox").checked = false;
     if (document.getElementById("addCommonJobSettings")) document.getElementById("addCommonJobSettings").style.display = "none";
@@ -1141,7 +1141,7 @@ function renderRuleList() {
     let rulesToRender = allWorkRules;
     if (query) {
         rulesToRender = allWorkRules.filter(r => {
-            const fields = [r.job, r.note, r.exactDate, r.targetGroup, r.time, r.dom, r.day, r.week, r.month, r.ruleEndDate];
+            const fields = [r.job, r.note, r.exactDate, r.targetGroup, r.time, r.dom, r.day, r.week, r.month, r.ruleStartDate, r.ruleEndDate];
             return buildSettingSearchString(fields).includes(query);
         });
     }
@@ -1230,13 +1230,29 @@ function renderRuleList() {
             tr.style.opacity = "0.7";
         }
         const noteDisplay = (d.note || "").replace("[CVAdmin]", "<b>[CVAdmin]</b>").replace("[CVChung]", "<b style='color:#3498db'>[CVChung]</b>");
+        let validityDisplay = "";
+        if (d.exactDate) {
+            validityDisplay = `<span style="color: #c0392b;">${d.endDateDisplay}</span>`;
+        } else {
+            const startStr = d.ruleStartDate ? d.ruleStartDate.split('-').reverse().join('/') : "";
+            const endStr = d.ruleEndDate ? d.ruleEndDate.split('-').reverse().join('/') : "";
+            if (startStr && endStr) {
+                validityDisplay = `<span style="color: #2c3e50;">Từ ${startStr}<br>đến ${endStr}</span>`;
+            } else if (startStr) {
+                validityDisplay = `<span style="color: #27ae60; font-weight: 500;">Từ ${startStr}</span>`;
+            } else if (endStr) {
+                validityDisplay = `<span style="color: #c0392b; font-weight: 500;">Đến ${endStr}</span>`;
+            } else {
+                validityDisplay = `<span style="color: #7f8c8d; font-style: italic;">Vô thời hạn</span>`;
+            }
+        }
         tr.innerHTML = `
             <td style="position: relative; padding-right: 10px; text-align: left;">
                 <span>${d.job}</span>${noteDisplay ? `<br><span style="font-size: 0.85em; color: #7f8c8d; text-decoration: none; display: inline-block;">${noteDisplay}</span>` : ""}
             </td>
             <td>${d.time || "-"}</td>
             <td style="color: #d35400; font-weight:bold;">${d.exactDate ? d.exactDate.split('-').reverse().join('/') : "-"}</td>
-            <td style="color: #c0392b;">${d.endDateDisplay}</td>
+            <td style="line-height: 1.3;">${validityDisplay}</td>
             <td style="font-size:0.9em; color:#555;">
                 ${d.exactDate ? "<i>(Bỏ qua định kỳ)</i>" : `N:${d.dom || "-"} | ${d.day === "8" ? "CN" : (d.day === "all" ? "Mọi ngày" : (d.day ? "T" + d.day : "-"))} | T:${d.week === "all" ? "Mọi tuần" : (d.week || "-")} | Th:${d.month === "all" ? "Mọi tháng" : (d.month || "-")}`}
             </td>
@@ -1247,20 +1263,7 @@ function renderRuleList() {
             </td>`;
         tr.querySelector(".editRuleBtn").addEventListener("click", () => { openEditRuleModal(d); });
         
-        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
-        tr.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            copyDocIdToClipboard('work_rules', d.id);
-        });
 
-        let pressTimer;
-        tr.addEventListener('touchstart', () => {
-            pressTimer = window.setTimeout(() => {
-                copyDocIdToClipboard('work_rules', d.id);
-            }, 800);
-        }, { passive: true });
-        tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-        tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
 
         tbody.appendChild(tr);
     };
@@ -1445,20 +1448,7 @@ function renderPatternList() {
             </td>`;
         tr.querySelector(".editPatternBtn").addEventListener("click", () => { openEditPatternModal(d); });
         
-        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
-        tr.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            copyDocIdToClipboard('work_patterns', d.id);
-        });
 
-        let pressTimer;
-        tr.addEventListener('touchstart', () => {
-            pressTimer = window.setTimeout(() => {
-                copyDocIdToClipboard('work_patterns', d.id);
-            }, 800);
-        }, { passive: true });
-        tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-        tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
 
         tbody.appendChild(tr);
     };
@@ -1536,20 +1526,7 @@ function renderSwapList() {
         `;
         tr.querySelector('.editSwapBtn').addEventListener('click', () => { openEditSwapModal(s); });
         
-        // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin
-        tr.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            copyDocIdToClipboard('shift_swaps', s.id);
-        });
 
-        let pressTimer;
-        tr.addEventListener('touchstart', () => {
-            pressTimer = window.setTimeout(() => {
-                copyDocIdToClipboard('shift_swaps', s.id);
-            }, 800);
-        }, { passive: true });
-        tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-        tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
 
         tbody.appendChild(tr);
     });
@@ -1577,13 +1554,21 @@ function updateAddRuleState() {
     const daySelect = document.getElementById("daySelect");
     const weekSelect = document.getElementById("weekSelect");
     const monthSelect = document.getElementById("monthSelect");
+    const ruleStartDateInput = document.getElementById("addRuleStartDate");
+    const ruleEndDateInput = document.getElementById("addRuleEndDate");
     if(!exactDateInput) return;
     if (exactDateInput.value) {
         domSelect.disabled = true; daySelect.disabled = true; weekSelect.disabled = true; monthSelect.disabled = true;
+        if (ruleStartDateInput) { ruleStartDateInput.disabled = true; ruleStartDateInput.value = ""; }
+        if (ruleEndDateInput) { ruleEndDateInput.disabled = true; ruleEndDateInput.value = ""; }
     } else if (domSelect.value || daySelect.value || weekSelect.value || monthSelect.value) {
         exactDateInput.disabled = true;
+        if (ruleStartDateInput) ruleStartDateInput.disabled = false;
+        if (ruleEndDateInput) ruleEndDateInput.disabled = false;
     } else {
         exactDateInput.disabled = false; domSelect.disabled = false; daySelect.disabled = false; weekSelect.disabled = false; monthSelect.disabled = false;
+        if (ruleStartDateInput) ruleStartDateInput.disabled = false;
+        if (ruleEndDateInput) ruleEndDateInput.disabled = false;
     }
 }
 
@@ -1593,13 +1578,21 @@ function updateEditRuleState() {
     const editRuleDay = document.getElementById("editRuleDay");
     const editRuleWeek = document.getElementById("editRuleWeek");
     const editRuleMonth = document.getElementById("editRuleMonth");
+    const editRuleStartDate = document.getElementById("editRuleStartDate");
+    const editRuleEndDate = document.getElementById("editRuleEndDate");
     if(!editRuleExactDate) return;
     if (editRuleExactDate.value) {
         editRuleDom.disabled = true; editRuleDay.disabled = true; editRuleWeek.disabled = true; editRuleMonth.disabled = true;
+        if (editRuleStartDate) { editRuleStartDate.disabled = true; editRuleStartDate.value = ""; }
+        if (editRuleEndDate) { editRuleEndDate.disabled = true; editRuleEndDate.value = ""; }
     } else if (editRuleDom.value || editRuleDay.value || editRuleWeek.value || editRuleMonth.value) {
         editRuleExactDate.disabled = true;
+        if (editRuleStartDate) editRuleStartDate.disabled = false;
+        if (editRuleEndDate) editRuleEndDate.disabled = false;
     } else {
         editRuleExactDate.disabled = false; editRuleDom.disabled = false; editRuleDay.disabled = false; editRuleWeek.disabled = false; editRuleMonth.disabled = false;
+        if (editRuleStartDate) editRuleStartDate.disabled = false;
+        if (editRuleEndDate) editRuleEndDate.disabled = false;
     }
 }
 
@@ -1607,6 +1600,12 @@ function openAddRuleModal() {
     resetAddJobFormMode();
     const addRuleTypeSelect = document.getElementById("addRuleTypeSelect");
     if(addRuleTypeSelect) addRuleTypeSelect.dispatchEvent(new Event('change'));
+    
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const addRuleStartDateInput = document.getElementById("addRuleStartDate");
+    if (addRuleStartDateInput) addRuleStartDateInput.value = todayStr;
+
     document.getElementById("addRuleModal").style.display = "block";
     toggleBodyScroll(true);
     updateAddRuleState();
@@ -1622,6 +1621,9 @@ function openEditRuleModal(rule) {
     document.getElementById("editRuleDay").value = rule.day || "";
     document.getElementById("editRuleWeek").value = rule.week || "";
     document.getElementById("editRuleMonth").value = rule.month || "";
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    document.getElementById("editRuleStartDate").value = rule.ruleStartDate || todayStr;
     document.getElementById("editRuleEndDate").value = rule.ruleEndDate || "";
     
     document.getElementById("editRuleIsAdminCheckbox").checked = rule.is_admin_job || false;
@@ -1843,6 +1845,7 @@ function setupScheduleEventListeners() {
             const isCommon = document.getElementById("isCommonJobRuleCheckbox").checked;
             const originalNote = document.getElementById("jobNote").value.trim();
             const jobNameVal = document.getElementById("jobName").value.trim();
+            const ruleStartDateVal = document.getElementById("addRuleStartDate").value;
             const ruleEndDateVal = document.getElementById("addRuleEndDate").value;
             const exactDateVal = document.getElementById("exactDate").value;
             const dom = document.getElementById("domSelect").value;
@@ -1860,7 +1863,7 @@ function setupScheduleEventListeners() {
             if (editId) {
                 const updateData = {
                     job: jobNameVal, time: document.getElementById("jobTime").value, exactDate: exactDateVal,
-                    day, week, month, dom, ruleEndDate: ruleEndDateVal, note: noteStr, 
+                    day, week, month, dom, ruleStartDate: ruleStartDateVal, ruleEndDate: ruleEndDateVal, note: noteStr, 
                     is_admin_job: isAdmin, is_common_job: isCommon, updatedAt: serverTimestamp()
                 };
                 if (isCommon) {
@@ -1880,7 +1883,7 @@ function setupScheduleEventListeners() {
 
             const jobData = {
                 job: jobNameVal, time: document.getElementById("jobTime").value, exactDate: exactDateVal,
-                day, week, month, dom, ruleEndDate: ruleEndDateVal, note: noteStr, 
+                day, week, month, dom, ruleStartDate: ruleStartDateVal, ruleEndDate: ruleEndDateVal, note: noteStr, 
                 is_admin_job: isAdmin, is_common_job: isCommon, createdAt: serverTimestamp()
             };
             if (isCommon) {
@@ -2044,6 +2047,7 @@ function setupScheduleEventListeners() {
         const day = document.getElementById("editRuleDay").value;
         const week = document.getElementById("editRuleWeek").value;
         const month = document.getElementById("editRuleMonth").value;
+        const ruleStartDate = document.getElementById("editRuleStartDate").value;
         const ruleEndDate = document.getElementById("editRuleEndDate").value;
         const rawNote = document.getElementById("editRuleNote").value.trim();
         
@@ -2064,7 +2068,7 @@ function setupScheduleEventListeners() {
         
         if (completedNote === "") { lastCompletedDate = null; actualCompletedDate = null; }
 
-        const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, ruleEndDate, note, updatedAt: serverTimestamp() };
+        const updateData = { job, is_admin_job: isAdmin, is_common_job: isCommon, time, exactDate, dom, day, week, month, ruleStartDate, ruleEndDate, note, updatedAt: serverTimestamp() };
         
         if (isCommon) {
             updateData.targetGroup = document.getElementById("editCommonJobTargetGroup").value;
@@ -2088,6 +2092,7 @@ function setupScheduleEventListeners() {
                 day: "Thứ trong tuần",
                 week: "Tuần trong tháng",
                 month: "Tháng trong năm",
+                ruleStartDate: "Ngày bắt đầu",
                 ruleEndDate: "Ngày kết thúc",
                 note: "Ghi chú",
                 is_admin_job: "Việc Admin",
@@ -2224,7 +2229,6 @@ function setupSystemManagement() {
     listenSystemUsers();
     setupBackupRestore();
     setupResetCache();
-    setupAdminDataExplorer();
 }
 
 function setupResetCache() {
@@ -2251,302 +2255,6 @@ function setupResetCache() {
     }
 }
 
-function setupAdminDataExplorer() {
-    const fetchBtn = document.getElementById("adminExploreFetchBtn");
-    const collectionSelect = document.getElementById("adminExploreCollection");
-    const docIdInput = document.getElementById("adminExploreDocId");
-    const editorContainer = document.getElementById("adminJsonEditorContainer");
-    const jsonTextArea = document.getElementById("adminJsonTextArea");
-    const cancelBtn = document.getElementById("adminExploreCancelBtn");
-    const saveBtn = document.getElementById("adminExploreSaveBtn");
-    const deleteBtn = document.getElementById("adminExploreDeleteBtn");
-
-    if (!fetchBtn) return;
-
-    let activeFetchedData = null; // Lưu dữ liệu cũ phục vụ việc đối chiếu khi xóa trường
-
-    // Gán hàm module để gọi từ các hàm render khác
-    triggerAdminExplore = (colName, docId) => {
-        // 1. Chuyển tab sang Hệ thống
-        const tabBtns = document.querySelectorAll(".settings-tab-btn");
-        const tabPanes = document.querySelectorAll(".settings-tab-pane");
-        tabBtns.forEach(b => {
-            if (b.getAttribute("data-target") === "tab-system") b.classList.add("active");
-            else b.classList.remove("active");
-        });
-        tabPanes.forEach(p => {
-            if (p.id === "tab-system") p.classList.add("active");
-            else p.classList.remove("active");
-        });
-
-        // 2. Điền thông tin truy vấn
-        if (collectionSelect) collectionSelect.value = colName;
-        if (docIdInput) docIdInput.value = docId;
-
-        // 3. Thực thi lấy dữ liệu
-        fetchBtn.click();
-
-        // 4. Cuộn xuống khu vực editor
-        const explorerHeading = document.querySelector("#tab-system h3:nth-of-type(3)");
-        if (explorerHeading) {
-            explorerHeading.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-    };
-
-    // Hàm đệ quy chuyển đổi Firestore Timestamp hoặc Date sang ISO string
-    function convertTimestampsToISO(obj) {
-        if (obj === null || obj === undefined) return obj;
-        if (typeof obj.toMillis === "function") {
-            return new Date(obj.toMillis()).toISOString();
-        }
-        if (obj instanceof Date) {
-            return obj.toISOString();
-        }
-        if (Array.isArray(obj)) {
-            return obj.map(item => convertTimestampsToISO(item));
-        }
-        if (typeof obj === "object") {
-            const res = {};
-            for (const [key, val] of Object.entries(obj)) {
-                res[key] = convertTimestampsToISO(val);
-            }
-            return res;
-        }
-        return obj;
-    }
-
-    // Hàm đệ quy parse chuỗi ISO date thành Date object
-    function convertISOToDates(obj) {
-        if (obj === null || obj === undefined) return obj;
-        if (typeof obj === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(obj)) {
-            const d = new Date(obj);
-            if (!isNaN(d.getTime())) {
-                return d;
-            }
-        }
-        if (Array.isArray(obj)) {
-            return obj.map(item => convertISOToDates(item));
-        }
-        if (typeof obj === "object") {
-            const res = {};
-            for (const [key, val] of Object.entries(obj)) {
-                res[key] = convertISOToDates(val);
-            }
-            return res;
-        }
-        return obj;
-    }
-
-    const handleIdAutoDetect = (val) => {
-        const trimmed = val.trim();
-        if (trimmed.includes(':')) {
-            const parts = trimmed.split(':');
-            const colName = parts[0].trim();
-            const docId = parts[1].trim();
-
-            const validCollections = ["reports_1", "reports_2", "shift_reports", "logs", "companies_master", "company_configs", "work_rules", "work_patterns", "users"];
-            if (validCollections.includes(colName) && docId) {
-                if (collectionSelect) collectionSelect.value = colName;
-                if (docIdInput) docIdInput.value = docId;
-
-                setTimeout(() => {
-                    fetchBtn.click();
-                    if (window.Swal) {
-                        window.Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: `Đã tự động nạp bản ghi từ Clipboard!`,
-                            showConfirmButton: false,
-                            timer: 2000
-                        });
-                    }
-                }, 50);
-                return true;
-            }
-        }
-        return false;
-    };
-
-    if (docIdInput) {
-        docIdInput.addEventListener("paste", (e) => {
-            const pasteText = (e.clipboardData || window.clipboardData).getData('text');
-            const detected = handleIdAutoDetect(pasteText);
-            if (detected) {
-                e.preventDefault();
-            }
-        });
-
-        docIdInput.addEventListener("input", (e) => {
-            handleIdAutoDetect(e.target.value);
-        });
-    }
-
-    fetchBtn.addEventListener("click", async () => {
-        const colName = collectionSelect.value;
-        const docId = docIdInput.value.trim();
-
-        if (!docId) {
-            showSwal("error", "Lỗi", "Vui lòng nhập ID tài liệu.");
-            return;
-        }
-
-        showLoading("Đang tải tài liệu...");
-        try {
-            const docRef = doc(db, colName, docId);
-            const snap = await getDoc(docRef);
-
-            if (!snap.exists()) {
-                showSwal("error", "Không tìm thấy", `Không tìm thấy tài liệu với ID: ${docId} trong bảng ${colName}.`);
-                editorContainer.style.display = "none";
-                return;
-            }
-
-            const data = snap.data();
-            activeFetchedData = data;
-
-            // Chuyển đổi timestamp sang ISO string đệ quy để Admin dễ chỉnh sửa
-            const editableData = convertTimestampsToISO(data);
-            delete editableData.updatedAt; // Khóa updatedAt không cho chỉnh sửa ở tool
-
-            jsonTextArea.value = JSON.stringify(editableData, null, 2);
-            editorContainer.style.display = "flex";
-        } catch (err) {
-            console.error("Lỗi lấy dữ liệu:", err);
-            showSwal("error", "Lỗi", err.message);
-        } finally {
-            hideLoading();
-        }
-    });
-
-    cancelBtn.addEventListener("click", () => {
-        editorContainer.style.display = "none";
-        docIdInput.value = "";
-        activeFetchedData = null;
-    });
-
-    saveBtn.addEventListener("click", async () => {
-        const colName = collectionSelect.value;
-        const docId = docIdInput.value.trim();
-
-        let parsedData;
-        try {
-            parsedData = JSON.parse(jsonTextArea.value);
-        } catch (err) {
-            showSwal("error", "Lỗi cú pháp JSON", "Dữ liệu nhập vào không hợp lệ. Vui lòng kiểm tra kỹ dấu ngoặc kép, dấu phẩy.");
-            return;
-        }
-
-        const isConfirmed = await showConfirmSwal(
-            "Xác nhận Lưu",
-            "Hành động này sẽ thay đổi dữ liệu trực tiếp trên Firestore và tự động đồng bộ xuống các thiết bị khác. Tiếp tục?",
-            "Đồng ý lưu", "Hủy bỏ"
-        );
-        if (!isConfirmed) return;
-
-        showLoading("Đang lưu thay đổi...");
-        try {
-            // Chuyển đổi các trường ngày tháng ISO sang Date object đệ quy
-            const finalData = convertISOToDates(parsedData);
-
-            // Đối chiếu xóa các trường đã bị xóa khỏi JSON
-            if (activeFetchedData) {
-                for (const key of Object.keys(activeFetchedData)) {
-                    if (!(key in parsedData) && key !== 'updatedAt') {
-                        finalData[key] = deleteField();
-                    }
-                }
-            }
-
-            finalData.updatedAt = serverTimestamp();
-            finalData.adminEdited = true;
-            finalData.updatedBy = auth.currentUser?.email || "admin";
-
-            const docRef = doc(db, colName, docId);
-            await setDoc(docRef, finalData, { merge: true });
-
-            // Ghi nhật ký hệ thống
-            await addLog("admin_manual_edit", {
-                email: auth.currentUser?.email,
-                collection: colName,
-                docId: docId,
-                changes: parsedData
-            });
-
-            showSwal("success", "Đã lưu", "Tài liệu đã được cập nhật thành công!");
-            editorContainer.style.display = "none";
-            docIdInput.value = "";
-            activeFetchedData = null;
-        } catch (err) {
-            console.error("Lỗi khi lưu:", err);
-            showSwal("error", "Lỗi", err.message);
-        } finally {
-            hideLoading();
-        }
-    });
-
-    deleteBtn.addEventListener("click", async () => {
-        const colName = collectionSelect.value;
-        const docId = docIdInput.value.trim();
-
-        if (!activeFetchedData) return;
-
-        const isConfirmed = await showConfirmSwal(
-            "Xác nhận Xóa vĩnh viễn",
-            `<span style="color:red; font-weight:bold;">CẢNH BÁO:</span> Hành động này sẽ xóa vĩnh viễn tài liệu này khỏi Firestore và đồng bộ xóa sạch cache trên tất cả thiết bị. Bạn có chắc chắn không?`,
-            "Có, xóa vĩnh viễn", "Hủy bỏ", "error"
-        );
-        if (!isConfirmed) return;
-
-        showLoading("Đang thực hiện xóa tài liệu...");
-        try {
-            const docRef = doc(db, colName, docId);
-            const batchInstance = writeBatch(db);
-
-            // 1. Xóa tài liệu chính
-            batchInstance.delete(docRef);
-
-            // 2. Ghi bia mộ (tombstone) để kích hoạt đồng bộ xóa ở các thiết bị khác
-            batchInstance.set(doc(collection(db, "sync_deletes")), {
-                docId: docId,
-                collectionName: colName,
-                deletedAt: serverTimestamp()
-            });
-
-            await batchInstance.commit();
-
-            // 3. Ghi log lưu trữ toàn bộ dữ liệu trước khi xóa
-            await addLog("admin_manual_delete", {
-                email: auth.currentUser?.email,
-                collection: colName,
-                docId: docId,
-                deletedData: activeFetchedData
-            });
-
-            showSwal("success", "Đã xóa", "Tài liệu đã được xóa vĩnh viễn thành công!");
-            editorContainer.style.display = "none";
-            docIdInput.value = "";
-            activeFetchedData = null;
-        } catch (err) {
-            console.error("Lỗi khi xóa tài liệu:", err);
-            showSwal("error", "Lỗi", err.message);
-        } finally {
-            hideLoading();
-        }
-    });
-
-    // Tự động kích hoạt từ URL params (Ví dụ khi chuyển hướng từ trang datatable)
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlCol = urlParams.get('col');
-    const urlId = urlParams.get('id');
-    if (urlCol && urlId) {
-        setTimeout(() => {
-            if (typeof triggerAdminExplore === "function") {
-                triggerAdminExplore(urlCol, urlId);
-            }
-        }, 500);
-    }
-}
 
 function listenSystemUsers() {
     robustOnSnapshot(collection(db, "users"), (snap) => {
@@ -2652,26 +2360,7 @@ function renderUsersTable() {
         </tr>`;
     }).join("");
 
-    // Gắn sự kiện sao chép ID tài liệu bằng chuột phải hoặc nhấn giữ cho Admin (email của user chính là ID của tài liệu)
-    tbody.querySelectorAll("tr").forEach((tr, index) => {
-        const u = sortedUsers[index];
-        if (u) {
-            const email = u.email;
-            tr.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                copyDocIdToClipboard('users', email);
-            });
 
-            let pressTimer;
-            tr.addEventListener('touchstart', () => {
-                pressTimer = window.setTimeout(() => {
-                    copyDocIdToClipboard('users', email);
-                }, 800);
-            }, { passive: true });
-            tr.addEventListener('touchend', () => clearTimeout(pressTimer), { passive: true });
-            tr.addEventListener('touchmove', () => clearTimeout(pressTimer), { passive: true });
-        }
-    });
 
     document.querySelectorAll(".change-role-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {
@@ -2836,6 +2525,7 @@ function setupBackupRestore() {
 // 🔥 QUẢN LÝ KIẾN THỨC AI (Tab 5)
 // ===============================================
 let aiKnowledge = [];
+let aiKnowledgeSearchText = "";
 
 function setupAIKnowledgeManagement() {
     listenAIKnowledge();
@@ -3003,36 +2693,97 @@ function renderAIKnowledgeTable() {
         return;
     }
 
-    tbody.innerHTML = aiKnowledge.map(k => {
-        const contentSnippet = k.content && k.content.length > 100 ? k.content.substring(0, 100) + "..." : (k.content || "-");
-        
-        let badgeColor = "#2ecc71"; // guest
-        let badgeText = "Khách";
-        if (k.targetGroup === "user") {
-            badgeColor = "#3498db";
-            badgeText = "Nội bộ";
-        } else if (k.targetGroup === "admin") {
-            badgeColor = "#e74c3c";
-            badgeText = "Admin";
+    let filteredItems = aiKnowledge;
+    if (aiKnowledgeSearchText) {
+        const removeAccents = (str) => {
+            if (!str) return "";
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        };
+        const queryNoAccent = removeAccents(aiKnowledgeSearchText);
+        filteredItems = aiKnowledge.filter(k => {
+            const title = (k.title || "").toLowerCase();
+            const content = (k.content || "").toLowerCase();
+            const keywords = (k.keywords || "").toLowerCase();
+            
+            const titleNoAccent = removeAccents(title);
+            const contentNoAccent = removeAccents(content);
+            const keywordsNoAccent = removeAccents(keywords);
+            
+            return title.includes(aiKnowledgeSearchText) || 
+                   content.includes(aiKnowledgeSearchText) || 
+                   keywords.includes(aiKnowledgeSearchText) ||
+                   titleNoAccent.includes(queryNoAccent) ||
+                   contentNoAccent.includes(queryNoAccent) ||
+                   keywordsNoAccent.includes(queryNoAccent);
+        });
+    }
+
+    if (filteredItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #888; font-style: italic;">Không tìm thấy tài liệu quy chế phù hợp với từ khóa tìm kiếm.</td></tr>';
+        return;
+    }
+
+    const groups = {
+        guest: { name: "Khách vãng lai (Công cộng)", color: "#2ecc71", items: [] },
+        user: { name: "Thành viên đã đăng nhập (Nội bộ)", color: "#3498db", items: [] },
+        admin: { name: "Chỉ Admin (Bảo mật cao)", color: "#e74c3c", items: [] }
+    };
+
+    filteredItems.forEach(k => {
+        const tg = k.targetGroup || "user";
+        if (groups[tg]) {
+            groups[tg].items.push(k);
+        } else {
+            groups["user"].items.push(k);
         }
-        const badgeHtml = `<span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; font-weight: normal; vertical-align: middle;">${badgeText}</span>`;
+    });
 
-        const titleHtml = k.sourceUrl 
-            ? `<a href="${k.sourceUrl}" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">${k.title || "-"}</a>${badgeHtml}`
-            : `<span>${k.title || "-"}</span>${badgeHtml}`;
+    let html = "";
+    ["guest", "user", "admin"].forEach(groupId => {
+        const group = groups[groupId];
+        if (group.items.length > 0) {
+            html += `
+                <tr style="background: #f8fafc;">
+                    <td colspan="4" style="padding: 10px 12px; font-weight: bold; font-size: 13px; color: #1e293b; border-bottom: 2px solid #cbd5e1; border-top: 1px solid #e2e8f0; text-align: left;">
+                        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${group.color}; margin-right: 8px; vertical-align: middle;"></span>
+                        ${group.name} (${group.items.length})
+                    </td>
+                </tr>
+            `;
+            group.items.forEach(k => {
+                const contentSnippet = k.content && k.content.length > 100 ? k.content.substring(0, 100) + "..." : (k.content || "-");
+                
+                let badgeColor = "#2ecc71"; // guest
+                let badgeText = "Khách";
+                if (k.targetGroup === "user") {
+                    badgeColor = "#3498db";
+                    badgeText = "Nội bộ";
+                } else if (k.targetGroup === "admin") {
+                    badgeColor = "#e74c3c";
+                    badgeText = "Admin";
+                }
+                const badgeHtml = `<span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; font-weight: normal; vertical-align: middle;">${badgeText}</span>`;
 
-        return `
-            <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; font-weight: bold; text-align: left;">${titleHtml}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; white-space: normal; word-break: break-all;">${contentSnippet}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left;">${k.keywords || "-"}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; white-space: nowrap;">
-                    <button class="edit-ai-btn btn-action" data-id="${k.id}" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">✏️ Sửa</button>
-                    <button class="delete-ai-btn btn-action" data-id="${k.id}" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Xóa</button>
-                </td>
-            </tr>
-        `;
-    }).join("");
+                const titleHtml = k.sourceUrl 
+                    ? `<a href="${k.sourceUrl}" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">${k.title || "-"}</a>${badgeHtml}`
+                    : `<span>${k.title || "-"}</span>${badgeHtml}`;
+
+                html += `
+                    <tr>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; font-weight: bold; text-align: left; padding-left: 20px;">${titleHtml}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; white-space: normal; word-break: break-all;">${contentSnippet}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left;">${k.keywords || "-"}</td>
+                        <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; white-space: nowrap;">
+                            <button class="edit-ai-btn btn-action" data-id="${k.id}" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">✏️ Sửa</button>
+                            <button class="delete-ai-btn btn-action" data-id="${k.id}" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Xóa</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    });
+
+    tbody.innerHTML = html;
 
     tbody.querySelectorAll(".edit-ai-btn").forEach(btn => {
         btn.addEventListener("click", (e) => {
@@ -3076,6 +2827,14 @@ function setupAIKnowledgeHandlers() {
             openAiKnowledgeForm();
         });
     }
+
+    const searchInput = document.getElementById("aiKnowledgeSearchInput");
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            aiKnowledgeSearchText = e.target.value.toLowerCase().trim();
+            renderAIKnowledgeTable();
+        });
+    }
 }
 
 async function openAiKnowledgeForm(docData = null) {
@@ -3086,39 +2845,180 @@ async function openAiKnowledgeForm(docData = null) {
     const keywordsVal = docData ? docData.keywords || "" : "";
 
     const { value: formValues } = await Swal.fire({
-        title: docData ? '✏️ Chỉnh sửa quy chế AI' : '🤖 Thêm quy chế AI mới',
+        title: docData ? '✏️ Chỉnh sửa Kiến thức AI' : '🤖 Thêm Kiến thức AI mới',
         html: `
-            <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
-                <div>
-                    <label style="font-weight: bold; font-size: 13px; color: #475569;">Tiêu đề:</label>
-                    <input id="swal-ai-title" class="swal2-input" style="width: 100%; margin: 5px 0 0 0; box-sizing: border-box;" placeholder="Nhập tiêu đề quy chế..." value="${titleVal}">
+            <style>
+                .swal-custom-container {
+                    text-align: left; 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 14px; 
+                    font-family: 'Outfit', 'Inter', sans-serif;
+                }
+                .swal-custom-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+                .swal-custom-label {
+                    font-weight: 600; 
+                    font-size: 13px; 
+                    color: #334155;
+                }
+                .swal-custom-input {
+                    width: 100%; 
+                    height: 40px; 
+                    padding: 8px 12px; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-radius: 8px; 
+                    font-size: 13px; 
+                    box-sizing: border-box; 
+                    transition: all 0.2s ease-in-out; 
+                    outline: none; 
+                    background: #f8fafc;
+                }
+                .swal-custom-input:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+                }
+                .swal-custom-textarea {
+                    width: 100%; 
+                    height: 140px; 
+                    padding: 10px 12px; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-radius: 8px; 
+                    font-size: 13px; 
+                    box-sizing: border-box; 
+                    resize: vertical; 
+                    transition: all 0.2s ease-in-out; 
+                    outline: none; 
+                    background: #f8fafc;
+                    font-family: inherit;
+                }
+                .swal-custom-textarea:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+                }
+                .swal-custom-select {
+                    width: 100%; 
+                    height: 40px; 
+                    padding: 8px 12px; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-radius: 8px; 
+                    font-size: 13px; 
+                    box-sizing: border-box; 
+                    outline: none; 
+                    background: #f8fafc;
+                    cursor: pointer;
+                    transition: all 0.2s ease-in-out; 
+                }
+                .swal-custom-select:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+                }
+                .duplicate-alert {
+                    display: none;
+                    background: #fffbeb;
+                    border: 1px solid #fde68a;
+                    border-radius: 6px;
+                    padding: 8px 12px;
+                    font-size: 11px;
+                    color: #b45309;
+                    margin-top: 4px;
+                    line-height: 1.4;
+                }
+            </style>
+            <div class="swal-custom-container">
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Tiêu đề Kiến thức:</label>
+                    <input id="swal-ai-title" type="text" class="swal-custom-input" placeholder="Nhập tiêu đề (VD: Tiêu chuẩn xả thải, Giờ làm việc...)" value="${titleVal}">
+                    <div id="duplicate-warning" class="duplicate-alert"></div>
                 </div>
-                <div>
-                    <label style="font-weight: bold; font-size: 13px; color: #475569;">Nội dung quy chế:</label>
-                    <textarea id="swal-ai-content" class="swal2-textarea" style="width: 100%; height: 180px; margin: 5px 0 0 0; box-sizing: border-box; font-size: 14px; padding: 10px;" placeholder="Nhập nội dung quy chế chi tiết...">${contentVal}</textarea>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Nội dung Kiến thức / Quy chế:</label>
+                    <textarea id="swal-ai-content" class="swal-custom-textarea" placeholder="Nhập nội dung quy định chi tiết để dạy AI học...">${contentVal}</textarea>
                 </div>
-                <div>
-                    <label style="font-weight: bold; font-size: 13px; color: #475569;">Link nguồn tham khảo (Tùy chọn):</label>
-                    <input id="swal-ai-sourceUrl" class="swal2-input" style="width: 100%; margin: 5px 0 0 0; box-sizing: border-box;" placeholder="VD: https://example.com/tai-lieu..." value="${sourceUrlVal}">
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Link nguồn tham khảo (Tùy chọn):</label>
+                    <input id="swal-ai-sourceUrl" type="text" class="swal-custom-input" placeholder="VD: https://link-huong-dan-chi-tiet..." value="${sourceUrlVal}">
                 </div>
-                <div>
-                    <label style="font-weight: bold; font-size: 13px; color: #475569;">Đối tượng áp dụng:</label>
-                    <select id="swal-ai-targetGroup" class="swal2-select" style="width: 100%; margin: 5px 0 0 0; box-sizing: border-box; font-size: 14px; height: 38px; border-radius: 6px; border: 1px solid #ccc; padding: 0 10px;">
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Đối tượng áp dụng (Cấp độ xem):</label>
+                    <select id="swal-ai-targetGroup" class="swal-custom-select">
                         <option value="guest" ${targetGroupVal === "guest" ? "selected" : ""}>Khách vãng lai (Công cộng)</option>
                         <option value="user" ${targetGroupVal === "user" ? "selected" : ""}>Thành viên đã đăng nhập (Nội bộ)</option>
                         <option value="admin" ${targetGroupVal === "admin" ? "selected" : ""}>Chỉ Admin (Bảo mật cao)</option>
                     </select>
                 </div>
-                <div>
-                    <label style="font-weight: bold; font-size: 13px; color: #475569;">Từ khóa tìm kiếm (cách nhau bởi dấu phẩy):</label>
-                    <input id="swal-ai-keywords" class="swal2-input" style="width: 100%; margin: 5px 0 0 0; box-sizing: border-box;" placeholder="VD: phạt vượt khoán, hạn mức, đơn giá..." value="${keywordsVal}">
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Từ khóa kích hoạt RAG (cách nhau bởi dấu phẩy):</label>
+                    <input id="swal-ai-keywords" type="text" class="swal-custom-input" placeholder="VD: nước thải loại A, xả thải, QCVN..." value="${keywordsVal}">
                 </div>
             </div>
         `,
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: '💾 Lưu lại',
+        confirmButtonText: '💾 Lưu thông tin',
         cancelButtonText: 'Hủy',
+        didOpen: (popup) => {
+            const titleInput = popup.querySelector('#swal-ai-title');
+            const warningDiv = popup.querySelector('#duplicate-warning');
+            if (titleInput && warningDiv) {
+                const checkDuplicate = () => {
+                    const removeAccents = (str) => {
+                        if (!str) return "";
+                        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+                    };
+                    
+                    const currentVal = titleInput.value.trim().toLowerCase();
+                    const currentNoAccent = removeAccents(currentVal);
+                    
+                    if (!currentVal) {
+                        warningDiv.style.display = "none";
+                        titleInput.style.borderColor = "";
+                        titleInput.style.boxShadow = "";
+                        return;
+                    }
+                    
+                    const duplicate = aiKnowledge.find(k => {
+                        if (docData && k.id === docData.id) return false;
+                        const kTitle = (k.title || "").trim().toLowerCase();
+                        const kTitleNoAccent = removeAccents(kTitle);
+                        
+                        if (kTitle === currentVal || kTitleNoAccent === currentNoAccent) return true;
+                        
+                        if (currentVal.length >= 4 && (kTitle.includes(currentVal) || currentVal.includes(kTitle))) return true;
+                        if (currentNoAccent.length >= 4 && (kTitleNoAccent.includes(currentNoAccent) || currentNoAccent.includes(kTitleNoAccent))) return true;
+                        
+                        return false;
+                    });
+                    
+                    if (duplicate) {
+                        warningDiv.innerHTML = `⚠️ <b>Đã có kiến thức tương tự:</b> <br>Tiêu đề: "<b>${duplicate.title}</b>" (${duplicate.targetGroup === 'guest' ? 'Khách' : duplicate.targetGroup === 'user' ? 'Nội bộ' : 'Admin'}).`;
+                        warningDiv.style.display = "block";
+                        titleInput.style.borderColor = "#f59e0b";
+                        warningDiv.style.cursor = "pointer";
+                        warningDiv.onclick = () => {
+                            Swal.close();
+                            setTimeout(() => {
+                                openAiKnowledgeForm(duplicate);
+                            }, 150);
+                        };
+                    } else {
+                        warningDiv.style.display = "none";
+                        titleInput.style.borderColor = "";
+                        warningDiv.onclick = null;
+                        warningDiv.style.cursor = "default";
+                    }
+                };
+                
+                titleInput.addEventListener('input', checkDuplicate);
+                if (docData) checkDuplicate();
+            }
+        },
         preConfirm: () => {
             const title = document.getElementById('swal-ai-title').value.trim();
             const content = document.getElementById('swal-ai-content').value.trim();
@@ -3131,7 +3031,7 @@ async function openAiKnowledgeForm(docData = null) {
                 return false;
             }
             if (!content) {
-                Swal.showValidationMessage('Vui lòng nhập nội dung quy chế!');
+                Swal.showValidationMessage('Vui lòng nhập nội dung kiến thức!');
                 return false;
             }
             return { title, content, sourceUrl, targetGroup, keywords };
@@ -3158,10 +3058,10 @@ async function openAiKnowledgeForm(docData = null) {
                 addLog("admin_create_ai_knowledge", { email: auth.currentUser?.email || "admin", title: payload.title });
             }
             hideLoading();
-            showSwal("success", "Thành công", "Đã lưu thông tin quy chế thành công.");
+            showSwal("success", "Thành công", "Đã lưu thông tin kiến thức thành công.");
         } catch (err) {
             hideLoading();
-            showSwal("error", "Lỗi lưu quy chế", err.message);
+            showSwal("error", "Lỗi lưu kiến thức", err.message);
         }
     }
 }

@@ -2,7 +2,7 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=6";
 
 
 
@@ -23,7 +23,7 @@ import {
     getDefaultHolidays,
     syncDeltaReports1,
     syncDeltaReports2
-} from "./chatbot-firebase-queries.js?v=3";
+} from "./chatbot-firebase-queries.js?v=6";
 
 // load menu
 fetch("menu.html").then(r => r.text()).then(h => {
@@ -282,7 +282,8 @@ fetch("footer.html").then(r => r.text()).then(h => {
         // Bước 2: Nếu cần truy vấn dữ liệu, lấy dữ liệu trước
         if (dataQuery) {
             // KIỂM TRA ĐĂNG NHẬP: Nếu cần dữ liệu mà chưa đăng nhập thì chặn lại
-            if (!auth.currentUser) {
+            // KIỂM TRA ĐĂNG NHẬP: Nếu cần dữ liệu hệ thống mà chưa đăng nhập thì chặn lại (bỏ qua nếu chỉ truy vấn Quy chế/Kiến thức RAG công cộng)
+            if (!auth.currentUser && dataQuery.type !== 'rag_knowledge') {
                 setTimeout(() => addMessage("⚠️ Bạn cần <b>đăng nhập</b> để tra cứu dữ liệu chi tiết (chỉ số, ngày nghỉ, thống kê...).", false, true), 500);
                 chatSubmit.disabled = false;
                 chatInput.disabled = false;
@@ -530,12 +531,12 @@ fetch("footer.html").then(r => r.text()).then(h => {
 
     // Khởi tạo chatbot khi trang tải xong
     // Chỉ khởi tạo dữ liệu tìm kiếm nếu đã đăng nhập (để tránh lỗi permission denied trong console)
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async (user) => {
         const homeLoginBox = document.querySelector('.home-login-box');
         const chatDisclaimer = document.querySelector('.chat-disclaimer');
 
         if (user) {
-            initializeChatbot();
+            await initializeChatbot();
             // Ẩn box đăng nhập nhanh nếu đã đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'none';
             if (chatDisclaimer) chatDisclaimer.style.display = 'block';
@@ -557,6 +558,9 @@ fetch("footer.html").then(r => r.text()).then(h => {
             // Hiện box đăng nhập nhanh nếu chưa đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'block';
             if (chatDisclaimer) chatDisclaimer.style.display = 'none';
+            
+            // Tải cấu hình chào mừng và proxy cho khách vãng lai
+            await initializeChatbot();
         }
         
         // Luôn hiển thị hoặc cập nhật tin nhắn chào mừng phù hợp với quyền hạn của user

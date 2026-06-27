@@ -26,6 +26,24 @@
             background: var(--surface-hover);
             border-radius: 8px 0 0 8px;
             padding: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Hình bảo mật quyền Admin chìm */
+        .settings-sidebar::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='rgba(39, 54, 104, 0.05)'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.5 1.1 2.5 2.5S13.4 12 12 12s-2.5-1.1-2.5-2.5S10.6 7 12 7zm0 7c2.25 0 6.75 1.13 6.75 3.38v1.12H5.25v-1.12C5.25 15.13 9.75 14 12 14z'/%3E%3C/svg%3E");
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .settings-tab-btn {
@@ -41,6 +59,8 @@
             color: var(--text-color);
             cursor: pointer;
             transition: all 0.2s ease;
+            position: relative;
+            z-index: 1; /* Hiển thị phía trên hình chìm */
         }
 
         .settings-tab-btn:hover {
@@ -154,6 +174,11 @@
                 border-right: none;
                 border-bottom: 1px solid var(--border-color);
                 border-radius: 8px 8px 0 0;
+            }
+
+            /* Ẩn hình chìm admin trên mobile để tránh vỡ giao diện ngang */
+            .settings-sidebar::after {
+                display: none !important;
             }
 
             .settings-tab-btn {
@@ -619,7 +644,7 @@
                                             <th style="text-align: left; padding: 8px;">Công việc</th>
                                             <th style="padding: 8px;">Giờ</th>
                                             <th style="padding: 8px;">Ngày cụ thể</th>
-                                            <th style="padding: 8px;">Ngày kết thúc</th>
+                                            <th style="padding: 8px;">Hiệu lực</th>
                                             <th style="padding: 8px;">Định kỳ</th>
                                             <th style="padding: 8px;">Hành động</th>
                                         </tr>
@@ -755,75 +780,6 @@
                                 </div>
                             </div>
 
-                            <!-- Trình quản lý dữ liệu nâng cao cho Admin -->
-                            <div
-                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
-                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🛠️ Quản lý Dữ liệu
-                                    Firestore (Chỉ Admin)</h3>
-                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Truy vấn, chỉnh sửa hoặc
-                                    xóa bất kỳ tài liệu nào trên hệ thống bằng mã ID. Hệ thống sẽ tự động cập nhật mốc
-                                    thời gian của máy chủ để đồng bộ xuống tất cả thiết bị.</p>
-
-                                <div
-                                    style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: flex-end;">
-                                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Chọn Bảng
-                                            (Collection)</label>
-                                        <select id="adminExploreCollection"
-                                            style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 220px;">
-                                            <option value="reports_1">Báo cáo nước (reports_1)</option>
-                                            <option value="reports_2">Báo cáo nghỉ/làm ĐB (reports_2)</option>
-                                            <option value="shift_reports">Báo cáo ca trực (shift_reports)</option>
-                                            <option value="logs">Nhật ký hệ thống (logs)</option>
-                                            <option value="companies_master">Danh sách công ty (companies_master)
-                                            </option>
-                                            <option value="company_configs">Cấu hình công ty (company_configs)</option>
-                                            <option value="work_rules">Quy tắc công việc (work_rules)</option>
-                                            <option value="work_patterns">Lịch phân ca (work_patterns)</option>
-                                            <option value="users">Danh sách người dùng (users)</option>
-                                        </select>
-                                    </div>
-                                    <div
-                                        style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 200px;">
-                                        <label style="font-size: 12px; font-weight: bold; color: #475569;">Nhập ID Tài
-                                            liệu (Document ID)</label>
-                                        <input type="text" id="adminExploreDocId" placeholder="Ví dụ: 0uXl0p61f95z..."
-                                            style="padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; width: 100%;">
-                                    </div>
-                                    <button id="adminExploreFetchBtn"
-                                        style="background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 35px;">
-                                        🔍 Lấy dữ liệu
-                                    </button>
-                                </div>
-
-                                <!-- Editor container (Mặc định ẩn) -->
-                                <div id="adminJsonEditorContainer"
-                                    style="display: none; flex-direction: column; gap: 10px;">
-                                    <label style="font-size: 12px; font-weight: bold; color: #475569;">Nội dung tài liệu
-                                        (Định dạng JSON) - <span style="color: #e74c3c;">Lưu ý: Không để nháy kép cho số
-                                            (ví dụ: 1250 thay vì "1250")</span></label>
-                                    <textarea id="adminJsonTextArea"
-                                        style="width: 100%; height: 250px; font-family: monospace; font-size: 13px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fafafa; color: #333;"
-                                        spellcheck="false"></textarea>
-                                    <div
-                                        style="display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap;">
-                                        <button id="adminExploreDeleteBtn"
-                                            style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                            ❌ Xóa Tài liệu
-                                        </button>
-                                        <div style="display: flex; gap: 10px;">
-                                            <button id="adminExploreCancelBtn"
-                                                style="background: #95a5a6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                                Hủy bỏ
-                                            </button>
-                                            <button id="adminExploreSaveBtn"
-                                                style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                                💾 Lưu Thay đổi
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
                             <!-- Làm mới Bộ nhớ đệm (IndexedDB) -->
                             <div
@@ -855,6 +811,15 @@
                             </button>
                         </div>
                         
+                        <!-- Tìm kiếm Quy chế AI -->
+                        <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1;">
+                                <input type="text" id="aiKnowledgeSearchInput"
+                                    placeholder="🔍 Tìm kiếm tiêu đề, nội dung hoặc từ khóa quy chế..."
+                                    style="width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 13px;">
+                            </div>
+                        </div>
+
                         <div style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
                             <div class="table-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
                                 <table id="aiKnowledgeTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -1073,6 +1038,9 @@
                 </select>
             </div>
             <div class="input-row d-flex align-center gap-10 mb-15">
+                <label class="modal-label" style="min-width: 120px; color: #27ae60;">Ngày bắt đầu:</label>
+                <input type="date" id="editRuleStartDate" title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)"
+                    class="modal-input flex-1" style="background-color: #ebf5fb;">
                 <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
                 <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)"
                     class="modal-input flex-1" style="background-color: #fdf2e9;">
@@ -1206,6 +1174,10 @@
                     </select>
                 </div>
                 <div class="input-row d-flex align-center gap-10 mb-15">
+                    <label class="modal-label" style="min-width: 120px; color: #27ae60;">Ngày bắt đầu:</label>
+                    <input type="date" id="addRuleStartDate"
+                        title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)" class="modal-input flex-1"
+                        style="background-color: #ebf5fb;">
                     <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
                     <input type="date" id="addRuleEndDate"
                         title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1"
@@ -1377,7 +1349,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="settings.js"></script>
+    <script type="module" src="settings.js?v=5"></script>
 
 </body>
 

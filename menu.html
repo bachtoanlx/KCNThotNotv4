@@ -40,15 +40,20 @@
             <a href="statistics.html">Thống kê lưu lượng</a>
           </div>
         </div>
-        <div class="dropdown">
-          <button class="dropbtn">Lịch trực ▼</button>
-          <div class="dropdown-content dropdown-compact">
-            <a href="autoplan.html">Lịch làm việc</a>
-            <a href="admin_tasks.html" class="admin-only" style="display: none;">Việc của admin</a>
+        <a href="autoplan.html">Lịch trực</a>
+        <div class="dropdown admin-only" style="display: none;">
+          <button class="dropbtn">🛡️ Quản trị ▼</button>
+          <div class="dropdown-content">
+            <a href="admin_tasks.html">📋 Việc của admin</a>
+            <a href="logs.html">📜 Nhật ký hệ thống</a>
+            <div class="dropdown-divider"></div>
+            <a href="settings.html?tab=company" data-tab="tab-company" class="quick-menu-item">🏢 Cấu hình Công ty</a>
+            <a href="settings.html?tab=shifts" data-tab="tab-shifts" class="quick-menu-item">🕒 Ca Báo cáo</a>
+            <a href="settings.html?tab=schedule" data-tab="tab-schedule" class="quick-menu-item">📅 Quy tắc công việc</a>
+            <a href="settings.html?tab=system" data-tab="tab-system" class="quick-menu-item">⚙️ Cài đặt hệ thống</a>
+            <a href="settings.html?tab=ai" data-tab="tab-ai" class="quick-menu-item">🤖 Thông tin AI</a>
           </div>
         </div>
-        <a href="logs.html" class="admin-only">📜 Nhật ký</a>
-        <a href="settings.html" class="admin-only">⚙️ Cài đặt</a>
       </div>
     </div>
 

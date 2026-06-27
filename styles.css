@@ -366,17 +366,19 @@ nav.navbar {
   /* Trong suốt */
   transform: translateY(10px);
   /* Trượt từ trên xuống thay vì dưới lên */
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  /* Hiệu ứng mượt hơn */
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: 0.15s; /* Độ trễ khi đóng menu (tránh bị tắt đột ngột khi trượt chuột) */
 
   position: absolute;
   top: 100%;
   margin-top: 5px;
-  background-color: var(--primary-hover);
+  background-color: rgba(30, 41, 59, 0.82); /* Trong suốt nhẹ đồng bộ tông màu tối */
+  backdrop-filter: blur(12px); /* Hiệu ứng kính mờ sang trọng */
+  -webkit-backdrop-filter: blur(12px);
   min-width: 200px;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12); /* Viền sáng nhẹ 3D */
   z-index: 100;
   padding: 8px 0;
 }
@@ -392,6 +394,7 @@ nav.navbar {
   display: block;
   font-size: 14px;
   transition: all 0.2s;
+  white-space: nowrap; /* Chống tự động xuống dòng khi rê chuột/hover */
 }
 
 .dropdown-content a:hover {
@@ -409,6 +412,7 @@ nav.navbar {
   /* Hiện rõ */
   transform: translateY(0);
   /* Trở về vị trí ban đầu */
+  transition-delay: 0s; /* Mở ngay lập tức khi di chuột vào */
 }
 
 /* Khối bên phải */
@@ -2357,7 +2361,7 @@ tr:last-child td {
 
 .ticket-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
   margin-top: 10px;
 }
@@ -2642,4 +2646,10 @@ body.fixed-viewport-layout .scenario-card .btn-action {
     padding: 0 10px !important;
     font-size: 11px !important;
   }
+}
+
+/* Đường kẻ phân cách trong menu Quản trị */
+.dropdown-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 6px 0;
 }

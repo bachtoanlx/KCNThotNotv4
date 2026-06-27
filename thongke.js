@@ -1036,9 +1036,17 @@ function extractKeywords(jobName) {
 // Giả sử hàm getWeekOfMonth(date) và ruleMatchesDate(rule, d) đã tồn tại
 // Thêm helper: kiểm tra 1 rule có phù hợp với ngày d không
 function ruleMatchesDate(rule, d) {
+    const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    if (rule.ruleStartDate && rule.ruleStartDate !== "") {
+        if (isoDate < rule.ruleStartDate) return false;
+    }
+    if (rule.ruleEndDate && rule.ruleEndDate !== "") {
+        if (isoDate > rule.ruleEndDate) return false;
+    }
+
     // NẾU CÓ NGÀY CỤ THỂ -> Chỉ xét duy nhất ngày đó
     if (rule.exactDate && rule.exactDate !== "") {
-        const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         return rule.exactDate === isoDate;
     }
 
