@@ -57,7 +57,7 @@
 
         .search-bar-wrapper input {
             width: 100%;
-            padding: 10px 42px 10px 18px;
+            padding: 10px 85px 10px 18px;
             border: 2px solid rgba(39, 54, 104, 0.15);
             border-radius: 30px;
             font-size: 14.5px;
@@ -74,14 +74,94 @@
             background: #ffffff;
         }
 
-        .search-icon-inside {
+        /* AI Search Button - Compact and inside input */
+        .ai-search-btn {
             position: absolute;
-            right: 18px;
+            right: 8px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 16px;
+            background: transparent;
+            color: #6366f1;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .ai-search-btn:hover {
+            transform: translateY(-50%) scale(1.08);
+            color: #4f46e5;
+        }
+
+        .ai-search-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        /* AI Summary Block - Clean text, no background container */
+        .ai-summary-block {
+            max-width: 730px;
+            margin: 12px auto 6px auto;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #334155;
+            padding: 0 10px;
+            display: none;
+        }
+
+        .ai-summary-block strong {
+            color: #4f46e5;
+        }
+
+        .ai-summary-loading {
             color: #64748b;
-            pointer-events: none;
+            font-style: italic;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ai-summary-spinner {
+            border: 2px solid rgba(99, 102, 241, 0.1);
+            border-top: 2px solid #6366f1;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        /* AI Match Badge styling on cards */
+        .badge-ai-match {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+            color: #6366f1;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .ai-reason-text {
+            font-size: 11px;
+            color: #6366f1;
+            background: rgba(99, 102, 241, 0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-top: -6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #a855f7;
+            font-style: italic;
         }
 
         /* Filter Tabs */
@@ -748,8 +828,16 @@
                 margin-bottom: 12px;
             }
             .search-bar-wrapper input {
-                padding: 10px 40px 10px 15px;
-                font-size: 14px;
+                padding: 9px 65px 9px 12px;
+                font-size: 13.5px;
+            }
+            .ai-search-btn {
+                padding: 3px 8px;
+                font-size: 11.5px;
+                height: 26px;
+                right: 6px;
+                border: none;
+                background: transparent;
             }
             .filter-tabs {
                 gap: 6px;
@@ -830,9 +918,12 @@
             <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản pháp lý, quy chế và quy trình kỹ thuật</p>
             
             <div class="search-bar-wrapper">
-                <span class="search-icon-inside">🔍</span>
                 <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, tiêu đề, chương điều, nội dung hoặc phân loại cần tìm...">
+                <button type="button" id="aiSearchBtn" class="ai-search-btn" title="Tìm kiếm bằng AI (Gemini)">
+                    <span>✨ AI</span>
+                </button>
             </div>
+            <div id="aiSummaryBlock" class="ai-summary-block"></div>
 
             <div class="filter-tabs">
                 <button class="tab-btn active" data-category="Tất cả">Tất cả</button>

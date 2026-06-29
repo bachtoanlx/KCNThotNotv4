@@ -19,6 +19,15 @@ let invertedIndex = {}; // Chỉ mục đảo client-side
 let activeCategory = "Tất cả";
 let displayLimit = 12; // Số lượng kết quả hiển thị tối đa ban đầu
 
+// Cấu hình Proxy AI (đồng bộ bảo mật với Chatbot trang chủ)
+const USE_PROXY = true;
+const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec';
+const PREFERRED_MODEL = 'gemini-2.5-flash';
+
+// Trạng thái Tìm kiếm AI
+let isAiSearchActive = false;
+let aiSearchResults = null; // Mảng các { id, score, reason } trả về từ AI
+
 // Từ điển đồng nghĩa và từ viết tắt chuyên ngành KCN/Doanh nghiệp
 const SYNONYM_DICT = {
     "xlnt": ["xử lý nước thải", "nước thải"],
@@ -30,8 +39,8 @@ const SYNONYM_DICT = {
 
 // Danh sách các từ dừng (stop words) cực kỳ phổ biến trong văn bản tiếng Việt
 const STOP_WORDS = new Set([
-    "6", "tháng", "năm", "ngày", "đầu", "các", "và", "của", "là", "trong", 
-    "để", "cho", "có", "đã", "đang", "sẽ", "tại", "theo", "về", "như", 
+    "6", "tháng", "năm", "ngày", "đầu", "các", "và", "của", "là", "trong",
+    "để", "cho", "có", "đã", "đang", "sẽ", "tại", "theo", "về", "như",
     "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín", "mười",
     "đầu", "cuối", "giữa", "trước", "sau", "ở", "an", "toàn", "sự", "việc"
 ]);
@@ -134,10 +143,10 @@ async function loadDocumentChunks() {
 function removeAccents(str) {
     if (!str) return "";
     return str.normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .replace(/đ/g, "d")
-              .replace(/Đ/g, "D")
-              .toLowerCase();
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase();
 }
 
 // Hàm kiểm tra ký tự có phải là chữ/số thông thường không (để tìm ranh giới từ nguyên)
@@ -158,12 +167,12 @@ function buildInvertedIndex() {
             chunk.summary || "",
             (chunk.keywords || []).join(" ")
         ].join(" ").toLowerCase();
-        
+
         const cleanText = removeAccents(textToTokenize);
-        
+
         // Tách thành các từ nguyên. Giữ lại từ từ 2 ký tự trở lên, hoặc các chữ số đơn lẻ (ví dụ "6")
         const terms = cleanText.split(/[^a-z0-9_]+/g).filter(t => t.length >= 2 || /[0-9]/.test(t));
-        
+
         terms.forEach(term => {
             if (!invertedIndex[term]) {
                 invertedIndex[term] = new Set();
@@ -179,19 +188,19 @@ function countOccurrences(fieldOriginal, token) {
     if (!fieldOriginal || !token) return 0;
     const fieldLower = fieldOriginal.toLowerCase();
     const isAccentSensitive = (token !== removeAccents(token));
-    
+
     // Nếu nhạy cảm dấu: tìm trong văn bản gốc. Nếu không: tìm trong văn bản đã lọc dấu.
     const sourceText = isAccentSensitive ? fieldLower : removeAccents(fieldLower);
-    
+
     let count = 0;
     let idx = 0;
     while (true) {
         const foundIdx = sourceText.indexOf(token, idx);
         if (foundIdx === -1) break;
-        
+
         const hasLeft = foundIdx === 0 || !isWordChar(sourceText.charAt(foundIdx - 1));
         const hasRight = foundIdx + token.length === sourceText.length || !isWordChar(sourceText.charAt(foundIdx + token.length));
-        
+
         if (hasLeft && hasRight) {
             count++;
             idx = foundIdx + token.length;
@@ -207,34 +216,34 @@ function analyzeFieldCloseness(fieldOriginal, tokens) {
     if (!fieldOriginal || !tokens || tokens.length <= 1) {
         return { ordered: false, proximityBonus: 0 };
     }
-    
+
     const fieldLower = fieldOriginal.toLowerCase();
     const fieldClean = removeAccents(fieldLower);
-    
+
     const indices = [];
     for (const token of tokens) {
         const isAccentSensitive = (token !== removeAccents(token));
         const sourceText = isAccentSensitive ? fieldLower : fieldClean;
-        
+
         // Tìm vị trí khớp đầu tiên của token dạng từ nguyên
         let idx = 0;
         let foundIdx = -1;
         while (true) {
             foundIdx = sourceText.indexOf(token, idx);
             if (foundIdx === -1) break;
-            
+
             const hasLeft = foundIdx === 0 || !isWordChar(sourceText.charAt(foundIdx - 1));
             const hasRight = foundIdx + token.length === sourceText.length || !isWordChar(sourceText.charAt(foundIdx + token.length));
             if (hasLeft && hasRight) break;
             idx = foundIdx + 1;
         }
-        
+
         if (foundIdx === -1) {
             return { ordered: false, proximityBonus: 0 }; // Không đủ bộ từ khóa
         }
         indices.push(foundIdx);
     }
-    
+
     // 1. Kiểm tra xem các từ khóa có xuất hiện đúng thứ tự của truy vấn gõ hay không
     let ordered = true;
     for (let i = 0; i < indices.length - 1; i++) {
@@ -243,65 +252,65 @@ function analyzeFieldCloseness(fieldOriginal, tokens) {
             break;
         }
     }
-    
+
     // 2. Tính toán khoảng cách gần nhau của các từ (Proximity Score)
     const min = Math.min(...indices);
     const max = Math.max(...indices);
     const span = max - min;
-    
+
     let proximityBonus = 0;
     if (span < 150) {
         proximityBonus = 30; // Từ khóa nằm sát sạt nhau (rất liên quan)
     } else if (span < 300) {
         proximityBonus = 15; // Từ khóa nằm tương đối gần nhau
     }
-    
+
     return { ordered, proximityBonus };
 }
 
 // Hàm highlight từ khóa khớp trong văn bản (chấp nhận cả không dấu lẫn có dấu theo ngữ cảnh)
 function highlightText(text, searchTokens) {
     if (!text || !searchTokens || searchTokens.length === 0) return text;
-    
+
     // Escape HTML ký tự đặc biệt trước để tránh lỗi XSS
     let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    
+
     // Sắp xếp các từ tìm kiếm theo độ dài giảm dần để tránh highlight chồng lấn từ ngắn
     const sortedTokens = [...searchTokens].sort((a, b) => b.length - a.length);
-    
+
     const MARK_START = "\uFFF0";
     const MARK_END = "\uFFF1";
-    
+
     sortedTokens.forEach(token => {
         if (token.length < 2) return; // Bỏ qua từ quá ngắn (1 ký tự)
-        
+
         let pos = 0;
         const isAccentSensitive = (token !== removeAccents(token));
-        
+
         while (true) {
             // So khớp nhạy cảm dấu dựa trên văn bản gốc, ngược lại so khớp trên văn bản đã lọc dấu
             const sourceText = isAccentSensitive ? escaped.toLowerCase() : removeAccents(escaped);
             const index = sourceText.indexOf(token, pos);
             if (index === -1) break;
-            
+
             // Kiểm tra ranh giới từ nguyên (Word Boundary)
             const hasLeftBoundary = index === 0 || !isWordChar(sourceText.charAt(index - 1));
             const hasRightBoundary = index + token.length === sourceText.length || !isWordChar(sourceText.charAt(index + token.length));
-            
+
             if (hasLeftBoundary && hasRightBoundary) {
                 // Đảm bảo không highlight lặp đè bên trong một thẻ mark đã có
                 const leftPart = escaped.substring(0, index);
                 const lastStart = leftPart.lastIndexOf(MARK_START);
                 const lastEnd = leftPart.lastIndexOf(MARK_END);
-                
+
                 if (lastStart > lastEnd) {
                     pos = index + token.length;
                     continue;
                 }
-                
+
                 const originalWord = escaped.substring(index, index + token.length);
                 const replacement = MARK_START + originalWord + MARK_END;
-                
+
                 escaped = escaped.substring(0, index) + replacement + escaped.substring(index + token.length);
                 pos = index + replacement.length;
             } else {
@@ -310,7 +319,7 @@ function highlightText(text, searchTokens) {
             }
         }
     });
-    
+
     // Thay thế các ký hiệu tạm thời bằng thẻ HTML <mark>
     return escaped
         .split(MARK_START).join('<mark class="search-highlight">')
@@ -449,16 +458,18 @@ function renderGrid() {
     const cleanKeyword = removeAccents(searchKeyword);
     const searchTokens = searchKeyword ? searchKeyword.split(/\s+/).filter(t => t.length > 0) : [];
 
-    // Trạng thái ban đầu: Chưa gõ từ khóa & Tab đang chọn là Tất cả
-    // Số thẻ hiển thị tự động cân đối theo độ cao Danh mục Tài liệu gốc bên Sidebar trái
-    if (!cleanKeyword && activeCategory === "Tất cả") {
+    // Map chứa thông tin score và lý do của AI
+    const aiMatchMap = {};
+
+    // Trạng thái ban đầu: Chưa gõ từ khóa & Tab đang chọn là Tất cả & Không tìm kiếm bằng AI
+    if (!cleanKeyword && activeCategory === "Tất cả" && !isAiSearchActive) {
         // Đếm số lượng tài liệu gốc duy nhất
         const seenDocs = new Set();
         allChunks.forEach(chunk => {
             if (chunk.documentId) seenDocs.add(chunk.documentId);
         });
         const numDocs = seenDocs.size;
-        
+
         // Số thẻ hiển thị = số tài liệu / 2, nếu là số lẻ thì -1. Tối thiểu 2 thẻ, tối đa 10 thẻ.
         let initialShowCount = Math.floor(numDocs / 2);
         if (initialShowCount % 2 !== 0) {
@@ -517,7 +528,7 @@ function renderGrid() {
 
             const parentDoc = allDocuments[item.documentId] || {};
             const docCode = docCodeMap[item.documentId] || "TL-XX";
-            
+
             let displayDate = "Chưa rõ";
             if (parentDoc.issuedDate) {
                 const dateObj = new Date(parentDoc.issuedDate);
@@ -596,207 +607,226 @@ function renderGrid() {
         return;
     }
 
-    // 1. Chỉ mục đảo (Inverted Index lookup) thu hẹp số lượng ứng viên để tìm kiếm tức thì
-    let candidates = null;
-    if (searchTokens.length > 0) {
-        for (const token of searchTokens) {
-            const tokenClean = removeAccents(token);
-            const termsToLookup = [tokenClean];
-            
-            // Mở rộng từ điển đồng nghĩa (nếu có)
-            const synonyms = SYNONYM_DICT[tokenClean];
-            if (synonyms) {
-                synonyms.forEach(syn => {
-                    const synClean = removeAccents(syn);
-                    synClean.split(/\s+/).forEach(t => termsToLookup.push(t));
-                });
-            }
-            
-            // Hợp các Set của từ gốc và từ đồng nghĩa
-            let tokenChunks = new Set();
-            termsToLookup.forEach(term => {
-                const set = invertedIndex[term];
-                if (set) {
-                    set.forEach(chunk => tokenChunks.add(chunk));
-                }
-            });
-            
-            // Giao tập hợp (AND constraint)
-            if (candidates === null) {
-                candidates = tokenChunks;
-            } else {
-                const nextCandidates = new Set();
-                tokenChunks.forEach(chunk => {
-                    if (candidates.has(chunk)) {
-                        nextCandidates.add(chunk);
-                    }
-                });
-                candidates = nextCandidates;
-            }
-            
-            if (candidates.size === 0) break;
-        }
-    }
-    
-    let filtered = candidates ? Array.from(candidates) : allChunks;
+    let filtered = [];
 
-    // Lọc theo danh mục của Tab đang chọn
-    if (activeCategory !== "Tất cả") {
-        filtered = filtered.filter(item => item.category === activeCategory);
-    }
-
-    // Helper kiểm tra một từ khóa có khớp như một TỪ NGUYÊN (Whole Word) trong chuỗi hay không
-    // Tự động phân tích xem token có dấu hay không để áp dụng so khớp chính xác ngữ cảnh
-    function checkWholeWordMatch(fieldOriginal, token) {
-        if (!fieldOriginal) return false;
-        
-        const fieldLower = fieldOriginal.toLowerCase();
-        const isAccentSensitive = (token !== removeAccents(token));
-        
-        // Nếu nhạy cảm dấu: tìm trong văn bản gốc. Nếu không: tìm trong văn bản đã lọc dấu.
-        const sourceText = isAccentSensitive ? fieldLower : removeAccents(fieldLower);
-        
-        let idx = 0;
-        while (true) {
-            const foundIdx = sourceText.indexOf(token, idx);
-            if (foundIdx === -1) return false;
-            
-            const hasLeft = foundIdx === 0 || !isWordChar(sourceText.charAt(foundIdx - 1));
-            const hasRight = foundIdx + token.length === sourceText.length || !isWordChar(sourceText.charAt(foundIdx + token.length));
-            
-            if (hasLeft && hasRight) return true;
-            idx = foundIdx + 1;
-        }
-    }
-
-    // Helper kiểm tra khớp cụm từ chính xác (Exact Phrase Match) trong bất kỳ trường nào của tài liệu
-    function checkExactPhraseMatch(item, queryText) {
-        if (!queryText) return false;
-        const cleanQuery = removeAccents(queryText);
-        const fields = [
-            item.documentTitle || "",
-            item.title || "",
-            item.sectionName || "",
-            item.content || "",
-            item.summary || ""
-        ];
-        return fields.some(field => {
-            const fieldLower = field.toLowerCase();
-            if (fieldLower.includes(queryText)) return true;
-            if (removeAccents(fieldLower).includes(cleanQuery)) return true;
-            return false;
+    if (isAiSearchActive && aiSearchResults && aiSearchResults.length > 0) {
+        // Chế độ Tìm kiếm bằng AI
+        aiSearchResults.forEach(res => {
+            aiMatchMap[res.id] = { score: res.score, reason: res.reason };
         });
-    }
 
-    const importantTokens = searchTokens.filter(t => !STOP_WORDS.has(t));
+        const matchedChunks = allChunks.filter(chunk => chunk.id in aiMatchMap);
+        matchedChunks.sort((a, b) => aiMatchMap[b.id].score - aiMatchMap[a.id].score);
+        filtered = matchedChunks;
 
-    // 2. Lọc và xếp hạng nâng cao theo cụm từ và từ khóa tìm kiếm (Relevance Multi-word Scoring)
-    if (cleanKeyword) {
+        // Lọc theo danh mục của Tab đang chọn
+        if (activeCategory !== "Tất cả") {
+            filtered = filtered.filter(item => item.category === activeCategory);
+        }
+    } else {
+        // Chế độ tìm kiếm thường:
+        // 1. Chỉ mục đảo (Inverted Index lookup) thu hẹp số lượng ứng viên để tìm kiếm tức thì
+        let candidates = null;
         if (searchTokens.length > 0) {
-            const scoredItems = [];
-            
-            filtered.forEach(item => {
-                let score = 0;
-                let isMatched = false;
-                
-                // A. Ưu tiên cao nhất: Khớp cụm từ nguyên bản chính xác (Exact Phrase Match)
-                if (checkExactPhraseMatch(item, searchKeyword)) {
-                    score += 150; // Cộng điểm thưởng cực lớn cho khớp cả cụm từ liên tục
-                    isMatched = true;
+            for (const token of searchTokens) {
+                const tokenClean = removeAccents(token);
+                const termsToLookup = [tokenClean];
+
+                // Mở rộng từ điển đồng nghĩa (nếu có)
+                const synonyms = SYNONYM_DICT[tokenClean];
+                if (synonyms) {
+                    synonyms.forEach(syn => {
+                        const synClean = removeAccents(syn);
+                        synClean.split(/\s+/).forEach(t => termsToLookup.push(t));
+                    });
                 }
-                
-                // B. Ưu tiên phụ: Khớp tất cả từ khóa quan trọng (nếu không tìm thấy cụm từ chính xác)
-                if (!isMatched) {
-                    // Nếu truy vấn CHỈ chứa các từ dừng (ví dụ "6 tháng đầu năm") nhưng không khớp cụm từ chính xác -> Loại bỏ
-                    if (importantTokens.length === 0) {
-                        return;
+
+                // Hợp các Set của từ gốc và từ đồng nghĩa
+                let tokenChunks = new Set();
+                termsToLookup.forEach(term => {
+                    const set = invertedIndex[term];
+                    if (set) {
+                        set.forEach(chunk => tokenChunks.add(chunk));
                     }
-                    
-                    let matchedImportantCount = 0;
-                    
-                    // Chỉ yêu cầu khớp toàn bộ các từ quan trọng (AND matching cho important tokens)
-                    importantTokens.forEach(token => {
-                        let tokenMatched = false;
-                        
-                        const fieldsToCheck = [
-                            { val: item.documentTitle || "", weight: 15 },
-                            { val: item.title || "", weight: 10 },
-                            { val: item.sectionName || "", weight: 10 },
-                            { val: (item.keywords || []).join(" "), weight: 8 },
-                            { val: item.summary || "", weight: 5 },
-                            { val: item.content || "", weight: 3 }
-                        ];
-                        
-                        fieldsToCheck.forEach(f => {
-                            const count = countOccurrences(f.val, token);
-                            if (count > 0) {
-                                // TF log-scoring: weight * (1 + ln(count)) để tránh spam từ khóa
-                                score += f.weight * (1 + Math.log(count));
-                                tokenMatched = true;
+                });
+
+                // Giao tập hợp (AND constraint)
+                if (candidates === null) {
+                    candidates = tokenChunks;
+                } else {
+                    const nextCandidates = new Set();
+                    tokenChunks.forEach(chunk => {
+                        if (candidates.has(chunk)) {
+                            nextCandidates.add(chunk);
+                        }
+                    });
+                    candidates = nextCandidates;
+                }
+
+                if (candidates.size === 0) break;
+            }
+        }
+
+        filtered = candidates ? Array.from(candidates) : allChunks;
+
+        // Lọc theo danh mục của Tab đang chọn
+        if (activeCategory !== "Tất cả") {
+            filtered = filtered.filter(item => item.category === activeCategory);
+        }
+
+        // Helper kiểm tra một từ khóa có khớp như một TỪ NGUYÊN (Whole Word) trong chuỗi hay không
+        // Tự động phân tích xem token có dấu hay không để áp dụng so khớp chính xác ngữ cảnh
+        function checkWholeWordMatch(fieldOriginal, token) {
+            if (!fieldOriginal) return false;
+
+            const fieldLower = fieldOriginal.toLowerCase();
+            const isAccentSensitive = (token !== removeAccents(token));
+
+            // Nếu nhạy cảm dấu: tìm trong văn bản gốc. Nếu không: tìm trong văn bản đã lọc dấu.
+            const sourceText = isAccentSensitive ? fieldLower : removeAccents(fieldLower);
+
+            let idx = 0;
+            while (true) {
+                const foundIdx = sourceText.indexOf(token, idx);
+                if (foundIdx === -1) return false;
+
+                const hasLeft = foundIdx === 0 || !isWordChar(sourceText.charAt(foundIdx - 1));
+                const hasRight = foundIdx + token.length === sourceText.length || !isWordChar(sourceText.charAt(foundIdx + token.length));
+
+                if (hasLeft && hasRight) return true;
+                idx = foundIdx + 1;
+            }
+        }
+
+        // Helper kiểm tra khớp cụm từ chính xác (Exact Phrase Match) trong bất kỳ trường nào của tài liệu
+        function checkExactPhraseMatch(item, queryText) {
+            if (!queryText) return false;
+            const cleanQuery = removeAccents(queryText);
+            const fields = [
+                item.documentTitle || "",
+                item.title || "",
+                item.sectionName || "",
+                item.content || "",
+                item.summary || ""
+            ];
+            return fields.some(field => {
+                const fieldLower = field.toLowerCase();
+                if (fieldLower.includes(queryText)) return true;
+                if (removeAccents(fieldLower).includes(cleanQuery)) return true;
+                return false;
+            });
+        }
+
+        const importantTokens = searchTokens.filter(t => !STOP_WORDS.has(t));
+
+        // 2. Lọc và xếp hạng nâng cao theo cụm từ và từ khóa tìm kiếm (Relevance Multi-word Scoring)
+        if (cleanKeyword) {
+            if (searchTokens.length > 0) {
+                const scoredItems = [];
+
+                filtered.forEach(item => {
+                    let score = 0;
+                    let isMatched = false;
+
+                    // A. Ưu tiên cao nhất: Khớp cụm từ nguyên bản chính xác (Exact Phrase Match)
+                    if (checkExactPhraseMatch(item, searchKeyword)) {
+                        score += 150; // Cộng điểm thưởng cực lớn cho khớp cả cụm từ liên tục
+                        isMatched = true;
+                    }
+
+                    // B. Ưu tiên phụ: Khớp tất cả từ khóa quan trọng (nếu không tìm thấy cụm từ chính xác)
+                    if (!isMatched) {
+                        // Nếu truy vấn CHỈ chứa các từ dừng (ví dụ "6 tháng đầu năm") nhưng không khớp cụm từ chính xác -> Loại bỏ
+                        if (importantTokens.length === 0) {
+                            return;
+                        }
+
+                        let matchedImportantCount = 0;
+
+                        // Chỉ yêu cầu khớp toàn bộ các từ quan trọng (AND matching cho important tokens)
+                        importantTokens.forEach(token => {
+                            let tokenMatched = false;
+
+                            const fieldsToCheck = [
+                                { val: item.documentTitle || "", weight: 15 },
+                                { val: item.title || "", weight: 10 },
+                                { val: item.sectionName || "", weight: 10 },
+                                { val: (item.keywords || []).join(" "), weight: 8 },
+                                { val: item.summary || "", weight: 5 },
+                                { val: item.content || "", weight: 3 }
+                            ];
+
+                            fieldsToCheck.forEach(f => {
+                                const count = countOccurrences(f.val, token);
+                                if (count > 0) {
+                                    // TF log-scoring: weight * (1 + ln(count)) để tránh spam từ khóa
+                                    score += f.weight * (1 + Math.log(count));
+                                    tokenMatched = true;
+                                }
+                            });
+
+                            // Kiểm tra từ đồng nghĩa từ điển bổ sung
+                            if (!tokenMatched) {
+                                const synonyms = SYNONYM_DICT[token];
+                                if (synonyms) {
+                                    synonyms.forEach(syn => {
+                                        const count = countOccurrences(item.content || "", syn) + countOccurrences(item.title || "", syn);
+                                        if (count > 0) {
+                                            score += 5 * (1 + Math.log(count)); // Điểm thưởng đồng nghĩa
+                                            tokenMatched = true;
+                                        }
+                                    });
+                                }
+                            }
+
+                            if (tokenMatched) {
+                                matchedImportantCount++;
                             }
                         });
-                        
-                        // Kiểm tra từ đồng nghĩa từ điển bổ sung
-                        if (!tokenMatched) {
-                            const synonyms = SYNONYM_DICT[token];
-                            if (synonyms) {
-                                synonyms.forEach(syn => {
-                                    const count = countOccurrences(item.content || "", syn) + countOccurrences(item.title || "", syn);
-                                    if (count > 0) {
-                                        score += 5 * (1 + Math.log(count)); // Điểm thưởng đồng nghĩa
-                                        tokenMatched = true;
-                                    }
-                                });
+
+                        if (matchedImportantCount === importantTokens.length) {
+                            isMatched = true;
+
+                            // C. Cấu trúc tính điểm nâng cao: Độ lân cận (Proximity) và Thứ tự xuất hiện (Ordered Match)
+                            // Phân tích chi tiết trên nội dung trích dẫn và tiêu đề
+                            const contentAnalysis = analyzeFieldCloseness(item.content || "", importantTokens);
+                            if (contentAnalysis.ordered) {
+                                score += 15; // Thưởng điểm đúng thứ tự từ (Ordered Match Bonus)
                             }
+                            score += contentAnalysis.proximityBonus; // Thưởng điểm các từ đứng gần nhau (Proximity Bonus)
+
+                            const titleAnalysis = analyzeFieldCloseness(item.title || "", importantTokens);
+                            if (titleAnalysis.ordered) {
+                                score += 10;
+                            }
+                            score += titleAnalysis.proximityBonus;
                         }
-                        
-                        if (tokenMatched) {
-                            matchedImportantCount++;
-                        }
-                    });
-                    
-                    if (matchedImportantCount === importantTokens.length) {
-                        isMatched = true;
-                        
-                        // C. Cấu trúc tính điểm nâng cao: Độ lân cận (Proximity) và Thứ tự xuất hiện (Ordered Match)
-                        // Phân tích chi tiết trên nội dung trích dẫn và tiêu đề
-                        const contentAnalysis = analyzeFieldCloseness(item.content || "", importantTokens);
-                        if (contentAnalysis.ordered) {
-                            score += 15; // Thưởng điểm đúng thứ tự từ (Ordered Match Bonus)
-                        }
-                        score += contentAnalysis.proximityBonus; // Thưởng điểm các từ đứng gần nhau (Proximity Bonus)
-                        
-                        const titleAnalysis = analyzeFieldCloseness(item.title || "", importantTokens);
-                        if (titleAnalysis.ordered) {
-                            score += 10;
-                        }
-                        score += titleAnalysis.proximityBonus;
                     }
-                }
-                
-                if (isMatched) {
-                    // Cộng thêm điểm phụ nếu các từ dừng có xuất hiện trong tài liệu
-                    searchTokens.forEach(token => {
-                        if (STOP_WORDS.has(token)) {
-                            const count = countOccurrences(item.content || "", token) + countOccurrences(item.title || "", token);
-                            if (count > 0) {
-                                score += 0.5 * (1 + Math.log(count));
+
+                    if (isMatched) {
+                        // Cộng thêm điểm phụ nếu các từ dừng có xuất hiện trong tài liệu
+                        searchTokens.forEach(token => {
+                            if (STOP_WORDS.has(token)) {
+                                const count = countOccurrences(item.content || "", token) + countOccurrences(item.title || "", token);
+                                if (count > 0) {
+                                    score += 0.5 * (1 + Math.log(count));
+                                }
                             }
-                        }
-                    });
-                    
-                    scoredItems.push({
-                        item: item,
-                        score: score
-                    });
-                }
-            });
-            
-            // Sắp xếp giảm dần theo điểm số mức độ liên quan (Relevance Score)
-            scoredItems.sort((a, b) => b.score - a.score);
-            
-            // Trích xuất danh sách đã sắp xếp
-            filtered = scoredItems.map(si => si.item);
+                        });
+
+                        scoredItems.push({
+                            item: item,
+                            score: score
+                        });
+                    }
+                });
+
+                // Sắp xếp giảm dần theo điểm số mức độ liên quan (Relevance Score)
+                scoredItems.sort((a, b) => b.score - a.score);
+
+                // Trích xuất danh sách đã sắp xếp
+                filtered = scoredItems.map(si => si.item);
+            }
         }
     }
 
@@ -850,7 +880,7 @@ function renderGrid() {
 
         const parentDoc = allDocuments[item.documentId] || {};
         const docCode = docCodeMap[item.documentId] || "TL-XX";
-        
+
         let displayDate = "Chưa rõ";
         if (parentDoc.issuedDate) {
             const dateObj = new Date(parentDoc.issuedDate);
@@ -863,6 +893,14 @@ function renderGrid() {
         const displayBy = parentDoc.issuedBy || "Đang cập nhật";
         const displayNo = parentDoc.documentNumber || parentDoc.fileName || "Chưa rõ";
 
+        // Badge thông tin AI (nếu có)
+        const aiInfo = aiMatchMap[item.id];
+        const aiBadgeHTML = aiInfo ? `<span class="badge-ai-match" title="AI xếp hạng: ${aiInfo.score}% khớp ngữ cảnh">✨ AI: ${aiInfo.score}%</span>` : "";
+        const aiReasonHTML = (aiInfo && aiInfo.reason) ? `
+            <div class="ai-reason-text" title="Lý do gợi ý từ AI">
+                💡 <b>AI gợi ý:</b> ${aiInfo.reason}
+            </div>` : "";
+
         return `
             <div class="document-card">
                 <div>
@@ -870,6 +908,7 @@ function renderGrid() {
                         <div>
                             <span class="badge-doc-code" title="Mã tài liệu">${docCode}</span>
                             <span class="badge-category ${catClass}">${item.category || "Khác"}</span>
+                            ${aiBadgeHTML}
                         </div>
                         <span class="badge-target ${targetClass}">${targetText}</span>
                     </div>
@@ -891,6 +930,7 @@ function renderGrid() {
 
                     <!-- Hiển thị tên Chương / Điều và tên phần bên dưới -->
                     <div class="card-section-name">${dispSectionName} ${dispTitle ? `- ${dispTitle}` : ""}</div>
+                    ${aiReasonHTML}
                     <div class="card-content-extract" title="Nội dung trích dẫn chi tiết">
                         ${dispContent}
                     </div>
@@ -1042,14 +1082,14 @@ async function openDocumentSecurely(documentId) {
 
     try {
         // 1. Tạo ticketId ngẫu nhiên (UUID v4 client-side đơn giản)
-        const ticketId = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        const ticketId = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
             (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
 
         // 2. Ghi ticket lên Firestore bảng download_tickets
         // Vé này chỉ có thời hạn 60 giây
-        const expiresAt = new Date(Date.now() + 60 * 1000); 
-        
+        const expiresAt = new Date(Date.now() + 60 * 1000);
+
         await setDoc(doc(db, "download_tickets", ticketId), {
             email: user.email,
             documentId: documentId,
@@ -1098,11 +1138,223 @@ function renderError(title, desc) {
     `;
 }
 
-// Bắt sự kiện gõ tìm kiếm tức thì (tự động reset giới hạn phân trang)
+// Hàm tìm kiếm bằng Gemini AI qua Proxy bảo mật (giống trang chủ)
+async function callGeminiAISearch(queryText) {
+    const user = auth.currentUser;
+    if (!user) {
+        window.Swal.fire({
+            icon: "warning",
+            title: "Yêu cầu đăng nhập",
+            text: "Vui lòng đăng nhập hệ thống để sử dụng tính năng tìm kiếm bằng AI."
+        });
+        return;
+    }
+
+    if (!allChunks || allChunks.length === 0) {
+        window.Swal.fire({
+            icon: "info",
+            title: "Không có dữ liệu",
+            text: "Dữ liệu tri thức chưa được tải xong. Vui lòng thử lại sau vài giây."
+        });
+        return;
+    }
+
+    // Hiển thị trạng thái tải đơn giản trực tiếp dưới ô tìm kiếm (không nền, không che màn hình)
+    const aiSummaryBlock = document.getElementById("aiSummaryBlock");
+    if (aiSummaryBlock) {
+        aiSummaryBlock.style.display = "block";
+        aiSummaryBlock.innerHTML = `<div class="ai-summary-loading"><span class="ai-summary-spinner"></span> Gemini AI đang phân tích tài liệu và tổng hợp kết quả...</div>`;
+    }
+
+    try {
+        // Chuẩn bị danh sách chunks rút gọn làm ngữ cảnh để gửi lên Gemini
+        const chunkContexts = allChunks.map((chunk, idx) => ({
+            id: chunk.id,
+            index: idx,
+            title: chunk.documentTitle || "",
+            section: chunk.sectionName || "",
+            subTitle: chunk.title || "",
+            summary: chunk.summary || "",
+            contentSnippet: chunk.content ? chunk.content.substring(0, 300) : ""
+        }));
+
+        // System Instruction & Prompt chi tiết yêu cầu cả tóm tắt và danh sách xếp hạng
+        const systemInstruction = `Bạn là một trợ lý AI thông minh phụ trách công tác tìm kiếm tài liệu của Khu công nghiệp Thốt Nốt.
+Nhiệm vụ của bạn là phân tích yêu cầu tìm kiếm bằng ngôn ngữ tự nhiên của người dùng, đối chiếu với danh sách các đoạn tài liệu được cung cấp dưới đây.
+
+Hãy thực hiện 2 việc sau:
+1. Viết một câu trả lời tóm tắt ngắn gọn (1-3 câu) bằng tiếng Việt giải thích trực tiếp về thông tin người dùng đang tìm kiếm dựa trên các tài liệu có sẵn.
+2. Xếp hạng và lọc ra tối đa 15 đoạn tài liệu liên quan nhất.
+
+Trả về kết quả dưới dạng một đối tượng JSON có cấu trúc chính xác sau:
+{
+  "summary": "Câu trả lời tóm tắt ngắn gọn tự nhiên giải thích thông tin...",
+  "results": [
+    {
+      "id": "id_cua_chunk",
+      "score": 95, // Điểm số từ 0 đến 100
+      "reason": "Giải thích ngắn gọn 1 câu vì sao đoạn này liên quan"
+    }
+  ]
+}
+
+Chỉ trả về chuỗi JSON thô hợp lệ, không bọc trong thẻ markdown, không có văn bản giải thích nào khác ngoài JSON.`;
+
+        const userPrompt = `Yêu cầu tìm kiếm của người dùng: "${queryText}"
+
+Danh sách các đoạn tài liệu có sẵn:
+${JSON.stringify(chunkContexts)}`;
+
+        const contents = [
+            {
+                role: "user",
+                parts: [
+                    { text: systemInstruction },
+                    { text: userPrompt }
+                ]
+            }
+        ];
+
+        let aiResponseRaw = "";
+
+        if (USE_PROXY) {
+            // Lấy ID token để xác thực phía Server (Proxy GAS)
+            const idToken = await user.getIdToken();
+
+            const formData = new URLSearchParams();
+            formData.append("action", "chatAI");
+            formData.append("idToken", idToken);
+            formData.append("data", JSON.stringify({
+                model: PREFERRED_MODEL,
+                contents: contents
+            }));
+
+            const response = await fetch(PROXY_URL, {
+                method: "POST",
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errText}`);
+            }
+
+            const resJson = await response.json();
+            if (resJson.error || resJson.success === false) {
+                throw new Error(resJson.error || "Lỗi Proxy không xác định");
+            }
+
+            const parts = resJson?.candidates?.[0]?.content?.parts;
+            aiResponseRaw = parts && parts.length ? parts.map(p => p.text).join('\n') : "";
+        } else {
+            // Chế độ gọi trực tiếp bằng Local Key (dự phòng)
+            let directKey = "";
+            try {
+                const { CONFIG } = await import("./config.js");
+                directKey = CONFIG.GEMINI_API_KEY;
+            } catch (e) {
+                directKey = localStorage.getItem("GEMINI_API_KEY") || "";
+            }
+
+            if (!directKey || !directKey.startsWith("AIza")) {
+                throw new Error("Chưa cấu hình API Key cho chế độ gọi trực tiếp.");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${PREFERRED_MODEL}:generateContent?key=${directKey}`;
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP Error ${response.status}`);
+            }
+
+            const resJson = await response.json();
+            const parts = resJson?.candidates?.[0]?.content?.parts;
+            aiResponseRaw = parts && parts.length ? parts.map(p => p.text).join('\n') : "";
+        }
+
+        if (!aiResponseRaw) {
+            throw new Error("Không nhận được phản hồi từ AI.");
+        }
+
+        // Parse JSON phản hồi
+        let cleanedText = aiResponseRaw.trim();
+        if (cleanedText.startsWith("```json")) {
+            cleanedText = cleanedText.substring(7);
+        } else if (cleanedText.startsWith("```")) {
+            cleanedText = cleanedText.substring(3);
+        }
+        if (cleanedText.endsWith("```")) {
+            cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+        }
+        cleanedText = cleanedText.trim();
+
+        const dataObj = JSON.parse(cleanedText);
+
+        if (!dataObj || typeof dataObj !== "object") {
+            throw new Error("Định dạng dữ liệu trả về từ AI không hợp lệ.");
+        }
+
+        const results = dataObj.results || [];
+        const summaryText = dataObj.summary || "";
+
+        // Hiển thị tóm tắt trực tiếp trên nền
+        if (aiSummaryBlock) {
+            if (summaryText) {
+                aiSummaryBlock.innerHTML = `<strong>✨ AI tóm tắt:</strong> ${summaryText}`;
+            } else {
+                aiSummaryBlock.style.display = "none";
+            }
+        }
+
+        // Cập nhật trạng thái kết quả AI
+        aiSearchResults = results.filter(r => r.id && r.score >= 40); // Lọc kết quả từ 40% khớp trở lên
+        isAiSearchActive = true;
+        displayLimit = 12;
+
+        // Render lại Grid theo kết quả tìm kiếm AI
+        renderGrid();
+
+    } catch (error) {
+        console.error("Lỗi tìm kiếm AI:", error);
+        if (aiSummaryBlock) {
+            aiSummaryBlock.innerHTML = `<span style="color: var(--danger-color);">❌ <b>Lỗi AI:</b> ${error.message || "Không thể phân tích yêu cầu ngữ cảnh."}</span>`;
+        }
+    }
+}
+
+// Bắt sự kiện gõ tìm kiếm tức thì (tự động tắt chế độ AI, ẩn tóm tắt và reset giới hạn phân trang)
 docSearchInput.addEventListener("input", () => {
+    isAiSearchActive = false;
+    aiSearchResults = null;
     displayLimit = 12;
+    const aiSummaryBlock = document.getElementById("aiSummaryBlock");
+    if (aiSummaryBlock) {
+        aiSummaryBlock.style.display = "none";
+        aiSummaryBlock.innerHTML = "";
+    }
     renderGrid();
 });
+
+// Bắt sự kiện click nút AI Tìm Kiếm
+const aiSearchBtn = document.getElementById("aiSearchBtn");
+if (aiSearchBtn) {
+    aiSearchBtn.addEventListener("click", () => {
+        const queryText = docSearchInput.value.trim();
+        if (!queryText) {
+            window.Swal.fire({
+                icon: "warning",
+                title: "Nhập nội dung tìm kiếm",
+                text: "Vui lòng nhập câu hỏi hoặc yêu cầu tìm kiếm liên quan đến tài liệu trước khi nhấn nút AI."
+            });
+            return;
+        }
+        callGeminiAISearch(queryText);
+    });
+}
 
 // Bắt sự kiện chọn các Tab phân loại (tự động reset giới hạn phân trang)
 tabButtons.forEach(btn => {
@@ -1116,7 +1368,7 @@ tabButtons.forEach(btn => {
 });
 
 // Hàm tìm kiếm nhanh từ thẻ gợi ý ở màn hình chào mừng
-window.triggerQuickSearch = function(keyword) {
+window.triggerQuickSearch = function (keyword) {
     if (docSearchInput) {
         docSearchInput.value = keyword;
         displayLimit = 12;
