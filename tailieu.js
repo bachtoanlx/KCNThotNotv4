@@ -1167,8 +1167,55 @@ async function callGeminiAISearch(queryText) {
     }
 
     try {
-        // Chuẩn bị danh sách chunks rút gọn làm ngữ cảnh để gửi lên Gemini
-        const chunkContexts = allChunks.map((chunk, idx) => ({
+        // Phân tách queryText thành các tokens tìm kiếm để lọc thô
+        const searchTokens = queryText.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+        const importantTokens = searchTokens.filter(t => !STOP_WORDS.has(t));
+        const tokensToCheck = importantTokens.length > 0 ? importantTokens : searchTokens;
+
+        // Bước lọc thô tối ưu chi phí: chấm điểm nhanh cục bộ để chọn ra tối đa 30 chunks tốt nhất gửi lên Gemini
+        const scoredCandidates = allChunks.map(chunk => {
+            let score = 0;
+            const fields = [
+                chunk.documentTitle || "",
+                chunk.title || "",
+                chunk.sectionName || "",
+                chunk.summary || "",
+                chunk.content || "",
+                (chunk.keywords || []).join(" ")
+            ].map(f => removeAccents(f.toLowerCase()));
+
+            tokensToCheck.forEach(token => {
+                const tokenClean = removeAccents(token);
+                // 1. Khớp từ khóa gốc
+                fields.forEach(field => {
+                    if (field.includes(tokenClean)) {
+                        score += 10;
+                    }
+                });
+
+                // 2. Khớp từ đồng nghĩa trong từ điển
+                const synonyms = SYNONYM_DICT[tokenClean];
+                if (synonyms) {
+                    synonyms.forEach(syn => {
+                        const synClean = removeAccents(syn);
+                        fields.forEach(field => {
+                            if (field.includes(synClean)) {
+                                score += 5;
+                            }
+                        });
+                    });
+                }
+            });
+
+            return { chunk, score };
+        });
+
+        // Sắp xếp giảm dần theo điểm và lấy tối đa 30 ứng viên tiềm năng nhất
+        scoredCandidates.sort((a, b) => b.score - a.score);
+        const topCandidates = scoredCandidates.slice(0, 30).map(sc => sc.chunk);
+
+        // Chuẩn bị danh sách chunks rút gọn làm ngữ cảnh gửi lên Gemini (tiết kiệm 90% tokens)
+        const chunkContexts = topCandidates.map((chunk, idx) => ({
             id: chunk.id,
             index: idx,
             title: chunk.documentTitle || "",

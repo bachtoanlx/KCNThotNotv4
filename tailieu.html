@@ -14,7 +14,7 @@
     <title>Tra cứu tài liệu thông minh - KCN Thốt Nốt</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    
+
     <style>
         #pageContent {
             max-width: 1600px;
@@ -80,9 +80,10 @@
             right: 8px;
             top: 50%;
             transform: translateY(-50%);
-            background: transparent;
+            background: none !important;
             color: #6366f1;
-            border: none;
+            border: none !important;
+            box-shadow: none !important;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12.5px;
@@ -201,6 +202,7 @@
         .quick-links-container {
             margin-bottom: 15px;
         }
+
         .quick-links-list {
             display: flex;
             gap: 15px;
@@ -208,13 +210,16 @@
             padding-bottom: 10px;
             scrollbar-width: thin;
         }
+
         .quick-links-list::-webkit-scrollbar {
             height: 6px;
         }
+
         .quick-links-list::-webkit-scrollbar-thumb {
             background: rgba(39, 54, 104, 0.2);
             border-radius: 4px;
         }
+
         .quick-link-item {
             flex: 0 0 auto;
             display: flex;
@@ -232,11 +237,13 @@
             min-width: 220px;
             max-width: 320px;
         }
+
         .quick-link-item:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(39, 54, 104, 0.15);
             border-color: var(--primary-color);
         }
+
         .quick-link-icon {
             font-size: 20px;
             background: rgba(39, 54, 104, 0.05);
@@ -249,12 +256,14 @@
             flex-shrink: 0;
             color: var(--primary-color);
         }
+
         .quick-link-info {
             display: flex;
             flex-direction: column;
             overflow: hidden;
             flex: 1;
         }
+
         .quick-link-title {
             font-weight: 600;
             font-size: 13.5px;
@@ -264,6 +273,7 @@
             color: var(--primary-color);
             margin-bottom: 2px;
         }
+
         .quick-link-desc {
             font-size: 11px;
             color: #64748b;
@@ -316,10 +326,25 @@
             font-weight: 600;
         }
 
-        .badge-category.phap-ly { background: #fee2e2; color: #991b1b; }
-        .badge-category.ky-thuat { background: #e0f2fe; color: #075985; }
-        .badge-category.hoa-chat { background: #dcfce7; color: #166534; }
-        .badge-category.khac { background: #fef9c3; color: #854d0e; }
+        .badge-category.phap-ly {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-category.ky-thuat {
+            background: #e0f2fe;
+            color: #075985;
+        }
+
+        .badge-category.hoa-chat {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-category.khac {
+            background: #fef9c3;
+            color: #854d0e;
+        }
 
         .badge-target {
             font-size: 10px;
@@ -327,9 +352,21 @@
             padding: 2px 6px;
             border-radius: 3px;
         }
-        .badge-target.public { background: rgba(46, 204, 113, 0.15); color: #27ae60; }
-        .badge-target.internal { background: rgba(52, 152, 219, 0.15); color: #2980b9; }
-        .badge-target.confidential { background: rgba(231, 76, 60, 0.15); color: #c0392b; }
+
+        .badge-target.public {
+            background: rgba(46, 204, 113, 0.15);
+            color: #27ae60;
+        }
+
+        .badge-target.internal {
+            background: rgba(52, 152, 219, 0.15);
+            color: #2980b9;
+        }
+
+        .badge-target.confidential {
+            background: rgba(231, 76, 60, 0.15);
+            color: #c0392b;
+        }
 
         .badge-doc-code {
             background: #475569;
@@ -409,11 +446,13 @@
             -webkit-line-clamp: unset;
             line-clamp: unset;
             background: #ffffff;
-            border-left-color: #10b981; /* Đổi màu xanh lá khi hiển thị đầy đủ */
+            border-left-color: #10b981;
+            /* Đổi màu xanh lá khi hiển thị đầy đủ */
         }
 
         .search-highlight {
-            background-color: rgba(253, 224, 71, 0.45); /* Vàng chanh mờ dịu mắt */
+            background-color: rgba(253, 224, 71, 0.45);
+            /* Vàng chanh mờ dịu mắt */
             color: #0f172a;
             padding: 1px 3px;
             border-radius: 4px;
@@ -529,10 +568,12 @@
         .doc-links-list::-webkit-scrollbar {
             width: 6px;
         }
+
         .doc-links-list::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.02);
+            background: rgba(0, 0, 0, 0.02);
             border-radius: 3px;
         }
+
         .doc-links-list::-webkit-scrollbar-thumb {
             background: rgba(39, 54, 104, 0.2);
             border-radius: 3px;
@@ -552,7 +593,7 @@
         .doc-link-item:hover {
             background: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             border-color: var(--primary-color);
         }
 
@@ -582,7 +623,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
             border: 1px solid #ffffff;
             line-height: 1;
         }
@@ -616,14 +657,40 @@
         }
 
         /* Phân loại màu cho badge sidebar */
-        .doc-link-badge.phap-ly { background: rgba(39, 54, 104, 0.1); color: var(--primary-color); }
-        .doc-link-badge.ky-thuat { background: rgba(14, 165, 233, 0.1); color: #0284c7; }
-        .doc-link-badge.hoa-chat { background: rgba(245, 158, 11, 0.1); color: #d97706; }
-        .doc-link-badge.khac { background: rgba(100, 116, 139, 0.1); color: #475569; }
+        .doc-link-badge.phap-ly {
+            background: rgba(39, 54, 104, 0.1);
+            color: var(--primary-color);
+        }
 
-        .doc-link-badge.public { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
-        .doc-link-badge.internal { background: rgba(59, 130, 246, 0.1); color: #2563eb; }
-        .doc-link-badge.confidential { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+        .doc-link-badge.ky-thuat {
+            background: rgba(14, 165, 233, 0.1);
+            color: #0284c7;
+        }
+
+        .doc-link-badge.hoa-chat {
+            background: rgba(245, 158, 11, 0.1);
+            color: #d97706;
+        }
+
+        .doc-link-badge.khac {
+            background: rgba(100, 116, 139, 0.1);
+            color: #475569;
+        }
+
+        .doc-link-badge.public {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+
+        .doc-link-badge.internal {
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+        }
+
+        .doc-link-badge.confidential {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
 
         /* Dòng metadata số hiệu & ngày dưới tên tài liệu */
         .doc-link-meta-detail {
@@ -635,6 +702,7 @@
             color: #64748b;
             font-weight: 400;
         }
+
         .doc-link-meta-detail span {
             display: flex;
             align-items: center;
@@ -655,9 +723,11 @@
             transition: opacity 0.15s ease, background 0.15s ease;
             line-height: 1.6;
         }
+
         .doc-link-item:hover .btn-delete-doc {
             opacity: 1;
         }
+
         .btn-delete-doc:hover {
             background: rgba(239, 68, 68, 0.18);
             border-color: #dc2626;
@@ -687,7 +757,7 @@
             color: #475569;
             max-width: 560px;
             margin: 20px auto;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
         }
 
         .welcome-icon {
@@ -737,9 +807,17 @@
         }
 
         @keyframes welcomePulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
 
         /* Nút xem thêm kết quả */
@@ -762,7 +840,7 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
         }
 
         .btn-load-more:hover {
@@ -789,8 +867,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 768px) {
@@ -798,106 +881,132 @@
                 flex-direction: column;
                 gap: 16px;
             }
+
             .left-sidebar-area {
                 width: 100%;
                 min-width: 100%;
                 position: static;
             }
+
             .sidebar-card {
                 max-height: 250px;
                 padding: 12px;
             }
+
             .sidebar-card h3 {
                 font-size: 14px;
                 margin-bottom: 10px;
             }
+
             .search-panel {
                 padding: 15px 12px;
                 margin-bottom: 15px;
                 border-radius: 12px;
             }
+
             .search-panel h1 {
                 font-size: 18px;
                 margin-bottom: 4px;
             }
+
             .search-panel p {
                 font-size: 11.5px;
                 margin-bottom: 12px;
             }
+
             .search-bar-wrapper {
                 margin-bottom: 12px;
             }
+
             .search-bar-wrapper input {
                 padding: 9px 65px 9px 12px;
                 font-size: 13.5px;
             }
+
             .ai-search-btn {
                 padding: 3px 8px;
                 font-size: 11.5px;
                 height: 26px;
                 right: 6px;
-                border: none;
-                background: transparent;
+                border: none !important;
+                background: none !important;
+                box-shadow: none !important;
             }
+
             .filter-tabs {
                 gap: 6px;
             }
+
             .tab-btn {
                 padding: 6px 12px;
                 font-size: 12px;
             }
+
             .quick-links-container {
                 margin-bottom: 15px;
             }
+
             .quick-link-item {
                 padding: 8px 12px;
                 min-width: 180px;
                 gap: 8px;
                 border-radius: 8px;
             }
+
             .quick-link-icon {
                 width: 32px;
                 height: 32px;
                 font-size: 16px;
             }
+
             .quick-link-title {
                 font-size: 12.5px;
             }
+
             .quick-link-desc {
                 font-size: 10px;
             }
+
             .document-grid {
                 grid-template-columns: 1fr;
                 gap: 12px;
             }
+
             .document-card {
                 padding: 12px;
                 border-radius: 10px;
             }
+
             .card-doc-title {
                 font-size: 13.5px;
             }
+
             .card-section-name {
                 font-size: 12px;
                 margin-bottom: 6px;
             }
+
             .card-content-extract {
                 font-size: 11.5px;
                 padding: 6px 8px;
                 margin-bottom: 8px;
             }
+
             .card-doc-meta-row {
                 gap: 6px;
                 padding: 4px 8px;
                 margin-bottom: 8px;
             }
+
             .card-doc-meta-item {
                 font-size: 10px;
             }
+
             #pageContent {
                 margin: 10px auto 60px auto;
                 width: 96%;
             }
+
             .btn-view-doc {
                 padding: 6px 12px;
                 font-size: 11px;
@@ -916,9 +1025,9 @@
         <div class="search-panel">
             <h1>Trung tâm Tra cứu tài liệu thông minh</h1>
             <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản pháp lý, quy chế và quy trình kỹ thuật</p>
-            
+
             <div class="search-bar-wrapper">
-                <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, tiêu đề, chương điều, nội dung hoặc phân loại cần tìm...">
+                <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, tiêu đề hay nội dung cần tìm...">
                 <button type="button" id="aiSearchBtn" class="ai-search-btn" title="Tìm kiếm bằng AI (Gemini)">
                     <span>✨ AI</span>
                 </button>
@@ -929,7 +1038,6 @@
                 <button class="tab-btn active" data-category="Tất cả">Tất cả</button>
                 <button class="tab-btn" data-category="Pháp lý">Pháp lý</button>
                 <button class="tab-btn" data-category="Kỹ thuật">Kỹ thuật</button>
-                <button class="tab-btn" data-category="Hóa chất">Hóa chất</button>
                 <button class="tab-btn" data-category="Khác">Khác</button>
             </div>
         </div>
@@ -946,7 +1054,9 @@
             <!-- Khu vực 25% bên trái: Sidebar chứa liên kết tài liệu gốc -->
             <div class="left-sidebar-area">
                 <div class="sidebar-card">
-                    <h3>📂 Danh mục Tài liệu gốc <span id="sidebarDocCount" style="font-size: 14px; font-weight: normal; color: #64748b; vertical-align: middle;"></span></h3>
+                    <h3>📂 Danh mục Tài liệu gốc <span id="sidebarDocCount"
+                            style="font-size: 14px; font-weight: normal; color: #64748b; vertical-align: middle;"></span>
+                    </h3>
                     <div class="doc-links-list" id="docLinksList">
                         <div style="font-size:12px; color:#64748b; text-align:center; padding:20px;">
                             Đang kết nối...
