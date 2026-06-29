@@ -1,572 +1,754 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-  <!-- PWA & Mobile Fullscreen -->
-  <link rel='manifest' href='manifest.json'>
-  <meta name='theme-color' content='#273668'>
-  <meta name='apple-mobile-web-app-capable' content='yes'>
-  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
-  <meta name='apple-mobile-web-app-title' content='QL KCN'>
-  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Công việc admin</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-  <style>
-
-    /* ========================================================= */
-    /* === CSS CƠ BẢN CHO BẢNG (DÙNG CHUNG DESKTOP & MOBILE) === */
-    /* ========================================================= */
-    #adminTaskList { background: #fff; margin-top: 0; }
-    #adminTaskList th, #adminTaskList td {
-        text-align: center;
-        vertical-align: middle;
-        white-space: normal;
-        font-size: 14px;
-        border-bottom: 1px solid #ccc;
-        border-right: 1px solid #ccc;
-        border-top: none;
-        border-left: none;
-    }
-    #adminTaskList td {
-        padding: 6px 8px;
-    }
-    #adminTaskList th {
-        padding: 8px;
-        border-top: 1px solid #ccc;
-        font-weight: 600;
-    }
-    #adminTaskList td:first-child {
-        text-align: left;
-        border-left: 1px solid #ccc;
-        padding-left: 10px;
-    }
-    #adminTaskList th:first-child {
-        text-align: center;
-        border-left: 1px solid #ccc;
-    }
-    #adminTaskList thead th {
-        background-color: #f0f0f0;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background-clip: padding-box;
-    }
-    #adminTaskList tbody tr:nth-child(odd) {
-        background-color: #fafafa;
-    }
-    #adminTaskList tbody tr:nth-child(even) {
-        background-color: #ffffff;
-    }
-    #adminTaskList tbody tr:hover {
-        background-color: #eaf3ff;
-        transition: background-color 0.2s ease;
-    }
-    
-    /* ========================================================== */
-    /* === BỐ CỤC MÁY TÍNH (COMPACT MODE GIỐNG DATATABLE.HTML)=== */
-    /* ========================================================== */
-    @media (min-width: 769px) {
-        body h2 { margin: 2px 0 5px 0; font-size: 1.3rem; }
-        body .filter-box { margin: 0 5px 5px 0; gap: 5px; }
-        body .search-container { margin-bottom: 5px; }
-        html, body {
-            width: 100%;
-            height: 100%;
-            height: 100dvh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            padding: 4px;
-            box-sizing: border-box;
-        }
-        body #menu-placeholder, body #footer-placeholder {
-            flex: 0 0 auto;
-            width: 100%;
-            z-index: 100;
-        }
-        body #pageContent:not([style*="none"]) {
-            flex: 1 1 auto !important; 
-            display: flex !important;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-            width: 100%;
-        }
-        body .card-body {
-            flex: 1 1 auto;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-            width: 100%;
-        }
-        body .table-responsive-wrapper {
-            flex: 1 1 auto; 
-            min-height: 0; 
-            overflow: auto !important; 
-            -webkit-overflow-scrolling: touch; 
-            width: 100%;
+    <!-- PWA & Mobile Fullscreen -->
+    <link rel='manifest' href='manifest.json'>
+    <meta name='theme-color' content='#273668'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+    <meta name='apple-mobile-web-app-title' content='QL KCN'>
+    <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công việc admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        /* ========================================================= */
+        /* === CSS CƠ BẢN CHO BẢNG (DÙNG CHUNG DESKTOP & MOBILE) === */
+        /* ========================================================= */
+        #adminTaskList {
             background: #fff;
-            margin: 0 !important;
-        }
-        /* Đẩy nút Thêm công việc về sát lề phải trên Desktop */
-        #quickAddBtn {
-            margin-left: auto;
-        }
-        /* Đồng bộ bề rộng nút Cập nhật và Lịch sử trên Desktop */
-        #adminTaskList .doneAdminTaskBtn {
-            min-width: 105px;
-        }
-    }
-
-    /* ========================================================== */
-    /* === BỐ CỤC ĐIỆN THOẠI (NEO STICKY GIỐNG DATATABLE.HTML)=== */
-    /* ========================================================== */
-    @media (max-width: 768px) {
-        /* KHÓA CUỘN TRANG (ÉP BUỘC) */
-        html, body, html.swal2-height-auto, body.swal2-height-auto {
-            height: 100vh;
-            height: 100dvh;
-            overflow: hidden;
-        }
-        
-        /* BẬT CUỘN ĐỘC LẬP CHO NỘI DUNG */
-        body #pageContent:not([style*="none"]) {
-            display: block !important; 
-            overflow-y: auto;
-            overflow-x: hidden;
-            flex: 1 1 auto;
-            min-height: 0;
-            -webkit-overflow-scrolling: touch;
-            padding: 0; 
-        }
-        
-        body #menu-placeholder,
-        body #footer-placeholder {
-            flex: 0 0 auto;
-            z-index: 100;
-        }
-
-        /* KHẮC PHỤC LỖI OVERFLOW NGĂN CẢN STICKY */
-        body .card-body, body .card {
-            display: block;
-            overflow: visible;
-            padding-top: 0;
-        }
-        
-        body .table-responsive-wrapper {
-            display: block;
-            overflow-x: auto !important;
-            overflow-y: visible !important;
-            -webkit-overflow-scrolling: touch !important;
-            margin-top: 5px !important;
-            margin-bottom: 15px !important;
-            box-shadow: none !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-
-        body #pageContent .filter-box {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr 0.8fr;
-            grid-template-rows: auto auto;
-            gap: 6px;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 0 4px 0 !important;
-            box-sizing: border-box !important;
-            box-shadow: none !important;
-        }
-        
-        /* ĐỊNH VỊ CÁC PHẦN TỬ TRONG LƯỚI BỘ LỌC */
-        body #pageContent .filter-box > label:nth-of-type(1) { grid-column: 1 / 2; grid-row: 1; }
-        body #pageContent .filter-box > label:nth-of-type(2) { grid-column: 2 / 3; grid-row: 1; }
-        body #pageContent .filter-box > button#applyFilterBtn { grid-column: 3 / 4; grid-row: 1; }
-        body #pageContent .filter-box > label:nth-of-type(3) { grid-column: 1 / 3; grid-row: 2; }
-        body #pageContent .filter-box > button#quickAddBtn { grid-column: 3 / 4; grid-row: 2; }
-        
-        /* TỐI ƯU HIỂN THỊ HÀNG BỘ LỌC */
-        body #pageContent .filter-box > label,
-        body #pageContent .filter-box > button {
-            width: 100% !important; 
-            margin: 0 !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-        }
-        body #pageContent .filter-box > label { gap: 0; font-size: 0 !important; }
-        body #pageContent .filter-box label input[type="date"],
-        body #pageContent .filter-box label select {
-            width: 100% !important; 
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-        }
-        body #pageContent .filter-box label select {
-            display: block !important;
-            height: 27px !important;
-            font-size: 11px !important;
-            padding: 2px 4px !important;
-        }
-        body #pageContent .filter-box > button {
-            height: 27px !important;
-            font-size: 11px !important;
-            padding: 2px 6px !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        
-        #adminTaskSearchInput {
-            height: 27px !important;
-            padding: 2px 8px !important;
-            font-size: 11px !important;
-            box-sizing: border-box;
-        }
-        
-        h2 {
-            font-size: 1.1rem !important;
-        }
-        
-        /* CHỈNH LẠI KÍCH THƯỚC CÁC CỘT VÀ KHOẢNG CÁCH (MOBILE) */
-        #adminTaskList { width: 100% !important; min-width: unset !important; table-layout: fixed !important; }
-        #adminTaskList th, #adminTaskList td { padding: 6px 4px !important; font-size: 12px !important; }
-        
-        #adminTaskList th:nth-child(1), #adminTaskList td:nth-child(1) { width: 100% !important; }
-        #adminTaskList th:nth-child(2), #adminTaskList td:nth-child(2) { display: none !important; } 
-        #adminTaskList th:nth-child(3), #adminTaskList td:nth-child(3) { display: none !important; } 
-        #adminTaskList th:nth-child(4), #adminTaskList td:nth-child(4) { display: table-cell !important; width: 115px !important; }
-        #adminTaskList th:last-child, #adminTaskList td:last-child { display: table-cell !important; width: 75px !important; }
-
-        #adminTaskList td:last-child > div { display: flex; flex-direction: column; gap: 4px; }
-        #adminTaskList button { font-size: 11px !important; padding: 4px 6px !important; width: 100%; }
-
-        /* Ẩn chữ "công việc" trên di động để nút gọn lại thành "➕ Thêm" */
-        .desktop-only {
-            display: none !important;
-        }
-
-        /* === BỐ CỤC CHUẨN CHO MODAL (POPUP) TRÊN MOBILE === */
-        .personal-schedule-content {
-            width: 95%;
-            max-width: 100%;
-            margin: 80px auto 20px auto; 
-            padding: 15px 12px;
-            max-height: calc(100vh - 100px); 
-            border-radius: 12px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        .personal-schedule-content h2 {
-            font-size: 1.1rem;
-            margin-bottom: 10px;
             margin-top: 0;
-            padding-right: 30px;
-            word-wrap: break-word;
-            line-height: 1.3;
         }
-        .personal-schedule-content .close {
-            font-size: 32px;
-            right: 15px;
-            top: 15px;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
+
+        #adminTaskList th,
+        #adminTaskList td {
+            text-align: center;
+            vertical-align: middle;
+            white-space: normal;
+            font-size: 14px;
+            border-bottom: 1px solid #ccc;
+            border-right: 1px solid #ccc;
+            border-top: none;
+            border-left: none;
+        }
+
+        #adminTaskList td {
+            padding: 6px 8px;
+        }
+
+        #adminTaskList th {
+            padding: 8px;
+            border-top: 1px solid #ccc;
+            font-weight: 600;
+        }
+
+        #adminTaskList td:first-child {
+            text-align: left;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+
+        #adminTaskList th:first-child {
+            text-align: center;
+            border-left: 1px solid #ccc;
+        }
+
+        #adminTaskList thead th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-clip: padding-box;
+        }
+
+        #adminTaskList tbody tr:nth-child(odd) {
+            background-color: #fafafa;
+        }
+
+        #adminTaskList tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+
+        #adminTaskList tbody tr:hover {
+            background-color: #eaf3ff;
+            transition: background-color 0.2s ease;
+        }
+
+        /* ========================================================== */
+        /* === BỐ CỤC MÁY TÍNH (COMPACT MODE GIỐNG DATATABLE.HTML)=== */
+        /* ========================================================== */
+        @media (min-width: 769px) {
+            body h2 {
+                margin: 2px 0 5px 0;
+                font-size: 1.3rem;
+            }
+
+            body .filter-box {
+                margin: 0 5px 5px 0;
+                gap: 5px;
+            }
+
+            body .search-container {
+                margin-bottom: 5px;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                height: 100dvh;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+
+            body {
+                display: flex;
+                flex-direction: column;
+                padding: 4px;
+                box-sizing: border-box;
+            }
+
+            body #menu-placeholder,
+            body #footer-placeholder {
+                flex: 0 0 auto;
+                width: 100%;
+                z-index: 100;
+            }
+
+            body #pageContent:not([style*="none"]) {
+                flex: 1 1 auto !important;
+                display: flex !important;
+                flex-direction: column;
+                overflow: hidden;
+                min-height: 0;
+                width: 100%;
+            }
+
+            body .card-body {
+                flex: 1 1 auto;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                min-height: 0;
+                width: 100%;
+            }
+
+            body .table-responsive-wrapper {
+                flex: 1 1 auto;
+                min-height: 0;
+                overflow: auto !important;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
+                background: #fff;
+                margin: 0 !important;
+            }
+
+            /* Đẩy nút Thêm công việc về sát lề phải trên Desktop */
+            #quickAddBtn {
+                margin-left: auto;
+            }
+
+            /* Đồng bộ bề rộng nút Cập nhật và Lịch sử trên Desktop */
+            #adminTaskList .doneAdminTaskBtn {
+                min-width: 105px;
+            }
+        }
+
+        /* ========================================================== */
+        /* === BỐ CỤC ĐIỆN THOẠI (NEO STICKY GIỐNG DATATABLE.HTML)=== */
+        /* ========================================================== */
+        @media (max-width: 768px) {
+
+            /* KHÓA CUỘN TRANG (ÉP BUỘC) */
+            html,
+            body,
+            html.swal2-height-auto,
+            body.swal2-height-auto {
+                height: 100vh;
+                height: 100dvh;
+                overflow: hidden;
+            }
+
+            /* BẬT CUỘN ĐỘC LẬP CHO NỘI DUNG */
+            body #pageContent:not([style*="none"]) {
+                display: block !important;
+                overflow-y: auto;
+                overflow-x: hidden;
+                flex: 1 1 auto;
+                min-height: 0;
+                -webkit-overflow-scrolling: touch;
+                padding: 0;
+            }
+
+            body #menu-placeholder,
+            body #footer-placeholder {
+                flex: 0 0 auto;
+                z-index: 100;
+            }
+
+            /* KHẮC PHỤC LỖI OVERFLOW NGĂN CẢN STICKY */
+            body .card-body,
+            body .card {
+                display: block;
+                overflow: visible;
+                padding-top: 0;
+            }
+
+            body .table-responsive-wrapper {
+                display: block;
+                overflow-x: auto !important;
+                overflow-y: visible !important;
+                -webkit-overflow-scrolling: touch !important;
+                margin-top: 5px !important;
+                margin-bottom: 15px !important;
+                box-shadow: none !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            body #pageContent .filter-box {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr 0.8fr;
+                grid-template-rows: auto auto;
+                gap: 6px;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 0 4px 0 !important;
+                box-sizing: border-box !important;
+                box-shadow: none !important;
+            }
+
+            /* ĐỊNH VỊ CÁC PHẦN TỬ TRONG LƯỚI BỘ LỌC */
+            body #pageContent .filter-box>label:nth-of-type(1) {
+                grid-column: 1 / 2;
+                grid-row: 1;
+            }
+
+            body #pageContent .filter-box>label:nth-of-type(2) {
+                grid-column: 2 / 3;
+                grid-row: 1;
+            }
+
+            body #pageContent .filter-box>button#applyFilterBtn {
+                grid-column: 3 / 4;
+                grid-row: 1;
+            }
+
+            body #pageContent .filter-box>label:nth-of-type(3) {
+                grid-column: 1 / 3;
+                grid-row: 2;
+            }
+
+            body #pageContent .filter-box>button#quickAddBtn {
+                grid-column: 3 / 4;
+                grid-row: 2;
+            }
+
+            /* TỐI ƯU HIỂN THỊ HÀNG BỘ LỌC */
+            body #pageContent .filter-box>label,
+            body #pageContent .filter-box>button {
+                width: 100% !important;
+                margin: 0 !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            body #pageContent .filter-box>label {
+                gap: 0;
+                font-size: 0 !important;
+            }
+
+            body #pageContent .filter-box label input[type="date"],
+            body #pageContent .filter-box label select {
+                width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            body #pageContent .filter-box label select {
+                display: block !important;
+                height: 27px !important;
+                font-size: 11px !important;
+                padding: 2px 4px !important;
+            }
+
+            body #pageContent .filter-box>button {
+                height: 27px !important;
+                font-size: 11px !important;
+                padding: 2px 6px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            #adminTaskSearchInput {
+                height: 27px !important;
+                padding: 2px 8px !important;
+                font-size: 11px !important;
+                box-sizing: border-box;
+            }
+
+            h2 {
+                font-size: 1.1rem !important;
+            }
+
+            /* CHỈNH LẠI KÍCH THƯỚC CÁC CỘT VÀ KHOẢNG CÁCH (MOBILE) */
+            #adminTaskList {
+                width: 100% !important;
+                min-width: unset !important;
+                table-layout: fixed !important;
+            }
+
+            #adminTaskList th,
+            #adminTaskList td {
+                padding: 6px 4px !important;
+                font-size: 12px !important;
+            }
+
+            #adminTaskList th:nth-child(1),
+            #adminTaskList td:nth-child(1) {
+                width: 100% !important;
+            }
+
+            #adminTaskList th:nth-child(2),
+            #adminTaskList td:nth-child(2) {
+                display: none !important;
+            }
+
+            #adminTaskList th:nth-child(3),
+            #adminTaskList td:nth-child(3) {
+                display: none !important;
+            }
+
+            #adminTaskList th:nth-child(4),
+            #adminTaskList td:nth-child(4) {
+                display: table-cell !important;
+                width: 115px !important;
+            }
+
+            #adminTaskList th:last-child,
+            #adminTaskList td:last-child {
+                display: table-cell !important;
+                width: 75px !important;
+            }
+
+            #adminTaskList td:last-child>div {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            #adminTaskList button {
+                font-size: 11px !important;
+                padding: 4px 6px !important;
+                width: 100%;
+            }
+
+            /* Ẩn chữ "công việc" trên di động để nút gọn lại thành "➕ Thêm" */
+            .desktop-only {
+                display: none !important;
+            }
+
+            /* === BỐ CỤC CHUẨN CHO MODAL (POPUP) TRÊN MOBILE === */
+            .personal-schedule-content {
+                width: 95%;
+                max-width: 100%;
+                margin: 80px auto 20px auto;
+                padding: 15px 12px;
+                max-height: calc(100vh - 100px);
+                border-radius: 12px;
+                box-sizing: border-box;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            .personal-schedule-content h2 {
+                font-size: 1.1rem;
+                margin-bottom: 10px;
+                margin-top: 0;
+                padding-right: 30px;
+                word-wrap: break-word;
+                line-height: 1.3;
+            }
+
+            .personal-schedule-content .close {
+                font-size: 32px;
+                right: 15px;
+                top: 15px;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1;
+                position: absolute;
+            }
+
+            .personal-schedule-content .input-row {
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 10px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .personal-schedule-content .input-row>label {
+                flex: 1 1 100% !important;
+                margin: 0 !important;
+                font-size: 13px !important;
+                color: #444;
+            }
+
+            .personal-schedule-content .input-row>input[type="text"],
+            .personal-schedule-content .input-row>input[type="date"],
+            .personal-schedule-content .input-row>input[type="time"],
+            .personal-schedule-content .input-row>select,
+            .personal-schedule-content .input-row>textarea {
+                width: 100% !important;
+                flex: 1 1 100% !important;
+                box-sizing: border-box !important;
+                height: 42px !important;
+                font-size: 14px !important;
+                border-radius: 6px !important;
+            }
+
+            .personal-schedule-content .input-row>textarea {
+                height: 80px !important;
+            }
+
+            #editRuleModal .input-row:nth-of-type(2)>select,
+            #editRuleModal .input-row:nth-of-type(2)>input[type="time"] {
+                flex: 1 1 calc(50% - 5px) !important;
+                width: calc(50% - 5px) !important;
+            }
+
+            #editRuleExactDate {
+                flex: 1 1 100% !important;
+            }
+
+            .action-buttons {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                margin-top: 15px !important;
+            }
+
+            .action-buttons>div {
+                display: none !important;
+            }
+
+            .action-buttons button {
+                width: 100% !important;
+                padding: 10px !important;
+                font-size: 14px !important;
+                margin: 0 !important;
+                border-radius: 8px !important;
+            }
+
+            .action-buttons button[id^="save"] {
+                order: 1;
+            }
+
+            .action-buttons button[id^="cancel"] {
+                order: 2;
+                background: #ecf0f1 !important;
+                color: #333 !important;
+            }
+
+            .action-buttons button[id^="delete"] {
+                order: 3;
+                margin-top: 15px !important;
+                background: #fff !important;
+                color: #e74c3c !important;
+                border: 1px solid #e74c3c !important;
+            }
+        }
+
+        /* === CSS CHO TÍNH NĂNG GOM NHÓM CÔNG VIỆC === */
+        .rule-group-header {
+            background-color: #f8fafc;
+            transition: background-color 0.2s;
+        }
+
+        .rule-group-header:hover {
+            background-color: #e2e8f0;
+        }
+
+        .rule-child-row td:first-child {
+            padding-left: 30px !important;
+            position: relative;
+        }
+
+        .rule-child-row td:first-child::before {
+            content: "└";
             position: absolute;
+            left: 12px;
+            color: #94a3b8;
+            font-weight: bold;
         }
-        .personal-schedule-content .input-row {
-            flex-direction: row !important;
-            flex-wrap: wrap !important;
-            align-items: center !important;
-            gap: 10px !important;
-            margin-bottom: 15px !important;
-        }
-        .personal-schedule-content .input-row > label {
-            flex: 1 1 100% !important;
-            margin: 0 !important;
-            font-size: 13px !important;
-            color: #444;
-        }
-        .personal-schedule-content .input-row > input[type="text"],
-        .personal-schedule-content .input-row > input[type="date"],
-        .personal-schedule-content .input-row > input[type="time"],
-        .personal-schedule-content .input-row > select,
-        .personal-schedule-content .input-row > textarea {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            box-sizing: border-box !important;
-            height: 42px !important;
-            font-size: 14px !important;
-            border-radius: 6px !important;
-        }
-        .personal-schedule-content .input-row > textarea {
-            height: 80px !important;
-        }
-        #editRuleModal .input-row:nth-of-type(2) > select,
-        #editRuleModal .input-row:nth-of-type(2) > input[type="time"] {
-            flex: 1 1 calc(50% - 5px) !important;
-            width: calc(50% - 5px) !important;
-        }
-        #editRuleExactDate { flex: 1 1 100% !important; }
-        
-        .action-buttons {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-            margin-top: 15px !important;
-        }
-        .action-buttons > div { display: none !important; }
-        .action-buttons button {
-            width: 100% !important;
-            padding: 10px !important;
-            font-size: 14px !important;
-            margin: 0 !important;
-            border-radius: 8px !important;
-        }
-        .action-buttons button[id^="save"] { order: 1; }
-        .action-buttons button[id^="cancel"] { 
-            order: 2; 
-            background: #ecf0f1 !important; 
-            color: #333 !important; 
-        }
-        .action-buttons button[id^="delete"] { 
-            order: 3; 
-            margin-top: 15px !important; 
-            background: #fff !important; 
-            color: #e74c3c !important; 
-            border: 1px solid #e74c3c !important; 
-        }
-    }
-
-    /* === CSS CHO TÍNH NĂNG GOM NHÓM CÔNG VIỆC === */
-    .rule-group-header {
-        background-color: #f8fafc;
-        transition: background-color 0.2s;
-    }
-    .rule-group-header:hover {
-        background-color: #e2e8f0;
-    }
-    .rule-child-row td:first-child {
-        padding-left: 30px !important;
-        position: relative;
-    }
-    .rule-child-row td:first-child::before {
-        content: "└";
-        position: absolute;
-        left: 12px;
-        color: #94a3b8;
-        font-weight: bold;
-    }
-  </style>
+    </style>
 </head>
+
 <body>
-  <div id="menu-placeholder"></div>
-  <div id="loading-placeholder"></div>
+    <div id="menu-placeholder"></div>
+    <div id="loading-placeholder"></div>
 
-  <div id="notLogged" style="display:none;"><a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a></div>
-  <div id="noPermission" style="display:none; text-align: center; padding: 50px;"><h2>🚫 Bạn không có quyền truy cập trang này.</h2><p>Trang này chỉ dành cho Quản trị viên (Admin).</p></div>
+    <div id="notLogged" style="display:none;"><a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+    </div>
+    <div id="noPermission" style="display:none; text-align: center; padding: 50px;">
+        <h2>🚫 Bạn không có quyền truy cập trang này.</h2>
+        <p>Trang này chỉ dành cho Quản trị viên (Admin).</p>
+    </div>
 
-  <div id="pageContent" style="display:none;">
-      <h2>📝 Bảng điều khiển công việc admin</h2>
-      <div class="card-body">
-          <div class="sticky-search-filter">
-          <div class="filter-box">
-              <label>Từ ngày: <input type="date" id="filterFromDate"></label>
-              <label>Đến ngày: <input type="date" id="filterToDate"></label>
-              <label>Chọn nhanh:
-                  <select id="quickFilterSelect">
-                      <option value="month" selected>Tháng</option>
-                      <option value="quarter">Quý</option>
-                      <option value="year">Năm</option>
-                      <option value="custom" style="display:none;">Tùy chỉnh</option>
-                  </select>
-              </label>
-              <button id="applyFilterBtn" class="btn-action btn-primary" type="button">🔍 Lọc</button>
-              <button id="quickAddBtn" class="quick-add-btn" type="button">➕ Thêm <span class="desktop-only">công việc</span></button>
-          </div>
+    <div id="pageContent" style="display:none;">
+        <h2>📝 Bảng điều khiển công việc admin</h2>
+        <div class="card-body">
+            <div class="sticky-search-filter">
+                <div class="filter-box">
+                    <label>Từ ngày: <input type="date" id="filterFromDate"></label>
+                    <label>Đến ngày: <input type="date" id="filterToDate"></label>
+                    <label>Chọn nhanh:
+                        <select id="quickFilterSelect">
+                            <option value="month" selected>Tháng</option>
+                            <option value="quarter">Quý</option>
+                            <option value="year">Năm</option>
+                            <option value="custom" style="display:none;">Tùy chỉnh</option>
+                        </select>
+                    </label>
+                    <button id="applyFilterBtn" class="btn-action btn-primary" type="button">🔍 Lọc</button>
+                    <button id="quickAddBtn" class="quick-add-btn" type="button">➕ Thêm <span class="desktop-only">công
+                            việc</span></button>
+                </div>
 
-          <div class="search-row">
-              <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
-                  <input type="text" id="adminTaskSearchInput" placeholder="🔍 Tìm kiếm công việc, ghi chú, trạng thái, ngày..." style="width: 100%;">
-              </div>
-          </div>
-          </div>
+                <div class="search-row">
+                    <div class="search-container" style="flex: 1; margin-bottom: 0 !important;">
+                        <input type="text" id="adminTaskSearchInput"
+                            placeholder="🔍 Tìm kiếm công việc, ghi chú, trạng thái, ngày..." style="width: 100%;">
+                    </div>
+                </div>
+            </div>
 
-          <div class="table-responsive-wrapper">
-          <table id="adminTaskList" style="width: 100%; min-width: 900px; table-layout: fixed; border-collapse: separate; border-spacing: 0;">
-                  <thead>
-                      <tr style="background-color: #f0f0f0;">
-                          <th style="width: 45%;">Công việc</th>
-                          <th style="width: 11%;">Ngày thực hiện</th>
-                          <th style="width: 11%;">Ngày hoàn thành</th>
-                          <th style="width: 18%;">Trạng thái</th>
-                          <th style="width: 15%;">Hành động</th>
-                      </tr>
-                  </thead>
-                  <tbody id="adminTaskListBody">
-                      <tr><td colspan="5" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-      </div>
-  </div>
+            <div class="table-responsive-wrapper">
+                <table id="adminTaskList"
+                    style="width: 100%; min-width: 900px; table-layout: fixed; border-collapse: separate; border-spacing: 0;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="width: 45%;">Công việc</th>
+                            <th style="width: 11%;">Ngày thực hiện</th>
+                            <th style="width: 11%;">Ngày hoàn thành</th>
+                            <th style="width: 18%;">Trạng thái</th>
+                            <th style="width: 15%;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTaskListBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-  <!-- MODAL CẬP NHẬT TIẾN ĐỘ -->
-  <div id="progressModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
-      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 650px;">
-          <span class="close" id="closeProgressModal">&times;</span>
-          <h2 class="modal-title" id="progressModalTitle">📝 Cập nhật tiến độ</h2>
-          
-          <input type="hidden" id="progressTaskId">
-          <input type="hidden" id="progressMatchDateStr">
+    <!-- MODAL CẬP NHẬT TIẾN ĐỘ -->
+    <div id="progressModal"
+        style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+        <div class="personal-schedule-content"
+            style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 650px;">
+            <span class="close" id="closeProgressModal">&times;</span>
+            <h2 class="modal-title" id="progressModalTitle">📝 Cập nhật tiến độ</h2>
 
-          <div id="progressHistoryContainer"></div>
+            <input type="hidden" id="progressTaskId">
+            <input type="hidden" id="progressMatchDateStr">
 
-          <div id="progressUpdateForm">
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-                  <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Trạng thái:</label>
-                  <select id="progressStatus" class="modal-input flex-1">
-                      <option value="Đang làm">🏃 Đang tiến hành (Lưu lịch sử)</option>
-                      <option value="Hoàn thành">✅ Đã hoàn thành</option>
-                  </select>
-              </div>
-              <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-                  <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Thời gian:</label>
-                  <input type="datetime-local" id="progressTime" class="modal-input flex-1">
-              </div>
-              <div id="progressNoteContainer" class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-                  <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Nội dung:</label>
-                  <input type="text" id="progressNote" class="modal-input flex-1" placeholder="Nhập nội dung tiến độ...">
-              </div>
-              <div id="progressCompletedContainer" class="w-100" style="display: none;">
-                  <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-                      <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Lý do:</label>
-                      <select id="progressCompletedReason" class="modal-input flex-1">
-                          <option value="Đã hoàn thành">Đã hoàn thành</option>
-                          <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
-                          <option value="Không thể hoàn thành">Không thể hoàn thành</option>
-                          <option value="Loại bỏ">Loại bỏ</option>
-                          <option value="Khác">Khác...</option>
-                      </select>
-                  </div>
-                  <div id="progressCustomReasonContainer" class="input-row d-flex flex-wrap gap-10 align-center mb-0 w-100" style="display: none;">
-                      <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;"></label>
-                      <input type="text" id="progressCustomReason" class="modal-input flex-1" placeholder="Nhập lý do tùy ý...">
-                  </div>
-              </div>
-          </div>
+            <div id="progressHistoryContainer"></div>
 
-          <div id="progressCompletedMessage" style="display: none; margin-bottom: 15px; padding: 12px; background: #e8f8f5; border: 1px solid #1abc9c; border-radius: 6px; color: #16a085; font-size: 14px; text-align: left;">
-              <i>ℹ️ Công việc này đã hoàn thành. Nếu thay đổi vui lòng nhấn nút <b>❌</b> ở dòng "Hoàn thành" phía trên để mở lại.</i>
-          </div>
+            <div id="progressUpdateForm">
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                    <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Trạng
+                        thái:</label>
+                    <select id="progressStatus" class="modal-input flex-1">
+                        <option value="Đang làm">🏃 Đang tiến hành (Lưu lịch sử)</option>
+                        <option value="Hoàn thành">✅ Đã hoàn thành</option>
+                    </select>
+                </div>
+                <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                    <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Thời
+                        gian:</label>
+                    <input type="datetime-local" id="progressTime" class="modal-input flex-1">
+                </div>
+                <div id="progressNoteContainer" class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                    <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Nội
+                        dung:</label>
+                    <input type="text" id="progressNote" class="modal-input flex-1"
+                        placeholder="Nhập nội dung tiến độ...">
+                </div>
+                <div id="progressCompletedContainer" class="w-100" style="display: none;">
+                    <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                        <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Lý
+                            do:</label>
+                        <select id="progressCompletedReason" class="modal-input flex-1">
+                            <option value="Đã hoàn thành">Đã hoàn thành</option>
+                            <option value="Hoàn thành 1 phần">Hoàn thành 1 phần</option>
+                            <option value="Không thể hoàn thành">Không thể hoàn thành</option>
+                            <option value="Loại bỏ">Loại bỏ</option>
+                            <option value="Khác">Khác...</option>
+                        </select>
+                    </div>
+                    <div id="progressCustomReasonContainer"
+                        class="input-row d-flex flex-wrap gap-10 align-center mb-0 w-100" style="display: none;">
+                        <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;"></label>
+                        <input type="text" id="progressCustomReason" class="modal-input flex-1"
+                            placeholder="Nhập lý do tùy ý...">
+                    </div>
+                </div>
+            </div>
 
-          <div id="progressPastHistoryContainer" class="input-row d-flex flex-wrap gap-10 align-center mt-15 w-100" style="border-top: 1px dashed var(--border-color); padding-top: 15px; display: none;">
-              <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Kỳ quá khứ:</label>
-              <select id="progressPastSelect" class="modal-input flex-1">
-                  <option value="">-- Chọn kỳ --</option>
-              </select>
-              <div id="progressPastContent" class="w-100" style="max-height: 150px; overflow-y: auto; background: var(--surface-hover); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; display: none; margin-top: 5px;"></div>
-          </div>
+            <div id="progressCompletedMessage"
+                style="display: none; margin-bottom: 15px; padding: 12px; background: #e8f8f5; border: 1px solid #1abc9c; border-radius: 6px; color: #16a085; font-size: 14px; text-align: left;">
+                <i>ℹ️ Công việc đã hoàn thành. Nếu thay đổi, nhấn <b>❌</b> dòng "Hoàn thành" để mở lại.</i>
+            </div>
 
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="cancelProgressBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveProgressBtn" class="btn-action btn-success">💾 Lưu tiến độ</button>
-          </div>
-      </div>
-  </div>
+            <div id="progressPastHistoryContainer" class="input-row d-flex flex-wrap gap-10 align-center mt-15 w-100"
+                style="border-top: 1px dashed var(--border-color); padding-top: 15px; display: none;">
+                <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Kỳ quá khứ:</label>
+                <select id="progressPastSelect" class="modal-input flex-1">
+                    <option value="">-- Chọn kỳ --</option>
+                </select>
+                <div id="progressPastContent" class="w-100"
+                    style="max-height: 150px; overflow-y: auto; background: var(--surface-hover); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; display: none; margin-top: 5px;">
+                </div>
+            </div>
 
-  <!-- MODAL THÊM VIỆC NHANH -->
-  <div id="quickAddModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
-      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 650px;">
-          <span class="close" id="closeQuickAddModal">&times;</span>
-          <h2 class="modal-title" id="quickAddModalTitle">➕ Thêm Việc Nhanh</h2>
-          
-          <input type="hidden" id="quickAddRuleEditId">
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="cancelProgressBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveProgressBtn" class="btn-action btn-success">💾 Lưu tiến độ</button>
+            </div>
+        </div>
+    </div>
 
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-              <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Tên công việc</label>
-              <input type="text" id="quickTaskName" list="existingAdminJobsList" class="modal-input flex-1" placeholder="Ví dụ: Kiểm tra PCCC..." autocomplete="off">
-              <datalist id="existingAdminJobsList"></datalist>
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-              <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Ngày thực hiện</label>
-              <input type="date" id="quickTaskDate" class="modal-input flex-1">
-          </div>
-          <div class="input-row d-flex flex-wrap gap-10 align-start mb-0 w-100">
-              <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left; margin-top: 6px;">Ghi chú</label>
-              <textarea id="quickTaskNote" class="modal-input flex-1" placeholder="Nhập chi tiết công việc..." style="min-height: 80px; resize: vertical;"></textarea>
-          </div>
+    <!-- MODAL THÊM VIỆC NHANH -->
+    <div id="quickAddModal"
+        style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+        <div class="personal-schedule-content"
+            style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 650px;">
+            <span class="close" id="closeQuickAddModal">&times;</span>
+            <h2 class="modal-title" id="quickAddModalTitle">➕ Thêm Việc Nhanh</h2>
 
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteQuickAddBtn" class="btn-action btn-danger" style="display: none;">🗑️ Xóa vĩnh viễn</button>
-              <div id="quickAddSpacer" style="flex: 1; display: none;"></div>
-              <button id="cancelQuickAddBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveAsNewQuickBtn" class="btn-action btn-info" style="display: none;" title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm</button>
-              <button id="saveQuickAddBtn" class="btn-action btn-success">💾 Lưu công việc</button>
-          </div>
-      </div>
-  </div>
+            <input type="hidden" id="quickAddRuleEditId">
 
-  <!-- MODAL CHỈNH SỬA CÔNG VIỆC -->
-  <div id="editRuleModal" style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
-      <div class="personal-schedule-content" style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 750px;">
-          <span class="close" id="closeEditRuleModal">&times;</span>
-          <h2 class="modal-title">✏️ Chỉnh sửa Công việc admin</h2>
-          <input type="hidden" id="editRuleId">
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-              <input type="text" id="editRuleJobName" placeholder="Tên công việc" class="modal-input flex-1">
-          </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Tên công
+                    việc</label>
+                <input type="text" id="quickTaskName" list="existingAdminJobsList" class="modal-input flex-1"
+                    placeholder="Ví dụ: Kiểm tra PCCC..." autocomplete="off">
+                <datalist id="existingAdminJobsList"></datalist>
+            </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left;">Ngày thực
+                    hiện</label>
+                <input type="date" id="quickTaskDate" class="modal-input flex-1">
+            </div>
+            <div class="input-row d-flex flex-wrap gap-10 align-start mb-0 w-100">
+                <label class="modal-label" style="width: 135px; flex: 0 0 135px; text-align: left; margin-top: 6px;">Ghi
+                    chú</label>
+                <textarea id="quickTaskNote" class="modal-input flex-1" placeholder="Nhập chi tiết công việc..."
+                    style="min-height: 80px; resize: vertical;"></textarea>
+            </div>
 
-          <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
-              <input type="time" id="editRuleTime" title="Giờ hoàn thành" class="modal-input">
-              <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)" class="modal-input flex-1" style="background-color: #eaf3ff;">
-              <select id="editRuleDom" class="modal-input">
-                  <option value="">--Ngày--</option>
-              </select>
-              <select id="editRuleDay" class="modal-input">
-                  <option value="">--Thứ--</option>
-                  <option value="2">T2</option><option value="3">T3</option><option value="4">T4</option>
-                  <option value="5">T5</option><option value="6">T6</option><option value="7">T7</option>
-                  <option value="8">CN</option><option value="all">Mọi ngày</option>
-              </select>
-              <select id="editRuleWeek" class="modal-input">
-                  <option value="">--Tuần--</option>
-                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="all">Mọi tuần</option>
-              </select>
-              <select id="editRuleMonth" class="modal-input">
-                  <option value="">--Tháng--</option>
-                  <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
-                  <option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="all">Mọi tháng</option>
-              </select>
-          </div>
-          <div class="input-row d-flex align-center gap-10 mb-15 w-100">
-              <label class="modal-label" style="width: 115px; flex: 0 0 115px; color: #d35400;">Ngày kết thúc:</label>
-              <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1" style="background-color: #fdf2e9;">
-          </div>
-          <div class="input-row d-flex mb-15 w-100">
-              <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
-          </div>
-          
-          <div class="action-buttons d-flex justify-end gap-10 mt-20">
-              <button id="deleteEditRuleBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
-              <div class="flex-1"></div>
-              <button id="cancelEditRuleBtn" class="btn-action btn-secondary">Hủy</button>
-              <button id="saveEditRuleBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
-          </div>
-      </div>
-  </div>
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteQuickAddBtn" class="btn-action btn-danger" style="display: none;">🗑️ Xóa vĩnh
+                    viễn</button>
+                <div id="quickAddSpacer" style="flex: 1; display: none;"></div>
+                <button id="cancelQuickAddBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveAsNewQuickBtn" class="btn-action btn-info" style="display: none;"
+                    title="Giữ nguyên tên công việc nhưng tạo ra một lịch mới độc lập">➕ Lưu thêm</button>
+                <button id="saveQuickAddBtn" class="btn-action btn-success">💾 Lưu công việc</button>
+            </div>
+        </div>
+    </div>
 
-  <div id="footer-placeholder"></div>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-  <script type="module" src="admin_tasks.js"></script>
+    <!-- MODAL CHỈNH SỬA CÔNG VIỆC -->
+    <div id="editRuleModal"
+        style="display: none; position: fixed; z-index: 1001; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; background-color: rgba(0,0,0,0.5);">
+        <div class="personal-schedule-content"
+            style="background-color: #fefefe; margin: 80px auto; padding: 20px; border-radius: 8px; position: relative; max-width: 750px;">
+            <span class="close" id="closeEditRuleModal">&times;</span>
+            <h2 class="modal-title">✏️ Chỉnh sửa Công việc admin</h2>
+            <input type="hidden" id="editRuleId">
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                <input type="text" id="editRuleJobName" placeholder="Tên công việc" class="modal-input flex-1">
+            </div>
+
+            <div class="input-row d-flex flex-wrap gap-10 align-center mb-15 w-100">
+                <input type="time" id="editRuleTime" title="Giờ hoàn thành" class="modal-input">
+                <input type="date" id="editRuleExactDate" title="Ngày cụ thể (Bỏ qua định kỳ)"
+                    class="modal-input flex-1" style="background-color: #eaf3ff;">
+                <select id="editRuleDom" class="modal-input">
+                    <option value="">--Ngày--</option>
+                </select>
+                <select id="editRuleDay" class="modal-input">
+                    <option value="">--Thứ--</option>
+                    <option value="2">T2</option>
+                    <option value="3">T3</option>
+                    <option value="4">T4</option>
+                    <option value="5">T5</option>
+                    <option value="6">T6</option>
+                    <option value="7">T7</option>
+                    <option value="8">CN</option>
+                    <option value="all">Mọi ngày</option>
+                </select>
+                <select id="editRuleWeek" class="modal-input">
+                    <option value="">--Tuần--</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="all">Mọi tuần</option>
+                </select>
+                <select id="editRuleMonth" class="modal-input">
+                    <option value="">--Tháng--</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="all">Mọi tháng</option>
+                </select>
+            </div>
+            <div class="input-row d-flex align-center gap-10 mb-15 w-100">
+                <label class="modal-label" style="width: 115px; flex: 0 0 115px; color: #d35400;">Ngày kết thúc:</label>
+                <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)"
+                    class="modal-input flex-1" style="background-color: #fdf2e9;">
+            </div>
+            <div class="input-row d-flex mb-15 w-100">
+                <input type="text" id="editRuleNote" placeholder="Ghi chú (Tùy chọn)" class="modal-input flex-1">
+            </div>
+
+            <div class="action-buttons d-flex justify-end gap-10 mt-20">
+                <button id="deleteEditRuleBtn" class="btn-action btn-danger">🗑️ Xóa vĩnh viễn</button>
+                <div class="flex-1"></div>
+                <button id="cancelEditRuleBtn" class="btn-action btn-secondary">Hủy</button>
+                <button id="saveEditRuleBtn" class="btn-action btn-success">💾 Lưu thay đổi</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script type="module" src="admin_tasks.js"></script>
 </body>
+
 </html>

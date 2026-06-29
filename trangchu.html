@@ -135,12 +135,31 @@
             line-height: 1.05;
         }
 
-        @media (min-width: 900px) {
+        .home-main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
 
-            /* On larger screens keep column layout but align items centered */
+        @media (min-width: 900px) {
             #content-container {
+                position: relative;
+                width: 100%;
+                min-height: 75vh;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+            }
+            .home-main-content {
+                width: auto;
+                max-width: 600px;
+                margin: 0 auto;
+                display: flex;
                 flex-direction: column;
-                gap: 18px;
+                align-items: center;
+                justify-content: center;
             }
         }
 
@@ -533,6 +552,127 @@
                 top: -6px;
             }
         }
+
+        .home-docs-container {
+            margin-top: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+            max-width: 600px;
+            width: 95%;
+            color: #ffffff;
+            text-align: left;
+            box-sizing: border-box;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .home-docs-header h3 {
+            margin: 0 0 15px 0;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 8px;
+            text-transform: none;
+        }
+        .home-docs-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 280px; /* Cho mobile */
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .home-doc-item {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #1e293b;
+            box-sizing: border-box;
+        }
+        .home-doc-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: var(--primary-color);
+        }
+        .home-doc-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 12.5px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .home-doc-desc {
+            font-size: 10.5px;
+            color: #475569;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 1; /* Chỉ hiển thị 1 dòng cho gọn gàng */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-height: auto;
+        }
+        .home-doc-meta {
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+        }
+        .home-doc-category {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* Ghi đè cấu hình cho lề trái, rộng 250px và cuộn dọc cho lề Desktop */
+        @media (min-width: 900px) {
+            .home-docs-container {
+                position: absolute !important;
+                left: 15px !important;
+                top: 50% !important;
+                transform: translateY(-50%) !important;
+                width: 250px !important;
+                max-width: 250px !important;
+                margin-top: 0 !important;
+                z-index: 10 !important;
+                max-height: 80vh !important;
+                display: flex !important;
+                flex-direction: column !important;
+                padding: 15px 10px !important;
+            }
+            .home-docs-container .home-docs-list {
+                max-height: calc(80vh - 80px) !important;
+                flex: 1 !important;
+            }
+        }
+
+        /* Scrollbar mờ mịn cho danh sách tài liệu */
+        .home-docs-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .home-docs-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .home-docs-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
     </style>
 
 <body>
@@ -543,41 +683,44 @@
     <div id="alert-placeholder"></div>
 
     <div id="content-container">
-        <h1 class="welcome-text">CHÀO MỪNG BẠN ĐẾN VỚI<br>KHU CÔNG NGHIỆP THỐT NỐT</h1>
+        <!-- Khối nội dung chính (Hiển thị bên phải trên Desktop) -->
+        <div class="home-main-content">
+            <h1 class="welcome-text">CHÀO MỪNG BẠN ĐẾN VỚI<br>KHU CÔNG NGHIỆP THỐT NỐT</h1>
 
-        <!-- ĐỒNG HỒ KỸ THUẬT SỐ -->
-        <div class="digital-clock" id="digitalClock">
-            <div class="time-part">
-                <span class="digit" id="hour1">0</span><span class="digit" id="hour2">0</span>
-            </div>
-            <span class="colon">:</span>
-            <div class="time-part">
-                <span class="digit" id="min1">0</span><span class="digit" id="min2">0</span>
-            </div>
-            <div class="time-part seconds-part">
-                <span class="digit" id="sec1">0</span><span class="digit" id="sec2">0</span>
-            </div>
-        </div>
-
-        <!-- Inline login box (ẩn mặc định, sẽ tự hiện nếu chưa đăng nhập) -->
-        <div class="home-login-box" aria-label="Đăng nhập nhanh" style="display: none;">
-            <h3 style="margin:0 0 8px 0; color: var(--primary-color);">Đăng nhập</h3>
-            <form id="homeLoginForm">
-                <input type="email" id="homeEmail" name="email" placeholder="Email" required autocomplete="username"
-                    style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
-                <div style="position: relative; margin-bottom: 12px;">
-                    <input type="password" id="homePassword" name="password" placeholder="Mật khẩu" required
-                        autocomplete="current-password"
-                        style="width:100%; padding:8px; padding-right:35px; margin-bottom:0; border:1px solid #ddd; border-radius:6px;" />
-                    <span
-                        onclick="const p=this.previousElementSibling; p.type=p.type==='password'?'text':'password'; this.textContent=p.type==='password'?'👁️':'👀';"
-                        onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"
-                        style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; opacity: 0.6; font-size: 16px; transition: opacity 0.2s;"
-                        title="Hiện/Ẩn mật khẩu">👁️</span>
+            <!-- ĐỒNG HỒ KỸ THUẬT SỐ -->
+            <div class="digital-clock" id="digitalClock">
+                <div class="time-part">
+                    <span class="digit" id="hour1">0</span><span class="digit" id="hour2">0</span>
                 </div>
-                <button type="submit" id="homeLoginSubmit" class="submit-btn btn-primary w-100"
-                    style="padding:10px;">Đăng nhập</button>
-            </form>
+                <span class="colon">:</span>
+                <div class="time-part">
+                    <span class="digit" id="min1">0</span><span class="digit" id="min2">0</span>
+                </div>
+                <div class="time-part seconds-part">
+                    <span class="digit" id="sec1">0</span><span class="digit" id="sec2">0</span>
+                </div>
+            </div>
+
+            <!-- Inline login box (ẩn mặc định, sẽ tự hiện nếu chưa đăng nhập) -->
+            <div class="home-login-box" aria-label="Đăng nhập nhanh" style="display: none;">
+                <h3 style="margin:0 0 8px 0; color: var(--primary-color);">Đăng nhập</h3>
+                <form id="homeLoginForm">
+                    <input type="email" id="homeEmail" name="email" placeholder="Email" required autocomplete="username"
+                        style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ddd; border-radius:6px;" />
+                    <div style="position: relative; margin-bottom: 12px;">
+                        <input type="password" id="homePassword" name="password" placeholder="Mật khẩu" required
+                            autocomplete="current-password"
+                            style="width:100%; padding:8px; padding-right:35px; margin-bottom:0; border:1px solid #ddd; border-radius:6px;" />
+                        <span
+                            onclick="const p=this.previousElementSibling; p.type=p.type==='password'?'text':'password'; this.textContent=p.type==='password'?'👁️':'👀';"
+                            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6"
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; user-select: none; opacity: 0.6; font-size: 16px; transition: opacity 0.2s;"
+                            title="Hiện/Ẩn mật khẩu">👁️</span>
+                    </div>
+                    <button type="submit" id="homeLoginSubmit" class="submit-btn btn-primary w-100"
+                        style="padding:10px;">Đăng nhập</button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -619,7 +762,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="trangchu.js?v=17"></script>
+    <script type="module" src="trangchu.js?v=2"></script>
 
 </body>
 

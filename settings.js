@@ -447,6 +447,7 @@ onAuth(async (user) => {
         setupScheduleManagement();
         setupSystemManagement();
         setupAIKnowledgeManagement();
+        setupDocumentsManagement();
         csEffectiveDate.value = formatISODate(new Date());
         
         fetchAllUsers().then(firestoreUsers => {
@@ -1094,37 +1095,133 @@ function getCleanName(name) {
     return base.trim() === "" ? name : base.trim();
 }
 
-function groupTasks(rulesArray) {
-    const tempProcessed = rulesArray.map(d => ({
+function groupTasks(tasksArray) {
+    if (!tasksArray || tasksArray.length === 0) return [];
+    
+    const getCleanName = (name) => {
+        if (!name) return "";
+        let clean = name.replace(/\[CVAdmin\]/g, '').replace(/\[CVChung\]/g, '').trim();
+        clean = clean.replace(/ \((.*?)\)$/g, ''); 
+        return clean.normalize('NFC');
+    };
+    
+    const tempProcessed = tasksArray.map(d => ({
         ...d,
         cleanNameLower: getCleanName(d.job).toLowerCase(),
         cleanNameDisplay: getCleanName(d.job)
     }));
-    const displayNamesMap = {};
-    tempProcessed.forEach(d => {
-        if (!displayNamesMap[d.cleanNameLower]) {
-            displayNamesMap[d.cleanNameLower] = d.cleanNameDisplay;
-        } else if (d.cleanNameDisplay.length < displayNamesMap[d.cleanNameLower].length) {
-            displayNamesMap[d.cleanNameLower] = d.cleanNameDisplay;
+
+    const prefixCounts = {};
+    const prefixOriginalCases = {};
+
+    // Find all prefixes of at least 2 words that cover >= 2 tasks
+    for (let i = 0; i < tempProcessed.length; i++) {
+        const wordsI = tempProcessed[i].cleanNameLower.split(/\s+/);
+        const originalWordsI = tempProcessed[i].cleanNameDisplay.split(/\s+/);
+        
+        for (let j = i + 1; j < tempProcessed.length; j++) {
+            const wordsJ = tempProcessed[j].cleanNameLower.split(/\s+/);
+            let commonLen = 0;
+            while (commonLen < wordsI.length && commonLen < wordsJ.length && wordsI[commonLen] === wordsJ[commonLen]) {
+                commonLen++;
+            }
+            if (commonLen >= 2) {
+                const prefixLower = wordsI.slice(0, commonLen).join(" ");
+                if (!prefixCounts[prefixLower]) {
+                    prefixCounts[prefixLower] = 0;
+                    prefixOriginalCases[prefixLower] = originalWordsI.slice(0, commonLen).join(" ");
+                }
+            }
         }
+    }
+
+    // Count coverage for each valid prefix
+    const validPrefixes = Object.keys(prefixCounts);
+    validPrefixes.forEach(prefix => {
+        let count = 0;
+        tempProcessed.forEach(d => {
+            if (d.cleanNameLower === prefix || d.cleanNameLower.startsWith(prefix + " ")) {
+                count++;
+            }
+        });
+        prefixCounts[prefix] = count;
     });
-    const uniqueCleanNames = Object.keys(displayNamesMap).sort((a, b) => a.length - b.length);
+
+    // Keep prefixes that cover >= 2 tasks
+    const candidatePrefixes = validPrefixes.filter(p => prefixCounts[p] >= 2);
+    
+    // Sort descending by word count, then by character length, to match the most specific prefix first
+    candidatePrefixes.sort((a, b) => {
+        const wordsA = a.split(/\s+/).length;
+        const wordsB = b.split(/\s+/).length;
+        if (wordsB !== wordsA) return wordsB - wordsA;
+        return b.length - a.length;
+    });
+
     const groupedRules = {};
     tempProcessed.forEach(d => {
         let matchedGroup = null;
-        for (const groupName of uniqueCleanNames) {
-            if (d.cleanNameLower === groupName || d.cleanNameLower.startsWith(groupName + " ") || d.cleanNameLower.startsWith(groupName + " -")) {
-                matchedGroup = groupName;
+        for (const prefix of candidatePrefixes) {
+            if (d.cleanNameLower === prefix || d.cleanNameLower.startsWith(prefix + " ")) {
+                matchedGroup = prefix;
                 break;
             }
         }
         if (!matchedGroup) matchedGroup = d.cleanNameLower;
+        
         if (!groupedRules[matchedGroup]) {
-            groupedRules[matchedGroup] = { baseNameDisplay: displayNamesMap[matchedGroup] || d.cleanNameDisplay, rules: [] };
+            groupedRules[matchedGroup] = { 
+                prefix: matchedGroup,
+                baseNameDisplay: prefixOriginalCases[matchedGroup] || d.cleanNameDisplay, 
+                rules: [] 
+            };
         }
         groupedRules[matchedGroup].rules.push(d);
     });
-    return Object.values(groupedRules).sort((a, b) => a.baseNameDisplay.localeCompare(b.baseNameDisplay));
+
+    // Demote size-1 groups to shorter matching candidate prefixes
+    const groupsArray = Object.values(groupedRules);
+    groupsArray.sort((a, b) => {
+        const lenA = a.prefix.split(/\s+/).length;
+        const lenB = b.prefix.split(/\s+/).length;
+        return lenB - lenA;
+    });
+
+    for (let i = 0; i < groupsArray.length; i++) {
+        const group = groupsArray[i];
+        if (group.rules.length === 1) {
+            const task = group.rules[0];
+            const currentPrefixLen = group.prefix.split(/\s+/).length;
+            
+            let parentPrefix = null;
+            for (const prefix of candidatePrefixes) {
+                const prefixLen = prefix.split(/\s+/).length;
+                if (prefixLen < currentPrefixLen) {
+                    if (task.cleanNameLower === prefix || task.cleanNameLower.startsWith(prefix + " ")) {
+                        parentPrefix = prefix;
+                        break;
+                    }
+                }
+            }
+            
+            if (parentPrefix) {
+                let parentGroup = groupsArray.find(g => g.prefix === parentPrefix);
+                if (!parentGroup) {
+                    parentGroup = {
+                        prefix: parentPrefix,
+                        baseNameDisplay: prefixOriginalCases[parentPrefix] || task.cleanNameDisplay,
+                        rules: []
+                    };
+                    groupsArray.push(parentGroup);
+                }
+                parentGroup.rules.push(task);
+                group.rules = [];
+            }
+        }
+    }
+
+    const finalGroups = groupsArray.filter(g => g.rules.length > 0);
+    return finalGroups.sort((a, b) => a.baseNameDisplay.localeCompare(b.baseNameDisplay));
 }
 
 function renderRuleList() {
@@ -1417,7 +1514,7 @@ function renderPatternList() {
             if (d.isNextDay === true) detail = `${groupNameDisplay} (Kết thúc hôm sau)`;
             else detail = `${groupNameDisplay} (Trong ngày)`;
         }
-        if (d.isNextDay === true && endTime !== "-") endTime += " *";
+        if (d.isNextDay === true && endTime !== "-") endTime += " <small style='color: #e74c3c;'>(+1 ngày)</small>";
         const tr = document.createElement("tr");
         
         if (isHiddenRow) {
@@ -1504,27 +1601,92 @@ function renderSwapList() {
         return;
     }
 
-    [...swapsToRender].sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0)).forEach(s => {
-        const tr = document.createElement("tr");
-        const createdAtStr = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleString('vi-VN') : "-";
-        const dateStr = s.date ? s.date.split('-').reverse().join('/') : "-";
-        tr.innerHTML = `
-            <td>${dateStr}</td>
-            <td>${s.user1 || "-"}</td>
-            <td>${s.user2 || "-"}</td>
-            <td>${s.reason || "-"}</td>
-            <td>${createdAtStr}</td>
-            <td style="white-space: nowrap; text-align: center;">
-                <div style="display: flex; gap: 4px; justify-content: center;">
-                    <button class="editSwapBtn" data-id="${s.id}" style="background:#f39c12; padding: 4px 8px; font-size: 12px; border:none; border-radius:4px; color:white; cursor:pointer;">✏️ Sửa</button>
-                </div>
-            </td>
-        `;
-        tr.querySelector('.editSwapBtn').addEventListener('click', () => { openEditSwapModal(s); });
+    // Group swaps by Month (YYYY-MM)
+    const swapsByMonth = {};
+    swapsToRender.forEach(s => {
+        let monthKey = "unknown";
+        let monthDisplay = "Không xác định";
+        if (s.date) {
+            const parts = s.date.split('-');
+            if (parts.length >= 2) {
+                const [year, month] = parts;
+                monthKey = `${year}-${month}`;
+                monthDisplay = `Tháng ${month}/${year}`;
+            }
+        }
+        if (!swapsByMonth[monthKey]) {
+            swapsByMonth[monthKey] = {
+                display: monthDisplay,
+                swaps: []
+            };
+        }
+        swapsByMonth[monthKey].swaps.push(s);
+    });
+
+    const sortedMonths = Object.keys(swapsByMonth).sort((a,b) => b.localeCompare(a));
+    const hasSearchQuery = !!query;
+
+    let monthIdCounter = 0;
+    sortedMonths.forEach((monthKey, index) => {
+        const monthGroup = swapsByMonth[monthKey];
+        // Sort swaps within the month descending by date
+        monthGroup.swaps.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+        monthIdCounter++;
+        const groupId = `swap-month-group-${monthIdCounter}`;
         
+        // Header Row for the Month group
+        const headerTr = document.createElement("tr");
+        headerTr.className = `rule-group-header`;
+        headerTr.dataset.target = groupId;
+        
+        // Expand the first month by default; expand all if searching
+        const isDefaultExpanded = index === 0 || hasSearchQuery;
+        const toggleIcon = isDefaultExpanded ? '▼' : '▶';
+        
+        headerTr.innerHTML = `
+            <td colspan="6" style="text-align: left; padding: 10px; cursor: pointer; border-bottom: 1px solid #ccc; background-color: #f8fafc;">
+                <span class="group-toggle-btn" style="display:inline-block; width: 22px; color: #3498db; font-size: 12px; font-weight: bold;">${toggleIcon}</span>
+                <b style="color: #2c3e50;">${monthGroup.display}</b> 
+                <span style="font-weight:normal; color:#2980b9; font-size: 0.85em; background: #fff; border: 1px solid #d2e4f7; padding: 2px 6px; border-radius: 12px; margin-left: 5px;">${monthGroup.swaps.length} lượt</span>
+            </td>`;
 
+        tbody.appendChild(headerTr);
 
-        tbody.appendChild(tr);
+        // Child Rows
+        monthGroup.swaps.forEach(s => {
+            const tr = document.createElement("tr");
+            tr.className = "rule-child-row";
+            tr.dataset.parent = groupId;
+            tr.style.display = isDefaultExpanded ? "table-row" : "none";
+
+            const createdAtStr = s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleString('vi-VN') : "-";
+            const dateStr = s.date ? s.date.split('-').reverse().join('/') : "-";
+            tr.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${s.user1 || "-"}</td>
+                <td>${s.user2 || "-"}</td>
+                <td>${s.reason || "-"}</td>
+                <td>${createdAtStr}</td>
+                <td style="white-space: nowrap; text-align: center;">
+                    <div style="display: flex; gap: 4px; justify-content: center;">
+                        <button class="editSwapBtn" data-id="${s.id}" style="background:#f39c12; padding: 4px 8px; font-size: 12px; border:none; border-radius:4px; color:white; cursor:pointer;">✏️ Sửa</button>
+                    </div>
+                </td>
+            `;
+            tr.querySelector('.editSwapBtn').addEventListener('click', () => { openEditSwapModal(s); });
+            tbody.appendChild(tr);
+        });
+
+        // Toggle event listener
+        headerTr.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const childRows = tbody.querySelectorAll(`.rule-child-row[data-parent="${targetId}"]`);
+            const toggleBtn = this.querySelector('.group-toggle-btn');
+            const isClosed = toggleBtn.textContent.trim() === '▶';
+            childRows.forEach(row => { row.style.display = isClosed ? 'table-row' : 'none'; });
+            toggleBtn.textContent = isClosed ? '▼' : '▶';
+        });
     });
 } 
 
@@ -1617,9 +1779,7 @@ function openEditRuleModal(rule) {
     document.getElementById("editRuleDay").value = rule.day || "";
     document.getElementById("editRuleWeek").value = rule.week || "";
     document.getElementById("editRuleMonth").value = rule.month || "";
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    document.getElementById("editRuleStartDate").value = rule.ruleStartDate || todayStr;
+    document.getElementById("editRuleStartDate").value = rule.ruleStartDate || "";
     document.getElementById("editRuleEndDate").value = rule.ruleEndDate || "";
     
     document.getElementById("editRuleIsAdminCheckbox").checked = rule.is_admin_job || false;
@@ -3109,6 +3269,328 @@ async function openAiKnowledgeForm(docData = null) {
         } catch (err) {
             hideLoading();
             showSwal("error", "Lỗi lưu kiến thức", err.message);
+        }
+    }
+}
+
+// ===============================================
+// 🔥 QUẢN LÝ LIÊN KẾT TÀI LIỆU (Tab 6)
+// ===============================================
+let allDocLinks = [];
+let docLinkSearchText = "";
+
+function setupDocumentsManagement() {
+    listenDocLinks();
+    setupDocLinkHandlers();
+}
+
+function listenDocLinks() {
+    robustOnSnapshot(collection(db, "document_links"), (snap) => {
+        allDocLinks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderDocLinkTable();
+    }, (err) => {
+        console.error("Lỗi onSnapshot document_links:", err);
+    }, "document_links");
+}
+
+function renderDocLinkTable() {
+    const tbody = document.getElementById("docLinkTableBody");
+    if (!tbody) return;
+
+    if (allDocLinks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888; font-style: italic;">Chưa có liên kết tài liệu nào được thiết lập.</td></tr>';
+        return;
+    }
+
+    let filteredItems = allDocLinks;
+    if (docLinkSearchText) {
+        const removeAccents = (str) => {
+            if (!str) return "";
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        };
+        const queryNoAccent = removeAccents(docLinkSearchText);
+        filteredItems = allDocLinks.filter(k => {
+            const title = (k.title || "").toLowerCase();
+            const url = (k.url || "").toLowerCase();
+            const category = (k.category || "").toLowerCase();
+            const description = (k.description || "").toLowerCase();
+            
+            const titleNoAccent = removeAccents(title);
+            const urlNoAccent = removeAccents(url);
+            const categoryNoAccent = removeAccents(category);
+            const descriptionNoAccent = removeAccents(description);
+            
+            return title.includes(docLinkSearchText) || 
+                   url.includes(docLinkSearchText) || 
+                   category.includes(docLinkSearchText) ||
+                   description.includes(docLinkSearchText) ||
+                   titleNoAccent.includes(queryNoAccent) ||
+                   urlNoAccent.includes(queryNoAccent) ||
+                   categoryNoAccent.includes(queryNoAccent) ||
+                   descriptionNoAccent.includes(queryNoAccent);
+        });
+    }
+
+    // Sắp xếp thứ tự nhỏ lên trước, sau đó sắp xếp theo tên
+    filteredItems.sort((a, b) => {
+        const orderA = a.order !== undefined && a.order !== null ? Number(a.order) : 9999;
+        const orderB = b.order !== undefined && b.order !== null ? Number(b.order) : 9999;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.title || "").localeCompare(b.title || "");
+    });
+
+    if (filteredItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888; font-style: italic;">Không tìm thấy tài liệu phù hợp với từ khóa tìm kiếm.</td></tr>';
+        return;
+    }
+
+    let html = "";
+    filteredItems.forEach(k => {
+        let badgeColor = "#2ecc71"; // guest
+        let badgeText = "Khách";
+        if (k.targetGroup === "user") {
+            badgeColor = "#3498db";
+            badgeText = "Nội bộ";
+        } else if (k.targetGroup === "admin") {
+            badgeColor = "#e74c3c";
+            badgeText = "Admin";
+        }
+        const badgeHtml = `<span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; font-weight: normal; vertical-align: middle;">${badgeText}</span>`;
+
+        const titleHtml = k.url 
+            ? `<a href="${k.url}" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">${k.title || "-"}</a>`
+            : `<span>${k.title || "-"}</span>`;
+
+        html += `
+            <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; font-weight: bold; text-align: left; padding-left: 10px;">${titleHtml}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; vertical-align: middle;">
+                    <span style="background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${k.category || "Chưa phân loại"}</span>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; vertical-align: middle; color: #64748b;">
+                    <div>${k.description || "-"}</div>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center;">${badgeHtml}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; font-weight: bold;">${k.order !== undefined ? k.order : 0}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; white-space: nowrap;">
+                    <button class="edit-doc-btn btn-action" data-id="${k.id}" style="background: #f39c12; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 4px;">✏️ Sửa</button>
+                    <button class="delete-doc-btn btn-action" data-id="${k.id}" style="background: #e74c3c; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">🗑️ Xóa</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+
+    tbody.querySelectorAll(".edit-doc-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const id = e.target.dataset.id;
+            const doc = allDocLinks.find(item => item.id === id);
+            if (doc) openDocLinkForm(doc);
+        });
+    });
+
+    tbody.querySelectorAll(".delete-doc-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const id = e.target.dataset.id;
+            const docData = allDocLinks.find(item => item.id === id);
+            if (!docData) return;
+
+            const isConfirmed = await showConfirmSwal(
+                "Xác nhận xóa",
+                `Bạn có chắc chắn muốn xóa liên kết tài liệu "<b>${docData.title}</b>" không?`,
+                "Xóa", "Hủy", "error"
+            );
+            if (isConfirmed) {
+                try {
+                    showLoading("Đang xóa...");
+                    await deleteDoc(doc(db, "document_links", id));
+                    addLog("admin_delete_document_link", { email: auth.currentUser?.email || "admin", deletedId: id, title: docData.title });
+                    hideLoading();
+                    showSwal("success", "Đã xóa", "Đã xóa liên kết tài liệu thành công.");
+                } catch (err) {
+                    hideLoading();
+                    showSwal("error", "Lỗi", err.message);
+                }
+            }
+        });
+    });
+}
+
+function setupDocLinkHandlers() {
+    const addBtn = document.getElementById("addDocLinkBtn");
+    if (addBtn) {
+        addBtn.addEventListener("click", () => {
+            openDocLinkForm();
+        });
+    }
+
+    const searchInput = document.getElementById("docLinkSearchInput");
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            docLinkSearchText = e.target.value.toLowerCase().trim();
+            renderDocLinkTable();
+        });
+    }
+}
+
+async function openDocLinkForm(docData = null) {
+    const titleVal = docData ? docData.title || "" : "";
+    const urlVal = docData ? docData.url || "" : "";
+    const categoryVal = docData ? docData.category || "Pháp lý" : "Pháp lý";
+    const descriptionVal = docData ? docData.description || "" : "";
+    const targetGroupVal = docData ? docData.targetGroup || "user" : "user";
+    const orderVal = docData && docData.order !== undefined ? docData.order : 0;
+
+    const { value: formValues } = await Swal.fire({
+        title: docData ? '✏️ Chỉnh sửa Liên kết tài liệu' : '🔗 Thêm Liên kết tài liệu mới',
+        html: `
+            <style>
+                .swal-custom-container {
+                    text-align: left; 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 12px; 
+                    font-family: 'Outfit', 'Inter', sans-serif;
+                }
+                .swal-custom-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+                .swal-custom-label {
+                    font-weight: 600; 
+                    font-size: 13px; 
+                    color: #334155;
+                }
+                .swal-custom-input {
+                    width: 100%; 
+                    height: 33px; 
+                    padding: 6px 10px; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-radius: 6px; 
+                    font-size: 13px; 
+                    box-sizing: border-box; 
+                    transition: all 0.2s ease-in-out; 
+                    outline: none; 
+                    background: #f8fafc;
+                }
+                .swal-custom-input:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+                }
+                .swal-custom-select {
+                    width: 100%; 
+                    height: 33px; 
+                    padding: 6px 10px; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-radius: 6px; 
+                    font-size: 13px; 
+                    box-sizing: border-box; 
+                    outline: none; 
+                    background: #f8fafc;
+                    cursor: pointer;
+                    transition: all 0.2s ease-in-out; 
+                }
+                .swal-custom-select:focus {
+                    border-color: #3b82f6 !important;
+                    background: #ffffff !important;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+                }
+            </style>
+            <div class="swal-custom-container">
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Tên tài liệu:</label>
+                    <input id="swal-doc-title" type="text" class="swal-custom-input" placeholder="VD: Sổ tay hướng dẫn vận hành, QCVN 40..." value="${titleVal}">
+                </div>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Đường dẫn liên kết (URL):</label>
+                    <input id="swal-doc-url" type="text" class="swal-custom-input" placeholder="VD: https://drive.google.com/..." value="${urlVal}">
+                </div>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Phân loại tài liệu:</label>
+                    <select id="swal-doc-category" class="swal-custom-select">
+                        <option value="Pháp lý" ${categoryVal === "Pháp lý" ? "selected" : ""}>Pháp lý / Quy chuẩn</option>
+                        <option value="Kỹ thuật" ${categoryVal === "Kỹ thuật" ? "selected" : ""}>Kỹ thuật / Quy trình</option>
+                        <option value="Hóa chất" ${categoryVal === "Hóa chất" ? "selected" : ""}>Hóa chất / An toàn</option>
+                        <option value="Khác" ${categoryVal === "Khác" ? "selected" : ""}>Khác</option>
+                    </select>
+                </div>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Đối tượng hiển thị:</label>
+                    <select id="swal-doc-targetGroup" class="swal-custom-select">
+                        <option value="guest" ${targetGroupVal === "guest" ? "selected" : ""}>Khách vãng lai (Công cộng)</option>
+                        <option value="user" ${targetGroupVal === "user" ? "selected" : ""}>Thành viên đăng nhập (Nội bộ)</option>
+                        <option value="admin" ${targetGroupVal === "admin" ? "selected" : ""}>Chỉ Admin (Bảo mật)</option>
+                    </select>
+                </div>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Mô tả ngắn gọn:</label>
+                    <input id="swal-doc-description" type="text" class="swal-custom-input" placeholder="Ghi chú thêm về liên kết này..." value="${descriptionVal}">
+                </div>
+                <div class="swal-custom-group">
+                    <label class="swal-custom-label">Thứ tự sắp xếp (Số nhỏ xếp trước):</label>
+                    <input id="swal-doc-order" type="number" class="swal-custom-input" placeholder="0" value="${orderVal}">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: '💾 Lưu thông tin',
+        cancelButtonText: 'Hủy',
+        preConfirm: () => {
+            const title = document.getElementById('swal-doc-title').value.trim();
+            const url = document.getElementById('swal-doc-url').value.trim();
+            const category = document.getElementById('swal-doc-category').value;
+            const targetGroup = document.getElementById('swal-doc-targetGroup').value;
+            const description = document.getElementById('swal-doc-description').value.trim();
+            const order = parseInt(document.getElementById('swal-doc-order').value) || 0;
+
+            if (!title) {
+                Swal.showValidationMessage('Vui lòng nhập tên tài liệu!');
+                return false;
+            }
+            if (!url) {
+                Swal.showValidationMessage('Vui lòng nhập đường dẫn liên kết (URL)!');
+                return false;
+            }
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                Swal.showValidationMessage('Đường dẫn URL phải bắt đầu bằng http:// hoặc https://');
+                return false;
+            }
+            return { title, url, category, targetGroup, description, order };
+        }
+    });
+
+    if (formValues) {
+        const payload = {
+            title: formValues.title,
+            url: formValues.url,
+            category: formValues.category,
+            targetGroup: formValues.targetGroup,
+            description: formValues.description,
+            order: formValues.order,
+            updatedAt: serverTimestamp(),
+            updatedBy: auth.currentUser?.email || "admin"
+        };
+
+        try {
+            showLoading("Đang lưu...");
+            if (docData) {
+                await updateDoc(doc(db, "document_links", docData.id), payload);
+                addLog("admin_update_document_link", { email: auth.currentUser?.email || "admin", docId: docData.id, title: payload.title });
+            } else {
+                payload.createdAt = serverTimestamp();
+                payload.createdBy = auth.currentUser?.email || "admin";
+                await addDoc(collection(db, "document_links"), payload);
+                addLog("admin_create_document_link", { email: auth.currentUser?.email || "admin", title: payload.title });
+            }
+            hideLoading();
+            showSwal("success", "Thành công", "Đã lưu thông tin tài liệu thành công.");
+        } catch (err) {
+            hideLoading();
+            showSwal("error", "Lỗi lưu liên kết", err.message);
         }
     }
 }
