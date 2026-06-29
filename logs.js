@@ -167,7 +167,19 @@ import { initMenu } from "./menu.js";
       "incident_status_update": "Cập nhật trạng thái sự cố",
       "incident_resolve_success": "Khắc phục sự cố xong",
       "incident_delete_success": "Xóa báo cáo sự cố",
-      "chemical_import_success": "Nhập kho hóa chất"
+      "chemical_import_success": "Nhập kho hóa chất",
+
+      // Cấu hình AI & quy chế RAG
+      "admin_create_ai_knowledge": "Thêm quy chế AI",
+      "admin_update_ai_knowledge": "Sửa quy chế AI",
+      "admin_delete_ai_knowledge": "Xóa quy chế AI",
+      "admin_update_ai_config": "Cập nhật cấu hình AI",
+
+      // Quản lý liên kết tài liệu
+      "admin_create_document_link": "Thêm liên kết tài liệu",
+      "admin_update_document_link": "Sửa liên kết tài liệu",
+      "admin_delete_document_link": "Xóa liên kết tài liệu",
+      "view_document_secured": "Xem tài liệu bảo mật"
   };
 
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
@@ -801,6 +813,60 @@ import { initMenu } from "./menu.js";
                         <b>Nhà cung cấp:</b> ${log.supplier || "N/A"}<br>
                         <b>Ngày nhập:</b> ${log.date ? log.date.split('-').reverse().join('/') : "N/A"}
                     `;
+                    break;
+
+                // --- QUẢN LÝ QUY CHẾ AI & TÀI LIỆU ---
+                case "admin_create_ai_knowledge":
+                    details = `<b>Thêm quy chế AI:</b> ${log.title || "N/A"}`;
+                    break;
+                case "admin_update_ai_knowledge":
+                    details = `
+                        <b>Sửa quy chế AI:</b> ${log.title || "N/A"}<br>
+                        <b>ID tài liệu:</b> ${log.docId || "N/A"}
+                    `;
+                    break;
+                case "admin_delete_ai_knowledge":
+                    details = `
+                        <b>Xóa quy chế AI:</b> ${log.title || "N/A"}<br>
+                        <b>ID tài liệu:</b> ${log.deletedId || "N/A"}
+                    `;
+                    break;
+                case "admin_update_ai_config":
+                    details = `Cập nhật cấu hình AI (từ khóa viết tắt, tham số chatbot).`;
+                    break;
+                case "admin_create_document_link":
+                    details = `<b>Thêm liên kết tài liệu:</b> ${log.title || "N/A"}`;
+                    break;
+                case "admin_update_document_link":
+                    details = `
+                        <b>Sửa liên kết tài liệu:</b> ${log.title || "N/A"}<br>
+                        <b>ID tài liệu:</b> ${log.docId || "N/A"}
+                    `;
+                    break;
+                case "admin_delete_document_link":
+                    details = `
+                        <b>Xóa liên kết tài liệu:</b> ${log.title || "N/A"}<br>
+                        <b>ID tài liệu:</b> ${log.deletedId || "N/A"}
+                    `;
+                    break;
+                case "view_document_secured":
+                    {
+                        let docName = "N/A";
+                        let docId = "N/A";
+                        try {
+                            if (log.details) {
+                                const parsed = typeof log.details === "string" ? JSON.parse(log.details) : log.details;
+                                docName = parsed.fileName || parsed.title || "N/A";
+                                docId = parsed.documentId || "N/A";
+                            }
+                        } catch (e) {
+                            docName = log.details || "N/A";
+                        }
+                        details = `
+                            <b>File:</b> ${docName}<br>
+                            <b>ID tài liệu:</b> ${docId}
+                        `;
+                    }
                     break;
 
                 default:

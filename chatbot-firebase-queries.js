@@ -1064,22 +1064,6 @@ export async function getAIKnowledgeBase(role = "guest") {
         const snapshot = await getDocs(q);
         const docsCount = snapshot.size;
         
-        try {
-            // Import động hoặc gọi trực tiếp addLog từ script.js (được import ở đầu file)
-            const { addLog: scriptAddLog } = await import("./script.js");
-            if (scriptAddLog) {
-                await scriptAddLog("debug_ai_knowledge", {
-                    role: role,
-                    status: "success",
-                    count: docsCount,
-                    email: auth.currentUser?.email || "anonymous",
-                    timestamp: new Date().toISOString()
-                });
-            }
-        } catch (logErr) {
-            console.warn("Failed to write success log:", logErr);
-        }
-
         console.log(`✅ [AI Knowledge] Đã tải ${snapshot.size} quy chế từ Firestore (Vai trò: ${role}).`);
         return snapshot.docs.map(doc => ({
             id: doc.id,
