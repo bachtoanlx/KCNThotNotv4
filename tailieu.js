@@ -1261,6 +1261,10 @@ function renderGrid() {
         el.setAttribute("title", "Nhấp chuột để mở rộng hoặc thu gọn văn bản trích dẫn");
         el.addEventListener("click", () => {
             el.classList.toggle("expanded");
+            const card = el.closest(".document-card");
+            if (card) {
+                card.classList.toggle("expanded-card");
+            }
         });
     });
 }

@@ -28,7 +28,7 @@
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.35);
+            border: 1px solid var(--border-input);
             border-radius: 16px;
             padding: 15px 20px;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
@@ -416,7 +416,7 @@
             backdrop-filter: blur(10px);
             padding: 12px 20px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--border-input);
             color: var(--text-color);
             text-decoration: none;
             box-shadow: 0 4px 15px rgba(31, 38, 135, 0.05);
@@ -481,7 +481,7 @@
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-input);
             border-radius: 14px;
             padding: 20px;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
@@ -491,10 +491,12 @@
             justify-content: space-between;
         }
 
-        .document-card:hover {
+        .document-card:hover,
+        .document-card.expanded-card {
             transform: translateY(-4px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-            border-color: rgba(39, 54, 104, 0.25);
+            box-shadow: 0 10px 30px rgba(39, 54, 104, 0.15);
+            border-color: var(--primary-color);
+            background: #ffffff;
         }
 
         .card-header-info {
@@ -721,7 +723,7 @@
             background: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border-input);
             border-radius: 16px;
             padding: 20px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
@@ -772,7 +774,7 @@
             gap: 10px;
             padding: 10px;
             background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid var(--border-input);
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
