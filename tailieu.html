@@ -41,7 +41,7 @@
             border-radius: 16px;
             padding: 10px 20px 12px 20px;
             box-shadow: 0 8px 32px rgba(39, 54, 104, 0.12);
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             text-align: center;
         }
 
@@ -725,7 +725,7 @@
             display: flex;
             gap: 16px;
             width: 100%;
-            margin-top: 15px;
+            margin-top: 6px;
             align-items: stretch;
         }
 
@@ -1109,8 +1109,12 @@
             }
 
             .sidebar-card {
-                max-height: 250px;
+                max-height: none;
                 padding: 12px;
+            }
+
+            .doc-links-list {
+                max-height: 180px;
             }
 
             .sidebar-card h3 {
@@ -1118,11 +1122,11 @@
                 margin-bottom: 10px;
             }
 
-            .search-panel {
-                padding: 15px 12px;
-                margin-bottom: 15px;
-                border-radius: 12px;
-            }
+             .search-panel {
+                 padding: 15px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 12px;
+             }
 
             .search-panel h1 {
                 font-size: 18px;
@@ -1162,29 +1166,29 @@
                 font-size: 12px;
             }
 
-            .quick-links-container {
-                margin-bottom: 15px;
-            }
+             .quick-links-container {
+                 margin-bottom: 6px;
+             }
 
             .quick-link-item {
-                padding: 8px 12px;
-                min-width: 180px;
-                gap: 8px;
+                padding: 6px 12px;
+                min-width: 140px;
+                gap: 6px;
                 border-radius: 8px;
             }
 
             .quick-link-icon {
-                width: 32px;
-                height: 32px;
-                font-size: 16px;
+                width: 24px;
+                height: 24px;
+                font-size: 12px;
             }
 
             .quick-link-title {
-                font-size: 12.5px;
+                font-size: 12px;
             }
 
             .quick-link-desc {
-                font-size: 10px;
+                display: none;
             }
 
             .document-grid {
@@ -1420,9 +1424,11 @@
         @media (max-width: 768px) {
             .admin-ai-settings-btn {
                 position: static;
-                margin-bottom: 12px;
-                width: 100%;
-                justify-content: center;
+                width: auto;
+                padding: 5px 12px;
+                font-size: 12px;
+                margin: 0;
+                box-shadow: none;
             }
         }
 
@@ -1449,10 +1455,6 @@
     <div id="pageContent">
         <!-- Khu vực tìm kiếm chính -->
         <div class="search-panel" style="position: relative;">
-            <!-- Nút cấu hình AI dành riêng cho Admin -->
-            <button id="adminAiSettingsBtn" class="admin-ai-settings-btn" title="Cấu hình AI (Chỉ Admin)" style="display: none;" onclick="openAiSettingsModal()">
-                ⚙️ Cấu hình AI
-            </button>
             <h1>Trung tâm Tra cứu tài liệu thông minh</h1>
             <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản pháp lý, quy chế và quy trình kỹ thuật</p>
 
@@ -1469,6 +1471,10 @@
                 <button class="tab-btn" data-category="Pháp lý">Pháp lý</button>
                 <button class="tab-btn" data-category="Kỹ thuật">Kỹ thuật</button>
                 <button class="tab-btn" data-category="Khác">Khác</button>
+                <!-- Nút cấu hình AI dành riêng cho Admin -->
+                <button id="adminAiSettingsBtn" class="admin-ai-settings-btn" title="Cấu hình AI (Chỉ Admin)" style="display: none;" onclick="openAiSettingsModal()">
+                    ⚙️ AI
+                </button>
             </div>
         </div>
 
