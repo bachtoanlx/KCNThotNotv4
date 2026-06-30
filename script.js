@@ -720,7 +720,8 @@ export async function notifyAdmins(title, body) {
 }
 
 export async function clearLocalDB() {
-  return new Promise((resolve) => {
+  // Xóa KCN_LocalDB (logs, reports, sync_info)
+  await new Promise((resolve) => {
     const req = indexedDB.open('KCN_LocalDB');
     req.onsuccess = (e) => {
       const dbLocal = e.target.result;
@@ -738,17 +739,26 @@ export async function clearLocalDB() {
           localStorage.removeItem('synced_years_shift_reports');
           resolve();
         };
-        tx.onerror = () => {
-          resolve();
-        };
+        tx.onerror = () => { resolve(); };
       } catch (err) {
         console.warn("Lỗi dọn dẹp cache IndexedDB:", err);
         resolve();
       }
     };
-    req.onerror = () => {
+    req.onerror = () => { resolve(); };
+  });
+
+  // Xóa toàn bộ cache tài liệu tri thức (tailieu_cache_v1) để tránh rò rỉ dữ liệu giữa các user trên máy chung
+  await new Promise((resolve) => {
+    try {
+      const deleteReq = indexedDB.deleteDatabase('tailieu_cache_v1');
+      deleteReq.onsuccess = () => resolve();
+      deleteReq.onerror = () => resolve();
+      deleteReq.onblocked = () => resolve();
+    } catch (e) {
+      console.warn("Lỗi xóa cache tài liệu:", e);
       resolve();
-    };
+    }
   });
 }
 
