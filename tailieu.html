@@ -5,7 +5,7 @@
     <!-- PWA & Mobile Fullscreen -->
     <link rel='manifest' href='manifest.json'>
     <meta name='theme-color' content='#273668'>
-    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <meta name='mobile-web-app-capable' content='yes'>
     <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
     <meta name='apple-mobile-web-app-title' content='Tài liệu KCN'>
     <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
@@ -163,6 +163,193 @@
             margin-bottom: 10px;
             border-left: 3px solid #a855f7;
             font-style: italic;
+        }
+
+        /* ===== AI Chat Panel (Multi-turn) ===== */
+        .doc-chat-trigger {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 1200;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: all 0.25s ease;
+        }
+        .doc-chat-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(99, 102, 241, 0.55);
+        }
+        .doc-chat-trigger.panel-open {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .doc-chat-panel {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            width: 380px;
+            height: 520px;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            border-radius: 18px;
+            box-shadow: 0 12px 48px rgba(99, 102, 241, 0.18);
+            z-index: 1201;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(30px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .doc-chat-panel.open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .doc-chat-header {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #fff;
+            padding: 13px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .doc-chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .doc-chat-header-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .doc-chat-header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .doc-chat-header-btn:hover { background: rgba(255,255,255,0.35); }
+
+        .doc-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 14px 8px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scroll-behavior: smooth;
+        }
+        .doc-chat-messages::-webkit-scrollbar { width: 4px; }
+        .doc-chat-messages::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.2); border-radius: 4px; }
+
+        .doc-chat-msg {
+            max-width: 88%;
+            font-size: 13.5px;
+            line-height: 1.55;
+            padding: 9px 13px;
+            border-radius: 14px;
+            word-break: break-word;
+            animation: msgIn 0.2s ease;
+        }
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .doc-chat-msg.user {
+            background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.1));
+            color: #1e1b4b;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .doc-chat-msg.ai {
+            background: #f8faff;
+            color: #1e293b;
+            border: 1px solid rgba(99,102,241,0.12);
+            border-left: 3px solid #6366f1;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .doc-chat-msg.ai.typing {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .doc-chat-input-row {
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px 14px 12px;
+            border-top: 1px solid rgba(99,102,241,0.1);
+            flex-shrink: 0;
+        }
+        .doc-chat-input {
+            flex: 1;
+            border: 1.5px solid rgba(99,102,241,0.2);
+            border-radius: 22px;
+            padding: 8px 14px;
+            font-size: 13px;
+            outline: none;
+            background: #f8faff;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .doc-chat-input:focus { border-color: #6366f1; background: #fff; }
+        .doc-chat-send {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .doc-chat-send:hover { transform: scale(1.08); }
+        .doc-chat-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        @media (max-width: 768px) {
+            .doc-chat-panel {
+                width: calc(100vw - 24px);
+                right: 12px;
+                bottom: 12px;
+                height: 460px;
+            }
+            .doc-chat-trigger {
+                right: 12px;
+                bottom: 12px;
+                font-size: 13px;
+                padding: 9px 16px;
+            }
         }
 
         /* Filter Tabs */
@@ -515,14 +702,14 @@
             gap: 16px;
             width: 100%;
             margin-top: 15px;
-            align-items: flex-start;
+            align-items: stretch;
         }
 
         .left-sidebar-area {
             flex: 1;
             min-width: 300px;
-            position: sticky;
-            top: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .right-content-area {
@@ -538,9 +725,10 @@
             border-radius: 16px;
             padding: 20px;
             box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.08);
-            max-height: calc(100vh - 120px);
             display: flex;
             flex-direction: column;
+            flex: 1;
+            box-sizing: border-box;
         }
 
         .sidebar-card h3 {
@@ -1012,6 +1200,208 @@
                 font-size: 11px;
             }
         }
+
+        /* Bảng điều khiển cấu hình AI và Tối ưu chi phí */
+        .admin-ai-settings-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.25s ease;
+            z-index: 10;
+        }
+        .admin-ai-settings-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            background: linear-gradient(135deg, #334155, #475569);
+        }
+
+        /* AI Settings Modal Styles */
+        .ai-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.25s ease;
+        }
+        .ai-modal-content {
+            background: #ffffff;
+            width: 92%;
+            max-width: 580px;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ai-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .ai-modal-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        .ai-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .ai-modal-body {
+            padding: 24px;
+            max-height: 65vh;
+            overflow-y: auto;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-top: 1px solid #f1f5f9;
+            gap: 20px;
+        }
+        .setting-row:first-of-type {
+            border-top: none;
+        }
+        .setting-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+        .setting-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+        .setting-desc {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+        .ai-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .ai-modal-footer button {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .ai-modal-footer .btn-cancel {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+        }
+        .ai-modal-footer .btn-cancel:hover {
+            background: #f1f5f9;
+        }
+        .ai-modal-footer .btn-save {
+            background: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            color: #ffffff;
+        }
+        .ai-modal-footer .btn-save:hover {
+            box-shadow: 0 4px 12px rgba(39, 54, 104, 0.25);
+        }
+
+        /* Toggle Switches CSS */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #4f46e5;
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        @media (max-width: 768px) {
+            .admin-ai-settings-btn {
+                position: static;
+                margin-bottom: 12px;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
 </head>
 
@@ -1022,12 +1412,16 @@
 
     <div id="pageContent">
         <!-- Khu vực tìm kiếm chính -->
-        <div class="search-panel">
+        <div class="search-panel" style="position: relative;">
+            <!-- Nút cấu hình AI dành riêng cho Admin -->
+            <button id="adminAiSettingsBtn" class="admin-ai-settings-btn" title="Cấu hình AI (Chỉ Admin)" style="display: none;" onclick="openAiSettingsModal()">
+                ⚙️ Cấu hình AI
+            </button>
             <h1>Trung tâm Tra cứu tài liệu thông minh</h1>
             <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản pháp lý, quy chế và quy trình kỹ thuật</p>
 
             <div class="search-bar-wrapper">
-                <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, tiêu đề hay nội dung cần tìm...">
+                <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, nội dung cần tìm...">
                 <button type="button" id="aiSearchBtn" class="ai-search-btn" title="Tìm kiếm bằng AI (Gemini)">
                     <span>✨ AI</span>
                 </button>
@@ -1075,6 +1469,113 @@
                         <p>Vui lòng chờ trong giây lát.</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- AI Chat Panel Multi-turn -->
+    <button id="docChatTrigger" class="doc-chat-trigger">🤖 Hỏi AI</button>
+
+    <div id="docChatPanel" class="doc-chat-panel">
+        <div class="doc-chat-header">
+            <div class="doc-chat-header-title">🤖 Trợ lý Tài liệu AI</div>
+            <div class="doc-chat-header-actions">
+                <button class="doc-chat-header-btn" id="docChatClear" title="Xóa lịch sử">🗑</button>
+                <button class="doc-chat-header-btn" id="docChatClose" title="Đóng">✕</button>
+            </div>
+        </div>
+        <div class="doc-chat-messages" id="docChatMessages"></div>
+        <div class="doc-chat-input-row">
+            <input type="text" id="docChatInput" class="doc-chat-input" placeholder="Hỏi về tài liệu..." />
+            <button id="docChatSend" class="doc-chat-send" title="Gửi">➤</button>
+        </div>
+    </div>
+
+    <!-- Modal Cấu hình AI (Chỉ Admin) -->
+    <div id="aiSettingsModal" class="ai-modal-overlay" style="display: none;">
+        <div class="ai-modal-content">
+            <div class="ai-modal-header">
+                <h2>⚙️ Cấu hình AI & Tối ưu Chi phí</h2>
+                <button type="button" class="ai-modal-close" onclick="closeAiSettingsModal()">&times;</button>
+            </div>
+            <div class="ai-modal-body">
+                <p style="color: #64748b; font-size: 12px; margin-bottom: 20px; text-align: left; line-height: 1.5; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                    Cài đặt của bạn sẽ được lưu trữ trực tiếp trên Firestore và áp dụng toàn hệ thống cho mọi người dùng để tối ưu hóa và tiết kiệm hóa đơn Gemini API.
+                </p>
+                
+                <!-- Toggle 1: Trả lời chi tiết -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Trả lời chi tiết (Chuyên sâu)</span>
+                        <span class="setting-desc">Cho phép AI trả lời chuyên sâu, phân tích dài hơn. Tắt đi sẽ ép AI trả lời cực ngắn gọn (tiết kiệm ~50% token đầu ra).</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfgDetailedResponse">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Toggle 2: Ngữ cảnh rộng -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Ngữ cảnh rộng (Chính xác cao)</span>
+                        <span class="setting-desc">Gửi tối đa 15 thẻ tri thức (chunks) làm ngữ cảnh. Tắt đi sẽ chỉ gửi tối đa 6 thẻ tốt nhất (tiết kiệm ~50% token đầu vào).</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfgWideContext">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Toggle 3: Lịch sử hội thoại đầy đủ -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Lịch sử hội thoại đầy đủ</span>
+                        <span class="setting-desc">Gửi kèm 20 tin nhắn cũ của cuộc đối thoại. Tắt đi chỉ gửi 5 tin gần nhất (giảm chi phí khi hỏi nối tiếp kéo dài).</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfgFullHistory">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Toggle 4: Giới hạn lượt hỏi hằng ngày -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Giới hạn lượt hỏi hằng ngày</span>
+                        <span class="setting-desc">Kích hoạt giới hạn số lượt hỏi AI (Tìm kiếm + Chat) của mỗi người dùng thông thường trong một ngày.</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfgEnableDailyLimit" onchange="toggleLimitInputUI(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Lượt giới hạn đầu vào -->
+                <div class="setting-row" id="limitCountRow" style="padding-top: 10px; padding-bottom: 10px; border-top: none;">
+                    <div class="setting-info">
+                        <span class="setting-title" style="font-size: 13px; color: #475569; font-weight: normal;">Số lượt hỏi tối đa/ngày/user</span>
+                    </div>
+                    <input type="number" id="cfgDailyLimitCount" min="1" max="100" style="width: 80px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
+                </div>
+
+                <!-- Toggle 5: Xác nhận trước khi gọi AI -->
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Xác nhận trước khi gọi AI</span>
+                        <span class="setting-desc">Hiển thị hộp thoại Swal xác nhận có muốn dùng AI hay không trước khi chạy để tránh click nhầm.</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="cfgConfirmBeforeAI">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+            </div>
+            <div class="ai-modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeAiSettingsModal()">Hủy</button>
+                <button type="button" class="btn-save" onclick="saveAiSettings()">Lưu Cấu hình</button>
             </div>
         </div>
     </div>
