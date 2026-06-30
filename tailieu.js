@@ -225,13 +225,13 @@ async function loadFromIDB(idb) {
         allDocuments[_id] = data;
     });
     const docIds = Object.keys(allDocuments).sort((a, b) => {
-        const titleA = allDocuments[a].title || allDocuments[a].fileName || "";
-        const titleB = allDocuments[b].title || allDocuments[b].fileName || "";
-        return titleA.localeCompare(titleB);
+        const codeA = allDocuments[a].docCode || "";
+        const codeB = allDocuments[b].docCode || "";
+        return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
     });
     docCodeMap = {};
-    docIds.forEach((id, idx) => {
-        docCodeMap[id] = `TL-${String(idx + 1).padStart(2, "0")}`;
+    docIds.forEach((id) => {
+        docCodeMap[id] = allDocuments[id].docCode || "TL-00";
     });
 
     // Lọc chunk theo role hiện tại (vì cache lưu theo role)
@@ -265,13 +265,13 @@ async function deltaSyncFromFirestore(idb, lastSyncTime) {
                 allDocuments[_id] = data;
             });
             const docIds = Object.keys(allDocuments).sort((a, b) => {
-                const titleA = allDocuments[a].title || allDocuments[a].fileName || "";
-                const titleB = allDocuments[b].title || allDocuments[b].fileName || "";
-                return titleA.localeCompare(titleB);
+                const codeA = allDocuments[a].docCode || "";
+                const codeB = allDocuments[b].docCode || "";
+                return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
             });
             docCodeMap = {};
-            docIds.forEach((id, idx) => {
-                docCodeMap[id] = `TL-${String(idx + 1).padStart(2, "0")}`;
+            docIds.forEach((id) => {
+                docCodeMap[id] = allDocuments[id].docCode || "TL-00";
             });
         }
 
@@ -379,12 +379,12 @@ async function loadDocumentChunksDirectly() {
         allDocuments = {};
         docSnap.forEach(d => { allDocuments[d.id] = d.data(); });
         const docIds = Object.keys(allDocuments).sort((a, b) => {
-            const titleA = allDocuments[a].title || allDocuments[a].fileName || "";
-            const titleB = allDocuments[b].title || allDocuments[b].fileName || "";
-            return titleA.localeCompare(titleB);
+            const codeA = allDocuments[a].docCode || "";
+            const codeB = allDocuments[b].docCode || "";
+            return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
         });
         docCodeMap = {};
-        docIds.forEach((id, idx) => { docCodeMap[id] = `TL-${String(idx + 1).padStart(2, "0")}`; });
+        docIds.forEach((id) => { docCodeMap[id] = allDocuments[id].docCode || "TL-00"; });
     } catch (e) { console.warn("Lỗi khi tải metadata tài liệu gốc:", e); }
 
     let q;
@@ -642,6 +642,13 @@ function renderLeftSidebar(chunks, searchTokens = []) {
         }
     });
 
+    // Sắp xếp danh sách tài liệu gốc theo mã TL-xx giảm dần (mã mới nhất ở trên đầu)
+    uniqueDocs.sort((a, b) => {
+        const codeA = docCodeMap[a.id] || "";
+        const codeB = docCodeMap[b.id] || "";
+        return codeB.localeCompare(codeA, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
     // Cập nhật số lượng tài liệu gốc lên tiêu đề sidebar
     const sidebarDocCount = document.getElementById("sidebarDocCount");
     if (sidebarDocCount) {
@@ -746,6 +753,126 @@ function renderLeftSidebar(chunks, searchTokens = []) {
             });
         });
     }
+
+    // Hiển thị trạng thái đồng bộ & lỗi cho Admin
+    renderSyncStatus();
+}
+
+// Hàm hiển thị danh sách hàng đợi (pending/processing) và các file lỗi (failed) kèm nút thử lại
+function renderSyncStatus() {
+    const syncIssuesContainer = document.getElementById("syncIssuesContainer");
+    if (!syncIssuesContainer) return;
+
+    // Chỉ hiển thị cho tài khoản có vai trò Admin
+    if (userRole !== "admin") {
+        syncIssuesContainer.style.display = "none";
+        return;
+    }
+
+    const failedDocs = [];
+    const pendingDocs = [];
+    const processingDocs = [];
+
+    Object.keys(allDocuments).forEach(id => {
+        const doc = allDocuments[id];
+        if (doc.status === "failed") {
+            failedDocs.push({ id, ...doc });
+        } else if (doc.status === "pending") {
+            pendingDocs.push({ id, ...doc });
+        } else if (doc.status === "processing") {
+            processingDocs.push({ id, ...doc });
+        }
+    });
+
+    const totalIssues = failedDocs.length + pendingDocs.length + processingDocs.length;
+    if (totalIssues === 0) {
+        syncIssuesContainer.style.display = "none";
+        return;
+    }
+
+    syncIssuesContainer.style.display = "block";
+
+    let html = `
+        <div style="font-size:12.5px; font-weight:700; color:#c2410c; margin-bottom:8px; display:flex; align-items:center; gap:5px;">
+            ⚠️ Hàng đợi & Lỗi đồng bộ (${totalIssues})
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; max-height:180px; overflow-y:auto; padding-right:4px;">
+    `;
+
+    processingDocs.forEach(doc => {
+        html += `
+            <div style="font-size:11.5px; background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.2); border-radius:6px; padding:6px 8px; color:#b45309; display:flex; justify-content:space-between; align-items:center;">
+                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;" title="${doc.fileName}">
+                    🔄 <b style="font-size: 9px; background:#f59e0b; color:white; padding:1px 3px; border-radius:3px; margin-right:3px;">${doc.docCode || 'TL-XX'}</b> ${doc.fileName}
+                </div>
+                <span style="font-size: 10px; font-style:italic;">Đang tách...</span>
+            </div>
+        `;
+    });
+
+    pendingDocs.forEach(doc => {
+        html += `
+            <div style="font-size:11.5px; background:rgba(100, 116, 139, 0.08); border:1px solid rgba(100, 116, 139, 0.2); border-radius:6px; padding:6px 8px; color:#475569; display:flex; justify-content:space-between; align-items:center;">
+                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%;" title="${doc.fileName}">
+                    ⏳ <b style="font-size: 9px; background:#64748b; color:white; padding:1px 3px; border-radius:3px; margin-right:3px;">${doc.docCode || 'TL-XX'}</b> ${doc.fileName}
+                </div>
+                <span style="font-size: 10px; font-style:italic;">Đang chờ...</span>
+            </div>
+        `;
+    });
+
+    failedDocs.forEach(doc => {
+        html += `
+            <div style="font-size:11.5px; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.2); border-radius:6px; padding:6px 8px; color:#b91c1c; display:flex; justify-content:space-between; align-items:center;">
+                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;" title="${doc.fileName}">
+                    ❌ <b style="font-size: 9px; background:#ef4444; color:white; padding:1px 3px; border-radius:3px; margin-right:3px;">${doc.docCode || 'TL-XX'}</b> ${doc.fileName}
+                </div>
+                <button class="btn-retry-doc" data-docid="${doc.id}" style="background:#ef4444; color:white; border:none; padding:2px 8px; border-radius:4px; font-size:10px; cursor:pointer; font-weight:600;">Thử lại</button>
+            </div>
+        `;
+    });
+
+    html += `</div>`;
+    syncIssuesContainer.innerHTML = html;
+
+    // Đăng ký sự kiện nút thử lại cho tài liệu bị lỗi
+    document.querySelectorAll(".btn-retry-doc").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const docId = btn.dataset.docid;
+            btn.disabled = true;
+            btn.textContent = "...";
+            try {
+                // setDoc with merge: true để reset trạng thái về pending
+                await setDoc(doc(db, "documents", docId), { status: "pending", retryCount: 0 }, { merge: true });
+                
+                // Cập nhật biến cục bộ ngay để UI thay đổi lập tức
+                if (allDocuments[docId]) {
+                    allDocuments[docId].status = "pending";
+                    allDocuments[docId].retryCount = 0;
+                }
+                
+                renderSyncStatus();
+                
+                Swal.fire({
+                    icon: "success",
+                    title: "Đã đưa vào hàng đợi",
+                    text: "Tài liệu đã được xếp hàng để hệ thống tự động quét và phân tách tri thức lại.",
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } catch (err) {
+                console.error("Lỗi khi thử lại tài liệu:", err);
+                btn.disabled = false;
+                btn.textContent = "Thử lại";
+                Swal.fire({
+                    icon: "error",
+                    title: "Thất bại",
+                    text: "Không thể kết nối Firestore để thử lại tài liệu."
+                });
+            }
+        });
+    });
 }
 
 
