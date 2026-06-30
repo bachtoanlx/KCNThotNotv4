@@ -59,32 +59,73 @@ onAuth(async (user) => {
             console.warn("Không thể lấy vai trò người dùng, mặc định làm khách:", e);
             userRole = "guest";
         }
+
+        // Ẩn thông báo chưa đăng nhập
+        const notLogged = document.getElementById("notLogged");
+        if (notLogged) notLogged.style.display = "none";
+
+        // Tải cấu hình AI của hệ thống trước
+        await loadAiSettings();
+
+        // Nếu người dùng là admin, hiển thị nút cấu hình
+        if (userRole === "admin") {
+            const settingsBtn = document.getElementById("adminAiSettingsBtn");
+            if (settingsBtn) {
+                settingsBtn.style.display = "inline-flex";
+            }
+        }
+
+        // Tải và hiển thị Liên kết & Tài liệu nhanh
+        loadQuickLinks();
+
+        // Hiển thị giao diện chính sau khi đã xác thực xong
+        const pageContent = document.getElementById("pageContent");
+        if (pageContent) {
+            pageContent.style.display = "block";
+        }
+
+        // Tải dữ liệu tri thức từ Firestore
+        await loadDocumentChunks();
+
     } else {
+        // ===== XỬ LÝ ĐĂNG XUẤT: Xóa ngay nội dung trang =====
         userRole = "guest";
-    }
 
-    // Tải cấu hình AI của hệ thống trước
-    await loadAiSettings();
+        // 1. Ẩn toàn bộ nội dung trang
+        const pageContent = document.getElementById("pageContent");
+        if (pageContent) pageContent.style.display = "none";
 
-    // Nếu người dùng là admin, hiển thị nút cấu hình
-    if (userRole === "admin") {
-        const settingsBtn = document.getElementById("adminAiSettingsBtn");
-        if (settingsBtn) {
-            settingsBtn.style.display = "inline-flex";
+        // Hiện thông báo yêu cầu đăng nhập
+        const notLogged = document.getElementById("notLogged");
+        if (notLogged) notLogged.style.display = "block";
+
+        // 2. Xóa dữ liệu tri thức khỏi bộ nhớ JS
+        allChunks = [];
+        allDocuments = {};
+        docCodeMap = {};
+        invertedIndex = {};
+
+        // 3. Xóa nội dung DOM
+        const documentGrid = document.getElementById("documentGrid");
+        if (documentGrid) documentGrid.innerHTML = "";
+        const docLinksList = document.getElementById("docLinksList");
+        if (docLinksList) docLinksList.innerHTML = "";
+        const quickLinksList = document.getElementById("quickLinksList");
+        if (quickLinksList) quickLinksList.innerHTML = "";
+
+        // 4. Xóa IndexedDB cache — CHỈ khi thiết bị KHÔNG được tin cậy
+        //    (Trusted device giữ cache để load nhanh hơn lần đăng nhập sau)
+        if (!window.isCurrentDeviceTrusted) {
+            try {
+                const deleteReq = indexedDB.deleteDatabase("tailieu_cache_v1");
+                deleteReq.onsuccess = () => console.log("[Tailieu] Cache IndexedDB đã được xóa sau logout (thiết bị không tin cậy).");
+                deleteReq.onerror = () => console.warn("[Tailieu] Không thể xóa cache IndexedDB.");
+                deleteReq.onblocked = () => console.warn("[Tailieu] Xóa cache bị chặn (blocked).");
+            } catch (e) {
+                console.warn("[Tailieu] Lỗi xóa cache sau logout:", e);
+            }
         }
     }
-
-    // Tải và hiển thị Liên kết & Tài liệu nhanh
-    loadQuickLinks();
-
-    // Hiển thị giao diện chính sau khi đã xác thực xong
-    const pageContent = document.getElementById("pageContent");
-    if (pageContent) {
-        pageContent.style.display = "block";
-    }
-
-    // Tải dữ liệu tri thức từ Firestore
-    await loadDocumentChunks();
 });
 
 // =========================================================
@@ -1349,16 +1390,16 @@ async function openDocumentSecurely(documentId) {
         return;
     }
 
-    // Hiển thị trạng thái đang sinh Token bảo mật
+    // Hiển thị toast nhỏ gọn ở góc — không chặn màn hình
     window.Swal.fire({
-        title: "Đang sinh mã bảo mật...",
-        text: "Hệ thống đang cấp vé truy cập an toàn dùng một lần.",
+        toast: true,
+        position: "bottom-end",
         icon: "info",
+        title: "Đang mở tài liệu...",
         showConfirmButton: false,
-        allowOutsideClick: false,
-        didOpen: () => {
-            window.Swal.showLoading();
-        }
+        timer: 30000,
+        timerProgressBar: false,
+        didOpen: () => window.Swal.showLoading()
     });
 
     try {
@@ -1377,18 +1418,6 @@ async function openDocumentSecurely(documentId) {
             expiresAt: expiresAt.toISOString(),
             used: false,
             createdAt: new Date().toISOString()
-        });
-
-        // 3. Hiển thị thông báo đang tải file từ Google Drive
-        window.Swal.fire({
-            title: "Đang tải tài liệu...",
-            text: "Hệ thống đang chuẩn bị tệp tin bảo mật trực tiếp từ Google Drive.",
-            icon: "info",
-            showConfirmButton: false,
-            allowOutsideClick: false,
-            didOpen: () => {
-                window.Swal.showLoading();
-            }
         });
 
         // 4. Mở sẵn một tab trống để tránh pop-up blocker của trình duyệt
