@@ -428,7 +428,7 @@ function buildInvertedIndex() {
     invertedIndex = {};
     allChunks.forEach(chunk => {
         const docCode = docCodeMap[chunk.documentId] || "";
-        
+
         // Hợp nhất các trường để bóc tách từ khóa
         const textToTokenize = [
             docCode,
@@ -459,7 +459,7 @@ function buildInvertedIndex() {
                 invertedIndex[docCodeClean] = new Set();
             }
             invertedIndex[docCodeClean].add(chunk);
-            
+
             const docCodeNoDash = docCodeClean.replace(/-/g, "");
             if (!invertedIndex[docCodeNoDash]) {
                 invertedIndex[docCodeNoDash] = new Set();
@@ -845,15 +845,15 @@ function renderSyncStatus() {
             try {
                 // setDoc with merge: true để reset trạng thái về pending
                 await setDoc(doc(db, "documents", docId), { status: "pending", retryCount: 0 }, { merge: true });
-                
+
                 // Cập nhật biến cục bộ ngay để UI thay đổi lập tức
                 if (allDocuments[docId]) {
                     allDocuments[docId].status = "pending";
                     allDocuments[docId].retryCount = 0;
                 }
-                
+
                 renderSyncStatus();
-                
+
                 Swal.fire({
                     icon: "success",
                     title: "Đã đưa vào hàng đợi",
@@ -1136,7 +1136,7 @@ function renderGrid() {
             if (!queryText) return false;
             const cleanQuery = removeAccents(queryText);
             const docCode = docCodeMap[item.documentId] || "";
-            
+
             // So khớp mã tài liệu có/không gạch ngang linh hoạt
             if (matchDocCode(docCode, queryText)) return true;
 
@@ -1600,7 +1600,7 @@ async function openDocumentSecurely(documentId) {
 
         // 7. Mở xem trực tiếp nếu xem được (PDF, Ảnh), hoặc tự động tải về
         const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain'];
-        
+
         if (viewableTypes.includes(data.mimeType)) {
             if (newWindow) {
                 newWindow.location.href = fileUrl;
@@ -1719,10 +1719,30 @@ async function callGeminiAISearch(queryText) {
     }
 
     try {
-        // Phân tách queryText thành các tokens tìm kiếm để lọc thô
-        const searchTokens = queryText.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+        // --- NÂNG CẤP: AI MỞ RỘNG TỪ KHÓA TRƯỚC KHI TÌM KIẾM ---
+        let expandedKeywords = [queryText]; // Mặc định chứa từ khóa người dùng gõ
+        try {
+            // Gọi lên Google Apps Script để Gemini lấy thêm từ đồng nghĩa
+            const expandResp = await fetch(`${GAS_API_URL}?action=expand&query=${encodeURIComponent(queryText)}`);
+            const expandData = await expandResp.json();
+
+            if (expandData.success && expandData.keywords) {
+                // Trộn từ khóa gốc và từ do AI gợi ý (loại bỏ từ trùng lặp)
+                expandedKeywords = [...new Set([...expandedKeywords, ...expandData.keywords])];
+                console.log("AI đã mở rộng từ khóa thành:", expandedKeywords);
+            }
+        } catch (e) {
+            console.warn("Lỗi gọi AI mở rộng từ khóa, hệ thống tiếp tục dùng từ gốc:", e);
+        }
+
+        // Chuyển mảng từ khóa mở rộng thành một chuỗi dài
+        const combinedQueryText = expandedKeywords.join(" ");
+
+        // Phân tách chuỗi đã mở rộng thành các tokens để lọc thô
+        const searchTokens = combinedQueryText.toLowerCase().split(/\s+/).filter(t => t.length > 0);
         const importantTokens = searchTokens.filter(t => !STOP_WORDS.has(t));
         const tokensToCheck = importantTokens.length > 0 ? importantTokens : searchTokens;
+
 
         // Bước lọc thô tối ưu chi phí: chấm điểm nhanh cục bộ để chọn ra tối đa số lượng chunks theo cấu hình
         const scoredCandidates = allChunks.map(chunk => {
@@ -2163,11 +2183,11 @@ async function sendDocChatMessage(text) {
 
     // Bước 2: Kiểm tra xem có phải câu hỏi/thảo luận cần AI hay chỉ là tìm kiếm từ khóa đơn giản
     const AI_TRIGGER_WORDS = [
-        "tại sao", "vì sao", "thế nào", "như thế nào", "giải thích", "tổng hợp", "tóm tắt", 
+        "tại sao", "vì sao", "thế nào", "như thế nào", "giải thích", "tổng hợp", "tóm tắt",
         "so sánh", "đánh giá", "phân tích", "hãy", "hỏi", "gemini", "ai", "chatbot", "tư vấn",
         "liệt kê", "kể tên", "những", "các", "nào"
     ];
-    
+
     const hasAiTrigger = AI_TRIGGER_WORDS.some(w => cleanText.includes(w));
     const isLongQuestion = searchTokens.length > 8;
     const hasGoodLocalMatch = scoredCandidates.length > 0 && scoredCandidates[0].score >= 20;
@@ -2190,7 +2210,7 @@ async function sendDocChatMessage(text) {
 
         // Lấy tối đa 2 thẻ tri thức khớp nhất để hiển thị trực tiếp
         const topMatches = scoredCandidates.slice(0, 2);
-        
+
         let replyHtml = `🔍 <b>Tìm thấy tài liệu phù hợp (Trực tiếp từ kho tri thức - Không dùng AI):</b><br><br>`;
         topMatches.forEach((item, index) => {
             const c = item.chunk;
@@ -2426,7 +2446,7 @@ function syncSettingsToModalUI() {
     const elLimit = document.getElementById("cfgEnableDailyLimit");
     const elLimitVal = document.getElementById("cfgDailyLimitCount");
     const elConfirm = document.getElementById("cfgConfirmBeforeAI");
-    
+
     if (elDetailed) elDetailed.checked = window.aiConfig.detailedResponse;
     if (elWide) elWide.checked = window.aiConfig.wideContext;
     if (elHistory) elHistory.checked = window.aiConfig.fullHistory;
@@ -2439,7 +2459,7 @@ function syncSettingsToModalUI() {
 }
 
 // Ẩn/hiện trường nhập số giới hạn lượt hỏi
-window.toggleLimitInputUI = function(show) {
+window.toggleLimitInputUI = function (show) {
     const limitCountRow = document.getElementById("limitCountRow");
     if (limitCountRow) {
         limitCountRow.style.display = show ? "flex" : "none";
@@ -2447,7 +2467,7 @@ window.toggleLimitInputUI = function(show) {
 };
 
 // Mở Modal
-window.openAiSettingsModal = function() {
+window.openAiSettingsModal = function () {
     const modal = document.getElementById("aiSettingsModal");
     if (modal) {
         syncSettingsToModalUI();
@@ -2456,7 +2476,7 @@ window.openAiSettingsModal = function() {
 };
 
 // Đóng Modal
-window.closeAiSettingsModal = function() {
+window.closeAiSettingsModal = function () {
     const modal = document.getElementById("aiSettingsModal");
     if (modal) {
         modal.style.display = "none";
@@ -2464,20 +2484,20 @@ window.closeAiSettingsModal = function() {
 };
 
 // Lưu cấu hình vào Firestore
-window.saveAiSettings = async function() {
+window.saveAiSettings = async function () {
     const elDetailed = document.getElementById("cfgDetailedResponse").checked;
     const elWide = document.getElementById("cfgWideContext").checked;
     const elHistory = document.getElementById("cfgFullHistory").checked;
     const elLimit = document.getElementById("cfgEnableDailyLimit").checked;
     const elLimitVal = parseInt(document.getElementById("cfgDailyLimitCount").value) || 15;
     const elConfirm = document.getElementById("cfgConfirmBeforeAI").checked;
-    
+
     window.Swal.fire({
         title: "Đang lưu cấu hình...",
         allowOutsideClick: false,
         didOpen: () => { window.Swal.showLoading(); }
     });
-    
+
     try {
         const newConfig = {
             detailedResponse: elDetailed,
@@ -2488,10 +2508,10 @@ window.saveAiSettings = async function() {
             confirmBeforeAI: elConfirm,
             updatedAt: new Date().toISOString()
         };
-        
+
         await setDoc(doc(db, "settings", "ai_config"), newConfig);
         window.aiConfig = newConfig;
-        
+
         window.Swal.fire({
             icon: "success",
             title: "Đã lưu cấu hình",
@@ -2499,7 +2519,7 @@ window.saveAiSettings = async function() {
             timer: 1500,
             showConfirmButton: false
         });
-        
+
         closeAiSettingsModal();
     } catch (e) {
         console.error("Lỗi lưu cấu hình AI:", e);
@@ -2514,7 +2534,7 @@ window.saveAiSettings = async function() {
 // Hàm hiển thị cảnh báo xác nhận trước khi gọi AI
 async function confirmAiAction() {
     if (!window.aiConfig.confirmBeforeAI) return true;
-    
+
     const result = await window.Swal.fire({
         title: "Sử dụng Gemini AI",
         text: "Hành động này sẽ sử dụng tài nguyên AI của hệ thống. Bạn có chắc chắn muốn tiếp tục?",
@@ -2532,20 +2552,20 @@ async function confirmAiAction() {
 async function checkAndIncrementDailyUsage() {
     if (userRole === "admin") return true; // Admin không bị giới hạn
     if (!window.aiConfig.enableDailyLimit) return true; // Không kích hoạt giới hạn
-    
+
     const user = auth.currentUser;
     if (!user || !user.email) return false;
-    
+
     const today = new Date().toISOString().split('T')[0];
     const usageDocRef = doc(db, "users", user.email, "usage", today);
-    
+
     try {
         const usageDoc = await getDoc(usageDocRef);
         let count = 0;
         if (usageDoc.exists()) {
             count = usageDoc.data().count || 0;
         }
-        
+
         if (count >= window.aiConfig.dailyLimitCount) {
             window.Swal.fire({
                 icon: "warning",
@@ -2554,7 +2574,7 @@ async function checkAndIncrementDailyUsage() {
             });
             return false;
         }
-        
+
         // Tăng số lượt hỏi
         await setDoc(usageDocRef, { count: count + 1 }, { merge: true });
         return true;
