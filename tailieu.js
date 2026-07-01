@@ -1798,7 +1798,10 @@ async function callGeminiAISearch(queryText) {
         // Sắp xếp giảm dần theo điểm và lấy tối đa ứng viên theo cấu hình (mặc định 6, admin rộng thì 15)
         const maxCandidates = window.aiConfig.wideContext ? 15 : 6;
         scoredCandidates.sort((a, b) => b.score - a.score);
-        const topCandidates = scoredCandidates.slice(0, maxCandidates).map(sc => sc.chunk);
+        // Chỉ lấy các chunk thực sự liên quan (điểm số > 0)
+        const relevantCandidates = scoredCandidates.filter(sc => sc.score > 0);
+        const topCandidates = relevantCandidates.slice(0, maxCandidates).map(sc => sc.chunk);
+
 
         // Chuẩn bị danh sách chunks rút gọn làm ngữ cảnh gửi lên Gemini (tiết kiệm 90% tokens)
         const chunkContexts = topCandidates.map((chunk, idx) => ({
