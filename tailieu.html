@@ -1524,6 +1524,486 @@
                 opacity: 1;
             }
         }
+
+        /* ===== SPLIT-SCREEN DOCUMENT READER MODAL ===== */
+        .doc-reader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 2100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .doc-reader-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            width: 95vw;
+            height: 92vh;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(39, 54, 104, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .doc-reader-header {
+            background: linear-gradient(135deg, #273668, #4f46e5);
+            color: #ffffff;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .doc-reader-header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 15.5px;
+            max-width: 75%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .reader-doc-code {
+            background: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2.5px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .doc-reader-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reader-header-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reader-header-btn:hover {
+            background: rgba(255, 255, 255, 0.28);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-close-reader {
+            font-size: 20px;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border-radius: 50%;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn-close-reader:hover {
+            background: rgba(239, 68, 68, 0.85);
+            border-color: transparent;
+        }
+
+        .doc-reader-body {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            background: #f8fafc;
+        }
+
+        .doc-reader-left {
+            flex: 6.5;
+            /* 65% width */
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #475569;
+            position: relative;
+        }
+
+        .doc-reader-left iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #525659;
+        }
+
+        .reader-frame-loading {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #f1f5f9;
+            gap: 12px;
+        }
+
+        .reader-frame-loading .loader-spinner {
+            border-color: rgba(255, 255, 255, 0.1);
+            border-top-color: #6366f1;
+        }
+
+        .reader-frame-fallback {
+            text-align: center;
+            color: #f1f5f9;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .doc-reader-right {
+            flex: 3.5;
+            /* 35% width */
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            min-height: 0;
+        }
+
+        /* Tabs for Right Pane */
+        .reader-tabs {
+            display: flex;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            gap: 6px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .reader-tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .reader-tab-btn:hover {
+            color: #334155;
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .reader-tab-btn.active {
+            background: #ffffff;
+            color: #4f46e5;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .reader-tab-pane {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .reader-tab-pane.active {
+            display: flex;
+        }
+
+        /* Metadata layout */
+        .reader-metadata-section {
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 18px;
+            margin-bottom: 18px;
+        }
+
+        .reader-meta-item {
+            font-size: 12.5px;
+            color: #334155;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .reader-meta-item b {
+            color: #64748b;
+            font-weight: 600;
+            width: 140px;
+            flex-shrink: 0;
+        }
+
+        .reader-summary-box {
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 3px solid #6366f1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #334155;
+            text-align: justify;
+        }
+
+        .reader-summary-box b {
+            color: #4f46e5;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .reader-summary-box p {
+            margin: 0;
+            font-style: italic;
+        }
+
+        /* Chunks layout */
+        .reader-chunks-section h4 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-top: 0;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .reader-chunks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .reader-chunk-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .reader-chunk-item:not(.expanded):hover {
+            border-color: #cbd5e1;
+            border-left-color: #6366f1;
+            background: #f5f7ff;
+            transform: translateX(2px);
+        }
+
+        .reader-chunk-secname {
+            font-size: 11px;
+            font-weight: 700;
+            color: #d35400;
+            margin-bottom: 2px;
+        }
+
+        .reader-chunk-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .reader-chunk-summary {
+            font-size: 11.5px;
+            color: #64748b;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Accordion Chunk styles */
+        .reader-chunk-content-full {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease, margin 0.3s ease;
+            font-size: 12px;
+            color: #334155;
+            line-height: 1.55;
+            background: #ffffff;
+            border-radius: 6px;
+            margin-top: 0;
+            padding: 0;
+            text-align: justify;
+        }
+
+        .reader-chunk-item.expanded {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            border-left-color: #6366f1;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+        }
+
+        .reader-chunk-item.expanded .reader-chunk-content-full {
+            max-height: 350px;
+            margin-top: 8px;
+            margin-left: -12px;
+            margin-right: -12px;
+            margin-bottom: -10px;
+            padding: 12px 14px;
+            border-top: 1px solid #e2e8f0;
+            border-radius: 0 0 7px 7px;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .reader-chunk-item.expanded .reader-chunk-content-full::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari, Opera */
+        }
+
+        .reader-chunk-item.expanded .reader-chunk-summary {
+            display: none;
+        }
+
+        /* Reader chatbot styling */
+        .reader-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 12px;
+            text-align: left;
+        }
+
+        .reader-chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .reader-chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 4px;
+        }
+
+        .reader-chat-input-row {
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            flex-shrink: 0;
+        }
+
+        .reader-chat-input-row input {
+            flex: 1;
+            border: 1.5px solid rgba(99, 102, 241, 0.2);
+            border-radius: 22px;
+            padding: 8px 14px;
+            font-size: 12.5px;
+            outline: none;
+            background: #f8faff;
+            transition: all 0.2s;
+        }
+
+        .reader-chat-input-row input:focus {
+            border-color: #6366f1;
+            background: #ffffff;
+        }
+
+        .reader-chat-input-row button {
+            background: linear-gradient(135deg, #273668, #4f46e5);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .reader-chat-input-row button:hover {
+            transform: scale(1.08);
+        }
+
+        /* Thẻ TL filter button */
+        .btn-filter-chunks {
+            background: rgba(99, 102, 241, 0.08);
+            color: #6366f1;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2.5px 6.5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 4px;
+        }
+
+        .btn-filter-chunks:hover, .btn-filter-chunks.active {
+            background: #6366f1;
+            color: #ffffff;
+            border-color: #6366f1;
+        }
+
+        @media (max-width: 1024px) {
+            .doc-reader-content {
+                width: 98vw;
+                height: 96vh;
+            }
+
+            .doc-reader-body {
+                flex-direction: column;
+            }
+
+            .doc-reader-left {
+                flex: 5;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .doc-reader-right {
+                flex: 5;
+            }
+        }
     </style>
 </head>
 
@@ -1540,7 +2020,7 @@
         <!-- Khu vực tìm kiếm chính -->
         <div class="search-panel" style="position: relative;">
             <h1>Trung tâm tra cứu tài liệu thông minh</h1>
-            <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản và quy trình kỹ thuật</p>
+            <p>Hệ thống chỉ mục kiến thức tự động hỗ trợ tra cứu văn bản</p>
 
             <div class="search-bar-wrapper">
                 <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, nội dung cần tìm...">
@@ -1558,17 +2038,6 @@
             </div>
         </div>
 
-        <div class="quick-actions-wrapper">
-            <div id="quickLinksContainer" class="quick-links-container">
-                <div id="quickLinksList" class="quick-links-list">
-                </div>
-            </div>
-
-            <button id="adminAiSettingsBtn" class="admin-ai-settings-btn" title="Cấu hình AI" style="display: none;"
-                onclick="openAiSettingsModal()">
-                ⚙️ AI
-            </button>
-        </div>
 
         <!-- Bố cục Layout mới dạng Split 25/75 (Sidebar bên trái, Grid bên phải) -->
         <div class="main-layout-container">
@@ -1612,6 +2081,10 @@
         <div class="doc-chat-header">
             <div class="doc-chat-header-title">🤖 Trợ lý Tài liệu AI</div>
             <div class="doc-chat-header-actions">
+                <button class="doc-chat-header-btn" id="adminAiSettingsBtn" title="Cấu hình AI" style="display: none;"
+                    onclick="openAiSettingsModal()">
+                    ⚙️
+                </button>
                 <button class="doc-chat-header-btn" id="docChatClear" title="Xóa lịch sử">🗑</button>
                 <button class="doc-chat-header-btn" id="docChatClose" title="Đóng">✕</button>
             </div>
@@ -1717,6 +2190,72 @@
             <div class="ai-modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeAiSettingsModal()">Hủy</button>
                 <button type="button" class="btn-save" onclick="saveAiSettings()">Lưu Cấu hình</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split-screen Document Reader Modal -->
+    <div id="documentReaderModal" class="doc-reader-overlay" style="display: none;">
+        <div class="doc-reader-content">
+            <div class="doc-reader-header">
+                <div class="doc-reader-header-title">
+                    <span class="reader-doc-code" id="readerDocCode">TL-XX</span>
+                    <span id="readerDocTitle">Tiêu đề tài liệu đang xem</span>
+                </div>
+                <div class="doc-reader-header-actions">
+                    <button class="reader-header-btn" id="btnDownloadOriginal" title="Tải tệp gốc về">📥 Tải về</button>
+                    <button class="reader-header-btn btn-close-reader" id="btnReaderClose" title="Đóng">&times;</button>
+                </div>
+            </div>
+            <div class="doc-reader-body">
+                <!-- Nửa bên trái: Trình xem PDF / File -->
+                <div class="doc-reader-left">
+                    <div id="docReaderLoading" class="reader-frame-loading">
+                        <div class="loader-spinner"></div>
+                        <p>Đang tải tài liệu gốc...</p>
+                    </div>
+                    <iframe id="docReaderFrame" src="" style="display: none;"></iframe>
+                    <div id="docReaderFallback" class="reader-frame-fallback" style="display: none;">
+                        <p>Tệp tin không thể hiển thị trực tiếp. Vui lòng tải về để xem.</p>
+                        <a href="" id="btnDownloadFallback" class="btn-view-doc">📥 Tải tệp tin</a>
+                    </div>
+                </div>
+                <!-- Nửa bên phải: Thông tin & Hỏi đáp AI -->
+                <div class="doc-reader-right">
+                    <div class="reader-tabs">
+                        <button class="reader-tab-btn active" id="btnReaderTabOverview">📂 Tri thức</button>
+                        <button class="reader-tab-btn" id="btnReaderTabChat">💬 Hỏi Trợ lý AI</button>
+                    </div>
+
+                    <!-- Tab 1: Tri thức & Metadata -->
+                    <div id="readerTabOverview" class="reader-tab-pane active">
+                        <div class="reader-metadata-section">
+                            <div class="reader-meta-item"><b>Cơ quan ban hành:</b> <span id="readerDocIssuer">Đang
+                                    tải...</span></div>
+                            <div class="reader-meta-item"><b>Số hiệu văn bản:</b> <span id="readerDocNumber">Đang
+                                    tải...</span></div>
+                            <div class="reader-meta-item"><b>Ngày ban hành:</b> <span id="readerDocDate">Đang
+                                    tải...</span></div>
+                            <div class="reader-summary-box">
+                                <b>✨ Tóm tắt tổng quan:</b>
+                                <p id="readerDocSummary">Đang tải tóm tắt từ AI...</p>
+                            </div>
+                        </div>
+                        <div class="reader-chunks-section">
+                            <h4>📌 Các đoạn tri thức trích xuất</h4>
+                            <div id="readerChunksList" class="reader-chunks-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Trợ lý Văn bản (Mini Chat) -->
+                    <div id="readerTabChat" class="reader-tab-pane">
+                        <div class="reader-chat-messages" id="readerChatMessages"></div>
+                        <div class="reader-chat-input-row">
+                            <input type="text" id="readerChatInput" placeholder="Hỏi điều gì đó về tài liệu này..." />
+                            <button id="readerChatSend">➤</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

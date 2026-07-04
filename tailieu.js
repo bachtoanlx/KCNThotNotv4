@@ -28,6 +28,16 @@ const PREFERRED_MODEL = 'gemini-2.5-flash';
 let isAiSearchActive = false;
 let aiSearchResults = null; // Mảng các { id, score, reason } trả về từ AI
 
+// Trạng thái Trình đọc tài liệu gốc (Split-screen Reader)
+let currentOpenDocId = null;
+let currentOpenDocBlobUrl = null;
+let currentOpenDocName = "";
+let readerChatHistory = [];
+let readerChatIsThinking = false;
+
+// Bộ lọc hiển thị tri thức theo tài liệu gốc cụ thể
+let activeDocIdFilter = null;
+
 // Từ điển đồng nghĩa và từ viết tắt chuyên ngành KCN/Doanh nghiệp
 const SYNONYM_DICT = {
     "xlnt": ["xử lý nước thải", "nước thải"],
@@ -74,9 +84,6 @@ onAuth(async (user) => {
                 settingsBtn.style.display = "inline-flex";
             }
         }
-
-        // Tải và hiển thị Liên kết & Tài liệu nhanh
-        loadQuickLinks();
 
         // Hiển thị giao diện chính sau khi đã xác thực xong
         const pageContent = document.getElementById("pageContent");
@@ -218,12 +225,19 @@ async function loadFromIDB(idb) {
 
     if (cachedChunks.length === 0) return false; // Chưa có cache
 
-    // Khôi phục allDocuments và docCodeMap từ cache
+    // ===== CẬP NHẬT BẢO MẬT: Khôi phục allDocuments và lọc theo Role =====
     allDocuments = {};
     cachedDocs.forEach(d => {
         const { _id, ...data } = d;
-        allDocuments[_id] = data;
+        // Kiểm tra quyền (Nếu tài liệu không có trường targetGroup thì mặc định cho phép để tránh mất dữ liệu)
+        if (userRole === "admin" ||
+            (userRole === "user" && (data.targetGroup === "guest" || data.targetGroup === "user")) ||
+            (userRole === "guest" && data.targetGroup === "guest") ||
+            !data.targetGroup) {
+            allDocuments[_id] = data;
+        }
     });
+
     const docIds = Object.keys(allDocuments).sort((a, b) => {
         const codeA = allDocuments[a].docCode || "";
         const codeB = allDocuments[b].docCode || "";
@@ -234,8 +248,13 @@ async function loadFromIDB(idb) {
         docCodeMap[id] = allDocuments[id].docCode || "TL-00";
     });
 
-    // Lọc chunk theo role hiện tại (vì cache lưu theo role)
-    allChunks = cachedChunks;
+    // ===== CẬP NHẬT BẢO MẬT: Lọc chunk từ cache lên RAM theo Role hiện tại =====
+    allChunks = cachedChunks.filter(chunk => {
+        if (userRole === "admin") return true;
+        if (userRole === "user") return chunk.targetGroup === "guest" || chunk.targetGroup === "user";
+        return chunk.targetGroup === "guest";
+    });
+
     allChunks.sort((a, b) => {
         const catComp = (a.category || "").localeCompare(b.category || "");
         if (catComp !== 0) return catComp;
@@ -251,8 +270,59 @@ async function deltaSyncFromFirestore(idb, lastSyncTime) {
     const syncStart = new Date();
 
     try {
-        // Đồng bộ tài liệu gốc (documents)
-        const docSnap = await getDocs(collection(db, "documents"));
+        // ===== ĐỒNG BỘ XÓA (DELETE SYNC) CHO INDEXEDDB CACHE =====
+        if (lastSyncTime) {
+            try {
+                const deletedQuery = query(
+                    collection(db, "deleted_logs"),
+                    where("deletedAt", ">", lastSyncTime)
+                );
+                const deletedSnap = await getDocs(deletedQuery);
+                const deletedDocIds = [];
+                deletedSnap.forEach(d => {
+                    deletedDocIds.push(d.id);
+                });
+
+                if (deletedDocIds.length > 0) {
+                    console.log(`[Delete Sync] Phát hiện ${deletedDocIds.length} tài liệu bị xóa từ Firestore:`, deletedDocIds);
+                    
+                    // 1. Xóa documents khỏi IndexedDB
+                    await idbDeleteKeys(idb, STORE_DOCS, deletedDocIds);
+                    
+                    // 2. Xóa chunks thuộc các tài liệu bị xóa khỏi IndexedDB
+                    const existingChunks = await idbGetAll(idb, STORE_CHUNKS);
+                    const chunksToDelete = existingChunks
+                        .filter(c => deletedDocIds.includes(c.documentId))
+                        .map(c => c.id);
+                    
+                    if (chunksToDelete.length > 0) {
+                        await idbDeleteKeys(idb, STORE_CHUNKS, chunksToDelete);
+                    }
+                    
+                    // 3. Xóa khỏi bộ nhớ RAM
+                    deletedDocIds.forEach(docId => {
+                        delete allDocuments[docId];
+                    });
+                    allChunks = allChunks.filter(chunk => !deletedDocIds.includes(chunk.documentId));
+                    
+                    hasChanges = true;
+                }
+            } catch (err) {
+                console.warn("[Delete Sync] Lỗi khi đồng bộ các tài liệu đã bị xóa:", err);
+            }
+        }
+
+        // ===== CẬP NHẬT BẢO MẬT 1: Lọc quyền truy vấn Metadata (documents) =====
+        let docQuery;
+        if (userRole === "admin") {
+            docQuery = query(collection(db, "documents"));
+        } else if (userRole === "user") {
+            docQuery = query(collection(db, "documents"), where("targetGroup", "in", ["guest", "user"]));
+        } else {
+            docQuery = query(collection(db, "documents"), where("targetGroup", "==", "guest"));
+        }
+
+        const docSnap = await getDocs(docQuery);
         const freshDocs = [];
         docSnap.forEach(d => {
             freshDocs.push({ _id: d.id, ...d.data() });
@@ -292,13 +362,23 @@ async function deltaSyncFromFirestore(idb, lastSyncTime) {
         snap.forEach(d => freshChunks.push({ id: d.id, ...d.data() }));
 
         if (freshChunks.length > 0) {
-            // Xóa cache cũ và ghi lại toàn bộ batch mới (đơn giản và đáng tin cậy)
             const existingChunks = await idbGetAll(idb, STORE_CHUNKS);
-            const existingIds = new Set(existingChunks.map(c => c.id));
+
+            // ===== CẬP NHẬT BẢO MẬT 2: Chỉ lấy ID cũ thuộc quyền hiện tại để so sánh =====
+            const existingRoleIds = new Set(
+                existingChunks
+                    .filter(c => {
+                        if (userRole === "admin") return true;
+                        if (userRole === "user") return c.targetGroup === "guest" || c.targetGroup === "user";
+                        return c.targetGroup === "guest";
+                    })
+                    .map(c => c.id)
+            );
+
             const freshIds = new Set(freshChunks.map(c => c.id));
 
-            // Xóa chunk bị xóa khỏi Firestore
-            const deletedIds = [...existingIds].filter(id => !freshIds.has(id));
+            // Chỉ xóa các chunk mà User có quyền nhìn thấy nhưng không còn trên Firestore
+            const deletedIds = [...existingRoleIds].filter(id => !freshIds.has(id));
             if (deletedIds.length > 0) {
                 await idbDeleteKeys(idb, STORE_CHUNKS, deletedIds);
             }
@@ -375,9 +455,20 @@ async function loadDocumentChunks() {
 // Fallback: tải trực tiếp từ Firestore không qua IndexedDB (dự phòng)
 async function loadDocumentChunksDirectly() {
     try {
-        const docSnap = await getDocs(collection(db, "documents"));
+        // ===== CẬP NHẬT BẢO MẬT: Lọc quyền cả ở fallback =====
+        let docQuery;
+        if (userRole === "admin") {
+            docQuery = query(collection(db, "documents"));
+        } else if (userRole === "user") {
+            docQuery = query(collection(db, "documents"), where("targetGroup", "in", ["guest", "user"]));
+        } else {
+            docQuery = query(collection(db, "documents"), where("targetGroup", "==", "guest"));
+        }
+
+        const docSnap = await getDocs(docQuery);
         allDocuments = {};
         docSnap.forEach(d => { allDocuments[d.id] = d.data(); });
+
         const docIds = Object.keys(allDocuments).sort((a, b) => {
             const codeA = allDocuments[a].docCode || "";
             const codeB = allDocuments[b].docCode || "";
@@ -728,6 +819,7 @@ function renderLeftSidebar(chunks, searchTokens = []) {
                         <div class="doc-link-meta">
                             <span class="doc-link-badge ${catClass}">${doc.category}</span>
                             <span class="doc-link-badge ${targetClass}">${targetText}</span>
+                            <button class="btn-filter-chunks ${(activeDocIdFilter === doc.id) ? 'active' : ''}" data-docid="${doc.id}" title="Chỉ xem các thẻ tri thức của tài liệu này" onclick="event.stopPropagation()">Thẻ TL</button>
                             ${deleteBtn}
                         </div>
                     </div>
@@ -740,6 +832,32 @@ function renderLeftSidebar(chunks, searchTokens = []) {
             item.addEventListener("click", () => {
                 const docId = item.dataset.docid;
                 openDocumentSecurely(docId);
+            });
+        });
+
+        // Đăng ký sự kiện lọc tri thức cho nút "Thẻ TL"
+        document.querySelectorAll(".btn-filter-chunks").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const docId = btn.dataset.docid;
+                
+                if (activeDocIdFilter === docId) {
+                    activeDocIdFilter = null; // Tắt lọc nếu nhấn lại
+                } else {
+                    activeDocIdFilter = docId;
+                    
+                    // Reset tìm kiếm AI và từ khóa tìm kiếm
+                    isAiSearchActive = false;
+                    aiSearchResults = null;
+                    docSearchInput.value = "";
+                    const aiSummaryBlock = document.getElementById("aiSummaryBlock");
+                    if (aiSummaryBlock) {
+                        aiSummaryBlock.style.display = "none";
+                        aiSummaryBlock.innerHTML = "";
+                    }
+                }
+                
+                renderGrid();
             });
         });
 
@@ -885,8 +1003,8 @@ function renderGrid() {
     // Map chứa thông tin score và lý do của AI
     const aiMatchMap = {};
 
-    // Trạng thái ban đầu: Chưa gõ từ khóa & Tab đang chọn là Tất cả & Không tìm kiếm bằng AI
-    if (!cleanKeyword && activeCategory === "Tất cả" && !isAiSearchActive) {
+    // Trạng thái ban đầu: Chưa gõ từ khóa & Tab đang chọn là Tất cả & Không tìm kiếm bằng AI & Không lọc tài liệu cụ thể
+    if (!cleanKeyword && activeCategory === "Tất cả" && !isAiSearchActive && !activeDocIdFilter) {
         // Đếm số lượng tài liệu gốc duy nhất
         const seenDocs = new Set();
         allChunks.forEach(chunk => {
@@ -1043,6 +1161,11 @@ function renderGrid() {
         matchedChunks.sort((a, b) => aiMatchMap[b.id].score - aiMatchMap[a.id].score);
         filtered = matchedChunks;
 
+        // Lọc theo tài liệu cụ thể nếu có
+        if (activeDocIdFilter) {
+            filtered = filtered.filter(item => item.documentId === activeDocIdFilter);
+        }
+
         // Lọc theo danh mục của Tab đang chọn
         if (activeCategory !== "Tất cả") {
             filtered = filtered.filter(item => item.category === activeCategory);
@@ -1101,6 +1224,11 @@ function renderGrid() {
         }
 
         filtered = candidates ? Array.from(candidates) : allChunks;
+
+        // Lọc theo tài liệu cụ thể nếu có
+        if (activeDocIdFilter) {
+            filtered = filtered.filter(item => item.documentId === activeDocIdFilter);
+        }
 
         // Lọc theo danh mục của Tab đang chọn
         if (activeCategory !== "Tất cả") {
@@ -1276,7 +1404,7 @@ function renderGrid() {
     }
 
     // Render danh sách tài liệu gốc sang Sidebar bên trái
-    renderLeftSidebar(filtered, searchTokens);
+    renderLeftSidebar(activeDocIdFilter ? allChunks : filtered, searchTokens);
 
     // 3. Trả về kết quả rỗng nếu không tìm thấy
     if (filtered.length === 0) {
@@ -1483,6 +1611,16 @@ async function deleteDocumentAndKnowledge(documentId, documentTitle) {
         const deletePromises = chunksSnap.docs.map(chunkDoc => deleteDoc(chunkDoc.ref));
         await Promise.all(deletePromises);
 
+        // 2.5. Ghi log xóa tài liệu để đồng bộ các Client khác
+        try {
+            await setDoc(doc(db, "deleted_logs", documentId), {
+                deletedAt: new Date().toISOString()
+            });
+            console.log(`[Sync] Đã ghi log xóa cho tài liệu ${documentId}`);
+        } catch (err) {
+            console.warn("Không thể ghi log xóa tài liệu lên Firestore:", err);
+        }
+
         // 3. Cập nhật dữ liệu local và render lại giao diện
         delete allDocuments[documentId];
         allChunks = allChunks.filter(chunk => chunk.documentId !== documentId);
@@ -1517,17 +1655,36 @@ async function openDocumentSecurely(documentId) {
         return;
     }
 
-    // Hiển thị toast nhỏ gọn ở góc — không chặn màn hình
-    window.Swal.fire({
-        toast: true,
-        position: "bottom-end",
-        icon: "info",
-        title: "Đang mở tài liệu...",
-        showConfirmButton: false,
-        timer: 30000,
-        timerProgressBar: false,
-        didOpen: () => window.Swal.showLoading()
-    });
+    // Hiển thị Modal Split-screen Reader trước
+    const modal = document.getElementById("documentReaderModal");
+    if (!modal) {
+        window.Swal.fire({ icon: "error", title: "Lỗi giao diện", text: "Không tìm thấy Modal đọc tài liệu gốc." });
+        return;
+    }
+    
+    // Đặt trạng thái ban đầu cho Modal
+    currentOpenDocId = documentId;
+    readerChatHistory = [];
+    document.getElementById("readerChatMessages").innerHTML = "";
+    document.getElementById("readerChatInput").value = "";
+    
+    modal.style.display = "flex";
+    switchReaderTab("overview");
+
+    // Hiển thị loading bên khung iframe
+    const loaderEl = document.getElementById("docReaderLoading");
+    const frameEl = document.getElementById("docReaderFrame");
+    const fallbackEl = document.getElementById("docReaderFallback");
+    
+    if (loaderEl) loaderEl.style.display = "flex";
+    if (frameEl) {
+        frameEl.style.display = "none";
+        frameEl.src = "";
+    }
+    if (fallbackEl) fallbackEl.style.display = "none";
+
+    // Kết xuất thông tin tri thức / metadata tài liệu bên phải
+    renderReaderRightPane(documentId);
 
     try {
         // 1. Tạo ticketId ngẫu nhiên (UUID v4 client-side đơn giản)
@@ -1536,9 +1693,7 @@ async function openDocumentSecurely(documentId) {
         );
 
         // 2. Ghi ticket lên Firestore bảng download_tickets
-        // Vé này chỉ có thời hạn 60 giây
         const expiresAt = new Date(Date.now() + 60 * 1000);
-
         await setDoc(doc(db, "download_tickets", ticketId), {
             email: user.email,
             documentId: documentId,
@@ -1547,48 +1702,19 @@ async function openDocumentSecurely(documentId) {
             createdAt: new Date().toISOString()
         });
 
-        // 4. Mở sẵn một tab trống để tránh pop-up blocker của trình duyệt
-        const newWindow = window.open("", "_blank");
-        if (newWindow) {
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Đang tải tài liệu...</title>
-                        <meta charset="utf-8">
-                        <style>
-                            body { margin:0; padding:0; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#0f172a; color:#f1f5f9; font-family:sans-serif; }
-                            .loader { border:4px solid rgba(255,255,255,0.1); border-left-color:#6366f1; width:36px; height:36px; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:15px; }
-                            @keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
-                            .box { text-align:center; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="box">
-                            <div class="loader" style="margin:0 auto 15px auto;"></div>
-                            <div style="font-size:15px; font-weight:500;">Đang tải tệp tin an toàn từ Google Drive...</div>
-                            <div style="font-size:13px; color:#94a3b8; margin-top:5px;">Vui lòng không đóng cửa sổ này</div>
-                        </div>
-                    </body>
-                </html>
-            `);
-        }
-
-        // 5. Gọi Web App để lấy nội dung file dưới dạng Base64
+        // 3. Gọi Web App để lấy nội dung file dưới dạng Base64
         const redirectUrl = `${GAS_API_URL}?action=viewFile&ticketId=${ticketId}`;
         const response = await fetch(redirectUrl);
         if (!response.ok) {
-            if (newWindow) newWindow.close();
             throw new Error(`Lỗi kết nối máy chủ (HTTP ${response.status})`);
         }
 
         const data = await response.json();
         if (!data.success) {
-            if (newWindow) newWindow.close();
             throw new Error(data.error || "Không thể tải tài liệu.");
         }
 
-        // 6. Giải mã Base64 thành Blob URL
+        // 4. Giải mã Base64 thành Blob URL
         const byteCharacters = atob(data.base64);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -1597,32 +1723,34 @@ async function openDocumentSecurely(documentId) {
         const byteArray = new Uint8Array(byteNumbers);
         const fileBlob = new Blob([byteArray], { type: data.mimeType });
         const fileUrl = URL.createObjectURL(fileBlob);
+        
+        currentOpenDocBlobUrl = fileUrl;
+        currentOpenDocName = data.fileName;
 
-        // 7. Mở xem trực tiếp nếu xem được (PDF, Ảnh), hoặc tự động tải về
+        // 5. Mở xem trực tiếp nếu xem được (PDF, Ảnh, Text), hoặc hiển thị fallback tải về
         const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain'];
 
+        if (loaderEl) loaderEl.style.display = "none";
+        
         if (viewableTypes.includes(data.mimeType)) {
-            if (newWindow) {
-                newWindow.location.href = fileUrl;
-                newWindow.document.title = data.fileName;
-            } else {
-                window.open(fileUrl, "_blank");
+            if (frameEl) {
+                frameEl.src = fileUrl;
+                frameEl.style.display = "block";
             }
         } else {
-            if (newWindow) newWindow.close();
-            const link = document.createElement('a');
-            link.href = fileUrl;
-            link.download = data.fileName;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Không hỗ trợ xem inline, hiện fallback tải về
+            if (fallbackEl) {
+                fallbackEl.style.display = "flex";
+                const fallbackBtn = document.getElementById("btnDownloadFallback");
+                if (fallbackBtn) fallbackBtn.href = fileUrl;
+            }
         }
-
-        window.Swal.close();
 
     } catch (e) {
         console.error("Lỗi tải tài liệu gốc:", e);
-        window.Swal.fire({ icon: "error", title: "Lỗi bảo mật", text: e.message || "Không thể tải tài liệu. Vui lòng liên hệ Admin hoặc làm mới trang." });
+        if (loaderEl) loaderEl.style.display = "none";
+        window.Swal.fire({ icon: "error", title: "Lỗi tải tài liệu", text: e.message || "Không thể tải tài liệu gốc." });
+        closeDocumentReader();
     }
 }
 window.openDocumentSecurely = openDocumentSecurely;
@@ -1951,6 +2079,7 @@ ${JSON.stringify(chunkContexts)}`;
 docSearchInput.addEventListener("input", () => {
     isAiSearchActive = false;
     aiSearchResults = null;
+    activeDocIdFilter = null; // Reset document filter
     displayLimit = 12;
     const aiSummaryBlock = document.getElementById("aiSummaryBlock");
     if (aiSummaryBlock) {
@@ -1973,6 +2102,7 @@ if (aiSearchBtn) {
             });
             return;
         }
+        activeDocIdFilter = null; // Reset document filter
         callGeminiAISearch(queryText);
     });
 }
@@ -1984,6 +2114,7 @@ tabButtons.forEach(btn => {
         btn.classList.add("active");
         activeCategory = btn.dataset.category;
         displayLimit = 12;
+        activeDocIdFilter = null; // Reset document filter
         renderGrid();
     });
 });
@@ -1993,63 +2124,11 @@ window.triggerQuickSearch = function (keyword) {
     if (docSearchInput) {
         docSearchInput.value = keyword;
         displayLimit = 12;
+        activeDocIdFilter = null; // Reset document filter
         renderGrid();
     }
 };
 
-// =========================================================================
-// 🔗 TẢI VÀ HIỂN THỊ LIÊN KẾT & TÀI LIỆU NHANH (Chuyển từ trang chủ sang)
-// =========================================================================
-async function loadQuickLinks() {
-    const container = document.getElementById("quickLinksContainer");
-    const listEl = document.getElementById("quickLinksList");
-    if (!container || !listEl) return;
-
-    try {
-        // Lọc bảo mật từ gốc bằng cách chọn đúng Query dựa trên vai trò
-        let q;
-        if (userRole === "admin") {
-            q = query(collection(db, "document_links"));
-        } else if (userRole === "user") {
-            q = query(collection(db, "document_links"), where("targetGroup", "in", ["guest", "user"]));
-        } else {
-            q = query(collection(db, "document_links"), where("targetGroup", "==", "guest"));
-        }
-
-        const snap = await getDocs(q);
-        const docs = [];
-        snap.forEach(docSnap => {
-            docs.push({ id: docSnap.id, ...docSnap.data() });
-        });
-
-        // Sắp xếp thứ tự
-        docs.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
-
-        if (docs.length === 0) {
-            container.style.display = "none";
-            return;
-        }
-
-        listEl.innerHTML = docs.map(doc => {
-            return `
-                <a href="${doc.url}" target="_blank" class="quick-link-item" title="${doc.title}">
-                    <div class="quick-link-icon">🔗</div>
-                    <div class="quick-link-info">
-                        <div class="quick-link-title">${doc.title}</div>
-                        <div class="quick-link-desc">${doc.description || "Nhấp để mở..."}</div>
-                    </div>
-                </a>
-            `;
-        }).join('');
-
-        container.style.display = "block";
-    } catch (err) {
-        console.error("Lỗi khi tải Lối tắt công cụ:", err);
-        container.style.display = "none";
-    }
-}
-// Export để dùng nội bộ hoặc trong onAuth
-window.loadQuickLinks = loadQuickLinks;
 
 // =========================================================
 // AI Chat Panel Multi-turn (Trợ lý Tài liệu)
@@ -2586,3 +2665,294 @@ async function checkAndIncrementDailyUsage() {
         return true; // Nếu lỗi phân quyền, cho phép chạy tiếp để tránh nghẽn tính năng
     }
 }
+
+// =========================================================
+// 📂 HỆ THỐNG TRÌNH ĐỌC SONG SONG (SPLIT-SCREEN READER)
+// =========================================================
+
+function renderReaderRightPane(docId) {
+    const docData = allDocuments[docId] || {};
+    const code = docCodeMap[docId] || "TL-XX";
+    
+    document.getElementById("readerDocCode").textContent = code;
+    document.getElementById("readerDocTitle").textContent = docData.title || docData.fileName || "Tài liệu";
+    document.getElementById("readerDocIssuer").textContent = docData.issuedBy || "Không rõ";
+    document.getElementById("readerDocNumber").textContent = docData.documentNumber || docData.fileName || "Không rõ";
+    
+    let issuedDateStr = "Không rõ";
+    if (docData.issuedDate) {
+        const dateObj = new Date(docData.issuedDate);
+        if (!isNaN(dateObj.getTime())) {
+            issuedDateStr = dateObj.toLocaleDateString("vi-VN");
+        } else {
+            issuedDateStr = docData.issuedDate;
+        }
+    }
+    document.getElementById("readerDocDate").textContent = issuedDateStr;
+    document.getElementById("readerDocSummary").textContent = docData.summary || "Không có tóm tắt.";
+
+    // Render Chunks
+    const chunks = allChunks.filter(c => c.documentId === docId);
+    const chunksListEl = document.getElementById("readerChunksList");
+    
+    if (chunks.length === 0) {
+        chunksListEl.innerHTML = `<div style="font-size:12px; color:#64748b; padding:10px; text-align:center;">Không có đoạn tri thức trích dẫn nào.</div>`;
+    } else {
+        chunksListEl.innerHTML = chunks.map((c, index) => {
+            const escapedContent = (c.content || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\n/g, "<br>");
+
+            return `
+                <div class="reader-chunk-item" data-chunk-id="${c.id}">
+                    <div class="reader-chunk-secname">${c.sectionName || `Đoạn ${index + 1}`}</div>
+                    <div class="reader-chunk-title">${c.title || ""}</div>
+                    <div class="reader-chunk-summary">${c.summary || (c.content ? c.content.substring(0, 100) + "..." : "")}</div>
+                    <div class="reader-chunk-content-full">${escapedContent}</div>
+                </div>
+            `;
+        }).join('');
+
+        // Add click listener to chunks (Accordion toggle)
+        document.querySelectorAll("#readerChunksList .reader-chunk-item").forEach(item => {
+            item.addEventListener("click", () => {
+                const isExpanded = item.classList.contains("expanded");
+                
+                // Thu gọn tất cả các thẻ khác trước
+                document.querySelectorAll("#readerChunksList .reader-chunk-item").forEach(el => {
+                    el.classList.remove("expanded");
+                });
+                
+                // Nếu chưa mở rộng thì mở rộng thẻ hiện tại
+                if (!isExpanded) {
+                    item.classList.add("expanded");
+                }
+            });
+        });
+    }
+}
+
+function switchReaderTab(tabName) {
+    const tabOverview = document.getElementById("readerTabOverview");
+    const tabChat = document.getElementById("readerTabChat");
+    const btnTabOverview = document.getElementById("btnReaderTabOverview");
+    const btnTabChat = document.getElementById("btnReaderTabChat");
+
+    if (!tabOverview || !tabChat || !btnTabOverview || !btnTabChat) return;
+
+    if (tabName === "overview") {
+        tabOverview.classList.add("active");
+        tabChat.classList.remove("active");
+        btnTabOverview.classList.add("active");
+        btnTabChat.classList.remove("active");
+    } else if (tabName === "chat") {
+        tabOverview.classList.remove("active");
+        tabChat.classList.add("active");
+        btnTabOverview.classList.remove("active");
+        btnTabChat.classList.add("active");
+        
+        // Render history if empty
+        if (readerChatHistory.length === 0) {
+            appendReaderChatMessage("ai", "💬 Chào bạn! Hãy đặt câu hỏi bất kỳ liên quan đến tài liệu này.");
+        }
+        
+        setTimeout(() => document.getElementById("readerChatInput")?.focus(), 200);
+    }
+}
+
+function appendReaderChatMessage(role, text) {
+    const messagesEl = document.getElementById("readerChatMessages");
+    if (!messagesEl) return;
+
+    const div = document.createElement("div");
+    div.className = `doc-chat-msg ${role}`;
+    div.innerHTML = text.replace(/\n/g, "<br>");
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+}
+
+async function sendReaderChatMessage(text) {
+    if (!text.trim() || readerChatIsThinking) return;
+
+    const user = auth.currentUser;
+    if (!user) {
+        appendReaderChatMessage("ai", "⚠️ Vui lòng đăng nhập để sử dụng tính năng này.");
+        return;
+    }
+
+    // Kiểm tra quota trước
+    const proceed = await confirmAiAction();
+    if (!proceed) return;
+
+    const hasQuota = await checkAndIncrementDailyUsage();
+    if (!hasQuota) return;
+
+    readerChatHistory.push({ role: "user", text });
+    appendReaderChatMessage("user", text);
+    readerChatIsThinking = true;
+
+    // Disable input
+    const inputEl = document.getElementById("readerChatInput");
+    const sendBtn = document.getElementById("readerChatSend");
+    if (inputEl) inputEl.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Show loading
+    const typingBubble = appendReaderChatMessage("ai", "⏳ Trợ lý đang phân tích tài liệu để trả lời...");
+
+    try {
+        const chunks = allChunks.filter(c => c.documentId === currentOpenDocId);
+        
+        // System Prompt with this document's content
+        const docContext = chunks.map(c => ({
+            section: c.sectionName || "",
+            title: c.title || "",
+            summary: c.summary || "",
+            content: c.content ? c.content.substring(0, 350) : ""
+        }));
+
+        const systemPrompt = `Bạn là trợ lý AI thông minh chuyên hỗ trợ đọc hiểu văn bản pháp lý / quy trình kỹ thuật.
+Nhiệm vụ của bạn là trả lời các câu hỏi dựa trên nội dung duy nhất của tài liệu được cung cấp dưới đây.
+Nếu thông tin không nằm trong ngữ cảnh tài liệu này, hãy nói thẳng là tài liệu không đề cập đến thông tin đó và đề xuất người dùng hỏi câu hỏi khác liên quan. Trả lời bằng tiếng Việt ngắn gọn, rõ ràng.
+
+Ngữ cảnh tài liệu:
+${JSON.stringify(docContext)}`;
+
+        // Build history turns
+        const contents = [];
+        contents.push({
+            role: "user",
+            parts: [{ text: systemPrompt }]
+        });
+        contents.push({
+            role: "model",
+            parts: [{ text: "Đã hiểu ngữ cảnh tài liệu. Tôi sẵn sàng giải đáp câu hỏi của bạn." }]
+        });
+
+        // Add history
+        readerChatHistory.forEach(msg => {
+            contents.push({
+                role: msg.role === "user" ? "user" : "model",
+                parts: [{ text: msg.text }]
+            });
+        });
+
+        let aiText = "";
+        if (USE_PROXY) {
+            try {
+                const idToken = await user.getIdToken();
+                const formData = new URLSearchParams();
+                formData.append("action", "chatAI");
+                formData.append("idToken", idToken);
+                formData.append("data", JSON.stringify({
+                    model: PREFERRED_MODEL,
+                    contents: contents
+                }));
+
+                const response = await fetch(PROXY_URL, { method: "POST", body: formData });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errText}`);
+                }
+
+                const resJson = await response.json();
+                if (resJson.error || resJson.success === false) {
+                    throw new Error(resJson.error || "Lỗi Proxy");
+                }
+
+                const parts = resJson?.candidates?.[0]?.content?.parts;
+                aiText = parts && parts.length ? parts.map(p => p.text).join("") : "";
+            } catch (proxyError) {
+                console.warn("[ReaderChat] Proxy AI gặp lỗi, thử gọi trực tiếp bằng Local Key làm dự phòng:", proxyError);
+                aiText = await callGeminiDirectly(contents);
+            }
+        } else {
+            aiText = await callGeminiDirectly(contents);
+        }
+
+        if (typingBubble) typingBubble.remove();
+        readerChatHistory.push({ role: "ai", text: aiText });
+        appendReaderChatMessage("ai", aiText);
+
+    } catch (err) {
+        console.error("[ReaderChat] Lỗi:", err);
+        if (typingBubble) typingBubble.remove();
+        appendReaderChatMessage("ai", `❌ Lỗi: ${err.message || "Không thể kết nối AI. Vui lòng thử lại."}`);
+    } finally {
+        readerChatIsThinking = false;
+        if (inputEl) { inputEl.disabled = false; inputEl.focus(); }
+        if (sendBtn) sendBtn.disabled = false;
+    }
+}
+
+function closeDocumentReader() {
+    const modal = document.getElementById("documentReaderModal");
+    if (modal) modal.style.display = "none";
+    
+    // Thu hồi Blob URL để giải phóng RAM
+    if (currentOpenDocBlobUrl) {
+        URL.revokeObjectURL(currentOpenDocBlobUrl);
+        currentOpenDocBlobUrl = null;
+    }
+    currentOpenDocId = null;
+    currentOpenDocName = "";
+    
+    // Xóa lịch sử chat
+    readerChatHistory = [];
+    document.getElementById("readerChatMessages").innerHTML = "";
+    document.getElementById("docReaderFrame").src = "";
+}
+
+function initDocumentReader() {
+    const btnReaderClose = document.getElementById("btnReaderClose");
+    const btnReaderTabOverview = document.getElementById("btnReaderTabOverview");
+    const btnReaderTabChat = document.getElementById("btnReaderTabChat");
+    const btnDownloadOriginal = document.getElementById("btnDownloadOriginal");
+    const btnDownloadFallback = document.getElementById("btnDownloadFallback");
+    const readerChatSend = document.getElementById("readerChatSend");
+    const readerChatInput = document.getElementById("readerChatInput");
+
+    btnReaderClose?.addEventListener("click", closeDocumentReader);
+    
+    btnReaderTabOverview?.addEventListener("click", () => switchReaderTab("overview"));
+    btnReaderTabChat?.addEventListener("click", () => switchReaderTab("chat"));
+    
+    const downloadHandler = () => {
+        if (currentOpenDocBlobUrl) {
+            const link = document.createElement('a');
+            link.href = currentOpenDocBlobUrl;
+            link.download = currentOpenDocName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    };
+    
+    btnDownloadOriginal?.addEventListener("click", downloadHandler);
+    btnDownloadFallback?.addEventListener("click", downloadHandler);
+
+    readerChatSend?.addEventListener("click", () => {
+        const text = readerChatInput?.value.trim();
+        if (text) {
+            readerChatInput.value = "";
+            sendReaderChatMessage(text);
+        }
+    });
+
+    readerChatInput?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            const text = readerChatInput.value.trim();
+            if (text) {
+                readerChatInput.value = "";
+                sendReaderChatMessage(text);
+            }
+        }
+    });
+}
+
+// Khởi chạy trình đọc tài liệu gốc
+initDocumentReader();
