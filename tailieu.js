@@ -1571,7 +1571,7 @@ function renderGrid() {
 // Xóa tài liệu gốc và toàn bộ tri thức liên quan (Chỉ Admin)
 async function deleteDocumentAndKnowledge(documentId, documentTitle) {
     if (userRole !== "admin") {
-        window.Swal.fire({ icon: "warning", title: "Không có quyền", text: "Chỉ Admin mới được phép xóa tài liệu." });
+        showSwal("warning", "Không có quyền: Chỉ Admin mới được phép xóa tài liệu.");
         return;
     }
 
@@ -1640,28 +1640,28 @@ async function deleteDocumentAndKnowledge(documentId, documentTitle) {
 
     } catch (e) {
         console.error("Lỗi khi xóa tài liệu:", e);
-        window.Swal.fire({ icon: "error", title: "Lỗi xóa", text: "Không thể xóa tài liệu. Kiểm tra Firestore Rules hoặc thử lại." });
+        showSwal("error", "Lỗi xóa: Không thể xóa tài liệu. Kiểm tra Firestore Rules hoặc thử lại.");
     }
 }
 
 // Mở tài liệu an toàn thông qua Apps Script Proxy kiểm tra quyền bằng Ticket dùng 1 lần
 async function openDocumentSecurely(documentId) {
     if (!documentId) {
-        window.Swal.fire({ icon: "error", title: "Lỗi", text: "Không tìm thấy ID tài liệu gốc." });
+        showSwal("error", "Lỗi: Không tìm thấy ID tài liệu gốc.");
         return;
     }
 
     // Kiểm tra trạng thái đăng nhập
     const user = auth.currentUser;
     if (!user || !user.email) {
-        window.Swal.fire({ icon: "warning", title: "Yêu cầu đăng nhập", text: "Vui lòng đăng nhập hệ thống để tải tài liệu gốc." });
+        showSwal("warning", "Yêu cầu đăng nhập: Vui lòng đăng nhập hệ thống để tải tài liệu gốc.");
         return;
     }
 
     // Hiển thị Modal Split-screen Reader trước
     const modal = document.getElementById("documentReaderModal");
     if (!modal) {
-        window.Swal.fire({ icon: "error", title: "Lỗi giao diện", text: "Không tìm thấy Modal đọc tài liệu gốc." });
+        showSwal("error", "Lỗi giao diện: Không tìm thấy Modal đọc tài liệu gốc.");
         return;
     }
 
@@ -1752,7 +1752,7 @@ async function openDocumentSecurely(documentId) {
     } catch (e) {
         console.error("Lỗi tải tài liệu gốc:", e);
         if (loaderEl) loaderEl.style.display = "none";
-        window.Swal.fire({ icon: "error", title: "Lỗi tải tài liệu", text: e.message || "Không thể tải tài liệu gốc." });
+        showSwal("error", "Lỗi tải tài liệu: " + (e.message || "Không thể tải tài liệu gốc."));
         closeDocumentReader();
     }
 }
@@ -2296,7 +2296,7 @@ async function sendDocChatMessage(text) {
         // Lấy tối đa 2 thẻ tri thức khớp nhất để hiển thị trực tiếp
         const topMatches = scoredCandidates.slice(0, 2);
 
-        let replyHtml = `🔍 <b>Tìm thấy tài liệu phù hợp (Trực tiếp từ kho tri thức - Không dùng AI):</b><br><br>`;
+        let replyHtml = `🔍 <b>Tìm thấy tài liệu phù hợp (Trực tiếp từ kho tri thức):</b><br><br>`;
         topMatches.forEach((item, index) => {
             const c = item.chunk;
             const docCode = docCodeMap[c.documentId] || "TL-XX";
@@ -2325,7 +2325,7 @@ async function sendDocChatMessage(text) {
     if (inputEl) inputEl.disabled = true;
 
     // Hiển thị bong bóng "đang gõ"
-    const typingBubble = appendChatMessage("ai", "⏳ Gemini AI đang phân tích tài liệu và tổng hợp kết quả...", true);
+    const typingBubble = appendChatMessage("ai", "⏳ AI đang phân tích tài liệu và tổng hợp...", true);
 
     try {
         // Lấy số lượng chunks theo cấu hình (mặc định 6, hoặc 15 nếu bật Ngữ cảnh rộng)

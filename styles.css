@@ -2871,3 +2871,5 @@ body.fixed-viewport-layout .scenario-card .btn-action {
     display: none !important;
   }
 }
+/* Nang Z-index cho cac thong bao hien thi noi */
+.swal2-container { z-index: 99999 !important; }

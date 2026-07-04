@@ -24,3 +24,37 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
+
+// ====== BỘ NHỚ ĐỆM TĨNH (Stale-While-Revalidate) ======
+const CACHE_NAME = 'kcn-app-cache-v2';
+
+self.addEventListener('fetch', function(event) {
+  const request = event.request;
+  
+  // Chỉ áp dụng cho các request GET cục bộ
+  if (request.method !== 'GET') return;
+  
+  const url = new URL(request.url);
+  // Bỏ qua các request tới domain khác (như Firebase Firestore, API ngoài)
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith(
+    caches.match(request).then(function(cachedResponse) {
+      // Tải từ mạng để cập nhật cache ngầm (Revalidate)
+      const fetchPromise = fetch(request).then(function(networkResponse) {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(request, responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(err => {
+        console.warn('Offline mode: Using cache for', request.url);
+      });
+
+      // Trả về bản cache ngay lập tức nếu có, nếu không thì chờ mạng
+      return cachedResponse || fetchPromise;
+    })
+  );
+});

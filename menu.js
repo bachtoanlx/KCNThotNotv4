@@ -86,6 +86,8 @@ export function initMenu() {
 
   // 🔥 Theo dõi trạng thái đăng nhập
   onAuth(async (user) => {
+    const authRequiredItems = document.querySelectorAll('.auth-required');
+    
     if (user) {
       userEmailEl.textContent = user.email;
       loginBtn.style.display = "none";
@@ -105,13 +107,20 @@ export function initMenu() {
       // Truyền vào số ngày, ví dụ: 7 ngày (hoặc có thể truyền số thập phân như 0.5 cho nửa ngày)
       initAutoLogout(7);
 
+      // Hiển thị các menu cần đăng nhập (trừ admin-only)
+      authRequiredItems.forEach(el => {
+        if (!el.classList.contains('admin-only')) {
+          el.style.display = ""; // Phục hồi display mặc định của CSS
+        }
+      });
+
       const role = await getRole(user.email);
       if (role === "admin") {
         adminOnly.forEach((el) => {
           if (el.closest('.dropdown-content')) {
             el.style.display = "block";
           } else {
-            el.style.display = "inline-block";
+            el.style.display = "inline-block"; // Hiển thị cả mục Quản trị
           }
         });
       } else {
@@ -121,6 +130,8 @@ export function initMenu() {
       userEmailEl.textContent = "";
       loginBtn.style.display = "inline-block";
       logoutBtn.style.display = "none";
+      // Ẩn toàn bộ menu auth-required và admin-only
+      authRequiredItems.forEach((el) => (el.style.display = "none"));
       adminOnly.forEach((el) => (el.style.display = "none"));
     }
   });

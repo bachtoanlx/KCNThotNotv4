@@ -50,6 +50,8 @@ let activeEditingRuleData = null;
 let activeEditingPatternData = null;
 
 // === LOGIC TABS ===
+const loadedTabs = new Set(['tab-company']); // Mặc định tab công ty được tải
+
 function initTabs() {
     const tabBtns = document.querySelectorAll(".settings-tab-btn");
     const tabPanes = document.querySelectorAll(".settings-tab-pane");
@@ -76,6 +78,12 @@ function initTabs() {
                     item.classList.remove("active");
                 }
             });
+
+            // 🔥 LAZY LOAD DATA CHO TAB (Chỉ chạy 1 lần đầu tiên)
+            if (!loadedTabs.has(targetId)) {
+                loadedTabs.add(targetId);
+                triggerLazyLoadForTab(targetId);
+            }
         });
     });
 
@@ -87,6 +95,26 @@ function initTabs() {
         if (targetBtn) {
             targetBtn.click();
         }
+    }
+}
+
+function triggerLazyLoadForTab(targetId) {
+    switch (targetId) {
+        case 'tab-shifts':
+            setupShiftManagement();
+            break;
+        case 'tab-schedule':
+            setupScheduleManagement();
+            break;
+        case 'tab-system':
+            setupSystemManagement();
+            break;
+        case 'tab-ai':
+            setupAIKnowledgeManagement();
+            break;
+        case 'tab-documents':
+            setupDocumentsManagement();
+            break;
     }
 }
 
@@ -443,11 +471,12 @@ onAuth(async (user) => {
         loadSystemConfig();
         setupConfigModal();
         loadAutoplanTimes();
-        setupShiftManagement();
-        setupScheduleManagement();
-        setupSystemManagement();
-        setupAIKnowledgeManagement();
-        setupDocumentsManagement();
+        // CÁC HÀM BÊN DƯỚI ĐÃ ĐƯỢC CHUYỂN SANG LAZY LOAD KHI BẤM TAB
+        // setupShiftManagement();
+        // setupScheduleManagement();
+        // setupSystemManagement();
+        // setupAIKnowledgeManagement();
+        // setupDocumentsManagement();
         csEffectiveDate.value = formatISODate(new Date());
         
         fetchAllUsers().then(firestoreUsers => {

@@ -994,7 +994,7 @@ import { initMenu } from "./menu.js";
               const s = new Date(startDateInput.value + 'T00:00:00');
               const e = new Date(endDateInput.value + 'T23:59:59');
               if (s > e) {
-                Swal.fire('Lỗi', 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.', 'error');
+                showSwal('error', 'Lỗi: ' + 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.');
                 return;
               }
             }
@@ -1051,7 +1051,7 @@ import { initMenu } from "./menu.js";
                 applyLocalFilters();
             } catch (err) {
                 console.error("Lỗi khi tải log:", err);
-                Swal.fire('Lỗi', 'Không thể tải nhật ký.', 'error');
+                showSwal('error', 'Lỗi: ' + 'Không thể tải nhật ký.');
             } finally {
                 isFetching = false; // Mở khóa
             }

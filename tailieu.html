@@ -127,14 +127,17 @@
 
         /* AI Summary Block - Clean text, no background container */
         .ai-summary-block {
-            max-width: 730px;
-            margin: 12px auto 6px auto;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
             text-align: left;
-            font-size: 14px;
+            font-size: 15px;
             line-height: 1.6;
             color: #334155;
-            padding: 0 10px;
             display: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .ai-summary-block strong {
@@ -2116,12 +2119,6 @@
                 flex-shrink: 0;
                 /* Không cho bộ lọc bị bóp méo */
             }
-
-            /* Đảm bảo khối tóm tắt AI (nếu hiện) sẽ rớt xuống hàng dưới và chiếm 100% */
-            .ai-summary-block {
-                flex: 1 1 100%;
-                margin: 5px 0 0 0 !important;
-            }
         }
     </style>
 </head>
@@ -2143,11 +2140,10 @@
 
             <div class="search-bar-wrapper">
                 <input type="text" id="docSearchInput" placeholder="Nhập từ khóa, nội dung cần tìm...">
-                <button type="button" id="aiSearchBtn" class="ai-search-btn" title="Tìm kiếm bằng AI (Gemini)">
+                <button type="button" id="aiSearchBtn" class="ai-search-btn" title="Tìm kiếm bằng AI">
                     <span>✨ AI</span>
                 </button>
             </div>
-            <div id="aiSummaryBlock" class="ai-summary-block"></div>
 
             <div class="filter-tabs">
                 <button class="tab-btn active" data-category="Tất cả">Tất cả</button>
@@ -2180,6 +2176,7 @@
 
             <!-- Khu vực 75% bên phải: Lưới các đoạn tri thức -->
             <div class="right-content-area">
+                <div id="aiSummaryBlock" class="ai-summary-block"></div>
                 <div class="document-grid" id="documentGrid">
                     <!-- Trạng thái mặc định đang tải -->
                     <div class="state-container" id="defaultState">
@@ -2392,4 +2389,4 @@
     <script type="module" src="tailieu.js?v=2026"></script>
 </body>
 
-</html> 
+</html>

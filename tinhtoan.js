@@ -726,7 +726,7 @@ function loadScenario(index) {
     });
 
   } catch (err) {
-    Swal.fire("Lỗi", "Không thể nạp dữ liệu kịch bản: " + err.message, "error");
+    showSwal("error", "Lỗi: " + "Không thể nạp dữ liệu kịch bản: " + err.message);
   }
 }
 

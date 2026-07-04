@@ -66,7 +66,48 @@ export const messaging = getMessaging(app);
 
 // ====== AUTH ======
 export function onAuth(callback) {
-  onAuthStateChanged(auth, callback);
+  let currentUserState = "pending"; // Trạng thái: "pending", "logged_in", "logged_out"
+  
+  // 1. Optimistic Authentication: Trả về user ngay từ localStorage (nếu có) để vượt qua độ trễ mạng
+  const cachedUserStr = localStorage.getItem("optimistic_auth_user");
+  if (cachedUserStr) {
+    try {
+      const cachedUser = JSON.parse(cachedUserStr);
+      currentUserState = "logged_in";
+      callback(cachedUser);
+    } catch (e) {
+      console.warn("Lỗi đọc cache user:", e);
+    }
+  }
+
+  // 2. Chạy ngầm onAuthStateChanged để xác minh thực tế
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Cập nhật lại cache với thông tin an toàn
+      const userToCache = { 
+        uid: user.uid, 
+        email: user.email, 
+        displayName: user.displayName,
+        photoURL: user.photoURL
+      };
+      localStorage.setItem("optimistic_auth_user", JSON.stringify(userToCache));
+      
+      // Nếu trạng thái trước đó không phải "logged_in" (ví dụ: họ vừa mới bấm đăng nhập), ta kích hoạt callback
+      if (currentUserState !== "logged_in") {
+        currentUserState = "logged_in";
+        callback(user);
+      }
+    } else {
+      // User đã đăng xuất hoặc token hết hạn/bị xóa
+      localStorage.removeItem("optimistic_auth_user");
+      
+      // Nếu trạng thái trước đó không phải "logged_out", ta gọi callback(null) để UI xử lý đăng xuất
+      if (currentUserState !== "logged_out") {
+        currentUserState = "logged_out";
+        callback(null);
+      }
+    }
+  });
 }
 
 // ====== CLOUD MESSAGING (FCM) ======
@@ -2353,12 +2394,26 @@ export function isDateADefaultHoliday(isoDate, company, config) {
   // Nếu là 'none' hoặc các trường hợp khác (T2-T6)
   return false;
 }
-// Hiện modal loading
+let loadingTimer = null;
+let isShowingLoading = false;
+
+// Hiện modal loading (có độ trễ để tránh chớp giật)
 export function showLoading(msg = "Đang xử lý, vui lòng chờ...") {
   const modal = document.getElementById("loadingModal");
   if (modal) {
-    modal.style.display = "flex";
     modal.querySelector("p").textContent = msg;
+    
+    // Nếu chưa hiện và chưa có lịch hẹn hiện, ta chờ 300ms
+    // Nếu dữ liệu load từ cache siêu nhanh (<300ms), hideLoading sẽ hủy lệnh này!
+    if (!loadingTimer && !isShowingLoading) {
+      loadingTimer = setTimeout(() => {
+        modal.style.display = "flex";
+        isShowingLoading = true;
+      }, 300);
+    } else if (isShowingLoading) {
+      // Nếu đã hiện rồi thì chỉ cập nhật text
+      modal.style.display = "flex";
+    }
   }
 }
 
@@ -2366,7 +2421,12 @@ export function showLoading(msg = "Đang xử lý, vui lòng chờ...") {
 export function hideLoading() {
   const modal = document.getElementById("loadingModal");
   if (modal) {
+    if (loadingTimer) {
+      clearTimeout(loadingTimer);
+      loadingTimer = null;
+    }
     modal.style.display = "none";
+    isShowingLoading = false;
   }
 }
 
@@ -2419,7 +2479,7 @@ export function showSwal(type, title, options = {}) { // Đổi 'message' thành
 
     width: options.width || '400px',
     showConfirmButton: options.showConfirmButton || false,
-    timer: options.timer || 2500, // Tăng mặc định lên 2,5 giây
+    timer: options.timer || 1500, // Giảm từ 2.5s xuống 1.5s
     timerProgressBar: true,
     showClass: { popup: '' }
   });
@@ -2801,17 +2861,18 @@ export function loadTemplate(placeholderId, url, callback) {
   const container = document.getElementById(placeholderId);
   if (!container) return;
 
-  const cacheKey = `cached_html_${url}`;
+  // Đổi thành v3 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
+  const cacheKey = `cached_html_v3_${url}`;
   
   try {
-    const cachedHTML = sessionStorage.getItem(cacheKey);
+    const cachedHTML = localStorage.getItem(cacheKey);
     if (cachedHTML) {
       container.innerHTML = cachedHTML;
       if (typeof callback === "function") callback();
       return;
     }
   } catch (e) {
-    console.warn("Lỗi đọc cache template từ sessionStorage:", e);
+    console.warn("Lỗi đọc cache template từ localStorage:", e);
   }
 
   fetch(url)
@@ -2821,9 +2882,9 @@ export function loadTemplate(placeholderId, url, callback) {
     })
     .then(html => {
       try {
-        sessionStorage.setItem(cacheKey, html);
+        localStorage.setItem(cacheKey, html);
       } catch (e) {
-        console.warn("Lỗi ghi cache template vào sessionStorage:", e);
+        console.warn("Lỗi ghi cache template vào localStorage:", e);
       }
       container.innerHTML = html;
       if (typeof callback === "function") callback();
