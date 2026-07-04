@@ -25,8 +25,12 @@
 
         #pageContent {
             max-width: 1600px;
-            width: 96%;
-            margin: 10px auto 40px auto;
+            width: 100%;
+            padding: 0 8px;
+            /* Đưa padding-top và padding-bottom về 0, giữ lề 2 bên 8px */
+            box-sizing: border-box;
+            margin: 0 auto 40px auto;
+            /* Đưa margin-top về 0 */
             flex: 1;
             position: relative;
             z-index: 1;
@@ -41,7 +45,7 @@
             border-radius: 16px;
             padding: 10px 20px 12px 20px;
             box-shadow: 0 8px 32px rgba(39, 54, 104, 0.12);
-            margin-bottom: 6px;
+            margin-bottom: 12px;
             text-align: center;
         }
 
@@ -695,6 +699,7 @@
             border-left: 3px solid var(--primary-color);
             cursor: pointer;
             transition: all 0.2s ease;
+            text-align: justify;
         }
 
         .card-content-extract:hover {
@@ -1150,6 +1155,14 @@
         }
 
         @media (max-width: 768px) {
+            #pageContent {
+                padding: 0;
+                /* Đưa khoảng đệm bên trong về 0 */
+                margin: 0 0 25px 0;
+                /* Chuyển margin-top từ 5px về 0 */
+                width: 100%;
+            }
+
             .main-layout-container {
                 flex-direction: column;
                 gap: 16px;
@@ -1176,35 +1189,43 @@
             }
 
             .search-panel {
-                padding: 15px 12px;
+                padding: 8px 10px;
+                /* Làm mỏng khoảng đệm trên dưới */
                 margin-bottom: 6px;
-                border-radius: 12px;
+                border-radius: 10px;
             }
 
             .search-panel h1 {
-                font-size: 18px;
-                margin-bottom: 4px;
+                font-size: 15px;
+                /* Thu nhỏ tiêu đề một chút cho gọn */
+                margin-bottom: 8px;
             }
 
             .search-panel p {
-                font-size: 11.5px;
-                margin-bottom: 12px;
+                display: none !important;
+                /* Ẩn hoàn toàn dòng mô tả */
             }
 
             .search-bar-wrapper {
-                margin-bottom: 12px;
+                margin-bottom: 8px;
+                /* Giảm khoảng cách bên dưới ô tìm kiếm */
             }
 
             .search-bar-wrapper input {
-                padding: 9px 65px 9px 12px;
-                font-size: 13.5px;
+                height: 27px;
+                /* Ép chuẩn chiều cao 27px đồng bộ toàn hệ thống */
+                padding: 0 65px 0 10px;
+                /* Bỏ padding trên/dưới để không làm phình chiều cao */
+                font-size: 13px;
+                box-sizing: border-box;
             }
 
             .ai-search-btn {
-                padding: 3px 8px;
-                font-size: 11.5px;
-                height: 26px;
-                right: 6px;
+                padding: 0 8px;
+                font-size: 11px;
+                height: 21px;
+                /* Thu nhỏ chiều cao nút AI để lọt lọt vừa vặn vào ô input 27px */
+                right: 3px;
                 border: none !important;
                 background: none !important;
                 box-shadow: none !important;
@@ -1215,8 +1236,17 @@
             }
 
             .tab-btn {
-                padding: 6px 12px;
+                height: 27px;
+                /* Ép cứng chiều cao 27px */
+                padding: 0 12px;
+                /* Bỏ padding trên/dưới để không làm phình nút */
                 font-size: 12px;
+                display: inline-flex;
+                /* Dùng flex để căn giữa chữ bên trong nút */
+                align-items: center;
+                justify-content: center;
+                box-sizing: border-box;
+                /* Đảm bảo viền (border) không cộng dồn vào chiều cao */
             }
 
             .quick-links-container {
@@ -1277,11 +1307,6 @@
 
             .card-doc-meta-item {
                 font-size: 10px;
-            }
-
-            #pageContent {
-                margin: 10px auto 60px auto;
-                width: 96%;
             }
 
             .btn-view-doc {
@@ -1978,7 +2003,8 @@
             margin-right: 4px;
         }
 
-        .btn-filter-chunks:hover, .btn-filter-chunks.active {
+        .btn-filter-chunks:hover,
+        .btn-filter-chunks.active {
             background: #6366f1;
             color: #ffffff;
             border-color: #6366f1;
@@ -1990,21 +2016,17 @@
             bottom: 24px;
             left: 62.5%;
             transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            color: #475569;
-            border: 1px solid rgba(39, 54, 104, 0.15);
+            width: 44px;
+            height: 44px;
+            background: #ffffff;
+            color: #38bdf8;
+            border: 3.5px solid #38bdf8;
             border-radius: 50%;
-            font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
@@ -2013,14 +2035,21 @@
 
         .scroll-to-top-btn:hover {
             transform: translateY(-4px) translateX(-50%);
-            background: rgba(255, 255, 255, 0.95);
-            color: #1e293b;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            background: #f0f9ff;
+            color: #0284c7;
+            border-color: #0284c7;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
         }
 
         .scroll-to-top-btn.visible {
             opacity: 1;
             visibility: visible;
+        }
+
+        .scroll-to-top-btn svg {
+            width: 24px !important;
+            height: 16px !important;
+            display: block;
         }
 
         @media (max-width: 1024px) {
@@ -2047,10 +2076,57 @@
                 flex: 5;
             }
         }
+
+        /* =======================================================
+        LÀM GỌN KHỐI TÌM KIẾM TRÊN DESKTOP (TIẾT KIỆM KHÔNG GIAN)
+        ======================================================= */
+        @media (min-width: 769px) {
+
+            /* Ép mỏng padding của khối panel */
+            .search-panel {
+                padding: 8px 15px 8px 15px !important;
+                margin-bottom: 10px !important;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 10px;
+            }
+
+            /* Ẩn hoàn toàn tiêu đề và mô tả chữ vì không cần thiết trên Desktop */
+            .search-panel h1,
+            .search-panel p {
+                display: none !important;
+            }
+
+            /* Dàn ô tìm kiếm và các nút bộ lọc lên cùng 1 hàng ngang */
+            .search-bar-wrapper {
+                margin: 0 !important;
+                flex: 1;
+                /* Cho phép ô tìm kiếm tự động co giãn lấp đầy không gian */
+                max-width: none !important;
+            }
+
+            .search-bar-wrapper input {
+                padding: 8px 85px 8px 15px !important;
+                /* Giảm độ dày của ô nhập liệu */
+            }
+
+            .filter-tabs {
+                margin: 0 !important;
+                flex-shrink: 0;
+                /* Không cho bộ lọc bị bóp méo */
+            }
+
+            /* Đảm bảo khối tóm tắt AI (nếu hiện) sẽ rớt xuống hàng dưới và chiếm 100% */
+            .ai-summary-block {
+                flex: 1 1 100%;
+                margin: 5px 0 0 0 !important;
+            }
+        }
     </style>
 </head>
 
-<body>
+<body class="fixed-viewport-layout">
     <div id="menu-placeholder"></div>
     <div id="loading-placeholder"></div>
     <div id="alert-placeholder"></div>
@@ -2119,10 +2195,9 @@
 
     <!-- Scroll to Top Button & AI Chat Panel Multi-turn -->
     <button id="scrollToTopBtn" class="scroll-to-top-btn" title="Quay về đầu trang">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="4" x2="19" y2="4"></line>
-            <polyline points="17 14 12 9 7 14"></polyline>
-            <line x1="12" y1="9" x2="12" y2="20"></line>
+        <svg width="24" height="16" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="4.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 13 12 3 2 13"></polyline>
         </svg>
     </button>
     <button id="docChatTrigger" class="doc-chat-trigger">🤖 Hỏi AI</button>
@@ -2309,6 +2384,8 @@
             </div>
         </div>
     </div>
+
+    <div id="footer-placeholder"></div>
 
     <!-- Thư viện Firebase và Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>

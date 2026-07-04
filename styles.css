@@ -37,7 +37,7 @@ body {
   /* Tự động trừ thanh công cụ trên mobile */
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Ẩn khung nội dung mặc định để chống lộ form trong thời gian chờ Firebase xác thực */
@@ -47,7 +47,7 @@ body {
 }
 
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ===== COMPONENT CLASSES (DÙNG CHUNG CHO MODAL & FORM) ===== */
@@ -307,7 +307,10 @@ nav.navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
   /* overflow: hidden; Xóa dòng này vì nó cắt mất các menu thả xuống */
 }
 
@@ -367,18 +370,22 @@ nav.navbar {
   transform: translateY(10px);
   /* Trượt từ trên xuống thay vì dưới lên */
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  transition-delay: 0.15s; /* Độ trễ khi đóng menu (tránh bị tắt đột ngột khi trượt chuột) */
+  transition-delay: 0.15s;
+  /* Độ trễ khi đóng menu (tránh bị tắt đột ngột khi trượt chuột) */
 
   position: absolute;
   top: 100%;
   margin-top: 5px;
-  background-color: rgba(30, 41, 59, 0.82); /* Trong suốt nhẹ đồng bộ tông màu tối */
-  backdrop-filter: blur(12px); /* Hiệu ứng kính mờ sang trọng */
+  background-color: rgba(30, 41, 59, 0.82);
+  /* Trong suốt nhẹ đồng bộ tông màu tối */
+  backdrop-filter: blur(12px);
+  /* Hiệu ứng kính mờ sang trọng */
   -webkit-backdrop-filter: blur(12px);
   min-width: 200px;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.12); /* Viền sáng nhẹ 3D */
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  /* Viền sáng nhẹ 3D */
   z-index: 100;
   padding: 8px 0;
 }
@@ -394,7 +401,8 @@ nav.navbar {
   display: block;
   font-size: 14px;
   transition: all 0.2s;
-  white-space: nowrap; /* Chống tự động xuống dòng khi rê chuột/hover */
+  white-space: nowrap;
+  /* Chống tự động xuống dòng khi rê chuột/hover */
 }
 
 .dropdown-content a:hover {
@@ -412,7 +420,8 @@ nav.navbar {
   /* Hiện rõ */
   transform: translateY(0);
   /* Trở về vị trí ban đầu */
-  transition-delay: 0s; /* Mở ngay lập tức khi di chuột vào */
+  transition-delay: 0s;
+  /* Mở ngay lập tức khi di chuột vào */
 }
 
 /* Khối bên phải */
@@ -1219,7 +1228,10 @@ tr:last-child td {
   /* --- Cấu hình navbar mobile --- */
   nav.navbar {
     padding: 10px 15px;
-    position: relative;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
     flex-wrap: nowrap;
   }
 
@@ -2574,16 +2586,16 @@ body.fixed-viewport-layout #pageContent>p {
   margin-bottom: 8px !important;
 }
 
-/* Các vùng cuộn nội dung độc lập của 3 trang */
+/* Các vùng cuộn nội dung độc lập của các trang */
 body.fixed-viewport-layout .kho-layout,
 body.fixed-viewport-layout .suco-layout,
-body.fixed-viewport-layout .tinhtoan-layout {
+body.fixed-viewport-layout .tinhtoan-layout,
+body.fixed-viewport-layout .main-layout-container {
   flex: 1 !important;
   min-height: 0 !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   margin-top: 0 !important;
-  /* Gỡ bỏ margin-top tránh cộng dồn khoảng cách */
 }
 
 /* ===== CHUẨN HÓA KÍCH THƯỚC INPUT & NÚT BẤM CHO 3 TRANG CHÍNH ===== */
@@ -2647,6 +2659,7 @@ body.fixed-viewport-layout .scenario-card .btn-action {
     font-size: 11px !important;
   }
 }
+
 .ticket-desc {
   font-size: 0.8rem;
   color: var(--text-color);
@@ -2769,10 +2782,11 @@ body.fixed-viewport-layout #pageContent>p {
   margin-bottom: 8px !important;
 }
 
-/* Các vùng cuộn nội dung độc lập của 3 trang */
+/* Các vùng cuộn nội dung độc lập của các trang */
 body.fixed-viewport-layout .kho-layout,
 body.fixed-viewport-layout .suco-layout,
-body.fixed-viewport-layout .tinhtoan-layout {
+body.fixed-viewport-layout .tinhtoan-layout,
+body.fixed-viewport-layout .main-layout-container {
   flex: 1 !important;
   min-height: 0 !important;
   overflow-y: auto !important;
@@ -2851,6 +2865,7 @@ body.fixed-viewport-layout .scenario-card .btn-action {
 
 /* Ẩn các tab settings trên mobile */
 @media (max-width: 768px) {
+
   .settings-sidebar,
   div:has(> .settings-tab-btn) {
     display: none !important;

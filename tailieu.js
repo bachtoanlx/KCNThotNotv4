@@ -10,6 +10,9 @@ loadTemplate("menu-placeholder", "menu.html", () => {
     initMenu();
 });
 
+// Khởi tạo Footer
+loadTemplate("footer-placeholder", "footer.html");
+
 // Trạng thái cục bộ của ứng dụng
 let userRole = "guest";
 let allChunks = [];
@@ -285,26 +288,26 @@ async function deltaSyncFromFirestore(idb, lastSyncTime) {
 
                 if (deletedDocIds.length > 0) {
                     console.log(`[Delete Sync] Phát hiện ${deletedDocIds.length} tài liệu bị xóa từ Firestore:`, deletedDocIds);
-                    
+
                     // 1. Xóa documents khỏi IndexedDB
                     await idbDeleteKeys(idb, STORE_DOCS, deletedDocIds);
-                    
+
                     // 2. Xóa chunks thuộc các tài liệu bị xóa khỏi IndexedDB
                     const existingChunks = await idbGetAll(idb, STORE_CHUNKS);
                     const chunksToDelete = existingChunks
                         .filter(c => deletedDocIds.includes(c.documentId))
                         .map(c => c.id);
-                    
+
                     if (chunksToDelete.length > 0) {
                         await idbDeleteKeys(idb, STORE_CHUNKS, chunksToDelete);
                     }
-                    
+
                     // 3. Xóa khỏi bộ nhớ RAM
                     deletedDocIds.forEach(docId => {
                         delete allDocuments[docId];
                     });
                     allChunks = allChunks.filter(chunk => !deletedDocIds.includes(chunk.documentId));
-                    
+
                     hasChanges = true;
                 }
             } catch (err) {
@@ -840,12 +843,12 @@ function renderLeftSidebar(chunks, searchTokens = []) {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const docId = btn.dataset.docid;
-                
+
                 if (activeDocIdFilter === docId) {
                     activeDocIdFilter = null; // Tắt lọc nếu nhấn lại
                 } else {
                     activeDocIdFilter = docId;
-                    
+
                     // Reset tìm kiếm AI và từ khóa tìm kiếm
                     isAiSearchActive = false;
                     aiSearchResults = null;
@@ -856,7 +859,7 @@ function renderLeftSidebar(chunks, searchTokens = []) {
                         aiSummaryBlock.innerHTML = "";
                     }
                 }
-                
+
                 renderGrid();
             });
         });
@@ -1661,13 +1664,13 @@ async function openDocumentSecurely(documentId) {
         window.Swal.fire({ icon: "error", title: "Lỗi giao diện", text: "Không tìm thấy Modal đọc tài liệu gốc." });
         return;
     }
-    
+
     // Đặt trạng thái ban đầu cho Modal
     currentOpenDocId = documentId;
     readerChatHistory = [];
     document.getElementById("readerChatMessages").innerHTML = "";
     document.getElementById("readerChatInput").value = "";
-    
+
     modal.style.display = "flex";
     switchReaderTab("overview");
 
@@ -1675,7 +1678,7 @@ async function openDocumentSecurely(documentId) {
     const loaderEl = document.getElementById("docReaderLoading");
     const frameEl = document.getElementById("docReaderFrame");
     const fallbackEl = document.getElementById("docReaderFallback");
-    
+
     if (loaderEl) loaderEl.style.display = "flex";
     if (frameEl) {
         frameEl.style.display = "none";
@@ -1723,7 +1726,7 @@ async function openDocumentSecurely(documentId) {
         const byteArray = new Uint8Array(byteNumbers);
         const fileBlob = new Blob([byteArray], { type: data.mimeType });
         const fileUrl = URL.createObjectURL(fileBlob);
-        
+
         currentOpenDocBlobUrl = fileUrl;
         currentOpenDocName = data.fileName;
 
@@ -1731,7 +1734,7 @@ async function openDocumentSecurely(documentId) {
         const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain'];
 
         if (loaderEl) loaderEl.style.display = "none";
-        
+
         if (viewableTypes.includes(data.mimeType)) {
             if (frameEl) {
                 frameEl.src = fileUrl;
@@ -2673,12 +2676,12 @@ async function checkAndIncrementDailyUsage() {
 function renderReaderRightPane(docId) {
     const docData = allDocuments[docId] || {};
     const code = docCodeMap[docId] || "TL-XX";
-    
+
     document.getElementById("readerDocCode").textContent = code;
     document.getElementById("readerDocTitle").textContent = docData.title || docData.fileName || "Tài liệu";
     document.getElementById("readerDocIssuer").textContent = docData.issuedBy || "Không rõ";
     document.getElementById("readerDocNumber").textContent = docData.documentNumber || docData.fileName || "Không rõ";
-    
+
     let issuedDateStr = "Không rõ";
     if (docData.issuedDate) {
         const dateObj = new Date(docData.issuedDate);
@@ -2694,7 +2697,7 @@ function renderReaderRightPane(docId) {
     // Render Chunks
     const chunks = allChunks.filter(c => c.documentId === docId);
     const chunksListEl = document.getElementById("readerChunksList");
-    
+
     if (chunks.length === 0) {
         chunksListEl.innerHTML = `<div style="font-size:12px; color:#64748b; padding:10px; text-align:center;">Không có đoạn tri thức trích dẫn nào.</div>`;
     } else {
@@ -2719,12 +2722,12 @@ function renderReaderRightPane(docId) {
         document.querySelectorAll("#readerChunksList .reader-chunk-item").forEach(item => {
             item.addEventListener("click", () => {
                 const isExpanded = item.classList.contains("expanded");
-                
+
                 // Thu gọn tất cả các thẻ khác trước
                 document.querySelectorAll("#readerChunksList .reader-chunk-item").forEach(el => {
                     el.classList.remove("expanded");
                 });
-                
+
                 // Nếu chưa mở rộng thì mở rộng thẻ hiện tại
                 if (!isExpanded) {
                     item.classList.add("expanded");
@@ -2752,12 +2755,12 @@ function switchReaderTab(tabName) {
         tabChat.classList.add("active");
         btnTabOverview.classList.remove("active");
         btnTabChat.classList.add("active");
-        
+
         // Render history if empty
         if (readerChatHistory.length === 0) {
             appendReaderChatMessage("ai", "💬 Chào bạn! Hãy đặt câu hỏi bất kỳ liên quan đến tài liệu này.");
         }
-        
+
         setTimeout(() => document.getElementById("readerChatInput")?.focus(), 200);
     }
 }
@@ -2805,7 +2808,7 @@ async function sendReaderChatMessage(text) {
 
     try {
         const chunks = allChunks.filter(c => c.documentId === currentOpenDocId);
-        
+
         // System Prompt with this document's content
         const docContext = chunks.map(c => ({
             section: c.sectionName || "",
@@ -2891,7 +2894,7 @@ ${JSON.stringify(docContext)}`;
 function closeDocumentReader() {
     const modal = document.getElementById("documentReaderModal");
     if (modal) modal.style.display = "none";
-    
+
     // Thu hồi Blob URL để giải phóng RAM
     if (currentOpenDocBlobUrl) {
         URL.revokeObjectURL(currentOpenDocBlobUrl);
@@ -2899,7 +2902,7 @@ function closeDocumentReader() {
     }
     currentOpenDocId = null;
     currentOpenDocName = "";
-    
+
     // Xóa lịch sử chat
     readerChatHistory = [];
     document.getElementById("readerChatMessages").innerHTML = "";
@@ -2916,10 +2919,10 @@ function initDocumentReader() {
     const readerChatInput = document.getElementById("readerChatInput");
 
     btnReaderClose?.addEventListener("click", closeDocumentReader);
-    
+
     btnReaderTabOverview?.addEventListener("click", () => switchReaderTab("overview"));
     btnReaderTabChat?.addEventListener("click", () => switchReaderTab("chat"));
-    
+
     const downloadHandler = () => {
         if (currentOpenDocBlobUrl) {
             const link = document.createElement('a');
@@ -2930,7 +2933,7 @@ function initDocumentReader() {
             document.body.removeChild(link);
         }
     };
-    
+
     btnDownloadOriginal?.addEventListener("click", downloadHandler);
     btnDownloadFallback?.addEventListener("click", downloadHandler);
 
