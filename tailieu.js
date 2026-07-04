@@ -16,7 +16,7 @@ loadTemplate("footer-placeholder", "footer.html");
 // Trạng thái cục bộ của ứng dụng
 let userRole = "guest";
 let allChunks = [];
-let allDocuments = {}; // Siêu dữ liệu tài liệu gốc: docId -> docData
+let allDocuments = {}; // Siêu dữ liệu tài liệu gốc: docId -> docData 
 let docCodeMap = {}; // Ánh xạ mã tài liệu cố định: docId -> TL-XX
 let invertedIndex = {}; // Chỉ mục đảo client-side
 let activeCategory = "Tất cả";
