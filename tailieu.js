@@ -2954,5 +2954,56 @@ function initDocumentReader() {
     });
 }
 
-// Khởi chạy trình đọc tài liệu gốc
+function initScrollToTop() {
+    const btn = document.getElementById("scrollToTopBtn");
+    if (!btn) return;
+
+    let scrollTimeout = null;
+    let isHovering = false;
+
+    const startHideTimeout = () => {
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            if (!isHovering && window.scrollY > 300) {
+                btn.classList.remove("visible");
+            }
+        }, 1500); // Ẩn nút sau 1.5 giây dừng cuộn
+    };
+
+    window.addEventListener("scroll", () => {
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+
+        if (window.scrollY > 300) {
+            btn.classList.add("visible");
+            if (!isHovering) {
+                startHideTimeout();
+            }
+        } else {
+            btn.classList.remove("visible");
+        }
+    });
+
+    btn.addEventListener("mouseenter", () => {
+        isHovering = true;
+        if (scrollTimeout) clearTimeout(scrollTimeout);
+        btn.classList.add("visible"); // Giữ nút luôn hiện khi người dùng rê chuột vào
+    });
+
+    btn.addEventListener("mouseleave", () => {
+        isHovering = false;
+        if (window.scrollY > 300) {
+            startHideTimeout();
+        }
+    });
+
+    btn.addEventListener("click", () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    });
+}
+
+// Khởi chạy trình đọc tài liệu gốc & nút cuộn đầu trang
 initDocumentReader();
+initScrollToTop();

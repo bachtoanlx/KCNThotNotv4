@@ -1984,7 +1984,50 @@
             border-color: #6366f1;
         }
 
+        /* Scroll to Top Button */
+        .scroll-to-top-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 62.5%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #475569;
+            border: 1px solid rgba(39, 54, 104, 0.15);
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .scroll-to-top-btn:hover {
+            transform: translateY(-4px) translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e293b;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .scroll-to-top-btn.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
         @media (max-width: 1024px) {
+            .scroll-to-top-btn {
+                left: 50%;
+            }
+
             .doc-reader-content {
                 width: 98vw;
                 height: 96vh;
@@ -2074,7 +2117,14 @@
     </div>
 
 
-    <!-- AI Chat Panel Multi-turn -->
+    <!-- Scroll to Top Button & AI Chat Panel Multi-turn -->
+    <button id="scrollToTopBtn" class="scroll-to-top-btn" title="Quay về đầu trang">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="4" x2="19" y2="4"></line>
+            <polyline points="17 14 12 9 7 14"></polyline>
+            <line x1="12" y1="9" x2="12" y2="20"></line>
+        </svg>
+    </button>
     <button id="docChatTrigger" class="doc-chat-trigger">🤖 Hỏi AI</button>
 
     <div id="docChatPanel" class="doc-chat-panel">
