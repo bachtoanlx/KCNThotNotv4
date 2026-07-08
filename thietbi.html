@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <!-- PWA & Mobile Fullscreen -->
+  <link rel='manifest' href='manifest.json'>
+  <meta name='mobile-web-app-capable' content='yes'>
+  <meta name='theme-color' content='#273668'>
+  <meta name='apple-mobile-web-app-capable' content='yes'>
+  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+  <meta name='apple-mobile-web-app-title' content='QL KCN'>
+  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Thiết Bị - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <style>
+    /* ============================================================= */
+    /* === LAYOUT TỔNG THỂ TRANG                                  === */
+    /* ============================================================= */
+    #pageContent {
+      padding: 10px 10px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    /* ============================================================= */
+    /* === TABS ĐIỀU HƯỚNG                                        === */
+    /* ============================================================= */
+    .tb-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 14px;
+      border-bottom: 2px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .tb-tab-btn {
+      padding: 7px 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #64748b;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+
+    .tb-tab-btn:hover {
+      color: var(--primary-color);
+      background: transparent !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .tb-tab-btn.active {
+      color: var(--primary-color);
+      border-bottom-color: var(--primary-color);
+      font-weight: 600;
+      background: transparent !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .tb-tab-panel {
+      display: none;
+    }
+
+    .tb-tab-panel.active {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ============================================================= */
+    /* === THANH CÔNG CỤ (TOOLBAR)                                === */
+    /* ============================================================= */
+    .tb-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .tb-search {
+      flex: 1;
+      min-width: 150px;
+      padding: 7px 12px;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      background: var(--surface-color);
+      color: var(--text-color);
+    }
+
+    .tb-search:focus {
+      outline: none;
+      border-color: var(--focus-color);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+
+    .tb-filter-select {
+      padding: 7px 10px;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      background: var(--surface-color);
+      color: var(--text-color);
+      cursor: pointer;
+    }
+
+    .btn-add-device {
+      padding: 7px 14px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      margin-left: auto;
+    }
+
+    .btn-add-device:hover {
+      opacity: 0.88;
+    }
+
+    /* ============================================================= */
+    /* === LƯỚI THẺ THIẾT BỊ                                     === */
+    /* ============================================================= */
+    .device-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-auto-rows: max-content;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 2px 2px 14px 2px;
+      -webkit-overflow-scrolling: touch;
+      align-content: start;
+    }
+
+    .device-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+      transition: box-shadow 0.2s, transform 0.15s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 145px;
+      height: 100%;
+    }
+
+    .device-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--device-accent, var(--primary-color));
+      border-radius: 10px 0 0 10px;
+    }
+
+    .device-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .device-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding-left: 6px;
+    }
+
+    .device-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--primary-color);
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .device-code {
+      font-size: 0.72rem;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .device-info {
+      padding-left: 6px;
+      font-size: 0.82rem;
+      color: #64748b;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1 0 auto;
+    }
+
+    .device-info span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .device-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-color);
+      padding-left: 6px;
+      flex-shrink: 0;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge.good {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-badge.warning {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .status-badge.broken {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .status-badge.inactive {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .device-card-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .btn-card-action {
+      padding: 4px 9px;
+      border: 1px solid var(--border-color);
+      background: var(--surface-color);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--text-color);
+      transition: background 0.15s;
+    }
+
+    .btn-card-action:hover {
+      background: var(--surface-hover);
+    }
+
+    .btn-card-action.danger {
+      border-color: #fca5a5;
+      color: var(--danger-color);
+    }
+
+    .btn-card-action.danger:hover {
+      background: #fee2e2;
+    }
+
+    /* ============================================================= */
+    /* === BẢNG LỊCH BẢO TRÌ                                     === */
+    /* ============================================================= */
+    .maintenance-table-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--surface-color);
+      flex: 1;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .maintenance-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .maintenance-table thead th {
+      background: #f8fafc;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .maintenance-table tbody tr {
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.15s;
+    }
+
+    .maintenance-table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .maintenance-table td {
+      padding: 9px 12px;
+      vertical-align: middle;
+    }
+
+    .maint-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .maint-badge.upcoming {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .maint-badge.overdue {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .maint-badge.done {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .maint-badge.today {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    /* ============================================================= */
+    /* === BẢNG LỊCH SỬ SỰ CỐ                                   === */
+    /* ============================================================= */
+    .history-table-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--surface-color);
+      flex: 1;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .history-table thead th {
+      background: #f8fafc;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .history-table tbody tr {
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.15s;
+    }
+
+    .history-table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .history-table td {
+      padding: 9px 12px;
+      vertical-align: middle;
+    }
+
+    .sev-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    .sev-dot.critical {
+      background: #ef4444;
+    }
+
+    .sev-dot.medium {
+      background: #f59e0b;
+    }
+
+    .sev-dot.low {
+      background: #22c55e;
+    }
+
+    /* ============================================================= */
+    /* === MODAL CHI TIẾT / THÊM / SỬA THIẾT BỊ                 === */
+    /* ============================================================= */
+    .tb-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1200;
+      /* Cao hơn navbar (z-index: 1100) */
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tb-modal-overlay.open {
+      display: flex;
+    }
+
+    .tb-modal-box {
+      background: var(--surface-color);
+      border-radius: 12px;
+      width: 95%;
+      max-width: 620px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      position: relative;
+      margin-top: 10px;
+      /* Tránh bị che bởi navbar trên mobile */
+    }
+
+    .tb-modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 18px;
+      padding-right: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tb-modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #94a3b8;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .tb-modal-close:hover {
+      color: var(--danger-color);
+    }
+
+    .tb-form-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tb-form-row .tb-form-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tb-form-group {
+      margin-bottom: 12px;
+    }
+
+    .tb-form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 5px;
+    }
+
+    .tb-form-group input,
+    .tb-form-group select,
+    .tb-form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: var(--input-bg);
+      color: var(--text-color);
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .tb-form-group input:focus,
+    .tb-form-group select:focus,
+    .tb-form-group textarea:focus {
+      outline: none;
+      border-color: var(--focus-color);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+
+    .tb-form-group textarea {
+      resize: vertical;
+      min-height: 75px;
+    }
+
+    /* Đường phân cách mục trong form */
+    .form-section-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+    }
+
+    .form-section-divider::before,
+    .form-section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    /* Đơn vị gợi ý bên cạnh input */
+    .input-with-unit {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .input-with-unit input {
+      border-radius: 6px 0 0 6px !important;
+      flex: 1;
+    }
+
+    .input-unit-label {
+      padding: 8px 10px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-input);
+      border-left: none;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.8rem;
+      color: #64748b;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .tb-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn-tb-save {
+      padding: 8px 20px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: opacity 0.2s;
+    }
+
+    .btn-tb-save:hover {
+      opacity: 0.88;
+    }
+
+    .btn-tb-cancel {
+      padding: 8px 16px;
+      background: var(--surface-hover);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    /* ============================================================= */
+    /* === MODAL CHI TIẾT THIẾT BỊ                                === */
+    /* ============================================================= */
+    .detail-section {
+      margin-bottom: 18px;
+    }
+
+    .detail-section-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      margin-bottom: 10px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .detail-item label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      font-weight: 500;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .detail-item span {
+      font-size: 0.875rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 20px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    /* ============================================================= */
+    /* === RESPONSIVE MOBILE                                      === */
+    /* ============================================================= */
+    @media (max-width: 768px) {
+      body #pageContent {
+        padding: 8px 6px !important;
+      }
+
+      .device-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tb-toolbar {
+        flex-wrap: wrap;
+      }
+
+      .tb-search {
+        width: 100%;
+        min-width: unset;
+      }
+
+      .tb-form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tb-modal-box {
+        padding: 16px 14px;
+        max-height: 95vh;
+      }
+
+      .maintenance-table thead th:nth-child(3),
+      .maintenance-table tbody td:nth-child(3),
+      .maintenance-table thead th:nth-child(4),
+      .maintenance-table tbody td:nth-child(4) {
+        display: none;
+      }
+
+      .history-table thead th:nth-child(3),
+      .history-table tbody td:nth-child(3) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body class="fixed-viewport-layout">
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <!-- Thông báo chưa đăng nhập -->
+  <div id="notLogged"
+    style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+  </div>
+
+  <!-- Thông báo không đủ quyền -->
+  <div id="notAdmin" style="display:none; padding: 20px; color: #f59e0b; font-weight: bold; font-size: 1.1rem;">
+    <a href="trangchu.html">⚠️ Trang này chỉ dành cho Quản trị viên.</a>
+  </div>
+
+  <!-- NỘI DUNG CHÍNH -->
+  <div id="pageContent" style="display:none;">
+    <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+      🔧 Quản Lý Thiết Bị
+    </h2>
+    <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 14px;">
+      Danh sách, hồ sơ thiết bị, lịch bảo trì và lịch sử sự cố toàn nhà máy.
+    </p>
+
+    <!-- TABS -->
+    <div class="tb-tabs">
+      <button class="tb-tab-btn active" data-tab="tab-devices">⚙️ Danh sách thiết bị</button>
+      <button class="tb-tab-btn" data-tab="tab-maintenance">🛠️ Lịch bảo trì</button>
+      <button class="tb-tab-btn" data-tab="tab-history">📋 Lịch sử sự cố</button>
+    </div>
+
+    <!-- ===== TAB 1: DANH SÁCH THIẾT BỊ ===== -->
+    <div id="tab-devices" class="tb-tab-panel active">
+      <div class="tb-toolbar">
+        <input type="text" id="deviceSearchInput" class="tb-search" placeholder="🔍 Tìm tên hoặc mã thiết bị...">
+        <select id="deviceGroupFilter" class="tb-filter-select">
+          <option value="all">Tất cả nhóm</option>
+          <option value="bom">🌊 Bơm</option>
+          <option value="khi">💨 Máy thổi khí</option>
+          <option value="dien">⚡ Điện - Tủ điều khiển</option>
+          <option value="cobien">📡 Cảm biến</option>
+          <option value="co_khi">🔩 Cơ khí</option>
+          <option value="dien_co">⚙️ Điện - Cơ</option>
+          <option value="khac">📦 Khác</option>
+        </select>
+        <select id="deviceLocationFilter" class="tb-filter-select">
+          <option value="all">Tất cả vị trí</option>
+        </select>
+        <select id="deviceStatusFilter" class="tb-filter-select">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="good">✅ Hoạt động tốt</option>
+          <option value="warning">⚠️ Cần theo dõi</option>
+          <option value="broken">🔴 Đang hỏng</option>
+          <option value="inactive">⬛ Ngừng hoạt động</option>
+        </select>
+        <button id="addDeviceBtn" class="btn-add-device">➕ Thêm thiết bị</button>
+      </div>
+
+      <div class="device-grid" id="deviceGrid">
+        <div class="empty-state" style="grid-column: 1/-1;">
+          <div class="empty-icon">⚙️</div>
+          <div>Đang tải danh sách thiết bị...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: LỊCH BẢO TRÌ ===== -->
+    <div id="tab-maintenance" class="tb-tab-panel">
+      <div class="tb-toolbar" style="margin-bottom: 12px;">
+        <select id="maintDeviceFilter" class="tb-filter-select">
+          <option value="all">Tất cả thiết bị</option>
+        </select>
+        <select id="maintStatusFilter" class="tb-filter-select">
+          <option value="all">Mọi loại bảo trì</option>
+          <option value="upcoming">📅 Quy trình định kỳ</option>
+          <option value="today">⏰ Thực hiện một lần</option>
+        </select>
+        <button id="addMaintRuleTabBtn" class="btn-add-device" style="background:#16a085; margin-left:auto;">➕ Thêm quy
+          trình</button>
+      </div>
+      <div style="margin-bottom: 10px; font-size: 0.8rem; color: #64748b;">
+        💡 Quy trình bảo trì cấu hình ở đây sẽ tự động hiển thị trên lịch làm việc của trang <a href="autoplan.html"
+          style="color:var(--primary-color); font-weight:600;">Lịch trực</a>.
+      </div>
+
+      <div class="maintenance-table-wrap">
+        <table class="maintenance-table">
+          <thead>
+            <tr>
+              <th>Thiết bị</th>
+              <th>Nội dung bảo trì</th>
+              <th>Ngày một lần (nếu có)</th>
+              <th>Quy tắc chu kỳ</th>
+              <th>Loại</th>
+              <th style="width: 100px;">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="maintTableBody">
+            <tr>
+              <td colspan="5" class="empty-state">Đang tải lịch bảo trì...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: LỊCH SỬ SỰ CỐ ===== -->
+    <div id="tab-history" class="tb-tab-panel">
+      <div class="tb-toolbar" style="margin-bottom: 12px;">
+        <input type="text" id="historySearchInput" class="tb-search" placeholder="🔍 Tìm tên thiết bị...">
+        <select id="historyDeviceFilter" class="tb-filter-select">
+          <option value="all">Tất cả thiết bị</option>
+        </select>
+        <select id="historySevFilter" class="tb-filter-select">
+          <option value="all">Tất cả mức độ</option>
+          <option value="critical">🔴 Khẩn cấp</option>
+          <option value="medium">🟡 Trung bình</option>
+          <option value="low">🟢 Thấp</option>
+        </select>
+      </div>
+
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Thiết bị</th>
+              <th>Mô tả sự cố</th>
+              <th>Mức độ</th>
+              <th>Ngày báo</th>
+              <th>Trạng thái</th>
+              <th>Ghi chú xử lý</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="6" class="empty-state">Đang tải lịch sử sự cố...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <!-- /pageContent -->
+
+  <div id="footer-placeholder"></div>
+
+  <!-- ============================================================= -->
+  <!-- MODAL: THÊM / SỬA THIẾT BỊ                                   -->
+  <!-- ============================================================= -->
+  <div id="deviceFormModal" class="tb-modal-overlay">
+    <div class="tb-modal-box">
+      <button class="tb-modal-close" id="closeFormModal">&times;</button>
+      <div class="tb-modal-title" id="formModalTitle">➕ Thêm Thiết Bị Mới</div>
+
+      <form id="deviceForm" novalidate>
+        <input type="hidden" id="editDeviceId">
+
+        <!-- Tên & Mã -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="deviceName">Tên thiết bị <span style="color:red">*</span></label>
+            <input type="text" id="deviceName" placeholder="VD: Bơm chìm nước thải số 1" required>
+          </div>
+          <div class="tb-form-group" style="max-width:140px;">
+            <label for="deviceCode">Mã thiết bị</label>
+            <input type="text" id="deviceCode" placeholder="VD: B-001">
+          </div>
+        </div>
+
+        <!-- Nhóm & Vị trí -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="deviceGroup">Nhóm thiết bị <span style="color:red">*</span></label>
+            <select id="deviceGroup" required>
+              <option value="" disabled selected>- Chọn nhóm -</option>
+              <option value="bom">🌊 Bơm</option>
+              <option value="khi">💨 Máy thổi khí</option>
+              <option value="dien">⚡ Điện - Tủ điều khiển</option>
+              <option value="cobien">📡 Cảm biến</option>
+              <option value="co_khi">🔩 Cơ khí</option>
+              <option value="dien_co">⚙️ Điện - Cơ</option>
+              <option value="khac">📦 Khác</option>
+            </select>
+          </div>
+          <div class="tb-form-group">
+            <label for="deviceLocation">Vị trí lắp đặt</label>
+            <input type="text" id="deviceLocation" placeholder="VD: Bể Aerobic, Bể điều hòa...">
+          </div>
+        </div>
+
+        <!-- Hãng SX & Số Serial -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="deviceBrand">Hãng sản xuất</label>
+            <input type="text" id="deviceBrand" placeholder="VD: Tsurumi, Ebara...">
+          </div>
+          <div class="tb-form-group">
+            <label for="deviceSerial">Số serial / Model</label>
+            <input type="text" id="deviceSerial" placeholder="VD: LH-422">
+          </div>
+        </div>
+
+        <!-- Ngày lắp & Trạng thái -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="deviceInstallDate">Ngày lắp đặt</label>
+            <input type="date" id="deviceInstallDate">
+          </div>
+          <div class="tb-form-group">
+            <label for="deviceStatus">Trạng thái hiện tại <span style="color:red">*</span></label>
+            <select id="deviceStatus" required>
+              <option value="good">✅ Hoạt động tốt</option>
+              <option value="warning">⚠️ Cần theo dõi</option>
+              <option value="broken">🔴 Đang hỏng</option>
+              <option value="inactive">⬛ Ngừng hoạt động</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Ghi chú chung -->
+        <div class="tb-form-group">
+          <label for="deviceNote">Ghi chú chung</label>
+          <textarea id="deviceNote" placeholder="Mô tả đặc điểm, lưu ý vận hành..."></textarea>
+        </div>
+
+        <!-- ====== THÔNG SỐ KỸ THUẬT ====== -->
+        <div class="form-section-divider">📐 Thông số kỹ thuật</div>
+
+        <!-- Công suất & Điện áp -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="specPower">Công suất</label>
+            <div class="input-with-unit">
+              <input type="number" id="specPower" step="0.01" min="0" placeholder="VD: 2.2">
+              <span class="input-unit-label">kW</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specVoltage">Điện áp</label>
+            <div class="input-with-unit">
+              <input type="number" id="specVoltage" step="1" min="0" placeholder="VD: 380">
+              <span class="input-unit-label">V</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specCurrent">Dòng điện</label>
+            <div class="input-with-unit">
+              <input type="number" id="specCurrent" step="0.1" min="0" placeholder="VD: 5.5">
+              <span class="input-unit-label">A</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lưu lượng & Cột áp -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="specFlowRate">Lưu lượng</label>
+            <div class="input-with-unit">
+              <input type="number" id="specFlowRate" step="0.1" min="0" placeholder="VD: 50">
+              <span class="input-unit-label">m³/h</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specHead">Cột áp (Head)</label>
+            <div class="input-with-unit">
+              <input type="number" id="specHead" step="0.1" min="0" placeholder="VD: 12">
+              <span class="input-unit-label">m</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specSpeed">Tốc độ</label>
+            <div class="input-with-unit">
+              <input type="number" id="specSpeed" step="1" min="0" placeholder="VD: 1450">
+              <span class="input-unit-label">rpm</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kích thước & Trọng lượng -->
+        <div class="tb-form-row">
+          <div class="tb-form-group">
+            <label for="specWeight">Trọng lượng</label>
+            <div class="input-with-unit">
+              <input type="number" id="specWeight" step="0.1" min="0" placeholder="VD: 45">
+              <span class="input-unit-label">kg</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specFreq">Tần số</label>
+            <div class="input-with-unit">
+              <input type="number" id="specFreq" step="1" min="0" placeholder="VD: 50">
+              <span class="input-unit-label">Hz</span>
+            </div>
+          </div>
+          <div class="tb-form-group">
+            <label for="specInsulation">Cấp cách điện</label>
+            <input type="text" id="specInsulation" placeholder="VD: IP68, Class F">
+          </div>
+        </div>
+
+        <!-- Thông số khác -->
+        <div class="tb-form-group">
+          <label for="specOther">Thông số khác</label>
+          <textarea id="specOther" style="min-height:60px;"
+            placeholder="VD: Áp suất khí nén: 0.5 bar, Lưu lượng khí: 3 m³/phút..."></textarea>
+        </div>
+
+        <div class="tb-modal-footer">
+          <button type="button" class="btn-tb-cancel" id="cancelFormBtn">Hủy</button>
+          <button type="submit" class="btn-tb-save" id="saveDeviceBtn">💾 Lưu thiết bị</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- MODAL: CHI TIẾT THIẾT BỊ                                      -->
+  <!-- ============================================================= -->
+  <div id="deviceDetailModal" class="tb-modal-overlay">
+    <div class="tb-modal-box" style="max-width: 620px;">
+      <button class="tb-modal-close" id="closeDetailModal">&times;</button>
+      <div class="tb-modal-title" id="detailModalTitle">🔍 Hồ Sơ Thiết Bị</div>
+
+      <!-- Thông tin cơ bản -->
+      <div class="detail-section">
+        <div class="detail-section-title">Thông tin chung</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Tên thiết bị</label>
+            <span id="det-name">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Mã thiết bị</label>
+            <span id="det-code">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Nhóm</label>
+            <span id="det-group">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Vị trí lắp đặt</label>
+            <span id="det-location">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Hãng sản xuất</label>
+            <span id="det-brand">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Số serial / Model</label>
+            <span id="det-serial">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Ngày lắp đặt</label>
+            <span id="det-install">—</span>
+          </div>
+          <div class="detail-item">
+            <label>Trạng thái</label>
+            <span id="det-status">—</span>
+          </div>
+        </div>
+        <div style="margin-top: 10px;">
+          <div class="detail-item">
+            <label>Ghi chú</label>
+            <span id="det-note" style="display:block; white-space: pre-wrap; line-height:1.5;">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thông số kỹ thuật -->
+      <div class="detail-section" id="det-specs-section">
+        <div class="detail-section-title">Thông số kỹ thuật</div>
+        <div class="detail-grid" id="det-specs-grid">
+          <!-- JS render -->
+        </div>
+        <div id="det-spec-other" style="margin-top:8px; font-size:0.82rem; color:#64748b; white-space:pre-wrap;"></div>
+      </div>
+
+      <!-- Sự cố gần nhất -->
+      <div class="detail-section">
+        <div class="detail-section-title">Sự cố gần nhất</div>
+        <div id="det-recent-incidents">
+          <div class="empty-state" style="padding: 16px;">Không có sự cố nào ghi nhận.</div>
+        </div>
+      </div>
+
+
+
+      <div class="tb-modal-footer">
+        <button type="button" class="btn-tb-cancel" id="closeDetailBtn">Đóng</button>
+        <button type="button" class="btn-tb-save" id="editFromDetailBtn" style="background: #0ea5e9;">✏️ Chỉnh
+          sửa</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module" src="thietbi.js"></script>
+</body>
+
+</html>

@@ -2861,8 +2861,8 @@ export function loadTemplate(placeholderId, url, callback) {
   const container = document.getElementById(placeholderId);
   if (!container) return;
 
-  // Đổi thành v3 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
-  const cacheKey = `cached_html_v3_${url}`;
+  // Đổi thành v4 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
+  const cacheKey = `cached_html_v4_${url}`;
   
   try {
     const cachedHTML = localStorage.getItem(cacheKey);

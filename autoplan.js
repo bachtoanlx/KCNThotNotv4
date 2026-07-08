@@ -33,15 +33,18 @@ function toggleBodyScroll(disable) {
 let allRulesData = [];
 let allPatternsData = [];
 let allSwapsData = [];
+let allMaintRulesData = []; // Lưu trữ quy trình bảo trì thiết bị
 
 let rulesLoaded = false;
 let patternsLoaded = false;
 let swapsLoaded = false;
+let maintRulesLoaded = false; // Trạng thái tải của bảo trì
 let initialLoadComplete = false; 
 
 let unsubscribeRules = null;
 let unsubscribePatterns = null;
 let unsubscribeSwaps = null;
+let unsubscribeMaintRules = null; // Unsubscribe của bảo trì
 
 const personalScheduleModal = document.getElementById("personalScheduleModal");
 const closeModalBtn = document.getElementById("closeModal");
@@ -60,10 +63,12 @@ onAuth(async (user) => {
         if (unsubscribeRules) { unsubscribeRules(); unsubscribeRules = null; }
         if (unsubscribePatterns) { unsubscribePatterns(); unsubscribePatterns = null; }
         if (unsubscribeSwaps) { unsubscribeSwaps(); unsubscribeSwaps = null; }
+        if (unsubscribeMaintRules) { unsubscribeMaintRules(); unsubscribeMaintRules = null; }
         
         rulesLoaded = false;
         patternsLoaded = false;
         swapsLoaded = false;
+        maintRulesLoaded = false;
         initialLoadComplete = false;
         return;
     }
@@ -89,7 +94,7 @@ function checkAllDataLoadedAndRender(email, role) {
         return;
     }
     
-    if (rulesLoaded && patternsLoaded && swapsLoaded) {
+    if (rulesLoaded && patternsLoaded && swapsLoaded && maintRulesLoaded) {
         initialLoadComplete = true; 
         try {
             renderSchedule(searchVal, currentlyViewedDate);
@@ -154,6 +159,17 @@ function setupRealtimeListeners(email, role) {
     }, (error) => {
         console.error("Lỗi lắng nghe shift_swaps:", error);
         if (!swapsLoaded) swapsLoaded = true;
+        checkAllDataLoadedAndRender(email, role);
+    });
+
+    const qMaintRules = query(collection(db, "device_maintenance_rules"));
+    unsubscribeMaintRules = onSnapshot(qMaintRules, (snapshot) => {
+        allMaintRulesData = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        if (!maintRulesLoaded) maintRulesLoaded = true;
+        checkAllDataLoadedAndRender(email, role);
+    }, (error) => {
+        console.error("Lỗi lắng nghe device_maintenance_rules:", error);
+        if (!maintRulesLoaded) maintRulesLoaded = true;
         checkAllDataLoadedAndRender(email, role);
     });
 }
@@ -313,6 +329,20 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
             const noteStr = noteDisplay ? `<div style="color:#666; font-style:italic; font-size:0.9em; margin-top:2px; padding-left:14px;">↳ 📝 Ghi chú: ${noteDisplay}</div>` : "";
             const targetTag = (r.is_common_job && r.targetGroup && r.targetGroup !== 'all') ? `<span style='color:#8e44ad; font-weight:bold;'>[Nhóm: ${r.targetGroup}]</span> ` : "";
             jobsForDay.push(`<div style="margin-bottom:8px;">• ${targetTag}${r.job}${timeStr}${noteStr}</div>`);
+        });
+
+        // Bổ sung các việc bảo trì thiết bị từ device_maintenance_rules trùng khớp ngày d
+        const matchedMaintRules = allMaintRulesData.filter(rule => 
+            ruleMatchesDate(rule, d)
+        );
+        matchedMaintRules.forEach(mr => {
+            const timeStr = mr.time ? ` <strong>(${mr.time})</strong>` : "";
+            const deviceTag = mr.deviceCode 
+              ? `<span style='color:#16a085; font-weight:bold;'>[🛠️ Bảo trì ${mr.deviceCode}]</span>` 
+              : `<span style='color:#16a085; font-weight:bold;'>[🛠️ Bảo trì]</span>`;
+            const noteStr = mr.note ? `<div style="color:#666; font-style:italic; font-size:0.9em; margin-top:2px; padding-left:14px;">↳ 📝 Ghi chú: ${mr.note}</div>` : "";
+            
+            jobsForDay.push(`<div style="margin-bottom:8px; color: #16a085;">• ${deviceTag} ${mr.deviceName}: ${mr.job}${timeStr}${noteStr}</div>`);
         });
 
         // ===== 4) HIỂN THỊ TRÊN BẢNG =====

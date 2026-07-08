@@ -1,17 +1,18 @@
 // suco.js
 import { db, onAuth, getRole, showSwal, showLoading, hideLoading, addLog, auth, compressImage, notifyAdmins, loadTemplate } from "./script.js";
-import { 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp, 
-  updateDoc, 
-  query, 
-  orderBy, 
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  updateDoc,
+  query,
+  orderBy,
   getDoc,
-  where 
+  getDocs,
+  where
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 
@@ -38,11 +39,11 @@ const filterStatus = document.getElementById("filter-status");
 const filterSeverity = document.getElementById("filter-severity");
 
 const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
-const INCIDENT_ROOT_FOLDER_ID = "1Q_LmzYCD-NWRtmba02SSqVSzhMEIHEpo"; // Lưu ảnh chung trong thư mục của KCN
+const INCIDENT_ROOT_FOLDER_ID = "1J0diji8DVP0Xw7Ckh7eKiMe5zVdEDisJ"; // Lưu ảnh chung trong thư mục của KCN
 
 let userRole = "user";
-let currentImageBase64 = null;
-let currentTickets = [];
+let selectedFiles = [];   // Mảng lưu các File ảnh đã chọn (tối đa 3)
+let allTickets = [];      // Mảng lưu toàn bộ tickets để tra cứu nhanh
 
 // Xử lý ẩn hiện ô thiết bị khác
 if (deviceSelect) {
@@ -57,55 +58,121 @@ if (deviceSelect) {
   });
 }
 
-// Xử lý nút chọn file tùy chỉnh
+// Xử lý nút chọn file tùy chỉnh — hỗ trợ tối đa 3 ảnh
+const imagePreviewStrip = document.getElementById("imagePreviewStrip");
+
 if (customFileBtn && fileInput) {
   customFileBtn.addEventListener("click", () => fileInput.click());
-  
-  fileInput.addEventListener("change", (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        currentImageBase64 = e.target.result;
-        customFileName.textContent = file.name;
-        customFileName.style.color = "#007bff";
-        customFileName.style.fontStyle = "normal";
-        customFileName.style.fontWeight = "bold";
-        customFileName.style.textDecoration = "underline";
-        customFileName.style.cursor = "pointer";
-        customFileName.title = "Nhấn để xem ảnh";
-      };
-      reader.readAsDataURL(file);
-    } else {
-      resetFileSelector();
-    }
-  });
 
-  customFileName.addEventListener("click", () => {
-    if (currentImageBase64) {
-      Swal.fire({
-        imageUrl: currentImageBase64,
-        imageAlt: "Ảnh chụp sự cố",
-        showCloseButton: true,
-        showConfirmButton: false,
-        width: "auto",
-        padding: "10px",
-        backdrop: `rgba(0,0,0,0.8)`
+  fileInput.addEventListener("change", (event) => {
+    const files = Array.from(event.target.files);
+    if (!files.length) { resetFileSelector(); return; }
+
+    // Giới hạn tối đa 3 ảnh
+    if (files.length > 3) {
+      showSwal("warning", "Quá giới hạn", "Chỉ được chọn tối đa 3 ảnh mỗi lần báo sự cố.");
+      fileInput.value = "";
+      return;
+    }
+
+    selectedFiles = files;
+    customFileName.textContent = `Đã chọn ${files.length} ảnh`;
+    customFileName.style.color = "#16a34a";
+    customFileName.style.fontStyle = "normal";
+    customFileName.style.fontWeight = "bold";
+
+    // Render thumbnail preview strip
+    if (imagePreviewStrip) {
+      imagePreviewStrip.innerHTML = "";
+      imagePreviewStrip.style.display = "flex";
+      files.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const wrapper = document.createElement("div");
+          wrapper.style.cssText = "position:relative; width:72px; height:72px; border-radius:6px; overflow:hidden; border:2px solid #e2e8f0; cursor:pointer;";
+
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.style.cssText = "width:100%; height:100%; object-fit:cover;";
+          img.title = file.name;
+
+          // Nút X xóa từng ảnh
+          const btnRemove = document.createElement("button");
+          btnRemove.type = "button";
+          btnRemove.textContent = "✕";
+          btnRemove.style.cssText = "position:absolute; top:2px; right:2px; background:rgba(0,0,0,0.55); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; line-height:18px; padding:0; cursor:pointer;";
+          btnRemove.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            selectedFiles = selectedFiles.filter((_, i) => i !== idx);
+            if (selectedFiles.length === 0) { resetFileSelector(); }
+            else {
+              customFileName.textContent = `Đã chọn ${selectedFiles.length} ảnh`;
+              wrapper.remove();
+            }
+          });
+
+          // Click ảnh để phóng to
+          img.addEventListener("click", () => {
+            Swal.fire({
+              imageUrl: e.target.result,
+              imageAlt: file.name,
+              showCloseButton: true,
+              showConfirmButton: false,
+              backdrop: "rgba(0,0,0,0.8)"
+            });
+          });
+
+          wrapper.appendChild(img);
+          wrapper.appendChild(btnRemove);
+          imagePreviewStrip.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
       });
     }
   });
 }
 
 function resetFileSelector() {
-  currentImageBase64 = null;
-  fileInput.value = "";
-  customFileName.textContent = "Không có tệp nào được chọn";
-  customFileName.style.color = "#666";
-  customFileName.style.fontStyle = "italic";
-  customFileName.style.fontWeight = "normal";
-  customFileName.style.textDecoration = "none";
-  customFileName.style.cursor = "default";
-  customFileName.title = "";
+  selectedFiles = [];
+  if (fileInput) fileInput.value = "";
+  if (customFileName) {
+    customFileName.textContent = "Chưa chọn ảnh nào";
+    customFileName.style.color = "#666";
+    customFileName.style.fontStyle = "italic";
+    customFileName.style.fontWeight = "normal";
+  }
+  if (imagePreviewStrip) {
+    imagePreviewStrip.innerHTML = "";
+    imagePreviewStrip.style.display = "none";
+  }
+}
+
+// Tải danh sách thiết bị từ Firestore và đưa vào dropdown
+async function loadDevicesToSelect() {
+  try {
+    const qDevices = query(collection(db, "devices"), orderBy("name", "asc"));
+    const snap = await getDocs(qDevices);
+    const devicesList = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+
+    if (deviceSelect) {
+      deviceSelect.innerHTML = `<option value="" disabled selected>- Chọn thiết bị hỏng -</option>` +
+        devicesList.map(d => {
+          const label = d.code ? `${d.name} [${d.code}]` : d.name;
+          const val = JSON.stringify({ name: d.name, code: d.code || "" });
+          return `<option value='${val}'>${label}</option>`;
+        }).join("") +
+        `<option value="new_device">Thiết bị Khác...</option>`;
+    }
+  } catch (err) {
+    console.warn("Lỗi tải danh sách thiết bị cho dropdown:", err);
+    // Fallback nếu lỗi quyền hoặc lỗi mạng
+    if (deviceSelect) {
+      deviceSelect.innerHTML = `
+        <option value="" disabled selected>- Lỗi tải danh sách thiết bị -</option>
+        <option value="new_device">Nhập tay thiết bị...</option>
+      `;
+    }
+  }
 }
 
 // Theo dõi đăng nhập & phân quyền
@@ -122,7 +189,10 @@ onAuth(async (user) => {
   showLoading("Đang tải dữ liệu...");
   try {
     userRole = await getRole(user.email);
-    
+
+    // Nạp danh sách thiết bị trước
+    await loadDevicesToSelect();
+
     // Khởi động lắng nghe sự cố
     startTicketsListener();
     setupFilters();
@@ -133,6 +203,168 @@ onAuth(async (user) => {
     hideLoading();
   }
 });
+
+// ============================================================
+// LIGHTBOX XEM ẢNH PHÓNG TO CÓ ZOOM
+// ============================================================
+function showImageLightbox(imageUrl) {
+  // Tạo overlay
+  const overlay = document.createElement("div");
+  overlay.id = "imgLightboxOverlay";
+  overlay.style.cssText = [
+    "position:fixed", "inset:0", "z-index:99999",
+    "background:rgba(0,0,0,0.92)",
+    "display:flex", "align-items:center", "justify-content:center",
+    "cursor:zoom-in", "overflow:hidden", "touch-action:none"
+  ].join(";");
+
+  // Nút đóng
+  const btnClose = document.createElement("button");
+  btnClose.innerHTML = "✕";
+  btnClose.style.cssText = [
+    "position:fixed", "top:16px", "right:20px",
+    "background:rgba(255,255,255,0.15)", "color:#fff",
+    "border:none", "border-radius:50%",
+    "width:40px", "height:40px",
+    "font-size:20px", "cursor:pointer",
+    "z-index:100000", "line-height:40px",
+    "display:flex", "align-items:center", "justify-content:center",
+    "transition:background 0.2s"
+  ].join(";");
+  btnClose.onmouseenter = () => btnClose.style.background = "rgba(255,255,255,0.3)";
+  btnClose.onmouseleave = () => btnClose.style.background = "rgba(255,255,255,0.15)";
+
+  // Hướng dẫn zoom
+  const hint = document.createElement("div");
+  hint.textContent = "🔍 Cuộn chuột để zoom • Kéo để di chuyển";
+  hint.style.cssText = [
+    "position:fixed", "bottom:16px", "left:50%", "transform:translateX(-50%)",
+    "color:rgba(255,255,255,0.5)", "font-size:12px",
+    "pointer-events:none", "z-index:100000"
+  ].join(";");
+
+  // Ảnh
+  const img = document.createElement("img");
+  img.src = imageUrl;
+  img.draggable = false;
+  img.style.cssText = [
+    "max-width:95vw", "max-height:90vh",
+    "object-fit:contain",
+    "transform-origin:center center",
+    "transition:transform 0.1s ease",
+    "cursor:grab", "user-select:none",
+    "-webkit-user-drag:none",
+    "border-radius:4px"
+  ].join(";");
+
+  // —— State zoom & pan ——
+  let scale = 1;
+  let panX = 0, panY = 0;
+  let isDragging = false;
+  let dragStartX = 0, dragStartY = 0;
+
+  function applyTransform() {
+    img.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    img.style.cursor = scale > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in";
+    overlay.style.cursor = scale > 1 ? "default" : "zoom-in";
+  }
+
+  function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+  function closeLightbox() {
+    document.removeEventListener("keydown", onKey);
+    overlay.remove();
+    btnClose.remove();
+    hint.remove();
+  }
+
+  // Mouse wheel zoom
+  overlay.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.15 : 0.15;
+    scale = clamp(scale + delta, 0.5, 8);
+    applyTransform();
+  }, { passive: false });
+
+  // Double-click reset zoom
+  img.addEventListener("dblclick", () => {
+    scale = scale > 1 ? 1 : 2;
+    panX = 0; panY = 0;
+    applyTransform();
+  });
+
+  // Mouse drag to pan
+  img.addEventListener("mousedown", (e) => {
+    if (scale <= 1) return;
+    isDragging = true;
+    dragStartX = e.clientX - panX;
+    dragStartY = e.clientY - panY;
+    e.preventDefault();
+    applyTransform();
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    applyTransform();
+  });
+  document.addEventListener("mouseup", () => {
+    if (!isDragging) return;
+    isDragging = false;
+    applyTransform();
+  });
+
+  // Touch pinch-to-zoom
+  let lastTouchDist = 0;
+  let lastTouchMidX = 0, lastTouchMidY = 0;
+  overlay.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      lastTouchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      lastTouchMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      lastTouchMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    } else if (e.touches.length === 1 && scale > 1) {
+      isDragging = true;
+      dragStartX = e.touches[0].clientX - panX;
+      dragStartY = e.touches[0].clientY - panY;
+    }
+  }, { passive: true });
+  overlay.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = dist / lastTouchDist;
+      scale = clamp(scale * ratio, 0.5, 8);
+      lastTouchDist = dist;
+      applyTransform();
+    } else if (e.touches.length === 1 && isDragging) {
+      panX = e.touches[0].clientX - dragStartX;
+      panY = e.touches[0].clientY - dragStartY;
+      applyTransform();
+    }
+  }, { passive: false });
+  overlay.addEventListener("touchend", () => { isDragging = false; });
+
+  // Click overlay (ngoài ảnh) để đóng
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeLightbox();
+  });
+  btnClose.addEventListener("click", closeLightbox);
+
+  // Phím Esc để đóng
+  function onKey(e) { if (e.key === "Escape") closeLightbox(); }
+  document.addEventListener("keydown", onKey);
+
+  overlay.appendChild(img);
+  document.body.appendChild(overlay);
+  document.body.appendChild(btnClose);
+  document.body.appendChild(hint);
+}
 
 // Setup các bộ lọc
 function setupFilters() {
@@ -148,9 +380,9 @@ function startTicketsListener() {
   );
 
   onSnapshot(qTickets, (snapshot) => {
-    currentTickets = [];
+    allTickets = [];
     snapshot.forEach(docDoc => {
-      currentTickets.push({ id: docDoc.id, ...docDoc.data() });
+      allTickets.push({ id: docDoc.id, ...docDoc.data() });
     });
     renderTickets();
   });
@@ -163,7 +395,7 @@ function renderTickets() {
   const severityFilter = filterSeverity.value;
 
   // Lọc dữ liệu trên client
-  const filtered = currentTickets.filter(t => {
+  const filtered = allTickets.filter(t => {
     // Lọc trạng thái
     if (statusFilter === "active") {
       if (t.status === "resolved") return false;
@@ -212,7 +444,7 @@ function getDriveDirectUrl(viewUrl) {
 // Tạo thẻ sự cố
 function createTicketCard(ticket) {
   const div = document.createElement("div");
-  
+
   // Xác định class cho mức độ nghiêm trọng
   let sevText = "Thấp";
   let sevClass = "badge-low";
@@ -248,11 +480,18 @@ function createTicketCard(ticket) {
     reportTimeText = d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
   }
 
-  // Xử lý ảnh đính kèm
+  // Xử lý ảnh đính kèm — hỗ trợ cả mảng imageLinks[] (mới) lẫn imageLink đơn (cũ)
   let imageHTML = "";
-  if (ticket.imageLink) {
-    const thumbUrl = getDriveThumbnailUrl(ticket.imageLink);
-    imageHTML = `<div class="ticket-image-preview" style="background-image: url('${thumbUrl}');" data-full-url="${ticket.imageLink}"></div>`;
+  const allImageLinks = (ticket.imageLinks && ticket.imageLinks.length > 0)
+    ? ticket.imageLinks
+    : (ticket.imageLink ? [ticket.imageLink] : []);
+  if (allImageLinks.length > 0) {
+    imageHTML = `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">`
+      + allImageLinks.map(url => {
+        const thumbUrl = getDriveThumbnailUrl(url);
+        return `<div class="ticket-image-preview" style="width:72px; height:72px; background-size:cover; background-position:center; border-radius:6px; cursor:pointer; border:1px solid #e2e8f0; background-image:url('${thumbUrl}');" data-full-url="${url}"></div>`;
+      }).join("")
+      + `</div>`;
   }
 
   // Ghi chú sửa chữa của admin
@@ -288,10 +527,12 @@ function createTicketCard(ticket) {
     `;
   }
 
+  const displayDevice = ticket.deviceCode ? `${ticket.deviceName} [${ticket.deviceCode}]` : ticket.deviceName;
+
   div.innerHTML = `
     <div>
       <div class="ticket-card-header">
-        <span class="ticket-device-title" title="${ticket.deviceName}">${ticket.deviceName}</span>
+        <span class="ticket-device-title" title="${displayDevice}">${displayDevice}</span>
         <span class="severity-badge ${sevClass}">${sevText}</span>
       </div>
       
@@ -308,21 +549,15 @@ function createTicketCard(ticket) {
     </div>
   `;
 
-  // Gắn sự kiện click ảnh phóng to
-  const imgPreview = div.querySelector(".ticket-image-preview");
-  if (imgPreview) {
-    imgPreview.addEventListener("click", () => {
-      const fullUrl = imgPreview.dataset.fullUrl;
-      const directUrl = getDriveDirectUrl(fullUrl);
-      Swal.fire({
-        imageUrl: directUrl,
-        imageAlt: "Ảnh chụp sự cố thiết bị",
-        showConfirmButton: false,
-        showCloseButton: true,
-        backdrop: `rgba(0,0,0,0.8)`
-      });
+  // Gắn sự kiện click ảnh phóng to — sử dụng lightbox có zoom
+  div.querySelectorAll(".ticket-image-preview").forEach(imgEl => {
+    imgEl.addEventListener("click", () => {
+      const fullUrl = imgEl.dataset.fullUrl;
+      // Thumbnail khổ lớn nhất (2400px) — Google Drive CDN, không bị chặn CORS
+      const largeUrl = getDriveThumbnailUrl(fullUrl).replace("sz=w400", "sz=w2400");
+      showImageLightbox(largeUrl);
     });
-  }
+  });
 
   // Gắn sự kiện cho các nút hành động của Admin
   const btnFixing = div.querySelector(".btn-fixing");
@@ -337,7 +572,11 @@ function createTicketCard(ticket) {
 
   const btnDelete = div.querySelector(".btn-delete");
   if (btnDelete) {
-    btnDelete.addEventListener("click", () => handleDeleteTicket(ticket.id, ticket.imageId));
+    // Truyền cả mảng imageIds (mới) lẫn imageId đơn (cũ) để xử lý xóa Drive
+    const idsToDelete = (ticket.imageIds && ticket.imageIds.length > 0)
+      ? ticket.imageIds
+      : (ticket.imageId ? [ticket.imageId] : []);
+    btnDelete.addEventListener("click", () => handleDeleteTicket(ticket.id, idsToDelete));
   }
 
   return div;
@@ -380,14 +619,24 @@ if (incidentForm) {
   incidentForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    let deviceNameStr = deviceSelect.value;
-    if (deviceNameStr === "new_device") {
+    let deviceNameStr = "";
+    let deviceCodeStr = "";
+
+    const selectedVal = deviceSelect.value;
+    if (selectedVal === "new_device") {
       deviceNameStr = newDeviceName.value.trim();
+    } else if (selectedVal) {
+      try {
+        const devObj = JSON.parse(selectedVal);
+        deviceNameStr = devObj.name;
+        deviceCodeStr = devObj.code || "";
+      } catch (e) {
+        deviceNameStr = selectedVal;
+      }
     }
 
     const issueDescription = document.getElementById("incident-desc").value.trim();
     const severity = document.getElementById("incident-severity").value;
-    const file = fileInput.files[0];
 
     if (!deviceNameStr || !issueDescription || !severity) {
       showSwal("error", "Thiếu thông tin", "Vui lòng nhập đầy đủ các trường bắt buộc.");
@@ -395,43 +644,50 @@ if (incidentForm) {
     }
 
     showLoading("Đang gửi báo cáo sự cố...");
-    let imageLink = null;
-    let imageId = null;
+    let imageLinks = [];
+    let imageIds = [];
 
     try {
-      // 1. Tải ảnh đính kèm lên Drive (nếu có)
-      if (file) {
-        let compressedFile = file;
-        try {
-          compressedFile = await compressImage(file, 4, 0.9);
-        } catch (err) {
-          console.warn("Lỗi nén ảnh sự cố:", err);
+      // 1. Nén và tải từng ảnh lên Drive (ngưỡng nén: 1.5MB)
+      if (selectedFiles.length > 0) {
+        for (const rawFile of selectedFiles) {
+          let compressedFile = rawFile;
+          try {
+            compressedFile = await compressImage(rawFile, 1.5, 0.88);
+          } catch (err) {
+            console.warn("Lỗi nén ảnh sự cố:", err);
+          }
+          const uploadRes = await uploadIncidentImage(compressedFile);
+          imageLinks.push(uploadRes.url);
+          imageIds.push(uploadRes.id);
         }
-        const uploadRes = await uploadIncidentImage(compressedFile);
-        imageLink = uploadRes.url;
-        imageId = uploadRes.id;
       }
 
       // 2. Tạo document sự cố trên Firestore
       const newTicket = {
         deviceName: deviceNameStr,
+        deviceCode: deviceCodeStr,
         issueDescription,
         severity,
         status: "pending",
         reportedBy: auth.currentUser.email,
         reportedAt: serverTimestamp(),
-        imageLink,
-        imageId,
+        imageLinks,   // Mảng URL ảnh (mới)
+        imageIds,     // Mảng ID ảnh trên Drive để xóa sau này
+        imageLink: imageLinks[0] || null,   // Giữ compat với dữ liệu cũ
+        imageId: imageIds[0] || null,
         resolvedBy: null,
         resolvedAt: null,
         notes: ""
       };
 
-      await addDoc(collection(db, "maintenance_tickets"), newTicket);
+      const newTicketRef = await addDoc(collection(db, "maintenance_tickets"), newTicket);
 
       // 3. Ghi nhật ký bảo mật
       await addLog("incident_report_success", {
+        ticketId: newTicketRef.id,
         deviceName: deviceNameStr,
+        deviceCode: deviceCodeStr || "",
         severity,
         email: auth.currentUser.email
       });
@@ -450,7 +706,7 @@ if (incidentForm) {
       }
 
       showSwal("success", "Đã gửi sự cố thành công!", "Nhân viên vận hành và Admin sẽ theo dõi ca trực khắc phục.");
-      
+
       // Reset form
       incidentForm.reset();
       newDeviceGroup.style.display = "none";
@@ -459,6 +715,13 @@ if (incidentForm) {
 
     } catch (error) {
       console.error("Lỗi gửi báo cáo sự cố:", error);
+      await addLog("incident_report_failure", {
+        deviceName: deviceNameStr,
+        deviceCode: deviceCodeStr || "",
+        severity,
+        error: error.message,
+        email: auth.currentUser.email
+      });
       showSwal("error", "Gửi thất bại", error.message);
     } finally {
       hideLoading();
@@ -478,6 +741,7 @@ async function handleUpdateStatus(ticketId, nextStatus) {
 
     await addLog("incident_status_update", {
       ticketId,
+      deviceName: allTickets.find(t => t.id === ticketId)?.deviceName || "",
       status: nextStatus,
       email: auth.currentUser.email
     });
@@ -525,6 +789,7 @@ async function handleResolveTicket(ticketId) {
 
     await addLog("incident_resolve_success", {
       ticketId,
+      deviceName: allTickets.find(t => t.id === ticketId)?.deviceName || "",
       notes,
       email: auth.currentUser.email
     });
@@ -535,8 +800,8 @@ async function handleResolveTicket(ticketId) {
   }
 }
 
-// Admin: Xóa sự cố rác (Dọn dẹp ảnh cũ trên Drive nếu có)
-async function handleDeleteTicket(ticketId, imageId) {
+// Admin: Xóa sự cố rác (Dọn dẹp tất cả ảnh trên Drive nếu có)
+async function handleDeleteTicket(ticketId, imageIdsToDelete = []) {
   const isConfirmed = await Swal.fire({
     title: "Xác nhận Xóa Sự Cố?",
     text: "Mọi hồ sơ và ảnh đính kèm sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu!",
@@ -552,16 +817,19 @@ async function handleDeleteTicket(ticketId, imageId) {
 
   showLoading("Đang dọn dẹp và xóa sự cố...");
   try {
-    // 1. Xóa ảnh trên Drive qua GAS (nếu có)
-    if (imageId) {
+    // 1. Xóa tất cả ảnh trên Drive qua GAS
+    const idToken = await auth.currentUser.getIdToken();
+    const idsArr = Array.isArray(imageIdsToDelete) ? imageIdsToDelete : [imageIdsToDelete].filter(Boolean);
+    for (const fid of idsArr) {
+      if (!fid) continue;
       try {
         const body = new URLSearchParams();
-        body.append("idToken", await auth.currentUser.getIdToken());
+        body.append("idToken", idToken);
         body.append("action", "delete");
-        body.append("fileId", imageId);
+        body.append("fileId", fid);
         await fetch(DRIVE_API_URL, { method: "POST", body });
       } catch (err) {
-        console.warn("Lỗi dọn dẹp ảnh trên Drive khi xóa ticket:", err);
+        console.warn("Lỗi dọn dẹp ảnh trên Drive:", fid, err);
       }
     }
 
@@ -571,6 +839,7 @@ async function handleDeleteTicket(ticketId, imageId) {
     // 3. Ghi log
     await addLog("incident_delete_success", {
       ticketId,
+      deviceName: allTickets.find(t => t.id === ticketId)?.deviceName || "",
       email: auth.currentUser.email
     });
   } catch (error) {

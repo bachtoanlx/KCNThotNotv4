@@ -24,14 +24,13 @@
         padding: 5px 0px !important;
       }
 
-      #pageContent > h2,
-      #pageContent > p {
+      .suco-header {
         padding-left: 8px;
         padding-right: 8px;
       }
 
       .suco-layout {
-        padding: 0 2px 10px 2px;
+        padding: 0 8px 10px 8px;
       }
     }
   </style>
@@ -43,16 +42,48 @@
 
   <div id="notLogged"
     style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
-    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này. Quay lại trang chủ.</a>
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
   </div>
 
   <div id="pageContent" style="display:none;">
-    <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-      🛠️ Báo Cáo Sự Cố Thiết Bị
-    </h2>
-    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">
-      Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành.
-    </p>
+    <div class="suco-header"
+      style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 5px;">
+      <div>
+        <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin: 0 0 5px 0;">
+          🛠️ Báo Cáo Sự Cố Thiết Bị
+        </h2>
+        <p style="color: #64748b; font-size: 0.9rem; margin: 0;">
+          Gửi báo cáo khi phát hiện hỏng hóc, lỗi vận hành.
+        </p>
+      </div>
+
+      <!-- Khung bộ lọc sự cố -->
+      <div class="filter-box" style="margin: 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <label
+          style="display: flex; align-items: center; gap: 5px; margin: 0; font-size: 14px; color: #475569; font-weight: 500;">Trạng
+          thái:
+          <select id="filter-status"
+            style="height: 33px; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; background: #fff;">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active" selected>⚠️ Đang diễn ra</option>
+            <option value="pending">Chờ xử lý</option>
+            <option value="fixing">Đang sửa chữa</option>
+            <option value="resolved">Đã khắc phục xong</option>
+          </select>
+        </label>
+        <label
+          style="display: flex; align-items: center; gap: 5px; margin: 0; font-size: 14px; color: #475569; font-weight: 500;">Mức
+          độ:
+          <select id="filter-severity"
+            style="height: 33px; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; background: #fff;">
+            <option value="all">Tất cả mức độ</option>
+            <option value="critical">🔴 Khẩn cấp</option>
+            <option value="medium">🟡 Trung bình</option>
+            <option value="low">🟢 Thấp</option>
+          </select>
+        </label>
+      </div>
+    </div>
 
     <div class="suco-layout">
       <!-- Cột bên trái: Biểu mẫu báo lỗi sự cố -->
@@ -61,18 +92,7 @@
           <div class="form-group form-field">
             <label for="device-select">Thiết bị hỏng hóc:</label>
             <select class="form-control" id="device-select" required>
-              <option value="" disabled selected>- Chọn thiết bị -</option>
-              <option value="Bơm chìm nước thải">Bơm chìm nước thải</option>
-              <option value="Bơm bùn tuần hoàn">Bơm bùn tuần hoàn</option>
-              <option value="Bơm chìm bể Aerobic">Bơm chìm bể Aerobic</option>
-              <option value="Bơm định lượng PAC">Bơm định lượng PAC</option>
-              <option value="Bơm định lượng Chlorine">Bơm định lượng Chlorine</option>
-              <option value="Máy thổi khí">Máy thổi khí</option>
-              <option value="Cánh khuấy chìm">Cánh khuấy chìm</option>
-              <option value="Cảm biến pH đầu ra">Cảm biến pH đầu ra</option>
-              <option value="Cảm biến DO bể Aerobic">Cảm biến DO bể Aerobic</option>
-              <option value="Tủ điều khiển trung tâm">Tủ điều khiển trung tâm</option>
-              <option value="new_device">- Thiết bị khác... -</option>
+              <option value="" disabled selected>- Đang tải danh sách thiết bị... -</option>
             </select>
           </div>
 
@@ -94,20 +114,21 @@
               <option value="low" selected>🟢 Thấp - Không ảnh hưởng đến vận hành</option>
               <option value="medium">🟡 Trung bình - Cần khắc phục sớm</option>
               <option value="critical">🔴 Khẩn cấp - Ảnh hưởng lớn đến vận hành</option>
-              </option>
             </select>
           </div>
 
           <div class="form-group form-field">
-            <label for="file">Chọn hình ảnh sự cố:</label>
-            <input type="file" id="file" class="form-control-file" accept="image/*" style="display: none;">
+            <label for="file">Chọn hình ảnh sự cố <small style="color:#94a3b8;">(tối đa 3 ảnh)</small>:</label>
+            <input type="file" id="file" class="form-control-file" accept="image/*" multiple style="display: none;">
             <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
               <button type="button" id="customFileBtn"
-                style="padding: 6px 12px; border: 1px solid #ced4da; background: #e9ecef; border-radius: 0.25rem; cursor: pointer; font-size: 14px; color: #495057;">Chọn
-                tệp</button>
-              <span id="customFileName"
-                style="color: #666; font-style: italic; cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; font-size: 14px;">Không
-                có tệp nào được chọn</span>
+                style="padding: 6px 12px; border: 1px solid #ced4da; background: #e9ecef; border-radius: 0.25rem; cursor: pointer; font-size: 14px; color: #495057; white-space: nowrap;">📎
+                Chọn ảnh</button>
+              <span id="customFileName" style="color: #666; font-style: italic; cursor: default; font-size: 13px;">Chưa
+                chọn ảnh nào</span>
+            </div>
+            <!-- Dải preview thumbnail ảnh đã chọn -->
+            <div id="imagePreviewStrip" style="display:none; margin-top:8px; display:flex; flex-wrap:wrap; gap:8px;">
             </div>
           </div>
 
@@ -121,31 +142,6 @@
 
       <!-- Cột bên phải: Danh sách sự cố & cập nhật trạng thái -->
       <div class="suco-right">
-        <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
-          📋 Danh Sách Sự Cố & Tiến Độ Khắc Phục
-        </h2>
-
-        <!-- Khung bộ lọc sự cố -->
-        <div class="filter-box" style="margin-bottom: 15px;">
-          <label>Trạng thái:
-            <select id="filter-status">
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active" selected>⚠️ Đang diễn ra</option>
-              <option value="pending">Chờ xử lý</option>
-              <option value="fixing">Đang sửa chữa</option>
-              <option value="resolved">Đã khắc phục xong</option>
-            </select>
-          </label>
-          <label>Mức độ:
-            <select id="filter-severity">
-              <option value="all">Tất cả mức độ</option>
-              <option value="critical">🔴 Khẩn cấp</option>
-              <option value="medium">🟡 Trung bình</option>
-              <option value="low">🟢 Thấp</option>
-            </select>
-          </label>
-        </div>
-
         <!-- Lưới phiếu sự cố -->
         <div class="ticket-grid" id="ticket-grid">
           <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
