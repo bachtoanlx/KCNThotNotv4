@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <!-- PWA & Mobile Fullscreen -->
+  <link rel='manifest' href='manifest.json'>
+  <meta name='theme-color' content='#273668'>
+  <meta name='apple-mobile-web-app-capable' content='yes'>
+  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+  <meta name='apple-mobile-web-app-title' content='QL KCN'>
+  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trang Tổng Quan - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    #pageContent {
+      padding: 10px 8px;
+    }
+
+    /* Lưới các KPI tóm tắt ở hàng đầu */
+    .dashboard-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .kpi-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    }
+
+    .kpi-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--primary-color);
+      line-height: 1.2;
+    }
+
+    .kpi-desc {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    /* Layout chính chia các Widget */
+    .dashboard-row-split {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .dashboard-row-equal {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .dashboard-panel {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Bảng mini trong danh sách cảnh báo */
+    .mini-list-table {
+      width: 100% !important;
+      min-width: auto !important;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      table-layout: fixed;
+      margin-top: 0 !important;
+      border: none !important;
+    }
+
+    .mini-list-table th,
+    .mini-list-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      word-break: break-word;
+    }
+
+    .mini-list-table th {
+      background: var(--background-color);
+      font-weight: bold;
+      color: #64748b;
+      text-align: center;
+    }
+
+    .mini-list-table td {
+      text-align: left;
+    }
+
+    .mini-list-table tbody tr:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    /* CSS nước thải đầu ra */
+    .water-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .water-kpi-item {
+      background: var(--background-color);
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .water-kpi-name {
+      font-size: 0.72rem;
+      font-weight: bold;
+      color: #64748b;
+      margin-bottom: 2px;
+    }
+
+    .water-kpi-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-color);
+    }
+
+    .water-kpi-status {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-top: 3px;
+    }
+
+    /* Biểu đồ container */
+    .chart-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 220px;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+      .dashboard-row-split,
+      .dashboard-row-equal {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-header-row {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="fixed-viewport-layout">
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <div id="notLogged"
+    style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này. Quay lại trang chủ.</a>
+  </div>
+
+  <div id="pageContent" style="display:none;">
+    <!-- Tiêu đề trang -->
+    <div class="dashboard-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+      <div>
+        <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin: 0 0 5px 0;">
+          📊 Trang Tổng Quan Hệ Thống
+        </h2>
+        <p style="color: #64748b; font-size: 0.9rem; margin: 0;">
+          Màn hình giám sát và vận hành trung tâm nhà máy
+        </p>
+      </div>
+      <div>
+        <button onclick="window.location.reload();" class="btn-action btn-secondary" style="height: 33px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+          🔄 Tải lại dữ liệu
+        </button>
+      </div>
+    </div>
+
+    <!-- Khung cuộn nội dung độc lập -->
+    <div class="main-layout-container" style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 25px;">
+      
+      <!-- Hàng 1: Thẻ KPI Tóm Tắt -->
+      <div class="dashboard-kpi-grid">
+        <!-- KPI 1: Ca Trực -->
+        <div class="kpi-card" id="kpi-shift-card">
+          <div>
+            <div class="kpi-title">Ca trực gần nhất</div>
+            <div class="kpi-value" id="kpi-shift-name" style="font-size: 1.25rem; font-weight: 800; margin-top: 5px;">Đang tải...</div>
+          </div>
+          <div class="kpi-desc" id="kpi-shift-desc">
+            👤 Đang xác định...
+          </div>
+        </div>
+
+        <!-- KPI 2: Sự cố -->
+        <div class="kpi-card" style="cursor: pointer;" onclick="window.location.href='suco.html'">
+          <div>
+            <div class="kpi-title">Sự cố đang mở</div>
+            <div class="kpi-value" id="kpi-tickets-count">0</div>
+          </div>
+          <div class="kpi-desc" id="kpi-tickets-desc">
+            🔴 0 Khẩn cấp | 🟡 0 Trung bình
+          </div>
+        </div>
+
+        <!-- KPI 3: Cảnh báo hóa chất -->
+        <div class="kpi-card" style="cursor: pointer;" onclick="window.location.href='kho.html'">
+          <div>
+            <div class="kpi-title">Tồn kho cảnh báo</div>
+            <div class="kpi-value" id="kpi-chemicals-count">0</div>
+          </div>
+          <div class="kpi-desc" id="kpi-chemicals-desc">
+            ⚠️ Hóa chất sắp hết
+          </div>
+        </div>
+
+        <!-- KPI 4: Lịch bảo trì -->
+        <div class="kpi-card" style="cursor: pointer;" onclick="window.location.href='autoplan.html'">
+          <div>
+            <div class="kpi-title">Bảo trì (7 ngày tới)</div>
+            <div class="kpi-value" id="kpi-maint-count">0</div>
+          </div>
+          <div class="kpi-desc" id="kpi-maint-desc">
+            📅 Đầu việc định kỳ
+          </div>
+        </div>
+      </div>
+
+      <!-- Hàng 2: Biểu đồ lưu lượng + Trạng thái nước thải ca gần nhất -->
+      <div class="dashboard-row-split">
+        <!-- Biểu đồ lưu lượng nước thải -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">📈 Lưu lượng nước thải xả ra (7 ngày gần nhất)</div>
+            <div style="font-size: 0.72rem; color: #64748b;" id="chart-total-flow">Tổng: — m³</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="flowChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Chất lượng nước thải đầu ra ca gần nhất -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">💧 Chỉ tiêu nước thải ca gần nhất</div>
+            <div style="font-size: 0.72rem; color: #64748b; font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="window.location.href='canhbao.html'">
+              Chi tiết chuẩn QCVN ➔
+            </div>
+          </div>
+          
+          <div class="water-kpi-grid" id="water-indicators-container">
+            <!-- pH -->
+            <div class="water-kpi-item">
+              <div class="water-kpi-name">pH</div>
+              <div class="water-kpi-val" id="water-val-ph">—</div>
+              <span class="water-kpi-status status-green" id="water-badge-ph">—</span>
+            </div>
+            <!-- COD -->
+            <div class="water-kpi-item">
+              <div class="water-kpi-name">COD</div>
+              <div class="water-kpi-val" id="water-val-cod">—</div>
+              <span class="water-kpi-status status-green" id="water-badge-cod">—</span>
+            </div>
+            <!-- Nitơ -->
+            <div class="water-kpi-item">
+              <div class="water-kpi-name">Tổng Nitơ</div>
+              <div class="water-kpi-val" id="water-val-n">—</div>
+              <span class="water-kpi-status status-green" id="water-badge-n">—</span>
+            </div>
+            <!-- TSS -->
+            <div class="water-kpi-item">
+              <div class="water-kpi-name">TSS</div>
+              <div class="water-kpi-val" id="water-val-tss">—</div>
+              <span class="water-kpi-status status-green" id="water-badge-tss">—</span>
+            </div>
+            <!-- Clo dư -->
+            <div class="water-kpi-item" style="grid-column: span 2;">
+              <div class="water-kpi-name">Clo dư</div>
+              <div class="water-kpi-val" id="water-val-clo">—</div>
+              <span class="water-kpi-status status-green" id="water-badge-clo">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hàng 3: Danh sách Hóa chất sắp hết + Lịch bảo trì sắp tới -->
+      <div class="dashboard-row-equal">
+        <!-- Hóa chất sắp hết -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">🚨 Cảnh báo tồn kho hóa chất</div>
+            <div style="font-size: 0.72rem; color: #dc2626; font-weight: bold;" id="low-stock-alert-text">Đang quét kho...</div>
+          </div>
+          <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
+            <table class="mini-list-table">
+              <thead>
+                <tr>
+                  <th style="width: 38%;">Tên hóa chất</th>
+                  <th style="width: 31%;">Hiện tại</th>
+                  <th style="width: 31%;">Ngưỡng cảnh báo</th>
+                </tr>
+              </thead>
+              <tbody id="low-stock-table-body">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải danh sách tồn kho...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lịch bảo trì 7 ngày tới -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">⚙️ Bảo trì thiết bị trong 7 ngày tới</div>
+            <div style="font-size: 0.72rem; color: var(--primary-color); font-weight: bold;" id="upcoming-maint-text">Đang kiểm tra lịch...</div>
+          </div>
+          <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
+            <table class="mini-list-table">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Ngày</th>
+                  <th style="width: 65%;">Thiết bị / Công việc</th>
+                  <th style="width: 20%;">Tần suất</th>
+                </tr>
+              </thead>
+              <tbody id="upcoming-maint-table-body">
+                <tr>
+                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải lịch bảo trì...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <!-- Chart.js & SweetAlert2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module" src="dashboard.js"></script>
+</body>
+
+</html>

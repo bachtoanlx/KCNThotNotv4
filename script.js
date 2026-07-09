@@ -2861,8 +2861,8 @@ export function loadTemplate(placeholderId, url, callback) {
   const container = document.getElementById(placeholderId);
   if (!container) return;
 
-  // Đổi thành v4 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
-  const cacheKey = `cached_html_v4_${url}`;
+  // Đổi thành v6 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
+  const cacheKey = `cached_html_v6_${url}`;
   
   try {
     const cachedHTML = localStorage.getItem(cacheKey);
@@ -2875,7 +2875,8 @@ export function loadTemplate(placeholderId, url, callback) {
     console.warn("Lỗi đọc cache template từ localStorage:", e);
   }
 
-  fetch(url)
+  // Bổ sung tham số thời gian để tránh cache HTTP trình duyệt
+  fetch(`${url}?t=${Date.now()}`)
     .then(r => {
       if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
       return r.text();
