@@ -168,6 +168,28 @@ function setupDashboardListeners() {
       calculateUpcomingMaintenance(rules);
     });
 
+    // 4b. Lắng nghe báo cáo của tháng hiện tại để tính tổng tiêu thụ lũy kế
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const yyyy = startOfMonth.getFullYear();
+    const mm = String(startOfMonth.getMonth() + 1).padStart(2, '0');
+    const startOfMonthStr = `${yyyy}-${mm}-01`;
+
+    document.getElementById("consumption-month-label").textContent = `Tháng ${startOfMonth.getMonth() + 1}/${yyyy}`;
+
+    const qMonth = query(
+      collection(db, "shift_reports"),
+      where("reportDate", ">=", startOfMonthStr)
+    );
+
+    onSnapshot(qMonth, (snapshot) => {
+      const monthReports = snapshot.docs.map(docSnap => docSnap.data());
+      calculateMonthlyConsumption(monthReports);
+    }, (err) => {
+      console.error("Lỗi lắng nghe dữ liệu tháng hiện tại:", err);
+    });
+
     // 5. Tải dữ liệu lưu lượng xả thải 7 ngày gần nhất để vẽ biểu đồ
     loadFlowDataAndRenderChart();
 
@@ -327,7 +349,7 @@ function calculateUpcomingMaintenance(allRules) {
 }
 
 // ============================================================
-// TẢI DỮ LIỆU & VẼ BIỂU ĐỒ LƯU LƯỢNG NƯỚC THẢI 7 NGÀY GẦN NHẤT
+// TẢI DỮ LIỆU & VẼ BIỂU ĐỒ LƯU LƯỢNG NƯỚC THẢI 7 NGÀY GẦN NHẤT (ĐỐI SÁNH VÀO/RA)
 // ============================================================
 async function loadFlowDataAndRenderChart() {
   try {
@@ -350,86 +372,124 @@ async function loadFlowDataAndRenderChart() {
     const snap = await getDocs(qFlow);
     const reports = snap.docs.map(docSnap => docSnap.data());
 
-    // Khởi tạo đối tượng gom nhóm theo ngày (map từ sevenDaysAgoStr đến hôm nay)
-    const flowMap = {};
+    // Khởi tạo đối tượng gom nhóm theo ngày cho cả Đầu vào và Đầu ra
+    const inflowMap = {};
+    const outflowMap = {};
     for (let i = 0; i < 7; i++) {
       const d = new Date(sevenDaysAgo);
       d.setDate(sevenDaysAgo.getDate() + i);
       const isoKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      flowMap[isoKey] = 0;
+      inflowMap[isoKey] = 0;
+      outflowMap[isoKey] = 0;
     }
 
-    // Gom dữ liệu lưu lượng xả thải (meters.flow_out_total)
-    let grandTotalFlow = 0;
+    // Gom dữ liệu lưu lượng đầu vào và đầu ra
+    let grandTotalInflow = 0;
+    let grandTotalOutflow = 0;
+
     reports.forEach(r => {
-      if (r.reportDate && flowMap[r.reportDate] !== undefined) {
-        const valStr = String(r.meters?.flow_out_total || "0").replace(",", ".");
-        const val = parseFloat(valStr);
-        if (!isNaN(val) && val > 0) {
-          flowMap[r.reportDate] += val;
-          grandTotalFlow += val;
+      if (r.reportDate && inflowMap[r.reportDate] !== undefined) {
+        // Đầu vào (flow_in_total)
+        const inValStr = String(r.meters?.flow_in_total || "0").replace(",", ".");
+        const inVal = parseFloat(inValStr);
+        if (!isNaN(inVal) && inVal > 0) {
+          inflowMap[r.reportDate] += inVal;
+          grandTotalInflow += inVal;
+        }
+
+        // Đầu ra (flow_out_total)
+        const outValStr = String(r.meters?.flow_out_total || "0").replace(",", ".");
+        const outVal = parseFloat(outValStr);
+        if (!isNaN(outVal) && outVal > 0) {
+          outflowMap[r.reportDate] += outVal;
+          grandTotalOutflow += outVal;
         }
       }
     });
 
-    chartTotalFlow.textContent = `Tổng: ${grandTotalFlow.toLocaleString("vi-VN")} m³`;
+    chartTotalFlow.textContent = `Tổng vào: ${grandTotalInflow.toLocaleString("vi-VN")} m³ | Tổng ra: ${grandTotalOutflow.toLocaleString("vi-VN")} m³`;
 
     // Chuẩn bị nhãn ngày dạng DD/MM cho Chart
     const chartLabels = [];
-    const chartData = [];
+    const chartInflowData = [];
+    const chartOutflowData = [];
 
-    Object.keys(flowMap).sort().forEach(dateStr => {
+    Object.keys(inflowMap).sort().forEach(dateStr => {
       const parts = dateStr.split("-");
       chartLabels.push(`${parts[2]}/${parts[1]}`);
-      chartData.push(flowMap[dateStr]);
+      chartInflowData.push(inflowMap[dateStr]);
+      chartOutflowData.push(outflowMap[dateStr]);
     });
 
-    renderChart(chartLabels, chartData);
+    renderChart(chartLabels, chartInflowData, chartOutflowData);
 
   } catch (err) {
     console.error("Lỗi tải lưu lượng vẽ biểu đồ:", err);
   }
 }
 
-function renderChart(labels, dataValues) {
+function renderChart(labels, inflowData, outflowData) {
   const ctx = document.getElementById("flowChart").getContext("2d");
   
   if (flowChart) {
     flowChart.destroy();
   }
 
-  // Sử dụng màu palette gradient xanh mượt mà, chuyên nghiệp
+  // Sử dụng hai đường để đối sánh Lưu lượng đầu vào và đầu ra
   flowChart = new Chart(ctx, {
     type: "line",
     data: {
       labels: labels,
-      datasets: [{
-        label: "Lưu lượng nước thải đầu ra (m³)",
-        data: dataValues,
-        borderColor: "#2563eb",
-        backgroundColor: "rgba(37, 99, 235, 0.1)",
-        borderWidth: 3,
-        tension: 0.3,
-        fill: true,
-        pointBackgroundColor: "#2563eb",
-        pointBorderColor: "#fff",
-        pointHoverRadius: 6,
-        pointRadius: 4
-      }]
+      datasets: [
+        {
+          label: "Lưu lượng đầu vào (Inflow)",
+          data: inflowData,
+          borderColor: "#10b981", // Màu xanh lá / Ngọc lục bảo
+          backgroundColor: "rgba(16, 185, 129, 0.05)",
+          borderWidth: 2.5,
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: "#10b981",
+          pointBorderColor: "#fff",
+          pointHoverRadius: 6,
+          pointRadius: 3
+        },
+        {
+          label: "Lưu lượng đầu ra (Outflow)",
+          data: outflowData,
+          borderColor: "#2563eb", // Màu xanh dương chuyên nghiệp
+          backgroundColor: "rgba(37, 99, 235, 0.05)",
+          borderWidth: 2.5,
+          tension: 0.3,
+          fill: true,
+          pointBackgroundColor: "#2563eb",
+          pointBorderColor: "#fff",
+          pointHoverRadius: 6,
+          pointRadius: 3
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: false // ẩn vì tiêu đề panel đã thể hiện
+          display: true,
+          position: "top",
+          labels: {
+            boxWidth: 12,
+            font: {
+              size: 10,
+              weight: "bold"
+            }
+          }
         },
         tooltip: {
           mode: "index",
           intersect: false,
           callbacks: {
             label: function(context) {
-              return `Lưu lượng: ${context.parsed.y.toLocaleString("vi-VN")} m³`;
+              return `${context.dataset.label}: ${context.parsed.y.toLocaleString("vi-VN")} m³`;
             }
           }
         }
@@ -438,14 +498,14 @@ function renderChart(labels, dataValues) {
         y: {
           beginAtZero: true,
           grid: {
-            color: "rgba(0, 0, 0, 0.05)"
+            color: "rgba(0, 0, 0, 0.03)"
           },
           ticks: {
             callback: function(value) {
               return value.toLocaleString("vi-VN") + " m³";
             },
             font: {
-              size: 10
+              size: 9
             }
           }
         },
@@ -455,7 +515,7 @@ function renderChart(labels, dataValues) {
           },
           ticks: {
             font: {
-              size: 10
+              size: 9
             }
           }
         }
@@ -474,4 +534,71 @@ function formatDateString(dateStr) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
   return dateStr;
+}
+
+// Tính toán tiêu hao lũy kế trong tháng hiện tại
+function calculateMonthlyConsumption(reports) {
+  const reportCountEl = document.getElementById("consumption-report-count");
+  if (reportCountEl) {
+    reportCountEl.textContent = `Dựa trên ${reports.length} báo cáo ca`;
+  }
+
+  let totalElectricity = 0;
+  let totalWater = 0;
+  let totalFlow = 0;
+  const chemicalTotals = {};
+
+  reports.forEach(r => {
+    // 1. Điện năng (dien_sl)
+    if (r.meters?.dien_sl) {
+      const val = parseFloat(String(r.meters.dien_sl).replace(",", "."));
+      if (!isNaN(val)) totalElectricity += val;
+    }
+    // 2. Nước cấp (nuoc_sl)
+    if (r.meters?.nuoc_sl) {
+      const val = parseFloat(String(r.meters.nuoc_sl).replace(",", "."));
+      if (!isNaN(val)) totalWater += val;
+    }
+    // 3. Nước thải xả ra (flow_out_total)
+    if (r.meters?.flow_out_total) {
+      const val = parseFloat(String(r.meters.flow_out_total).replace(",", "."));
+      if (!isNaN(val)) totalFlow += val;
+    }
+    // 4. Hóa chất tiêu hao
+    if (Array.isArray(r.chemicals)) {
+      r.chemicals.forEach(chem => {
+        const name = chem.chemicalName ? chem.chemicalName.trim() : "";
+        if (name) {
+          const qty = parseFloat(String(chem.quantity).replace(",", "."));
+          if (!isNaN(qty)) {
+            chemicalTotals[name] = (chemicalTotals[name] || 0) + qty;
+          }
+        }
+      });
+    }
+  });
+
+  const electricityEl = document.getElementById("monthly-val-electricity");
+  const waterEl = document.getElementById("monthly-val-water");
+  const flowEl = document.getElementById("monthly-val-flow");
+  const chemicalsEl = document.getElementById("monthly-val-chemicals");
+
+  if (electricityEl) electricityEl.textContent = `${totalElectricity.toLocaleString("vi-VN")} kWh`;
+  if (waterEl) waterEl.textContent = `${totalWater.toLocaleString("vi-VN")} m³`;
+  if (flowEl) flowEl.textContent = `${totalFlow.toLocaleString("vi-VN")} m³`;
+
+  if (chemicalsEl) {
+    const chemKeys = Object.keys(chemicalTotals).sort();
+    if (chemKeys.length > 0) {
+      const chemListHtml = chemKeys.map(name => {
+        return `<div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed rgba(0,0,0,0.05);">
+          <span style="font-weight: 500; font-size: 0.75rem;">${name}</span>
+          <span style="font-weight: bold; font-size: 0.75rem; color: #16a085;">${chemicalTotals[name].toLocaleString("vi-VN")} kg</span>
+        </div>`;
+      }).join("");
+      chemicalsEl.innerHTML = chemListHtml;
+    } else {
+      chemicalsEl.innerHTML = `<div style="color: #64748b; font-style: italic; font-size: 0.75rem; text-align: center; margin-top: 10px;">Chưa tiêu thụ hóa chất</div>`;
+    }
+  }
 }

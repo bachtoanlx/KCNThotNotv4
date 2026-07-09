@@ -2896,5 +2896,5 @@ export function loadTemplate(placeholderId, url, callback) {
 }
 
 // Export thêm các hàm Firestore cần thiết cho chatbot
-export { query, orderBy, limit, where, getDocs, collection, doc, getDoc, addDoc, setDoc, deleteDoc };
+export { query, orderBy, limit, where, getDocs, collection, doc, getDoc, addDoc, setDoc, deleteDoc, uploadFileToDrive, deleteFileFromDrive };
 

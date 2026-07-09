@@ -39,7 +39,7 @@ const filterStatus = document.getElementById("filter-status");
 const filterSeverity = document.getElementById("filter-severity");
 
 const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec";
-const INCIDENT_ROOT_FOLDER_ID = "1J0diji8DVP0Xw7Ckh7eKiMe5zVdEDisJ"; // Lưu ảnh chung trong thư mục của KCN
+// Đã ẩn ID thư mục để bảo mật
 
 let userRole = "user";
 let selectedFiles = [];   // Mảng lưu các File ảnh đã chọn (tối đa 3)
@@ -603,7 +603,7 @@ async function uploadIncidentImage(file) {
   body.append("file", base64);
   body.append("name", file.name);
   body.append("type", file.type);
-  body.append("targetFolderId", INCIDENT_ROOT_FOLDER_ID);
+  body.append("targetFolderId", "");
 
   const res = await fetch(DRIVE_API_URL, { method: "POST", body });
   const result = await res.json();

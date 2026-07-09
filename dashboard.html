@@ -286,13 +286,49 @@
         </div>
       </div>
 
+      <!-- Hàng 1B: Chỉ Số Tiêu Thụ Tháng Hiện Tại -->
+      <div class="dashboard-panel">
+        <div class="panel-header" style="margin-bottom: 8px;">
+          <div class="panel-title">📊 Số liệu tiêu thụ lũy kế tháng này (<span id="consumption-month-label">tháng này</span>)</div>
+          <div style="font-size: 0.72rem; color: #64748b;" id="consumption-report-count">Dựa trên 0 báo cáo ca</div>
+        </div>
+        <div class="water-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+          <!-- Điện năng -->
+          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+            <div style="font-size: 1.5rem; margin-bottom: 2px;">⚡</div>
+            <div class="water-kpi-name" style="font-size: 0.75rem;">Điện năng tiêu thụ</div>
+            <div class="water-kpi-val" id="monthly-val-electricity" style="font-size: 1.2rem; font-weight: 800; color: #d97706;">— kWh</div>
+          </div>
+          <!-- Nước cấp -->
+          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+            <div style="font-size: 1.5rem; margin-bottom: 2px;">💧</div>
+            <div class="water-kpi-name" style="font-size: 0.75rem;">Nước cấp sử dụng</div>
+            <div class="water-kpi-val" id="monthly-val-water" style="font-size: 1.2rem; font-weight: 800; color: #2563eb;">— m³</div>
+          </div>
+          <!-- Lưu lượng xả thải -->
+          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+            <div style="font-size: 1.5rem; margin-bottom: 2px;">📤</div>
+            <div class="water-kpi-name" style="font-size: 0.75rem;">Nước thải xả ra</div>
+            <div class="water-kpi-val" id="monthly-val-flow" style="font-size: 1.2rem; font-weight: 800; color: #059669;">— m³</div>
+          </div>
+          <!-- Hóa chất tiêu hao -->
+          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 10px; min-height: 100px;">
+            <div style="font-size: 1.5rem; margin-bottom: 2px;">🧪</div>
+            <div class="water-kpi-name" style="font-size: 0.75rem; margin-bottom: 5px;">Hóa chất đã dùng</div>
+            <div id="monthly-val-chemicals" style="font-size: 0.75rem; font-weight: bold; width: 100%; text-align: center; color: var(--text-color); max-height: 70px; overflow-y: auto;">
+              —
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Hàng 2: Biểu đồ lưu lượng + Trạng thái nước thải ca gần nhất -->
       <div class="dashboard-row-split">
         <!-- Biểu đồ lưu lượng nước thải -->
         <div class="dashboard-panel">
           <div class="panel-header">
-            <div class="panel-title">📈 Lưu lượng nước thải xả ra (7 ngày gần nhất)</div>
-            <div style="font-size: 0.72rem; color: #64748b;" id="chart-total-flow">Tổng: — m³</div>
+            <div class="panel-title">📈 Đối sánh lưu lượng nước thải (7 ngày gần nhất)</div>
+            <div style="font-size: 0.72rem; color: #64748b;" id="chart-total-flow">Tổng vào: — | Tổng ra: —</div>
           </div>
           <div class="chart-container">
             <canvas id="flowChart"></canvas>

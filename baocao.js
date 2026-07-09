@@ -1054,8 +1054,8 @@
         let newUploadedFiles = []; // Mảng chứa file VỪA TẢI LÊN (để rollback)
         let oldImageIdsFromDb = []; // Đổi tên: Đây là các ID ảnh gốc từ DB
 
-        const rootFolderId = "1Q_LmzYCD-NWRtmba02SSqVSzhMEIHEpo"; // ID THƯ MỤC GỐC 
-        const subFolderId = await ensureReportFolderOnGAS(reportId, rootFolderId);
+        // Đã chuyển folderId về phía máy chủ (Apps Script Backend) để bảo mật
+        const subFolderId = await ensureReportFolderOnGAS(reportId, "");
 
         try {
             // --- 2. THU THẬP DỮ LIỆU (Tạm thời) (Giữ nguyên) ---
