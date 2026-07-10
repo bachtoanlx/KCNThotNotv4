@@ -1,26 +1,88 @@
-# Environment variables
-.env
-.env.local
-.env.production
+# ==========================================
+# Cấu hình bảo mật & Khóa API (MẬT)
+# ==========================================
+# Không được commit các file chứa API Key hoặc thông tin đăng nhập lên GitHub.
 
-# Firebase
-kcnthotnot25-923a682137f8.json
-*.json
-
-# API Keys
+# File cấu hình chứa API Key (như Gemini Key)
 config.js
 api-keys.js
 
-# Cloud Functions (không dùng)
-functions/
-.firebase/
+# Các file môi trường
+.env
+.env.local
+.env.production
+.env.*
+!.env.example
 
-# Node modules
+# File chứng chỉ Firebase & Service Account JSON (chứa private key cực kỳ quan trọng)
+kcnthotnot25-*.json
+*-credentials.json
+*firebase-key*.json
+*.private.json
+credentials.json
+client_secret*.json
+
+# ==========================================
+# Sao lưu & Dữ liệu tạm (Backups & Temp data)
+# ==========================================
+# Bỏ qua các file sao lưu cơ sở dữ liệu hoặc file nháp.
+*Backup*.json
+*backup*.json
+*_Backup_*.json
+KCN_Backup_*.json
+*.bak
+*.tmp
+*.temp
+
+# ==========================================
+# Cho phép các file cấu hình chuẩn của Project
+# ==========================================
+# Đảm bảo KHÔNG bỏ qua các file cấu hình quan trọng của web app.
+!manifest.json
+!package.json
+!package-lock.json
+
+# ==========================================
+# Môi trường phát triển & Thư viện (Node/IDE)
+# ==========================================
+# Thư viện ngoài
 node_modules/
+jspm_packages/
 
-# Logs
+# Thư mục Firebase (nếu có dùng sau này)
+.firebase/
+.firebaserc
+# Nếu dùng Firebase functions, bỏ qua thư mục build của nó
+functions/node_modules/
+functions/lib/
+
+# IDEs/Editors (VS Code, WebStorm, etc.)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# ==========================================
+# Nhật ký hệ thống & Logs
+# ==========================================
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# OS
+# ==========================================
+# Hệ điều hành (OS)
+# ==========================================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+
