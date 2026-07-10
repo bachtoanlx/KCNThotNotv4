@@ -30,8 +30,7 @@ const notLogged = document.getElementById("notLogged");
 const pageContent = document.getElementById("pageContent");
 const adminImportCard = document.getElementById("admin-import-card");
 const importForm = document.getElementById("importForm");
-const chemicalSelect = document.getElementById("import-chemical-name");
-const newChemicalGroup = document.getElementById("new-chemical-group");
+// chemicalSelect and newChemicalGroup are replaced by dynamic rows class selectors
 const stockGrid = document.getElementById("stock-grid");
 const receiptsTbody = document.getElementById("receipts-tbody");
 
@@ -110,12 +109,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     fileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        selectedFileName.textContent = file.name;
+      const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        if (files.length === 1) {
+          selectedFileName.textContent = files[0].name;
+          importDocLinkInput.value = `[Đã chọn tệp: ${files[0].name}]`;
+        } else {
+          selectedFileName.textContent = `Đã chọn ${files.length} tệp`;
+          importDocLinkInput.value = `[Đã chọn ${files.length} tệp: ${files.map(f => f.name).join(", ")}]`;
+        }
         fileSelectedInfo.style.display = "flex";
-        importDocLinkInput.value = `[Đã chọn ảnh: ${file.name}]`;
         importDocLinkInput.readOnly = true;
+
+        // Tự động đổi biểu tượng tương ứng với định dạng tệp
+        const fileIconSpan = document.getElementById("selected-file-icon");
+        if (fileIconSpan) {
+          if (files.length > 1) {
+            fileIconSpan.textContent = "🗂️"; // Nhiều file
+          } else {
+            const file = files[0];
+            if (file.type.startsWith("image/")) {
+              fileIconSpan.textContent = "📸";
+            } else if (file.type === "application/pdf") {
+              fileIconSpan.textContent = "📕";
+            } else if (file.name.endsWith(".xls") || file.name.endsWith(".xlsx")) {
+              fileIconSpan.textContent = "📊";
+            } else if (file.name.endsWith(".doc") || file.name.endsWith(".docx")) {
+              fileIconSpan.textContent = "📝";
+            } else {
+              fileIconSpan.textContent = "📄";
+            }
+          }
+        }
       }
     });
 
@@ -128,18 +153,103 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Lắng nghe trạng thái chọn hóa chất
-if (chemicalSelect) {
-  chemicalSelect.addEventListener("change", (e) => {
-    if (e.target.value === "new_chemical") {
-      newChemicalGroup.style.display = "block";
-      document.getElementById("new-chemical-name").setAttribute("required", "true");
-    } else {
-      newChemicalGroup.style.display = "none";
-      document.getElementById("new-chemical-name").removeAttribute("required");
-    }
+// === QUẢN LÝ THÊM/BỚT DÒNG HÓA CHẤT ĐỘNG ===
+function addChemicalRow() {
+  const container = document.getElementById("chemical-rows-container");
+  if (!container) return;
+
+  const newRow = document.createElement("div");
+  newRow.className = "chemical-row";
+  newRow.style.cssText = "background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative;";
+  newRow.innerHTML = `
+    <div class="form-group form-field">
+      <label style="font-weight: 500;">Tên Hóa chất:</label>
+      <select class="form-control row-chemical-name" required>
+        <option value="" disabled selected>- Chọn hóa chất -</option>
+        <option value="Polymer Anion">Polymer Anion</option>
+        <option value="PAC">PAC</option>
+        <option value="Chlorine">Chlorine</option>
+        <option value="Polymer Cation">Polymer Cation</option>
+        <option value="Javen">Javen</option>
+        <option value="Phèn sắt">Phèn sắt</option>
+        <option value="Phèn nhôm">Phèn nhôm</option>
+        <option value="Xút (NaOH)">Xút (NaOH)</option>
+        <option value="Axit Sunfuric (H2SO4)">Axit Sunfuric (H2SO4)</option>
+        <option value="new_chemical">- Thêm hóa chất khác... -</option>
+      </select>
+    </div>
+
+    <!-- Ô nhập hóa chất mới (Ẩn mặc định, chỉ hiện khi chọn hóa chất khác) -->
+    <div class="form-group form-field row-new-chemical-group" style="display: none;">
+      <label style="font-weight: 500;">Tên hóa chất mới:</label>
+      <input type="text" class="form-control row-new-chemical-name" placeholder="Nhập tên hóa chất...">
+    </div>
+
+    <div style="display: flex; gap: 10px;">
+      <div class="form-group form-field" style="flex: 1; margin-bottom: 0;">
+        <label style="font-weight: 500;">Số lượng nhập (kg):</label>
+        <input type="number" class="form-control row-amount" min="1" placeholder="Nhập số lượng..." required>
+      </div>
+      <div class="form-group form-field" style="flex: 1; margin-bottom: 0;">
+        <label style="font-weight: 500;">Ngưỡng báo động (kg):</label>
+        <input type="number" class="form-control row-threshold" min="0" placeholder="Ngưỡng..." value="100">
+      </div>
+    </div>
+    
+    <button type="button" class="remove-row-btn" style="display: none;" title="Xóa dòng này">
+      ✕
+    </button>
+  `;
+  container.appendChild(newRow);
+  updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+  const container = document.getElementById("chemical-rows-container");
+  if (!container) return;
+  const rows = container.querySelectorAll(".chemical-row");
+  const showBtn = rows.length > 1;
+  rows.forEach(row => {
+    const btn = row.querySelector(".remove-row-btn");
+    if (btn) btn.style.display = showBtn ? "block" : "none";
   });
 }
+
+// Đăng ký sự kiện quản lý dòng
+document.addEventListener("DOMContentLoaded", () => {
+  const addRowBtn = document.getElementById("add-chemical-row-btn");
+  if (addRowBtn) {
+    addRowBtn.addEventListener("click", addChemicalRow);
+  }
+
+  const rowsContainer = document.getElementById("chemical-rows-container");
+  if (rowsContainer) {
+    // 1. Lắng nghe thay đổi chọn hóa chất
+    rowsContainer.addEventListener("change", (e) => {
+      if (e.target.classList.contains("row-chemical-name")) {
+        const row = e.target.closest(".chemical-row");
+        const newGroup = row.querySelector(".row-new-chemical-group");
+        const newInput = row.querySelector(".row-new-chemical-name");
+        if (e.target.value === "new_chemical") {
+          newGroup.style.display = "block";
+          newInput.setAttribute("required", "true");
+        } else {
+          newGroup.style.display = "none";
+          newInput.removeAttribute("required");
+        }
+      }
+    });
+
+    // 2. Lắng nghe sự kiện xóa hàng
+    rowsContainer.addEventListener("click", (e) => {
+      if (e.target.classList.contains("remove-row-btn") || e.target.closest(".remove-row-btn")) {
+        const row = e.target.closest(".chemical-row");
+        row.remove();
+        updateRemoveButtons();
+      }
+    });
+  }
+});
 
 // Theo dõi đăng nhập & phân quyền hiển thị
 onAuth(async (user) => {
@@ -281,94 +391,138 @@ if (importForm) {
       return;
     }
 
-    let chemicalName = chemicalSelect.value;
-    if (chemicalName === "new_chemical") {
-      chemicalName = document.getElementById("new-chemical-name").value.trim();
+    // 1. Thu thập danh sách hóa chất từ các dòng
+    const rowElements = document.querySelectorAll(".chemical-row");
+    const chemicalItems = [];
+
+    for (const row of rowElements) {
+      let chemName = row.querySelector(".row-chemical-name").value;
+      if (chemName === "new_chemical") {
+        chemName = row.querySelector(".row-new-chemical-name").value.trim();
+      }
+      const amount = parseFloat(row.querySelector(".row-amount").value);
+      const threshold = parseFloat(row.querySelector(".row-threshold").value) || 0;
+
+      if (!chemName || isNaN(amount) || amount <= 0) {
+        showSwal("error", "Dữ liệu lỗi", "Vui lòng kiểm tra lại thông tin các hóa chất nhập kho.");
+        return;
+      }
+      chemicalItems.push({ chemicalName: chemName, amount, threshold });
     }
 
-    const amount = parseFloat(document.getElementById("import-amount").value);
-    const threshold = parseFloat(document.getElementById("import-threshold").value) || 0;
+    if (chemicalItems.length === 0) {
+      showSwal("error", "Dữ liệu lỗi", "Vui lòng thêm ít nhất một hóa chất.");
+      return;
+    }
+
     const supplier = document.getElementById("import-supplier").value.trim();
     const date = document.getElementById("import-date").value;
     const note = document.getElementById("import-note").value.trim();
     const docLink = document.getElementById("import-doc-link") ? document.getElementById("import-doc-link").value.trim() : "";
 
-    // Đọc file ảnh đính kèm (nếu có)
+    // Đọc các file đính kèm (nếu có)
     const fileInput = document.getElementById("import-file");
-    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    const files = fileInput && fileInput.files ? Array.from(fileInput.files) : [];
 
-    if (!chemicalName || isNaN(amount) || amount <= 0 || !date) {
-      showSwal("error", "Dữ liệu lỗi", "Vui lòng điền đầy đủ các thông tin hợp lệ.");
+    if (!date) {
+      showSwal("error", "Dữ liệu lỗi", "Vui lòng nhập ngày nhập kho.");
       return;
     }
 
     let finalDocLink = docLink;
     let docFileId = "";
+    let docLinks = [];
+    let docFileIds = [];
 
     showLoading("Đang xử lý nhập kho...");
     try {
-      // Nếu có chọn ảnh chứng từ, thực hiện upload lên Google Drive qua GAS trước
-      if (file) {
-        showLoading("Đang tải ảnh chứng từ lên Google Drive...");
-        // Đã chuyển folderId về phía máy chủ (Apps Script Backend) để bảo mật
-        const uploaded = await uploadFileToDrive(file, "KCN Thốt Nốt", "", "chemical_receipts", {
-          chemicalName,
-          amount,
-          receiptDate: date
-        });
-        finalDocLink = uploaded.url;
-        docFileId = uploaded.id;
+      // Nếu có chọn tệp chứng từ, thực hiện upload lên Google Drive qua GAS
+      if (files.length > 0) {
+        showLoading(`Đang tải ${files.length} tệp chứng từ lên Google Drive...`);
+        // Lấy tên hóa chất đại diện cho tên file
+        const chemNamesStr = chemicalItems.map(item => item.chemicalName).join("-");
+        const totalAmountStr = chemicalItems.reduce((acc, item) => acc + item.amount, 0) + "kg";
+        
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          showLoading(`Đang tải tệp ${i + 1}/${files.length}: ${file.name}...`);
+          const uploaded = await uploadFileToDrive(file, "KCN Thốt Nốt", "", "chemical_receipts", {
+            chemicalName: chemNamesStr,
+            amount: totalAmountStr,
+            receiptDate: date
+          });
+          docLinks.push(uploaded.url);
+          docFileIds.push(uploaded.id);
+        }
+        finalDocLink = docLinks[0]; // Link tệp đầu tiên cho tương thích dữ liệu cũ
+        docFileId = docFileIds[0];   // File ID đầu tiên cho tương thích dữ liệu cũ
+      } else if (docLink) {
+        // Nếu dán link trực tiếp
+        docLinks.push(docLink);
       }
 
       showLoading("Đang ghi nhận dữ liệu vào cơ sở dữ liệu...");
 
-      // 1. Lưu hóa đơn nhập kho
-      await addDoc(collection(db, "chemical_receipts"), {
-        chemicalName,
-        amount,
-        supplier,
-        receiptDate: date,
-        note,
-        docLink: finalDocLink,
-        docFileId: docFileId,
-        addedBy: auth.currentUser.email,
-        createdAt: serverTimestamp()
-      });
+      // Tạo một mã đợt nhập duy nhất (batchId)
+      const batchId = "BATCH-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7).toUpperCase();
 
-      // 2. Cập nhật tồn kho hóa chất (Nếu chưa có sẽ tự tạo doc mới nhờ merge: true)
-      const docRef = doc(db, "chemical_inventory", chemicalName);
+      // Lưu chi tiết từng hóa chất và cập nhật tồn kho
+      for (const item of chemicalItems) {
+        // 1. Lưu hóa đơn nhập kho
+        await addDoc(collection(db, "chemical_receipts"), {
+          chemicalName: item.chemicalName,
+          amount: item.amount,
+          supplier,
+          receiptDate: date,
+          note,
+          docLink: finalDocLink,
+          docFileId: docFileId,
+          docLinks: docLinks,
+          docFileIds: docFileIds,
+          batchId: batchId,
+          addedBy: auth.currentUser.email,
+          createdAt: serverTimestamp()
+        });
 
-      // Kiểm tra xem đã có sẵn trong kho chưa để set unit và tên
-      const docSnap = await getDoc(docRef);
-      const payload = {
-        chemicalName,
-        currentStock: increment(amount),
-        minimumThreshold: threshold,
-        lastUpdated: serverTimestamp(),
-        lastUpdatedBy: auth.currentUser.email
-      };
+        // 2. Cập nhật tồn kho hóa chất
+        const docRef = doc(db, "chemical_inventory", item.chemicalName);
+        const docSnap = await getDoc(docRef);
+        const payload = {
+          chemicalName: item.chemicalName,
+          currentStock: increment(item.amount),
+          minimumThreshold: item.threshold,
+          lastUpdated: serverTimestamp(),
+          lastUpdatedBy: auth.currentUser.email
+        };
 
-      if (!docSnap.exists()) {
-        payload.unit = "kg"; // Mặc định là kg khi tạo hóa chất mới
+        if (!docSnap.exists()) {
+          payload.unit = "kg"; // Mặc định là kg khi tạo hóa chất mới
+        }
+
+        await setDoc(docRef, payload, { merge: true });
+
+        // 3. Ghi nhật ký logs
+        await addLog("chemical_import_success", {
+          chemicalName: item.chemicalName,
+          amount: item.amount,
+          supplier,
+          date,
+          batchId: batchId,
+          email: auth.currentUser.email
+        });
       }
 
-      await setDoc(docRef, payload, { merge: true });
-
-      // 3. Ghi nhật ký logs
-      await addLog("chemical_import_success", {
-        chemicalName,
-        amount,
-        supplier,
-        date,
-        email: auth.currentUser.email
-      });
-
-      showSwal("success", "Nhập kho thành công!", `Đã cộng thêm ${amount.toLocaleString("vi-VN")} kg ${chemicalName} vào kho.`);
+      showSwal("success", "Nhập kho thành công!", `Đã nhập thành công ${chemicalItems.length} hóa chất vào kho theo đợt.`);
 
       // Reset form nhập kho và các trạng thái chọn file
       importForm.reset();
-      newChemicalGroup.style.display = "none";
-      document.getElementById("new-chemical-name").removeAttribute("required");
+      
+      // Xóa tất cả các hàng hóa chất động, chỉ giữ lại dòng đầu tiên
+      const container = document.getElementById("chemical-rows-container");
+      if (container) {
+        container.innerHTML = "";
+      }
+      addChemicalRow(); // Thêm lại 1 dòng mặc định ban đầu
 
       const fileInfo = document.getElementById("file-selected-info");
       if (fileInfo) fileInfo.style.display = "none";
@@ -722,9 +876,45 @@ function loadImportHistory(monthStr) {
       return;
     }
 
+    // 1. Chuyển đổi dữ liệu và sắp xếp
+    const receipts = [];
     snapshot.forEach(docDoc => {
-      const data = docDoc.data();
+      receipts.push({ id: docDoc.id, ...docDoc.data() });
+    });
+
+    // Sắp xếp: Ngày nhập giảm dần, sau đó gom nhóm theo batchId (nếu có), cuối cùng theo thời gian tạo giảm dần
+    receipts.sort((a, b) => {
+      const dateA = a.receiptDate || "";
+      const dateB = b.receiptDate || "";
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+
+      const batchA = a.batchId || "";
+      const batchB = b.batchId || "";
+      if (batchA !== batchB) {
+        if (!batchA) return 1;  // Không có batchId đẩy xuống dưới
+        if (!batchB) return -1; // Không có batchId đẩy xuống dưới
+        return batchA.localeCompare(batchB);
+      }
+
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+
+    // 2. Tính số lượng dòng của từng batchId để gộp ô (rowspan)
+    const batchCounts = {};
+    receipts.forEach(item => {
+      if (item.batchId) {
+        batchCounts[item.batchId] = (batchCounts[item.batchId] || 0) + 1;
+      }
+    });
+
+    const renderedBatches = new Set();
+
+    // 3. Render các hàng
+    receipts.forEach(data => {
       const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid var(--border-color)";
 
       // Định dạng ngày hiển thị dd/MM/yyyy
       let displayDate = data.receiptDate || "N/A";
@@ -734,44 +924,83 @@ function loadImportHistory(monthStr) {
       }
 
       // Tạo hiển thị ở cột chứng từ
-      const docLinkHtml = data.docLink ? `
-        <a href="${data.docLink}" target="_blank" title="Xem chứng từ" style="text-decoration: none; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #e8f4fd; border-radius: 50%; color: var(--primary-color);">
-          📄
-        </a>
-      ` : '<span style="color: #cbd5e1;">-</span>';
+      let docLinkHtml = '<span style="color: #cbd5e1;">-</span>';
+      if (data.docLinks && Array.isArray(data.docLinks) && data.docLinks.length > 0) {
+        docLinkHtml = `
+          <div style="display: flex; gap: 4px; justify-content: center; align-items: center; flex-wrap: wrap;">
+            ${data.docLinks.map((link, idx) => `
+              <a href="${link}" target="_blank" title="Xem chứng từ ${idx + 1}" style="text-decoration: none; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #e8f4fd; border-radius: 50%; color: var(--primary-color);">
+                📄
+              </a>
+            `).join('')}
+          </div>
+        `;
+      } else if (data.docLink) {
+        // Tương thích dữ liệu cũ
+        docLinkHtml = `
+          <a href="${data.docLink}" target="_blank" title="Xem chứng từ" style="text-decoration: none; font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #e8f4fd; border-radius: 50%; color: var(--primary-color);">
+            📄
+          </a>
+        `;
+      }
 
       // Tạo hiển thị ở cột hành động
       let actionHtml = '<span style="color: #cbd5e1; font-size: 0.85rem;">-</span>';
       if (userRole === "admin") {
         actionHtml = `
           <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
-            <button class="edit-btn" style="background: var(--info-color); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px;" title="Sửa phiếu nhập">✏️ Sửa</button>
-            <button class="delete-btn" style="background: var(--danger-color); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px;" title="Xóa phiếu nhập">❌ Xóa</button>
+            <button class="edit-btn" style="background: var(--info-color); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px;" title="Sửa đợt nhập">✏️ Sửa</button>
+            <button class="delete-btn" style="background: var(--danger-color); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 4px;" title="Xóa đợt nhập">❌ Xóa</button>
           </div>
         `;
       }
 
-      tr.style.borderBottom = "1px solid var(--border-color)";
-      tr.innerHTML = `
-        <td style="padding: 12px 8px; text-align: center; font-weight: bold; color: var(--primary-color);">${displayDate}</td>
-        <td style="padding: 12px 8px; font-weight: 500;">${data.chemicalName}</td>
-        <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #27ae60;">+${(data.amount || 0).toLocaleString("vi-VN")} kg</td>
-        <td style="padding: 12px 8px; color: #64748b; font-style: italic;">${data.supplier || "-"}</td>
-        <td style="padding: 12px 8px; text-align: center;">${docLinkHtml}</td>
-        <td style="padding: 12px 8px; text-align: center;">${actionHtml}</td>
-      `;
+      // Gom nhóm cột (Ngày nhập, Nhà cung cấp, Chứng từ, Hành động) cho các dòng chung batchId
+      if (data.batchId) {
+        const count = batchCounts[data.batchId];
+        if (!renderedBatches.has(data.batchId)) {
+          // Dòng đầu tiên của đợt nhập này -> Render đủ 6 cột, gộp ô bằng rowspan
+          renderedBatches.add(data.batchId);
+          tr.innerHTML = `
+            <td rowspan="${count}" style="padding: 12px 8px; text-align: center; font-weight: bold; color: var(--primary-color); vertical-align: middle; background-color: #fafbfc; border-right: 1px solid var(--border-color);">${displayDate}</td>
+            <td style="padding: 12px 8px; font-weight: 500;">${data.chemicalName}</td>
+            <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #27ae60;">+${(data.amount || 0).toLocaleString("vi-VN")} kg</td>
+            <td rowspan="${count}" style="padding: 12px 8px; color: #64748b; font-style: italic; vertical-align: middle; text-align: center; background-color: #fafbfc; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">${data.supplier || "-"}</td>
+            <td rowspan="${count}" style="padding: 12px 8px; text-align: center; vertical-align: middle; background-color: #fafbfc; border-right: 1px solid var(--border-color);">${docLinkHtml}</td>
+            <td rowspan="${count}" style="padding: 12px 8px; text-align: center; vertical-align: middle; background-color: #fafbfc;">${actionHtml}</td>
+          `;
+        } else {
+          // Các dòng sau của đợt nhập này -> Chỉ render Tên hóa chất và Số lượng
+          tr.innerHTML = `
+            <td style="padding: 12px 8px; font-weight: 500;">${data.chemicalName}</td>
+            <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #27ae60;">+${(data.amount || 0).toLocaleString("vi-VN")} kg</td>
+          `;
+        }
+      } else {
+        // Bản ghi cũ không có batchId -> Render đủ 6 cột bình thường (rowspan = 1)
+        tr.innerHTML = `
+          <td style="padding: 12px 8px; text-align: center; font-weight: bold; color: var(--primary-color);">${displayDate}</td>
+          <td style="padding: 12px 8px; font-weight: 500;">${data.chemicalName}</td>
+          <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #27ae60;">+${(data.amount || 0).toLocaleString("vi-VN")} kg</td>
+          <td style="padding: 12px 8px; color: #64748b; font-style: italic;">${data.supplier || "-"}</td>
+          <td style="padding: 12px 8px; text-align: center;">${docLinkHtml}</td>
+          <td style="padding: 12px 8px; text-align: center;">${actionHtml}</td>
+        `;
+      }
 
       if (userRole === "admin") {
         const editBtn = tr.querySelector(".edit-btn");
         const deleteBtn = tr.querySelector(".delete-btn");
         if (editBtn) {
           editBtn.addEventListener("click", () => {
-            editReceipt(docDoc.id, { id: docDoc.id, ...data });
+            const batchItems = data.batchId ? receipts.filter(item => item.batchId === data.batchId) : [data];
+            editReceipt(data.id, batchItems);
           });
         }
         if (deleteBtn) {
           deleteBtn.addEventListener("click", () => {
-            deleteReceipt(docDoc.id, { id: docDoc.id, ...data });
+            const batchItems = data.batchId ? receipts.filter(item => item.batchId === data.batchId) : [data];
+            deleteReceipt(data.id, batchItems);
           });
         }
       }
@@ -849,45 +1078,58 @@ async function initHistoryMonthOptions() {
 }
 
 // === HÀM SỬA PHIẾU NHẬP KHO (Dành cho Admin) ===
-async function editReceipt(receiptId, currentData) {
+// === HÀM SỬA PHIẾU NHẬP KHO (Dành cho Admin) ===
+async function editReceipt(receiptId, batchItems) {
   if (userRole !== "admin") return;
 
   // Yêu cầu xác thực mật khẩu tài khoản trước khi thực hiện hành động chỉnh sửa dữ liệu
   const isAuthenticated = await promptForReAuth();
   if (!isAuthenticated) return;
 
+  // Xây dựng giao diện sửa lượng hóa chất động
+  let chemicalsHtml = "";
+  batchItems.forEach((item, index) => {
+    chemicalsHtml += `
+      <div style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px;">
+        <div style="font-weight: bold; margin-bottom: 6px; color: var(--primary-color);">${item.chemicalName}</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 0.85rem; color: #64748b; white-space: nowrap; margin-bottom: 0;">Số lượng (kg):</label>
+          <input id="edit-amount-${index}" type="number" step="any" class="swal2-input" value="${item.amount}" style="margin: 0; width: 100%; box-sizing: border-box; height: 34px; padding: 6px;">
+        </div>
+      </div>
+    `;
+  });
+
   const { value: formValues } = await Swal.fire({
-    title: 'Chỉnh sửa Phiếu Nhập Kho',
+    title: 'Chỉnh sửa Đợt Nhập Kho',
     html: `
-      <div style="text-align: left; font-family: inherit;">
-        <div style="margin-bottom: 12px;">
-          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Tên Hóa chất:</label>
-          <input id="edit-chemical" class="swal2-input" value="${currentData.chemicalName}" style="margin: 5px 0; width: 100%; box-sizing: border-box;" disabled>
+      <div style="text-align: left; font-family: inherit; max-height: 450px; overflow-y: auto; padding-right: 8px;">
+        <div style="margin-bottom: 12px; font-weight: bold; font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; color: var(--primary-color);">
+          Danh sách hóa chất trong đợt:
         </div>
+        ${chemicalsHtml}
         
-        <div style="margin-bottom: 12px;">
-          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Số lượng (kg):</label>
-          <input id="edit-amount" type="number" step="any" class="swal2-input" value="${currentData.amount}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
+        <div style="margin-bottom: 12px; font-weight: bold; font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-top: 15px; color: var(--primary-color);">
+          Thông tin chung đợt nhập:
         </div>
-        
         <div style="margin-bottom: 12px;">
-          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Nhà cung cấp:</label>
-          <input id="edit-supplier" class="swal2-input" value="${currentData.supplier || ''}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
+          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Nhà cung cấp / Đối tác:</label>
+          <input id="edit-supplier" class="swal2-input" value="${batchItems[0].supplier || ''}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 12px;">
           <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Ngày nhập:</label>
-          <input id="edit-date" type="date" class="swal2-input" value="${currentData.receiptDate}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
+          <input id="edit-date" type="date" class="swal2-input" value="${batchItems[0].receiptDate}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 12px;">
           <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Ghi chú:</label>
-          <input id="edit-note" class="swal2-input" value="${currentData.note || ''}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
+          <input id="edit-note" class="swal2-input" value="${batchItems[0].note || ''}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
         </div>
         
         <div style="margin-bottom: 12px;">
-          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Liên kết chứng từ (Google Drive Link):</label>
-          <input id="edit-doclink" class="swal2-input" value="${currentData.docLink || ''}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
+          <label style="font-weight: 600; font-size: 0.9rem; color: var(--primary-color);">Liên kết chứng từ (Cách nhau bằng dấu phẩy nếu có nhiều link):</label>
+          <input id="edit-doclink" class="swal2-input" value="${Array.isArray(batchItems[0].docLinks) ? batchItems[0].docLinks.join(', ') : (batchItems[0].docLink || '')}" style="margin: 5px 0; width: 100%; box-sizing: border-box;">
         </div>
       </div>
     `,
@@ -896,56 +1138,82 @@ async function editReceipt(receiptId, currentData) {
     confirmButtonText: '💾 Lưu thay đổi',
     cancelButtonText: 'Hủy',
     preConfirm: () => {
-      const amount = parseFloat(document.getElementById('edit-amount').value);
       const supplier = document.getElementById('edit-supplier').value.trim();
       const date = document.getElementById('edit-date').value;
       const note = document.getElementById('edit-note').value.trim();
-      const docLink = document.getElementById('edit-doclink').value.trim();
+      const docLinkInput = document.getElementById('edit-doclink').value.trim();
 
-      if (isNaN(amount) || amount <= 0 || !date) {
-        Swal.showValidationMessage('Vui lòng nhập số lượng hợp lệ và ngày nhập!');
+      if (!date) {
+        Swal.showValidationMessage('Vui lòng nhập ngày nhập kho!');
         return false;
       }
 
-      return { amount, supplier, date, note, docLink };
+      // Đọc số lượng sửa đổi
+      const itemsUpdate = [];
+      for (let i = 0; i < batchItems.length; i++) {
+        const amtInput = document.getElementById(`edit-amount-${i}`);
+        const amount = parseFloat(amtInput.value);
+        if (isNaN(amount) || amount <= 0) {
+          Swal.showValidationMessage(`Vui lòng nhập số lượng hợp lệ cho ${batchItems[i].chemicalName}!`);
+          return false;
+        }
+        itemsUpdate.push({
+          id: batchItems[i].id,
+          chemicalName: batchItems[i].chemicalName,
+          oldAmount: batchItems[i].amount,
+          amount: amount
+        });
+      }
+
+      let docLinks = [];
+      if (docLinkInput) {
+        docLinks = docLinkInput.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const docLink = docLinks[0] || "";
+
+      return { supplier, date, note, docLink, docLinks, itemsUpdate };
     }
   });
 
   if (formValues) {
     showLoading("Đang cập nhật phiếu nhập kho...");
     try {
-      const diff = formValues.amount - currentData.amount;
+      // Cập nhật từng hóa chất
+      for (const item of formValues.itemsUpdate) {
+        const diff = item.amount - item.oldAmount;
 
-      // 1. Cập nhật tồn kho hóa chất
-      if (diff !== 0) {
-        const invRef = doc(db, "chemical_inventory", currentData.chemicalName);
-        await setDoc(invRef, {
-          currentStock: increment(diff),
-          lastUpdated: serverTimestamp(),
-          lastUpdatedBy: auth.currentUser.email
+        // 1. Cập nhật tồn kho hóa chất (nếu có thay đổi)
+        if (diff !== 0) {
+          const invRef = doc(db, "chemical_inventory", item.chemicalName);
+          await setDoc(invRef, {
+            currentStock: increment(diff),
+            lastUpdated: serverTimestamp(),
+            lastUpdatedBy: auth.currentUser.email
+          }, { merge: true });
+        }
+
+        // 2. Cập nhật phiếu nhập
+        const receiptRef = doc(db, "chemical_receipts", item.id);
+        await setDoc(receiptRef, {
+          amount: item.amount,
+          supplier: formValues.supplier,
+          receiptDate: formValues.date,
+          note: formValues.note,
+          docLink: formValues.docLink,
+          docLinks: formValues.docLinks,
+          updatedAt: serverTimestamp(),
+          updatedBy: auth.currentUser.email
         }, { merge: true });
+
+        // 3. Ghi nhật ký logs
+        await addLog("chemical_receipt_edit", {
+          receiptId: item.id,
+          chemicalName: item.chemicalName,
+          oldAmount: item.oldAmount,
+          newAmount: item.amount,
+          email: auth.currentUser.email
+        });
       }
-
-      // 2. Cập nhật phiếu nhập
-      const receiptRef = doc(db, "chemical_receipts", receiptId);
-      await setDoc(receiptRef, {
-        amount: formValues.amount,
-        supplier: formValues.supplier,
-        receiptDate: formValues.date,
-        note: formValues.note,
-        docLink: formValues.docLink,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser.email
-      }, { merge: true });
-
-      // 3. Ghi nhật ký logs
-      await addLog("chemical_receipt_edit", {
-        receiptId,
-        chemicalName: currentData.chemicalName,
-        oldAmount: currentData.amount,
-        newAmount: formValues.amount,
-        email: auth.currentUser.email
-      });
 
       showSwal("success", "Cập nhật thành công", "Phiếu nhập kho đã được chỉnh sửa và tồn kho đã cập nhật tương ứng.");
     } catch (error) {
@@ -958,16 +1226,23 @@ async function editReceipt(receiptId, currentData) {
 }
 
 // === HÀM XÓA PHIẾU NHẬP KHO (Dành cho Admin) ===
-async function deleteReceipt(receiptId, currentData) {
+// === HÀM XÓA PHIẾU NHẬP KHO (Dành cho Admin) ===
+async function deleteReceipt(receiptId, batchItems) {
   if (userRole !== "admin") return;
 
   // Yêu cầu xác thực mật khẩu tài khoản trước khi thực hiện hành động xóa nguy hiểm
   const isAuthenticated = await promptForReAuth();
   if (!isAuthenticated) return;
 
+  const chemNames = batchItems.map(item => `${item.chemicalName} (${item.amount} kg)`).join(", ");
+  const receiptDate = batchItems[0].receiptDate;
+  const isBatch = batchItems.length > 1;
+
   const confirm = await Swal.fire({
-    title: 'Xóa Phiếu Nhập Kho?',
-    text: `Bạn có chắc chắn muốn xóa phiếu nhập kho của ${currentData.chemicalName} (${currentData.amount} kg) vào ngày ${currentData.receiptDate}? Tồn kho hiện tại sẽ bị giảm đi tương ứng.`,
+    title: isBatch ? 'Xóa Đợt Nhập Kho?' : 'Xóa Phiếu Nhập Kho?',
+    text: isBatch 
+      ? `Bạn có chắc chắn muốn xóa toàn bộ đợt nhập kho ngày ${receiptDate} gồm các hóa chất: ${chemNames}? Tồn kho hiện tại của tất cả hóa chất này sẽ bị giảm đi tương ứng.`
+      : `Bạn có chắc chắn muốn xóa phiếu nhập kho của ${batchItems[0].chemicalName} (${batchItems[0].amount} kg) vào ngày ${receiptDate}? Tồn kho hiện tại sẽ bị giảm đi tương ứng.`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#e74c3c',
@@ -979,36 +1254,50 @@ async function deleteReceipt(receiptId, currentData) {
   if (confirm.isConfirmed) {
     showLoading("Đang xóa phiếu nhập kho...");
     try {
-      // 1. Giảm trừ tồn kho tương ứng
-      const invRef = doc(db, "chemical_inventory", currentData.chemicalName);
-      await setDoc(invRef, {
-        currentStock: increment(-currentData.amount),
-        lastUpdated: serverTimestamp(),
-        lastUpdatedBy: auth.currentUser.email
-      }, { merge: true });
+      // 1. Thu thập tất cả các fileId đính kèm để xóa trên Drive (tránh trùng lặp)
+      const fileIdsToDelete = new Set();
+      batchItems.forEach(item => {
+        if (Array.isArray(item.docFileIds)) {
+          item.docFileIds.forEach(id => { if (id) fileIdsToDelete.add(id); });
+        } else if (item.docFileId) {
+          fileIdsToDelete.add(item.docFileId);
+        }
+      });
 
-      // 2. Xóa file trên Google Drive nếu có fileId lưu trữ
-      if (currentData.docFileId) {
+      // Xóa các file trên Google Drive
+      for (const fId of fileIdsToDelete) {
         try {
-          await deleteFileFromDrive(currentData.docFileId);
+          await deleteFileFromDrive(fId);
         } catch (driveErr) {
-          console.warn("Lỗi khi xóa tệp đính kèm trên Google Drive:", driveErr);
+          console.warn(`Lỗi khi xóa tệp đính kèm ${fId} trên Google Drive:`, driveErr);
         }
       }
 
-      // 3. Xóa document phiếu nhập
-      const receiptRef = doc(db, "chemical_receipts", receiptId);
-      await deleteDoc(receiptRef);
+      // 2. Lặp qua từng item trong đợt để giảm trừ tồn kho và xóa document trong Firestore
+      for (const item of batchItems) {
+        // Giảm trừ tồn kho tương ứng
+        const invRef = doc(db, "chemical_inventory", item.chemicalName);
+        await setDoc(invRef, {
+          currentStock: increment(-item.amount),
+          lastUpdated: serverTimestamp(),
+          lastUpdatedBy: auth.currentUser.email
+        }, { merge: true });
 
-      // 4. Ghi logs
-      await addLog("chemical_receipt_delete", {
-        receiptId,
-        chemicalName: currentData.chemicalName,
-        amount: currentData.amount,
-        email: auth.currentUser.email
-      });
+        // Xóa document phiếu nhập
+        const receiptRef = doc(db, "chemical_receipts", item.id);
+        await deleteDoc(receiptRef);
 
-      showSwal("success", "Đã xóa thành công", "Phiếu nhập đã được gỡ bỏ khỏi hệ thống.");
+        // Ghi logs
+        await addLog("chemical_receipt_delete", {
+          receiptId: item.id,
+          chemicalName: item.chemicalName,
+          amount: item.amount,
+          batchId: item.batchId || "",
+          email: auth.currentUser.email
+        });
+      }
+
+      showSwal("success", "Đã xóa thành công", isBatch ? "Đợt nhập kho đã được xóa sạch khỏi hệ thống." : "Phiếu nhập đã được gỡ bỏ khỏi hệ thống.");
     } catch (error) {
       console.error("Lỗi khi xóa phiếu nhập:", error);
       showSwal("error", "Xóa thất bại", error.message);
