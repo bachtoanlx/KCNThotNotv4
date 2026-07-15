@@ -1,5 +1,5 @@
 import { initMenu } from "./menu.js";
-import { auth, db, onAuth, getRole, loadTemplate } from "./script.js";
+import { auth, db, onAuth, getRole, loadTemplate, uploadFileToDrive } from "./script.js";
 import { collection, getDoc, getDocs, query, where, doc, setDoc, deleteDoc } from "./script.js";
 
 // Cấu hình endpoint Google Apps Script Web App
@@ -80,11 +80,19 @@ onAuth(async (user) => {
         // Tải cấu hình AI của hệ thống trước
         await loadAiSettings();
 
-        // Nếu người dùng là admin, hiển thị nút cấu hình
+        // Nếu người dùng là admin, hiển thị nút cấu hình & chuyển đổi icon thư mục thành nút tải lên
         if (userRole === "admin") {
             const settingsBtn = document.getElementById("adminAiSettingsBtn");
             if (settingsBtn) {
                 settingsBtn.style.display = "inline-flex";
+            }
+            const uploadTriggerBtn = document.getElementById("uploadDocTriggerBtn");
+            const uploadFolderLabel = document.getElementById("uploadDocFolderLabel");
+            if (uploadTriggerBtn) {
+                uploadTriggerBtn.style.display = "inline-block";
+            }
+            if (uploadFolderLabel) {
+                uploadFolderLabel.style.display = "none";
             }
         }
 
@@ -93,6 +101,9 @@ onAuth(async (user) => {
         if (pageContent) {
             pageContent.style.display = "block";
         }
+
+        // Khởi động tính năng tải lên tài liệu cho Admin
+        initUploadDocumentFeature();
 
         // Tải dữ liệu tri thức từ Firestore
         await loadDocumentChunks();
@@ -274,7 +285,7 @@ async function deltaSyncFromFirestore(idb, lastSyncTime) {
 
     try {
         // ===== ĐỒNG BỘ XÓA (DELETE SYNC) CHO INDEXEDDB CACHE =====
-        if (lastSyncTime) {
+        if (lastSyncTime && userRole === "admin") {
             try {
                 const deletedQuery = query(
                     collection(db, "deleted_logs"),
@@ -3010,3 +3021,222 @@ function initScrollToTop() {
 // Khởi chạy trình đọc tài liệu gốc & nút cuộn đầu trang
 initDocumentReader();
 initScrollToTop();
+
+// =======================================================
+// 📤 HỆ THỐNG PHỤ TRỢ TẢI LÊN TÀI LIỆU DÀNH CHO ADMIN
+// =======================================================
+function initUploadDocumentFeature() {
+    console.log("🛠️ initUploadDocumentFeature() được gọi.");
+    const uploadTriggerBtn = document.getElementById("uploadDocTriggerBtn");
+    const uploadModal = document.getElementById("uploadDocModal");
+    console.log("-> uploadTriggerBtn:", uploadTriggerBtn);
+    console.log("-> uploadModal:", uploadModal);
+
+    const closeUploadModalBtn = document.getElementById("closeUploadDocModalBtn");
+    const cancelUploadBtn = document.getElementById("cancelUploadDocBtn");
+    const uploadForm = document.getElementById("uploadDocForm");
+    const groupSelect = document.getElementById("uploadGroupSelect");
+    const subfolderSelect = document.getElementById("uploadSubfolderSelect");
+    const categorySelect = document.getElementById("uploadCategorySelect");
+    const fileInput = document.getElementById("uploadFileInput");
+    const progressContainer = document.getElementById("uploadProgressContainer");
+    const progressStatus = document.getElementById("uploadProgressStatus");
+    const progressPercent = document.getElementById("uploadProgressPercent");
+    const progressBar = document.getElementById("uploadProgressBar");
+
+    if (!uploadTriggerBtn || !uploadModal) {
+        console.warn("⚠️ Không tìm thấy nút Tải tài liệu hoặc Modal!");
+        return;
+    }
+
+    // Các ID thư mục gốc của Google Drive (đã cấu hình trong GAS.txt)
+    const ROOT_FOLDER_IDS = {
+        "guest": "1WA14y4XVU2wHE6hL6S3liRFUAR_j_0bB",
+        "user": "1-ghDDDgYo4ussA8epsxNdAcurvLsPHjI",
+        "admin": "1elB0J7QoRlrhjJVNI_0nc4ewWPiYR9Sb"
+    };
+
+    // Hàm load các thư mục con dựa trên thư mục chính
+    async function loadSubfolders(groupId) {
+        subfolderSelect.innerHTML = '<option value="" disabled selected>Đang tải danh sách thư mục con...</option>';
+        subfolderSelect.disabled = true;
+
+        const parentId = ROOT_FOLDER_IDS[groupId];
+        if (!parentId) {
+            subfolderSelect.innerHTML = '<option value="" disabled selected>Lỗi: Không tìm thấy thư mục gốc</option>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${GAS_API_URL}?action=getSubfolders&folderId=${parentId}`);
+            const data = await response.json();
+            
+            if (data.success && data.subfolders) {
+                let html = "";
+                data.subfolders.forEach(folder => {
+                    html += `<option value="${folder.id}">${folder.name}</option>`;
+                });
+                subfolderSelect.innerHTML = html;
+            } else {
+                subfolderSelect.innerHTML = `<option value="${parentId}">[Thư mục gốc]</option>`;
+            }
+        } catch (e) {
+            console.error("Lỗi khi tải danh sách thư mục con:", e);
+            subfolderSelect.innerHTML = `<option value="${parentId}">[Thư mục gốc]</option>`;
+        } finally {
+            subfolderSelect.disabled = false;
+            // Tự động gợi ý danh mục sau khi danh sách thư mục con thay đổi
+            suggestCategoryBasedOnSubfolder();
+        }
+    }
+
+    // Tự động gợi ý danh mục (Category) dựa trên tên của thư mục con được chọn
+    function suggestCategoryBasedOnSubfolder() {
+        const selectedText = subfolderSelect.options[subfolderSelect.selectedIndex]?.text || "";
+        const nameLower = selectedText.toLowerCase();
+
+        if (nameLower.includes("pháp lý") || nameLower.includes("luật") || nameLower.includes("quy chuẩn")) {
+            categorySelect.value = "Pháp lý";
+        } else if (nameLower.includes("kỹ thuật") || nameLower.includes("sơ đồ") || nameLower.includes("vận hành")) {
+            categorySelect.value = "Kỹ thuật";
+        } else {
+            categorySelect.value = "Khác";
+        }
+    }
+
+    // Sự kiện mở modal
+    uploadTriggerBtn.addEventListener("click", () => {
+        console.log("📥 Nút Tải tài liệu được click!");
+        uploadForm.reset();
+        progressContainer.style.display = "none";
+        progressBar.style.width = "0%";
+        progressPercent.textContent = "0%";
+        uploadModal.style.display = "flex";
+        console.log("-> Đã thiết lập display: flex cho Modal.");
+        // Mặc định load danh sách thư mục con cho nhóm 'user' (Nội bộ)
+        loadSubfolders(groupSelect.value);
+    });
+
+    // Sự kiện thay đổi nhóm quyền xem -> load lại thư mục con
+    groupSelect.addEventListener("change", () => {
+        loadSubfolders(groupSelect.value);
+    });
+
+    // Sự kiện thay đổi thư mục con -> gợi ý danh mục
+    subfolderSelect.addEventListener("change", () => {
+        suggestCategoryBasedOnSubfolder();
+    });
+
+    // Các sự kiện đóng modal
+    const closeModal = () => {
+        uploadModal.style.display = "none";
+    };
+    closeUploadModalBtn.addEventListener("click", closeModal);
+    cancelUploadBtn.addEventListener("click", closeModal);
+
+    // Xử lý gửi Form tải lên
+    uploadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const targetGroup = groupSelect.value;
+        const targetFolderId = subfolderSelect.value;
+        const category = categorySelect.value;
+
+        // Hiển thị thanh tiến trình
+        progressContainer.style.display = "block";
+        progressStatus.textContent = "Đang tải file lên Google Drive...";
+        progressBar.style.width = "20%";
+        progressPercent.textContent = "20%";
+
+        const submitBtn = document.getElementById("submitUploadDocBtn");
+        submitBtn.disabled = true;
+
+        try {
+            // Bước 1: Gọi hàm uploadFileToDrive (script.js) tải tệp lên Drive qua Apps Script
+            progressBar.style.width = "40%";
+            progressPercent.textContent = "40%";
+            
+            // uploadFileToDrive(file, company, folderId, formId, data)
+            const uploadedFile = await uploadFileToDrive(
+                file, 
+                "KCN Thốt Nốt", 
+                targetFolderId, 
+                "web_doc_upload", 
+                { category, targetGroup }
+            );
+
+            if (!uploadedFile || !uploadedFile.id) {
+                throw new Error("Không nhận được phản hồi ID hợp lệ từ Google Drive.");
+            }
+
+            progressBar.style.width = "75%";
+            progressPercent.textContent = "75%";
+            progressStatus.textContent = "Đang đăng ký hàng đợi trên Firestore...";
+
+            // Bước 2: Sinh mã TL-XX tiếp theo cho tài liệu mới
+            let nextDocCode = "TL-01";
+            let maxNum = 0;
+            Object.keys(allDocuments).forEach(id => {
+                const docData = allDocuments[id];
+                if (docData.docCode && docData.docCode.startsWith("TL-")) {
+                    const num = parseInt(docData.docCode.substring(3), 10);
+                    if (!isNaN(num) && num > maxNum) {
+                        maxNum = num;
+                    }
+                }
+            });
+            nextDocCode = `TL-${String(maxNum + 1).padStart(2, "0")}`;
+
+            // Bước 3: Lưu bản ghi tài liệu mới với status='pending' vào Firestore
+            const newDocId = uploadedFile.id;
+            const docRef = doc(db, "documents", newDocId);
+            const docData = {
+                fileName: file.name,
+                folderId: targetFolderId,
+                targetGroup: targetGroup,
+                category: category,
+                status: "pending",
+                docCode: nextDocCode,
+                retryCount: 0,
+                errorMessage: "",
+                updatedAt: new Date().toISOString()
+            };
+
+            await setDoc(docRef, docData);
+
+            // Cập nhật tức thời biến cục bộ allDocuments trên Client để UI render ngay lập tức
+            allDocuments[newDocId] = docData;
+
+            progressBar.style.width = "100%";
+            progressPercent.textContent = "100%";
+            progressStatus.textContent = "Tải lên và đồng bộ thành công!";
+
+            // Render lại Sync Status trên sidebar lập tức
+            renderSyncStatus();
+
+            // Hiển thị thông báo thành công
+            Swal.fire({
+                icon: "success",
+                title: "Thành công!",
+                text: `Đã tải lên và đưa tệp ${file.name} vào hàng đợi phân tách tri thức AI.`,
+                timer: 3000,
+                showConfirmButton: true
+            });
+
+            closeModal();
+        } catch (err) {
+            console.error("Lỗi trong quá trình upload tài liệu mới:", err);
+            Swal.fire({
+                icon: "error",
+                title: "Thất bại",
+                text: "Không thể upload tài liệu: " + err.message
+            });
+        } finally {
+            submitBtn.disabled = false;
+            progressContainer.style.display = "none";
+        }
+    });
+}

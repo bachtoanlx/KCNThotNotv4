@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <!-- PWA & Mobile Fullscreen -->
+  <link rel='manifest' href='manifest.json'>
+  <meta name='mobile-web-app-capable' content='yes'>
+  <meta name='theme-color' content='#273668'>
+  <meta name='apple-mobile-web-app-capable' content='yes'>
+  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+  <meta name='apple-mobile-web-app-title' content='QL KCN'>
+  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sơ Đồ Công Nghệ SCADA - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <style>
+    /* LAYOUT TỔNG THỂ */
+    #pageContent {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 56px); /* trừ đi chiều cao navbar */
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .scada-layout {
+      display: flex;
+      flex: 1;
+      gap: 15px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* KHU VỰC BẢN VẼ SCADA (TRÁI) */
+    .scada-viewport-container {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    .scada-toolbar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .scada-tool-btn {
+      width: 32px;
+      height: 32px;
+      background: var(--surface-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
+    }
+
+    .scada-tool-btn:hover {
+      background: var(--surface-hover);
+      color: var(--primary-color);
+      transform: translateY(-1px);
+    }
+    
+    .scada-tool-btn:active {
+      transform: translateY(0);
+    }
+
+    .scada-svg-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .scada-svg-wrapper:active {
+      cursor: grabbing;
+    }
+
+    #scadaSvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background-color: #ffffff;
+    }
+
+    /* KHU VỰC THÔNG TIN NHANH (PHẢI) */
+    .scada-sidebar {
+      width: 320px;
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--surface-hover);
+    }
+
+    .stat-card {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .stat-val.total { color: #38bdf8; }
+    .stat-val.good { color: #22c55e; }
+    .stat-val.warning { color: #eab308; }
+    .stat-val.broken { color: #ef4444; }
+
+    .stat-lbl {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .alerts-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .alerts-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .alert-item {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      position: relative;
+    }
+
+    .alert-item:hover {
+      background: var(--surface-hover);
+      transform: translateX(2px);
+    }
+
+    .alert-item.warning { border-left-color: #f59e0b; }
+    .alert-item.broken { border-left-color: #ef4444; }
+
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .alert-name {
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--text-color);
+    }
+
+    .alert-code {
+      font-size: 0.7rem;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .alert-desc {
+      font-size: 0.78rem;
+      color: #64748b;
+      line-height: 1.3;
+    }
+
+    /* ĐỒ HỌA SVG & HIỆU ỨNG SCADA */
+    .svg-title {
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      fill: var(--primary-color);
+      text-anchor: middle;
+      letter-spacing: 0.5px;
+    }
+
+    .svg-subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      fill: #64748b;
+      text-anchor: middle;
+      letter-spacing: 0.2px;
+    }
+
+    /* Thẻ Bể chứa - Trắng, viền đậm nổi bật, bóng đổ nhẹ */
+    .svg-tank {
+      fill: #ffffff;
+      stroke: #334155; /* Viền sẫm màu đậm nổi bật */
+      stroke-width: 3.5; /* Viền dày sắc nét */
+      rx: 8;
+      ry: 8;
+      filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.08));
+      transition: fill 0.3s, stroke 0.3s, filter 0.3s, transform 0.3s;
+    }
+
+    .svg-tank:hover {
+      fill: #f8fafc;
+      stroke: var(--primary-color);
+      filter: drop-shadow(0 5px 12px rgba(59, 130, 246, 0.15));
+    }
+
+    /* Phóng to các bể chính lớn thêm 15% mà không làm lệch trục liên kết ống */
+    .svg-tank-large {
+      transform-box: fill-box;
+      transform-origin: center;
+      transform: scale(1.15);
+    }
+    
+    .svg-tank-large:hover {
+      transform: scale(1.18);
+    }
+
+    .svg-tank-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      fill: #334155;
+    }
+
+    /* Dòng chảy động (Pipes) - Ống xám sáng, dòng chảy mảnh */
+    .pipe-bg {
+      fill: none;
+      stroke: #f1f5f9;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .pipe-flow {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 6, 10;
+      animation: pipeFlowAnim 12s linear infinite;
+    }
+
+    .pipe-flow.wastewater { stroke: #0ea5e9; }
+    .pipe-flow.air { stroke: #38bdf8; stroke-width: 1.5; stroke-dasharray: 3, 6; animation-duration: 8s; }
+    .pipe-flow.sludge { stroke: #b45309; animation-duration: 18s; }
+    .pipe-flow.chemical { stroke: #10b981; animation-duration: 10s; }
+    .pipe-flow.cleanwater { stroke: #06b6d4; }
+
+    @keyframes pipeFlowAnim {
+      to {
+        stroke-dashoffset: -200;
+      }
+    }
+
+    /* Node thiết bị SCADA */
+    .device-node {
+      cursor: pointer;
+    }
+
+    .device-circle {
+      fill: #ffffff;
+      stroke: #94a3b8;
+      stroke-width: 2.5;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05));
+      transition: fill 0.25s, stroke 0.25s, filter 0.25s;
+    }
+
+    .device-node:hover .device-circle {
+      stroke: var(--primary-color);
+      filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.2));
+    }
+
+    .device-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      fill: #475569;
+      text-anchor: middle;
+    }
+
+    /* Các màu sắc trạng thái SCADA trong sáng (Nổi bật hơn với màu đặc và viền dày) */
+    .status-good .device-circle {
+      fill: #10b981;
+      stroke: #064e3b;
+      stroke-width: 3;
+      filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.25));
+    }
+
+    .status-warning .device-circle {
+      fill: #f59e0b;
+      stroke: #78350f;
+      stroke-width: 3;
+      animation: scadaPulseWarning 2s infinite ease-in-out;
+    }
+
+    .status-broken .device-circle {
+      fill: #ef4444;
+      stroke: #7f1d1d;
+      stroke-width: 3.5;
+      animation: scadaPulseBroken 1.2s infinite ease-in-out;
+    }
+
+    .status-inactive .device-circle {
+      fill: #94a3b8;
+      stroke: #475569;
+      stroke-width: 2.5;
+      opacity: 0.85;
+    }
+
+    /* Thiết lập màu trắng cố định cho biểu tượng thiết bị bên trong vòng tròn màu */
+    .device-icon-path {
+      fill: none !important;
+      stroke: #ffffff !important;
+      stroke-width: 2.2 !important;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+    polygon.device-icon-path {
+      fill: #ffffff !important;
+    }
+
+    /* Hiệu ứng nhấp nháy động */
+    @keyframes scadaPulseWarning {
+      0% { filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3)); }
+      50% { filter: drop-shadow(0 4px 14px rgba(245, 158, 11, 0.8)); stroke-width: 4; }
+      100% { filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3)); }
+    }
+
+    @keyframes scadaPulseBroken {
+      0% { filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.4)); }
+      50% { filter: drop-shadow(0 4px 18px rgba(239, 68, 68, 1)); stroke-width: 4.5; }
+      100% { filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.4)); }
+    }
+
+    /* Hiệu ứng highlight định vị */
+    .scada-highlight-ring {
+      fill: none;
+      stroke: #38bdf8;
+      stroke-width: 3;
+      stroke-dasharray: 6, 4;
+      animation: spinHighlight 3s linear infinite;
+    }
+
+    @keyframes spinHighlight {
+      to { transform: rotate(360deg); }
+    }
+
+    /* TOOLTIP CHI TIẾT THIẾT BỊ */
+    .scada-tooltip {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      color: #334155;
+      font-size: 0.8rem;
+      z-index: 1000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      max-width: 250px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .scada-tooltip.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .tooltip-title {
+      font-weight: 700;
+      color: var(--primary-color);
+      font-size: 0.88rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .tooltip-row {
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .tooltip-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .tooltip-val {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* CÁC CHÚ THÍCH DƯỚI BẢN VẼ */
+    .scada-legend-bar {
+      background: #ffffff;
+      border-top: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-line {
+      width: 30px;
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .scada-layout {
+        flex-direction: column;
+      }
+      .scada-sidebar {
+        width: 100%;
+        height: 250px;
+      }
+      #pageContent {
+        height: auto;
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+
+<body class="fixed-viewport-layout">
+  <div id="menu-placeholder"></div>
+  <div id="loading-placeholder"></div>
+
+  <!-- Thông báo chưa đăng nhập -->
+  <div id="notLogged"
+    style="display:none; padding: 20px; color: var(--danger-color); font-weight: bold; font-size: 1.2rem;">
+    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+  </div>
+
+  <!-- NỘI DUNG CHÍNH -->
+  <div id="pageContent" style="display:none;">
+    <div class="scada-layout">
+      <!-- KHU VỰC BẢN VẼ SCADA -->
+      <div class="scada-viewport-container">
+        <!-- Thanh công cụ zoom -->
+        <div class="scada-toolbar">
+          <button class="scada-tool-btn" id="zoomInBtn" title="Phóng to">➕</button>
+          <button class="scada-tool-btn" id="zoomOutBtn" title="Thu nhỏ">➖</button>
+          <button class="scada-tool-btn" id="zoomResetBtn" title="Đặt lại góc nhìn">🔄</button>
+        </div>
+
+        <!-- wrapper cho SVG hỗ trợ drag-zoom -->
+        <div class="scada-svg-wrapper" id="scadaSvgWrapper">
+          <svg id="scadaSvg" viewBox="0 0 1600 950">
+            <!-- Nền vẽ lưới nhẹ SCADA -->
+            <defs>
+              <pattern id="scadaGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="1.5" />
+              </pattern>
+              <!-- Ký hiệu cánh khuấy (Mixer) -->
+              <g id="mixerIcon">
+                <line x1="-12" y1="0" x2="12" y2="0" stroke-width="2.5" stroke-linecap="round" class="device-icon-path"/>
+                <polygon points="0,0 -8,-6 -8,6" class="device-icon-path"/>
+                <polygon points="0,0 8,-6 8,6" class="device-icon-path"/>
+                <circle cx="0" cy="0" r="2.5" fill="#f8fafc" stroke="none"/>
+              </g>
+              <!-- Ký hiệu máy thổi khí (Blower) -->
+              <g id="blowerIcon">
+                <circle cx="0" cy="0" r="8" fill="none" stroke-width="2.5" class="device-icon-path"/>
+                <path d="M -6,0 Q 0,-7 6,0 Q 0,7 -6,0 Z" fill="none" stroke-width="2" class="device-icon-path"/>
+                <line x1="0" y1="-8" x2="0" y2="8" stroke-width="1.5" class="device-icon-path"/>
+              </g>
+              <!-- Ký hiệu bơm (Pump) -->
+              <g id="pumpIcon">
+                <circle cx="0" cy="0" r="10" fill="none" stroke-width="2.5" class="device-icon-path"/>
+                <polygon points="-5,5 5,5 0,-6" class="device-icon-path"/>
+                <circle cx="0" cy="5" r="2" fill="#cbd5e1"/>
+              </g>
+            </defs>
+
+            <!-- Khối chứa nội dung SCADA hỗ trợ Zoom/Pan -->
+            <g id="scadaContent" transform="translate(0,0) scale(1)">
+              <!-- Nền trắng sạch -->
+              <rect width="1600" height="950" fill="#ffffff" />
+
+              <!-- TIÊU ĐỀ SCADA -->
+              <text x="800" y="40" class="svg-title" font-size="22">SƠ ĐỒ CÔNG NGHỆ NHÀ MÁY XỬ LÝ NƯỚC THẢI KCN THỐT NỐT</text>
+              <text x="800" y="65" class="svg-subtitle">CÔNG SUẤT GIAI ĐOẠN 1 = GIAI ĐOẠN 2 = 2.500 M3/NGÀY.ĐÊM</text>
+
+              <!-- =================================================== -->
+              <!-- 1. ĐƯỜNG ỐNG DẪN DÒNG CHẢY (DƯỚI CÙNG ĐỂ BỂ ĐÈ LÊN) -->
+              <!-- =================================================== -->
+              
+              <!-- Dòng nước thải chính: Input -> T101 -> T102 -> T103 -> T201 -> T202 -> T203 -> T204 -->
+              <path d="M 20,230 L 30,230" class="pipe-bg"/>
+              <path d="M 20,230 L 30,230" class="pipe-flow wastewater"/>
+
+              <!-- T101 -> T102 -->
+              <path d="M 180,230 L 280,230" class="pipe-bg"/>
+              <path d="M 180,230 L 280,230" class="pipe-flow wastewater"/>
+
+              <!-- T102 -> T103 -->
+              <path d="M 540,210 L 620,210" class="pipe-bg"/>
+              <path d="M 540,210 L 620,210" class="pipe-flow wastewater"/>
+
+              <!-- T103 -> T201 -->
+              <path d="M 740,200 L 800,200" class="pipe-bg"/>
+              <path d="M 740,200 L 800,200" class="pipe-flow wastewater"/>
+
+              <!-- T204 -> T301 (Sang bể Anoxic 1) -->
+              <path d="M 1130,200 L 1150,200 L 1150,350 L 50,350 L 50,480 L 80,480" class="pipe-bg"/>
+              <path d="M 1130,200 L 1150,200 L 1150,350 L 50,350 L 50,480 L 80,480" class="pipe-flow wastewater"/>
+
+              <!-- Nhánh dẫn khí từ AB102 (Blower) trên Row 1 -->
+              <path d="M 340,110 L 340,400 L 260,400 L 260,420" class="pipe-bg"/>
+              <path d="M 340,110 L 340,400 L 260,400 L 260,420" class="pipe-flow air"/>
+              <path d="M 340,400 L 700,400 L 700,420" class="pipe-bg"/>
+              <path d="M 340,400 L 700,400 L 700,420" class="pipe-flow air"/>
+
+              <!-- Dòng nước thải Row 2: T301 -> T302 -> T303 -> T304 -> T305 -> T401 -> FF -> FT -> T402 -> Sông Hậu -->
+              <!-- T301 -> T302 -->
+              <path d="M 240,480 L 240,480" class="pipe-bg"/>
+              <!-- T302 -> T303 -->
+              <path d="M 460,480 L 460,480" class="pipe-bg"/>
+              <!-- T304 -> T305 -->
+              <path d="M 900,480 L 960,480" class="pipe-bg"/>
+              <path d="M 900,480 L 960,480" class="pipe-flow wastewater"/>
+              <!-- T305 -> T401 -->
+              <path d="M 1100,480 L 1160,480" class="pipe-bg"/>
+              <path d="M 1100,480 L 1160,480" class="pipe-flow cleanwater"/>
+              <!-- T401 -> FT -> T402 -->
+              <path d="M 1260,500 L 1320,500" class="pipe-bg"/>
+              <path d="M 1260,500 L 1320,500" class="pipe-flow cleanwater"/>
+              <path d="M 1320,490 L 1320,540" class="pipe-bg"/>
+              <path d="M 1320,490 L 1320,540" class="pipe-flow cleanwater"/>
+              <!-- T402 -> Sông Hậu -->
+              <path d="M 1480,580 L 1550,580" class="pipe-bg"/>
+              <path d="M 1480,580 L 1550,580" class="pipe-flow cleanwater"/>
+
+              <!-- Bùn thải: T203 & T305 -> Bể chứa bùn T501 -->
+              <path d="M 985,280 L 985,320 L 1200,320 L 1200,200 L 1220,200" class="pipe-bg"/>
+              <path d="M 985,280 L 985,320 L 1200,320 L 1200,200 L 1220,200" class="pipe-flow sludge"/>
+              <path d="M 1020,560 L 1020,700 L 1210,700 L 1210,230 L 1220,230" class="pipe-bg"/>
+              <path d="M 1020,560 L 1020,700 L 1210,700 L 1210,230 L 1220,230" class="pipe-flow sludge"/>
+
+              <!-- Bể bùn T501 -> Máy ép bùn (Row 3) -->
+              <path d="M 1310,260 L 1310,380 L 1500,380 L 1500,750 L 780,750 L 780,780" class="pipe-bg"/>
+              <path d="M 1310,260 L 1310,380 L 1500,380 L 1500,750 L 780,750 L 780,780" class="pipe-flow sludge"/>
+
+              <!-- Máy ép bùn -> Xe bùn -->
+              <path d="M 780,830 L 900,830" class="pipe-bg"/>
+              <path d="M 780,830 L 900,830" class="pipe-flow sludge"/>
+
+              <!-- Cụm châm hóa chất -> Các bể phản ứng -->
+              <path d="M 200,780 L 200,740 L 835,740 L 835,260" class="pipe-bg"/>
+              <path d="M 200,780 L 200,740 L 835,740 L 835,260" class="pipe-flow chemical"/>              <!-- ROW 1 -->
+              <!-- T101: Bể thu gom -->
+              <g>
+                <rect x="30" y="180" width="150" height="100" class="svg-tank svg-tank-large" />
+                <!-- Song chắn rác SCR102 -->
+                <line x1="35" y1="180" x2="35" y2="280" stroke="#475569" stroke-width="4.5"/>
+                <line x1="35" y1="190" x2="65" y2="270" stroke="#94a3b8" stroke-width="1.8"/>
+                <line x1="40" y1="190" x2="70" y2="270" stroke="#94a3b8" stroke-width="1.8"/>
+                <line x1="45" y1="190" x2="75" y2="270" stroke="#94a3b8" stroke-width="1.8"/>
+                <!-- Nước trong bể -->
+                <rect x="45" y="235" width="130" height="40" fill="#0ea5e9" fill-opacity="0.2" rx="3" ry="3"/>
+                <!-- Thước đo mực nước -->
+                <line x1="172" y1="190" x2="172" y2="270" stroke="#64748b" stroke-width="2"/>
+                <line x1="168" y1="190" x2="172" y2="190" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="168" y1="210" x2="172" y2="210" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="168" y1="230" x2="172" y2="230" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="168" y1="250" x2="172" y2="250" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="168" y1="270" x2="172" y2="270" stroke="#64748b" stroke-width="1.5"/>
+                <text x="105" y="165" class="svg-tank-label" text-anchor="middle">T101 - BỂ THU GOM</text>
+              </g>
+
+              <!-- T102: Bể điều hòa -->
+              <g>
+                <rect x="280" y="140" width="260" height="140" class="svg-tank svg-tank-large" />
+                <rect x="285" y="195" width="250" height="80" fill="#0ea5e9" fill-opacity="0.15" rx="4" ry="4"/>
+                <!-- Thước đo mực nước -->
+                <line x1="532" y1="150" x2="532" y2="270" stroke="#64748b" stroke-width="2"/>
+                <line x1="528" y1="150" x2="532" y2="150" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="528" y1="180" x2="532" y2="180" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="528" y1="210" x2="532" y2="210" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="528" y1="240" x2="532" y2="240" stroke="#64748b" stroke-width="1.5"/>
+                <line x1="528" y1="270" x2="532" y2="270" stroke="#64748b" stroke-width="1.5"/>
+                <!-- Hệ thống sục khí đáy bể (Dàn ống và bong bóng khí) -->
+                <line x1="290" y1="270" x2="520" y2="270" stroke="#0ea5e9" stroke-width="3" stroke-dasharray="2,5"/>
+                <circle cx="310" cy="245" r="1.5" fill="#38bdf8" opacity="0.6"/>
+                <circle cx="340" cy="225" r="2.5" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="380" cy="240" r="1" fill="#38bdf8" opacity="0.6"/>
+                <circle cx="420" cy="215" r="2" fill="#38bdf8" opacity="0.7"/>
+                <circle cx="450" cy="235" r="1.5" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="490" cy="220" r="2" fill="#38bdf8" opacity="0.7"/>
+                <text x="410" y="165" class="svg-tank-label" text-anchor="middle">T102 - BỂ ĐIỀU HÒA</text>
+              </g>
+
+              <!-- T103: Bể tuyển nổi DAF -->
+              <g>
+                <rect x="620" y="160" width="120" height="100" class="svg-tank svg-tank-large" />
+                <rect x="625" y="210" width="110" height="45" fill="#0e7490" fill-opacity="0.15" rx="4" ry="4"/>
+                <!-- Xích gạt bọt & Lớp bọt trắng dày bên trên -->
+                <ellipse cx="675" cy="207" rx="42" ry="5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+                <line x1="628" y1="205" x2="712" y2="205" stroke="#475569" stroke-width="2"/>
+                <line x1="712" y1="205" x2="725" y2="215" stroke="#475569" stroke-width="2"/>
+                <text x="680" y="145" class="svg-tank-label" text-anchor="middle">T103 - BỂ TUYỂN NỔI</text>
+              </g>
+
+              <!-- T201 -> T204: Khối hóa lý liên hoàn -->
+              <g>
+                <rect x="800" y="140" width="70" height="120" class="svg-tank" />
+                <!-- Nước phản ứng -->
+                <rect x="803" y="180" width="64" height="76" fill="#0284c7" fill-opacity="0.12" rx="2" ry="2"/>
+                <!-- Motor cánh khuấy và trục cánh khuấy -->
+                <rect x="831" y="125" width="8" height="15" fill="#475569" rx="1.5" ry="1.5"/>
+                <line x1="835" y1="140" x2="835" y2="230" stroke="#475569" stroke-width="2.5"/>
+                <line x1="820" y1="220" x2="850" y2="220" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+                <line x1="823" y1="195" x2="847" y2="195" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+                <text x="835" y="115" class="svg-tank-label" text-anchor="middle">T201</text>
+                <text x="835" y="250" font-size="8" fill="#334155" font-weight="bold" text-anchor="middle">KEO TỤ</text>
+              </g>
+              <g>
+                <rect x="870" y="140" width="70" height="120" class="svg-tank" />
+                <!-- Nước phản ứng -->
+                <rect x="873" y="180" width="64" height="76" fill="#0284c7" fill-opacity="0.12" rx="2" ry="2"/>
+                <!-- Motor cánh khuấy và trục khuấy tạo bông (cánh to hơn để khuấy chậm) -->
+                <rect x="901" y="125" width="8" height="15" fill="#475569" rx="1.5" ry="1.5"/>
+                <line x1="905" y1="140" x2="905" y2="235" stroke="#475569" stroke-width="2.5"/>
+                <line x1="885" y1="225" x2="925" y2="225" stroke="#334155" stroke-width="4.5" stroke-linecap="round"/>
+                <line x1="888" y1="200" x2="922" y2="200" stroke="#334155" stroke-width="4.5" stroke-linecap="round"/>
+                <text x="905" y="115" class="svg-tank-label" text-anchor="middle">T202</text>
+                <text x="905" y="250" font-size="8" fill="#334155" font-weight="bold" text-anchor="middle">TẠO BÔNG</text>
+              </g>
+              <g>
+                <rect x="940" y="140" width="120" height="120" class="svg-tank" />
+                <!-- Đáy nón lắng bùn đáy bể -->
+                <polygon points="943,228 1057,228 1000,257" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+                <polygon points="943,228 1057,228 1000,257" fill="#78350f" fill-opacity="0.3"/> <!-- Bùn đặc thu ở đáy -->
+                <!-- Cầu gạt bùn và máng răng cưa mặt nước -->
+                <line x1="1000" y1="140" x2="1000" y2="245" stroke="#475569" stroke-width="2"/>
+                <line x1="970" y1="240" x2="1030" y2="240" stroke="#334155" stroke-width="2"/>
+                <rect x="943" y="170" width="12" height="8" fill="#0ea5e9" fill-opacity="0.25"/>
+                <rect x="1045" y="170" width="12" height="8" fill="#0ea5e9" fill-opacity="0.25"/>
+                <text x="1000" y="115" class="svg-tank-label" text-anchor="middle">T203 - LẮNG 1</text>
+              </g>
+              <g>
+                <rect x="1060" y="140" width="70" height="120" class="svg-tank" />
+                <!-- Nước phản ứng -->
+                <rect x="1063" y="180" width="64" height="76" fill="#0284c7" fill-opacity="0.12" rx="2" ry="2"/>
+                <rect x="1091" y="125" width="8" height="15" fill="#475569" rx="1.5" ry="1.5"/>
+                <line x1="1095" y1="140" x2="1095" y2="230" stroke="#475569" stroke-width="2.5"/>
+                <line x1="1080" y1="220" x2="1110" y2="220" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+                <text x="1095" y="115" class="svg-tank-label" text-anchor="middle">T204</text>
+                <text x="1095" y="250" font-size="8" fill="#334155" font-weight="bold" text-anchor="middle">TRUNG HÒA</text>
+              </g>
+
+              <!-- T501A/B: Bể chứa bùn -->
+              <g>
+                <rect x="1220" y="140" width="180" height="120" class="svg-tank svg-tank-large" />
+                <!-- Bùn đặc màu nâu sẫm trong bể -->
+                <rect x="1224" y="180" width="82" height="76" fill="#78350f" fill-opacity="0.22" rx="3" ry="3"/>
+                <rect x="1314" y="180" width="82" height="76" fill="#78350f" fill-opacity="0.22" rx="3" ry="3"/>
+                <!-- Tách ngăn -->
+                <line x1="1310" y1="140" x2="1310" y2="260" stroke="#334155" stroke-width="3" stroke-dasharray="4,4"/>
+                <!-- Dàn khí sục               <!-- ROW 2 -->
+              <!-- T301 -> T304: Cụm bể Sinh học liên hoàn (Anoxic & Aerotank) -->
+              <g>
+                <!-- Anoxic 1 -->
+                <rect x="80" y="420" width="160" height="120" class="svg-tank svg-tank-large" />
+                <rect x="85" y="475" width="150" height="60" fill="#0f766e" fill-opacity="0.15" rx="4" ry="4"/>
+                <!-- Cánh khuấy chìm di động trên ray trượt -->
+                <line x1="120" y1="485" x2="120" y2="530" stroke="#475569" stroke-width="1.8" stroke-dasharray="3,3"/>
+                <circle cx="120" cy="510" r="6" fill="#334155" stroke="#475569" stroke-width="1"/>
+                <line x1="112" y1="510" x2="128" y2="510" stroke="#ffffff" stroke-width="2.5"/>
+                <text x="160" y="405" class="svg-tank-label" text-anchor="middle">T301A/B - ANOXIC 1</text>
+              </g>
+              <g>
+                <!-- Aerotank 1 -->
+                <rect x="240" y="420" width="220" height="120" class="svg-tank svg-tank-large" />
+                <rect x="245" y="475" width="210" height="60" fill="#0ea5e9" fill-opacity="0.15" rx="4" ry="4"/>
+                <!-- Dàn phân phối khí tinh bọt khí mịn dưới đáy -->
+                <line x1="255" y1="530" x2="445" y2="530" stroke="#0284c7" stroke-width="3"/>
+                <line x1="285" y1="530" x2="285" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="325" y1="530" x2="325" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="365" y1="530" x2="365" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="405" y1="530" x2="405" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <!-- Bong bóng sục khí nổi lên -->
+                <circle cx="270" cy="505" r="1.5" fill="#e0f2fe" opacity="0.6"/>
+                <circle cx="280" cy="490" r="2.5" fill="#e0f2fe" opacity="0.8"/>
+                <circle cx="330" cy="500" r="1.2" fill="#e0f2fe" opacity="0.6"/>
+                <circle cx="360" cy="495" r="2" fill="#e0f2fe" opacity="0.7"/>
+                <circle cx="410" cy="502" r="1.5" fill="#e0f2fe" opacity="0.8"/>
+                <text x="350" y="405" class="svg-tank-label" text-anchor="middle">T302A/B - AEROTANK 1</text>
+              </g>
+              <g>
+                <!-- Anoxic 2 -->
+                <rect x="460" y="420" width="160" height="120" class="svg-tank svg-tank-large" />
+                <rect x="465" y="475" width="150" height="60" fill="#0f766e" fill-opacity="0.15" rx="4" ry="4"/>
+                <line x1="500" y1="485" x2="500" y2="530" stroke="#475569" stroke-width="1.8" stroke-dasharray="3,3"/>
+                <circle cx="500" cy="510" r="6" fill="#334155" stroke="#475569" stroke-width="1"/>
+                <line x1="492" y1="510" x2="508" y2="510" stroke="#ffffff" stroke-width="2.5"/>
+                <text x="540" y="405" class="svg-tank-label" text-anchor="middle">T303A/B - ANOXIC 2</text>
+              </g>
+              <g>
+                <!-- Aerotank 2 -->
+                <rect x="680" y="420" width="220" height="120" class="svg-tank svg-tank-large" />
+                <rect x="685" y="475" width="210" height="60" fill="#0ea5e9" fill-opacity="0.15" rx="4" ry="4"/>
+                <!-- Dàn phân phối khí tinh bọt khí mịn dưới đáy -->
+                <line x1="695" y1="530" x2="885" y2="530" stroke="#0284c7" stroke-width="3"/>
+                <line x1="725" y1="530" x2="725" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="765" y1="530" x2="765" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="805" y1="530" x2="805" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <line x1="845" y1="530" x2="845" y2="525" stroke="#0284c7" stroke-width="2"/>
+                <circle cx="710" cy="505" r="1.5" fill="#e0f2fe" opacity="0.6"/>
+                <circle cx="730" cy="490" r="2.5" fill="#e0f2fe" opacity="0.8"/>
+                <circle cx="780" cy="500" r="1.2" fill="#e0f2fe" opacity="0.6"/>
+                <circle cx="820" cy="495" r="2.5" fill="#e0f2fe" opacity="0.7"/>
+                <circle cx="860" cy="502" r="1.5" fill="#e0f2fe" opacity="0.8"/>
+                <text x="790" y="405" class="svg-tank-label" text-anchor="middle">T304A/B - AEROTANK 2</text>
+              </g>
+
+              <!-- T305: Bể lắng 2 -->
+              <g>
+                <rect x="960" y="420" width="140" height="120" class="svg-tank svg-tank-large" />
+                <!-- Phễu thu bùn nón đáy bể lắng 2 -->
+                <polygon points="963,510 1097,510 1030,537" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
+                <polygon points="963,510 1097,510 1030,537" fill="#78350f" fill-opacity="0.3"/> <!-- Bùn hoạt tính lắng -->
+                <!-- Cầu gạt bùn trung tâm & Máng răng cưa thu nước sạch -->
+                <line x1="1030" y1="420" x2="1030" y2="525" stroke="#475569" stroke-width="2"/>
+                <line x1="1000" y1="520" x2="1060" y2="520" stroke="#334155" stroke-width="2"/>
+                <rect x="963" y="460" width="12" height="8" fill="#0ea5e9" fill-opacity="0.25"/>
+                <rect x="1085" y="460" width="12" height="8" fill="#0ea5e9" fill-opacity="0.25"/>
+                <text x="1030" y="405" class="svg-tank-label" text-anchor="middle">T305 - LẮNG 2</text>
+              </g>
+
+              <!-- T401: Bể trung gian -->
+              <g>
+                <rect x="1160" y="460" width="100" height="80" class="svg-tank" />
+                <rect x="1163" y="495" width="94" height="42" fill="#0ea5e9" fill-opacity="0.15" rx="3" ry="3"/>
+                <text x="1210" y="445" class="svg-tank-label" text-anchor="middle">T401 - TRUNG GIAN</text>
+              </g>
+
+              <!-- FT-1/2/3/4/5: Cụm bồn lọc áp lực -->
+              <g>
+                <rect x="1320" y="420" width="200" height="70" class="svg-tank svg-tank-large" />
+                <!-- Vẽ 5 bồn thép lọc áp lực đứng chân kim loại -->
+                <g transform="translate(1330, 430)">
+                  <path d="M 0,10 C 0,0 20,0 20,10 L 20,40 L 0,40 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.8"/>
+                  <line x1="3" y1="40" x2="3" y2="46" stroke="#334155" stroke-width="2"/>
+                  <line x1="17" y1="40" x2="17" y2="46" stroke="#334155" stroke-width="2"/>
+                </g>
+                <g transform="translate(1365, 430)">
+                  <path d="M 0,10 C 0,0 20,0 20,10 L 20,40 L 0,40 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.8"/>
+                  <line x1="3" y1="40" x2="3" y2="46" stroke="#334155" stroke-width="2"/>
+                  <line x1="17" y1="40" x2="17" y2="46" stroke="#334155" stroke-width="2"/>
+                </g>
+                <g transform="translate(1400, 430)">
+                  <path d="M 0,10 C 0,0 20,0 20,10 L 20,40 L 0,40 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.8"/>
+                  <line x1="3" y1="40" x2="3" y2="46" stroke="#334155" stroke-width="2"/>
+                  <line x1="17" y1="40" x2="17" y2="46" stroke="#334155" stroke-width="2"/>
+                </g>
+                <g transform="translate(1435, 430)">
+                  <path d="M 0,10 C 0,0 20,0 20,10 L 20,40 L 0,40 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.8"/>
+                  <line x1="3" y1="40" x2="3" y2="46" stroke="#334155" stroke-width="2"/>
+                  <line x1="17" y1="40" x2="17" y2="46" stroke="#334155" stroke-width="2"/>
+                </g>
+                <g transform="translate(1470, 430)">
+                  <path d="M 0,10 C 0,0 20,0 20,10 L 20,40 L 0,40 Z" fill="#94a3b8" stroke="#334155" stroke-width="1.8"/>
+                  <line x1="3" y1="40" x2="3" y2="46" stroke="#334155" stroke-width="2"/>
+                  <line x1="17" y1="40" x2="17" y2="46" stroke="#334155" stroke-width="2"/>
+                </g>
+                <text x="1420" y="405" class="svg-tank-label" text-anchor="middle">FT-1/2/3/4/5 (BỒN LỌC)</text>
+              </g>
+
+              <!-- T402: Bể khử trùng -->
+              <g>
+                <rect x="1320" y="540" width="160" height="80" class="svg-tank svg-tank-large" />
+                <rect x="1325" y="545" width="150" height="70" fill="#0891b2" fill-opacity="0.12" rx="4" ry="4"/>
+                <!-- Các vách ngăn zigzag dòng chảy rõ nét -->
+                <line x1="1360" y1="545" x2="1360" y2="600" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="1400" y1="615" x2="1400" y2="560" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="1440" y1="545" x2="1440" y2="600" stroke="#334155" stroke-width="3.5" stroke-linecap="round"/>
+                <text x="1400" y="525" class="svg-tank-label" text-anchor="middle">T402 - KHỬ TRÙNG</text>
+              </g>
+
+              <!-- Xả ra Sông Hậu -->
+              <g>
+                <path d="M 1545,560 C 1565,560 1565,600 1585,600" fill="none" stroke="#0891b2" stroke-width="3"/>
+                <path d="M 1545,580 C 1565,580 1565,620 1585,620" fill="none" stroke="#0891b2" stroke-width="3"/>
+                <text x="1565" y="550" font-family="sans-serif" font-size="12" font-weight="700" fill="#06b6d4" text-anchor="middle">SÔNG HẬU</text>
+                <text x="1565" y="640" font-family="sans-serif" font-size="9" font-weight="600" fill="#22c55e" text-anchor="middle">ĐẠT CỘT A</text>
+              </g>
+
+              <!-- ROW 3 -->
+              <!-- Cụm xử lý bùn -->
+              <g>
+                <!-- Máy ép bùn -->
+                <rect x="600" y="780" width="180" height="90" class="svg-tank" />
+                <!-- Biểu tượng máy cuộn ép bùn -->
+                <circle cx="650" cy="825" r="20" fill="none" stroke="#475569" stroke-width="3"/>
+                <circle cx="730" cy="825" r="20" fill="none" stroke="#475569" stroke-width="3"/>
+                <line x1="650" y1="805" x2="730" y2="805" stroke="#475569" stroke-width="3"/>
+                <line x1="650" y1="845" x2="730" y2="845" stroke="#475569" stroke-width="3"/>
+                <text x="690" y="828" font-family="sans-serif" font-size="11" font-weight="700" fill="#1e293b" text-anchor="middle">MÁY ÉP BÙN BẢN KHUNG</text>
+              </g>
+              <g>
+                <!-- Xe chở bùn -->
+                <rect x="900" y="780" width="200" height="90" fill="none" stroke="none"/>
+                <!-- Hình xe tải chi tiết có cabin, thùng hàng và cửa sổ kính cabin -->
+                <path d="M 900,835 L 900,800 L 980,800 L 980,845 L 900,845 Z" fill="#475569" stroke="#1e293b" stroke-width="2.5"/> <!-- Thùng xe -->
+                <path d="M 980,845 L 1020,845 L 1020,818 L 1000,798 L 980,798 Z" fill="#334155" stroke="#1e293b" stroke-width="2.5"/> <!-- Cabin xe -->
+                <rect x="990" y="805" width="18" height="13" fill="#f8fafc" stroke="#1e293b" stroke-width="1.5" rx="1" ry="1"/> <!-- Cửa sổ cabin -->
+                <!-- Bánh xe có vành trục mâm -->
+                <g>
+                  <circle cx="925" cy="852" r="10" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+                  <circle cx="925" cy="852" r="4" fill="#94a3b8"/>
+                </g>
+                <g>
+                  <circle cx="960" cy="852" r="10" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+                  <circle cx="960" cy="852" r="4" fill="#94a3b8"/>
+                </g>
+                <g>
+                  <circle cx="1005" cy="852" r="10" fill="#0f172a" stroke="#1e293b" stroke-width="2"/>
+                  <circle cx="1005" cy="852" r="4" fill="#94a3b8"/>
+                </g>
+                <text x="965" y="825" font-family="sans-serif" font-size="10" font-weight="700" fill="#f8fafc" text-anchor="middle">XE CHỞ BÙN THẢI</text>
+                <text x="1055" y="825" font-family="sans-serif" font-size="9" font-weight="600" fill="#ef4444">➡ XỬ LÝ</text>
+              </g>
+              <!-- Cụm bể châm hóa chất (Bồn màu sắc tương ứng theo loại) -->
+              <g>
+                <rect x="80" y="780" width="450" height="120" class="svg-tank" stroke-dasharray="4,4"/>
+                <!-- 6 bồn hóa chất phối màu nổi bật -->
+                <g transform="translate(95, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#0369a1" text-anchor="middle">PAC</text>
+                </g>
+                <g transform="translate(155, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#047857" text-anchor="middle">PAM</text>
+                </g>
+                <g transform="translate(215, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#991b1b" text-anchor="middle">Nutri</text>
+                </g>
+                <g transform="translate(275, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#b45309" text-anchor="middle">Acid</text>
+                </g>
+                <g transform="translate(335, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#faf5ff" stroke="#a855f7" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#7e22ce" text-anchor="middle">NaOH</text>
+                </g>
+                <g transform="translate(395, 810)">
+                  <rect x="0" y="0" width="45" height="50" rx="3" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+                  <text x="22.5" y="30" font-size="9" font-weight="bold" fill="#047857" text-anchor="middle">Chlor</text>
+                </g>
+                <text x="305" y="800" font-family="sans-serif" font-size="11" font-weight="700" fill="#334155" text-anchor="middle">CỤM BỒN CHÂM HÓA CHẤT</text>
+              </g>
+
+
+              <!-- =================================================== -->
+              <!-- 3. CÁC NODE THIẾT BỊ SCADA (ĐỂ TRÊN CÙNG ĐỂ DỄ CLICK) -->
+              <!-- =================================================== -->
+
+              <!-- THIẾT BỊ BỂ T101 -->
+              <!-- Bơm WP101A -->
+              <g class="device-node status-good" data-code="WP101A" id="node-WP101A" transform="translate(92, 242)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">WP101A</text>
+              </g>
+              <!-- Bơm WP101B -->
+              <g class="device-node status-good" data-code="WP101B" id="node-WP101B" transform="translate(122, 242)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">WP101B</text>
+              </g>
+              <!-- Bơm WP101C -->
+              <g class="device-node status-good" data-code="WP101C" id="node-WP101C" transform="translate(152, 242)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">WP101C</text>
+              </g>
+              <!-- Máy tách rác cơ học SCR102 -->
+              <g class="device-node status-good" data-code="SCR102" id="node-SCR102" transform="translate(230, 200)">
+                <circle cx="0" cy="0" r="13" class="device-circle" />
+                <line x1="-8" y1="-8" x2="8" y2="8" stroke-width="2.5" class="device-icon-path"/>
+                <line x1="-3" y1="-8" x2="13" y2="8" stroke-width="1.5" class="device-icon-path"/>
+                <text x="0" y="23" class="device-label">SCR102</text>
+              </g>
+
+              <!-- THIẾT BỊ BỂ T102 -->
+              <!-- Máy thổi khí AB102A -->
+              <g class="device-node status-good" data-code="AB102A" id="node-AB102A" transform="translate(350, 90)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#blowerIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label" text-anchor="middle">AB102A</text>
+              </g>
+              <!-- Máy thổi khí AB102B -->
+              <g class="device-node status-good" data-code="AB102B" id="node-AB102B" transform="translate(390, 90)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#blowerIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label" text-anchor="middle">AB102B</text>
+              </g>
+              <!-- Bơm WP102A -->
+              <g class="device-node status-good" data-code="WP102A" id="node-WP102A" transform="translate(460, 225)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">WP102A</text>
+              </g>
+              <!-- Bơm WP102B -->
+              <g class="device-node status-good" data-code="WP102B" id="node-WP102B" transform="translate(495, 225)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">WP102B</text>
+              </g>
+
+              <!-- THIẾT BỊ BỂ T103 -->
+              <!-- Cánh khuấy tuyển nổi M103 -->
+              <g class="device-node status-good" data-code="M103" id="node-M103" transform="translate(680, 202)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">M103</text>
+              </g>
+
+              <!-- THIẾT BỊ KHỐI HÓA LÝ (T201 - T204) -->
+              <!-- Cánh khuấy Keo tụ M201 -->
+              <g class="device-node status-good" data-code="M201" id="node-M201" transform="translate(835, 175)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="-22" y="4" class="device-label" text-anchor="end">M201</text>
+              </g>
+              <!-- Cánh khuấy Tạo bông M202 -->
+              <g class="device-node status-good" data-code="M202" id="node-M202" transform="translate(905, 175)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="-22" y="4" class="device-label" text-anchor="end">M202</text>
+              </g>
+              <!-- Cầu gạt bùn Lắng 1 M203 -->
+              <g class="device-node status-good" data-code="M203" id="node-M203" transform="translate(1000, 185)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="-22" y="4" class="device-label" text-anchor="end">M203</text>
+              </g>
+              <!-- Cánh khuấy Trung hòa M204 -->
+              <g class="device-node status-good" data-code="M204" id="node-M204" transform="translate(1095, 175)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="-22" y="4" class="device-label" text-anchor="end">M204</text>
+              </g>
+
+              <!-- THIẾT BỊ BỂ T203 (Lắng 1) -->
+              <!-- Bơm bùn Lắng 1: SP203A -->
+              <g class="device-node status-good" data-code="SP203A" id="node-SP203A" transform="translate(970, 295)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">SP203A</text>
+              </g>
+              <!-- Bơm bùn Lắng 1: SP203B -->
+              <g class="device-node status-good" data-code="SP203B" id="node-SP203B" transform="translate(1010, 295)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">SP203B</text>
+              </g>
+
+              <!-- ROW 2: KHU BỂ SINH HỌC -->
+              <!-- Cánh khuấy chìm bể Anoxic 1: MIX301A/B -->
+              <g class="device-node status-good" data-code="MIX301A" id="node-MIX301A" transform="translate(120, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">MIX301A</text>
+              </g>
+              <g class="device-node status-good" data-code="MIX301B" id="node-MIX301B" transform="translate(180, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">MIX301B</text>
+              </g>
+              <!-- Bơm nội tuần hoàn Aerotank 1: WP302A/B -->
+              <g class="device-node status-good" data-code="WP302A" id="node-WP302A" transform="translate(290, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">WP302A</text>
+              </g>
+              <g class="device-node status-good" data-code="WP302B" id="node-WP302B" transform="translate(370, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">WP302B</text>
+              </g>
+              <!-- Cánh khuấy chìm bể Anoxic 2: MIX303A/B -->
+              <g class="device-node status-good" data-code="MIX303A" id="node-MIX303A" transform="translate(500, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">MIX303A</text>
+              </g>
+              <g class="device-node status-good" data-code="MIX303B" id="node-MIX303B" transform="translate(580, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#mixerIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">MIX303B</text>
+              </g>
+              <!-- Bơm nội tuần hoàn Aerotank 2: WP304A/B -->
+              <g class="device-node status-good" data-code="WP304A" id="node-WP304A" transform="translate(735, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">WP304A</text>
+              </g>
+              <g class="device-node status-good" data-code="WP304B" id="node-WP304B" transform="translate(845, 500)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">WP304B</text>
+              </g>
+
+              <!-- Bơm bùn lắng bể Lắng 2: SP305A/B/C -->
+              <g class="device-node status-good" data-code="SP305A" id="node-SP305A" transform="translate(980, 575)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="-22" y="4" class="device-label" text-anchor="end">SP305A</text>
+              </g>
+              <g class="device-node status-good" data-code="SP305B" id="node-SP305B" transform="translate(1020, 575)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">SP305B</text>
+              </g>
+              <g class="device-node status-good" data-code="SP305C" id="node-SP305C" transform="translate(1060, 575)">
+                <circle cx="0" cy="0" r="14" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="22" y="4" class="device-label" text-anchor="start">SP305C</text>
+              </g>
+
+              <!-- Bơm bồn lọc áp lực: FF-A/B/C (Căn xuống dưới bể T401 để không chồng lấp, dùng nhãn so le) -->
+              <g class="device-node status-good" data-code="FFA" id="node-FFA" transform="translate(1160, 565)">
+                <circle cx="0" cy="0" r="13" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">FFA</text>
+              </g>
+              <g class="device-node status-good" data-code="FFB" id="node-FFB" transform="translate(1210, 565)">
+                <circle cx="0" cy="0" r="13" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="23" class="device-label">FFB</text>
+              </g>
+              <g class="device-node status-good" data-code="FFC" id="node-FFC" transform="translate(1260, 565)">
+                <circle cx="0" cy="0" r="13" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" />
+                <text x="0" y="-20" class="device-label">FFC</text>
+              </g>
+
+              <!-- ROW 3: KHU VỰC BƠM HÓA CHẤT (DP01-DP06 Căn thẳng đứng dưới các bồn tương ứng) -->
+              <!-- Bơm định lượng PAC: DP01 -->
+              <g class="device-node status-good" data-code="DP01" id="node-DP01" transform="translate(117, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="21" class="device-label">DP01</text>
+              </g>
+              <!-- Bơm định lượng PAM: DP02 -->
+              <g class="device-node status-good" data-code="DP02" id="node-DP02" transform="translate(177, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="-18" class="device-label">DP02</text>
+              </g>
+              <!-- Bơm định lượng Dinh dưỡng: DP03 -->
+              <g class="device-node status-good" data-code="DP03" id="node-DP03" transform="translate(237, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="21" class="device-label">DP03</text>
+              </g>
+              <!-- Bơm định lượng Axit: DP04 -->
+              <g class="device-node status-good" data-code="DP04" id="node-DP04" transform="translate(297, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="-18" class="device-label">DP04</text>
+              </g>
+              <!-- Bơm định lượng NaOH: DP05 -->
+              <g class="device-node status-good" data-code="DP05" id="node-DP05" transform="translate(357, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="21" class="device-label">DP05</text>
+              </g>
+              <!-- Bơm định lượng Clo: DP06 -->
+              <g class="device-node status-good" data-code="DP06" id="node-DP06" transform="translate(417, 868)">
+                <circle cx="0" cy="0" r="12" class="device-circle" />
+                <use href="#pumpIcon" x="0" y="0" transform="scale(0.85)"/>
+                <text x="0" y="-18" class="device-label">DP06</text>
+              </g>
+
+              <!-- Vòng tròn Highlight dùng để làm nổi bật thiết bị khi định vị từ sidebar -->
+              <circle id="scadaHighlight" cx="0" cy="0" r="28" class="scada-highlight-ring" style="display: none; pointer-events: none;"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Chú thích bản vẽ dưới cùng -->
+        <div class="scada-legend-bar">
+          <div class="legend-item">
+            <div class="legend-line" style="background:#0284c7;"></div>
+            <span>Đường nước thải</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background:#e0f2fe; border:1px solid #94a3b8;"></div>
+            <span>Đường ống khí</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background:#78350f;"></div>
+            <span>Đường ống bùn</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-line" style="background:#10b981;"></div>
+            <span>Đường hóa chất</span>
+          </div>
+          <div class="legend-item" style="margin-left:auto;">
+            <div class="legend-dot" style="background:#10b981; border: 2px solid #064e3b; width:10px; height:10px;"></div>
+            <span>Tốt</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#f59e0b; animation: scadaPulseWarning 2s infinite ease-in-out; width:10px; height:10px; border: 2px solid #78350f;"></div>
+            <span>Cần theo dõi</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#ef4444; animation: scadaPulseBroken 1.2s infinite ease-in-out; width:10px; height:10px; border: 2px solid #7f1d1d;"></div>
+            <span>Đang hỏng</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#94a3b8; border: 2px solid #475569; width:10px; height:10px;"></div>
+            <span>Ngừng hoạt động</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHU VỰC THÔNG TIN NHANH (SIDEBAR PHẢI) -->
+      <div class="scada-sidebar">
+        <div class="sidebar-header">
+          <span>📋 Thống kê SCADA</span>
+          <span style="font-size:0.75rem; color:#64748b; font-weight:normal;" id="scadaLastUpdated">Cập nhật: --:--</span>
+        </div>
+
+        <!-- Khối đếm số lượng -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val total" id="count-total">0</div>
+            <div class="stat-lbl">TỔNG MÁY</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val good" id="count-good">0</div>
+            <div class="stat-lbl">HOẠT ĐỘNG TỐT</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val warning" id="count-warning">0</div>
+            <div class="stat-lbl">CẦN THEO DÕI</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val broken" id="count-broken">0</div>
+            <div class="stat-lbl">ĐANG HỎNG</div>
+          </div>
+        </div>
+
+        <!-- Khối hiển thị thiết bị lỗi -->
+        <div class="alerts-container">
+          <div class="alerts-title">Danh sách thiết bị lỗi / cần sửa</div>
+          <div id="alertsList" style="display:flex; flex-direction:column; gap:8px; flex:1;">
+            <!-- Render từ JS -->
+            <div style="text-align:center; padding:30px 10px; color:#64748b; font-size:0.85rem;">
+              ✅ Nhà máy hoạt động bình thường, không có thiết bị lỗi.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLTIP CHI TIẾT THIẾT BỊ -->
+  <div class="scada-tooltip" id="scadaTooltip">
+    <div class="tooltip-title">
+      <span id="tt-name">Tên thiết bị</span>
+      <span class="alert-code" id="tt-code">Mã thiết bị</span>
+    </div>
+    <hr style="border:none; border-top:1px solid #334155; margin:6px 0;">
+    <div class="tooltip-row">
+      <span class="tooltip-label">Nhóm:</span>
+      <span class="tooltip-val" id="tt-group">—</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Vị trí:</span>
+      <span class="tooltip-val" id="tt-location">—</span>
+    </div>
+    <div class="tooltip-row">
+      <span class="tooltip-label">Trạng thái:</span>
+      <span class="tooltip-val" id="tt-status">—</span>
+    </div>
+    <div class="tooltip-row" id="tt-spec-row">
+      <span class="tooltip-label">Thông số chính:</span>
+      <span class="tooltip-val" id="tt-spec">—</span>
+    </div>
+    <div style="margin-top:8px; display:flex; gap:6px;">
+      <a id="tt-detail-link" href="#" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; padding:4px 8px; border-radius:4px; text-decoration:none; display:block; flex:1; text-align:center; font-size:0.75rem;">Hồ sơ chi tiết</a>
+      <a id="tt-report-link" href="suco.html" style="background:#991b1b; color:#fca5a5; border:1px solid #ef4444; padding:4px 8px; border-radius:4px; text-decoration:none; display:block; flex:1; text-align:center; font-size:0.75rem;">Báo lỗi ca</a>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module" src="sodo.js"></script>
+</body>
+
+</html>

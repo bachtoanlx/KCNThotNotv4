@@ -42,13 +42,14 @@ let currentDetailId = null;     // ID thiết bị đang xem chi tiết
 // MAPPING NHÓM THIẾT BỊ
 // ============================================================
 const GROUP_MAP = {
-  bom:      { label: "Bơm",                   icon: "🌊", color: "#3b82f6" },
-  khi:      { label: "Máy thổi khí",           icon: "💨", color: "#8b5cf6" },
-  dien:     { label: "Điện - Tủ điều khiển",  icon: "⚡", color: "#f59e0b" },
-  cobien:   { label: "Cảm biến",               icon: "📡", color: "#06b6d4" },
-  co_khi:   { label: "Cơ khí",                icon: "🔩", color: "#64748b" },
-  dien_co:  { label: "Điện - Cơ",              icon: "⚙️", color: "#10b981" }, // màu emerald lá cây
-  khac:     { label: "Khác",                   icon: "📦", color: "#94a3b8" },
+  bom:             { label: "Bơm",                   icon: "🌊", color: "#3b82f6" },
+  bom_dinh_luong:  { label: "Bơm định lượng",        icon: "🧪", color: "#d946ef" },
+  khi:             { label: "Máy thổi khí",           icon: "💨", color: "#8b5cf6" },
+  dien:            { label: "Điện - Tủ điều khiển",  icon: "⚡", color: "#f59e0b" },
+  cobien:          { label: "Cảm biến",               icon: "📡", color: "#06b6d4" },
+  co_khi:          { label: "Cơ khí",                icon: "🔩", color: "#64748b" },
+  dien_co:         { label: "Điện - Cơ",              icon: "⚙️", color: "#10b981" }, // màu emerald lá cây
+  khac:            { label: "Khác",                   icon: "📦", color: "#94a3b8" },
 };
 
 const STATUS_MAP = {
@@ -151,6 +152,7 @@ function startDevicesListener() {
     allDevices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderDeviceGrid();
     populateDeviceFilters(); // Cập nhật dropdown bộ lọc các tab
+    updateFormSuggestions(); // Cập nhật danh sách gợi ý tự động cho form
     
     // Tải lịch bảo trì
     loadMaintenanceTasks();
@@ -486,6 +488,45 @@ function populateDeviceFilters() {
   }
 }
 
+// Cập nhật danh sách gợi ý tự động trong modal Thêm/Sửa thiết bị
+function updateFormSuggestions() {
+  const getUniqueValues = (key) => {
+    return Array.from(new Set(
+      allDevices.map(d => (d[key] || "").trim()).filter(val => val !== "")
+    )).sort((a, b) => a.localeCompare(b, "vi"));
+  };
+
+  // 1. Tên thiết bị
+  const nameDl = document.getElementById("deviceNameSuggestions");
+  if (nameDl) {
+    nameDl.innerHTML = getUniqueValues("name").map(n => `<option value="${n}">`).join("");
+  }
+
+  // 2. Mã thiết bị
+  const codeDl = document.getElementById("deviceCodeSuggestions");
+  if (codeDl) {
+    codeDl.innerHTML = getUniqueValues("code").map(c => `<option value="${c}">`).join("");
+  }
+
+  // 3. Vị trí lắp đặt
+  const locDl = document.getElementById("deviceLocationSuggestions");
+  if (locDl) {
+    locDl.innerHTML = getUniqueValues("location").map(l => `<option value="${l}">`).join("");
+  }
+
+  // 4. Hãng sản xuất
+  const brandDl = document.getElementById("deviceBrandSuggestions");
+  if (brandDl) {
+    brandDl.innerHTML = getUniqueValues("brand").map(b => `<option value="${b}">`).join("");
+  }
+
+  // 5. Số serial / Model
+  const serialDl = document.getElementById("deviceSerialSuggestions");
+  if (serialDl) {
+    serialDl.innerHTML = getUniqueValues("serial").map(s => `<option value="${s}">`).join("");
+  }
+}
+
 // ============================================================
 // TAB NAVIGATION
 // ============================================================
@@ -526,6 +567,37 @@ addDeviceBtn.addEventListener("click", () => openFormModal("add"));
 deviceFormModal.addEventListener("click", (e) => {
   if (e.target === deviceFormModal) closeDeviceFormModal();
 });
+
+// Tự động điền/đồng bộ thông tin Nhóm, Hãng sản xuất, Vị trí khi nhập Tên thiết bị trùng với thiết bị đã có
+const deviceNameInput = document.getElementById("deviceName");
+if (deviceNameInput) {
+  deviceNameInput.addEventListener("input", (e) => {
+    const inputVal = e.target.value.trim().toLowerCase();
+    if (!inputVal) return;
+
+    // Tìm thiết bị trùng khớp tên (không phân biệt hoa thường)
+    const matched = allDevices.find(d => (d.name || "").trim().toLowerCase() === inputVal);
+    if (matched) {
+      // Đồng bộ Nhóm thiết bị
+      const groupSel = document.getElementById("deviceGroup");
+      if (groupSel && matched.group) {
+        groupSel.value = matched.group;
+      }
+
+      // Tự động điền Vị trí lắp đặt nếu hiện tại đang trống
+      const locationInput = document.getElementById("deviceLocation");
+      if (locationInput && !locationInput.value.trim() && matched.location) {
+        locationInput.value = matched.location;
+      }
+
+      // Tự động điền Hãng sản xuất nếu hiện tại đang trống
+      const brandInput = document.getElementById("deviceBrand");
+      if (brandInput && !brandInput.value.trim() && matched.brand) {
+        brandInput.value = matched.brand;
+      }
+    }
+  });
+}
 
 function openFormModal(mode, id = null) {
   deviceForm.reset();
@@ -581,6 +653,26 @@ deviceForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  // Kiểm tra trùng lặp (trùng cả Tên thiết bị và Mã thiết bị)
+  const id = editDeviceId.value;
+  const code = document.getElementById("deviceCode").value.trim();
+  const isDuplicate = allDevices.some(d => {
+    // Nếu là chế độ chỉnh sửa, bỏ qua thiết bị đang chỉnh sửa
+    if (id && d.id === id) return false;
+    
+    return (d.name || "").trim().toLowerCase() === name.toLowerCase() && 
+           (d.code || "").trim().toLowerCase() === code.toLowerCase();
+  });
+
+  if (isDuplicate) {
+    showSwal(
+      "warning", 
+      "Trùng lặp thiết bị", 
+      `Thiết bị "${name}" với Mã thiết bị "${code || "(trống)"}" đã tồn tại trên hệ thống. Vui lòng nhập mã thiết bị khác để phân biệt.`
+    );
+    return;
+  }
+
   const payload = {
     name,
     code:        document.getElementById("deviceCode").value.trim(),
@@ -607,8 +699,6 @@ deviceForm.addEventListener("submit", async (e) => {
     updatedBy:   auth.currentUser.email,
     updatedAt:   serverTimestamp(),
   };
-
-  const id = editDeviceId.value;
 
   // Xác thực mật khẩu khi CHỈNH SỬA thiết bị (không cần khi thêm mới)
   if (id) {

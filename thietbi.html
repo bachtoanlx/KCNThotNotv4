@@ -765,6 +765,7 @@
         <select id="deviceGroupFilter" class="tb-filter-select">
           <option value="all">Tất cả nhóm</option>
           <option value="bom">🌊 Bơm</option>
+          <option value="bom_dinh_luong">🧪 Bơm định lượng</option>
           <option value="khi">💨 Máy thổi khí</option>
           <option value="dien">⚡ Điện - Tủ điều khiển</option>
           <option value="cobien">📡 Cảm biến</option>
@@ -888,11 +889,13 @@
         <div class="tb-form-row">
           <div class="tb-form-group">
             <label for="deviceName">Tên thiết bị <span style="color:red">*</span></label>
-            <input type="text" id="deviceName" placeholder="VD: Bơm chìm nước thải số 1" required>
+            <input type="text" id="deviceName" placeholder="VD: Bơm chìm nước thải số 1" list="deviceNameSuggestions" required>
+            <datalist id="deviceNameSuggestions"></datalist>
           </div>
           <div class="tb-form-group" style="max-width:140px;">
             <label for="deviceCode">Mã thiết bị</label>
-            <input type="text" id="deviceCode" placeholder="VD: B-001">
+            <input type="text" id="deviceCode" placeholder="VD: B-001" list="deviceCodeSuggestions">
+            <datalist id="deviceCodeSuggestions"></datalist>
           </div>
         </div>
 
@@ -903,6 +906,7 @@
             <select id="deviceGroup" required>
               <option value="" disabled selected>- Chọn nhóm -</option>
               <option value="bom">🌊 Bơm</option>
+              <option value="bom_dinh_luong">🧪 Bơm định lượng</option>
               <option value="khi">💨 Máy thổi khí</option>
               <option value="dien">⚡ Điện - Tủ điều khiển</option>
               <option value="cobien">📡 Cảm biến</option>
@@ -913,7 +917,8 @@
           </div>
           <div class="tb-form-group">
             <label for="deviceLocation">Vị trí lắp đặt</label>
-            <input type="text" id="deviceLocation" placeholder="VD: Bể Aerobic, Bể điều hòa...">
+            <input type="text" id="deviceLocation" placeholder="VD: Bể Aerobic, Bể điều hòa..." list="deviceLocationSuggestions">
+            <datalist id="deviceLocationSuggestions"></datalist>
           </div>
         </div>
 
@@ -921,11 +926,13 @@
         <div class="tb-form-row">
           <div class="tb-form-group">
             <label for="deviceBrand">Hãng sản xuất</label>
-            <input type="text" id="deviceBrand" placeholder="VD: Tsurumi, Ebara...">
+            <input type="text" id="deviceBrand" placeholder="VD: Tsurumi, Ebara..." list="deviceBrandSuggestions">
+            <datalist id="deviceBrandSuggestions"></datalist>
           </div>
           <div class="tb-form-group">
             <label for="deviceSerial">Số serial / Model</label>
-            <input type="text" id="deviceSerial" placeholder="VD: LH-422">
+            <input type="text" id="deviceSerial" placeholder="VD: LH-422" list="deviceSerialSuggestions">
+            <datalist id="deviceSerialSuggestions"></datalist>
           </div>
         </div>
 
