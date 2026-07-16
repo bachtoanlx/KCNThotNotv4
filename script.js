@@ -1762,13 +1762,29 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
       const { company, ngay_ghi, chi_so } = data;
       const newChiSo = parseFloat(chi_so);
 
-      // --- ⭐️ TỐI ƯU: KẾT HỢP 2 QUERY THÀNH 1 ---
+      // --- ⭐️ TỐI ƯU HƠN NỮA: CHẠY SONG SONG CÁC TRUY VẤN FIRESTORE ---
       const qSameDay = query(
         collection(db, collectionName),
         where("company", "==", company),
         where("ngay_ghi", "==", ngay_ghi)
       );
-      const snapSameDay = await getDocs(qSameDay);
+
+      let qLatest = null;
+      if (!isNaN(newChiSo)) {
+        qLatest = query(
+          collection(db, collectionName),
+          where("company", "==", company),
+          where("ngay_ghi", "<=", ngay_ghi),
+          orderBy("ngay_ghi", "desc"),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+      }
+
+      const [snapSameDay, snapLatest] = await Promise.all([
+        getDocs(qSameDay),
+        qLatest ? getDocs(qLatest) : Promise.resolve({ empty: true, docs: [] })
+      ]);
 
       // ⭐️ TÌM EXACT MATCH TRONG MEMORY (Không query thêm)
       const exactMatchDoc = snapSameDay.docs.find(
@@ -2055,20 +2071,6 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
 
       // Chỉ kiểm tra nếu chi_so là số hợp lệ
       if (!isNaN(newChiSo)) {
-
-        // Lấy bản ghi mới nhất của công ty này TRƯỚC ngày hiện tại (hoặc cùng ngày nhưng tạo sớm hơn)
-        const qLatest = query(
-          collection(db, collectionName),
-          where("company", "==", company),
-          // Sẽ cần logic phức tạp hơn để so sánh ngày và giờ tạo.
-          // Để đơn giản, ta chỉ lấy bản ghi mới nhất theo ngày ghi
-          where("ngay_ghi", "<=", ngay_ghi), // So sánh theo chuỗi YYYY-MM-DD
-          orderBy("ngay_ghi", "desc"),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
-
-        const snapLatest = await getDocs(qLatest);
         const latestDoc = snapLatest.docs[0];
 
         if (!snapLatest.empty && (latestDoc.data().ngay_ghi !== ngay_ghi)) { // Loại trừ trường hợp trùng ngày (đã xử lý ở trên)
