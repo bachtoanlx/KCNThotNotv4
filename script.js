@@ -1258,125 +1258,130 @@ export async function submitForm(e, formId, collectionName, folderId) {
   const user = auth.currentUser;
   const userEmail = user?.email || "unknown";
 
-  // --- KIỂM TRA KÍCH THƯỚC FILE ---
-  // SỬA: Lấy file input bằng querySelector để đảm bảo tìm thấy dù không có name
-  const fileInputElement = form.querySelector('input[type="file"]');
-  let fileInput = fileInputElement?.files?.[0];
+  try {
+    // --- KIỂM TRA KÍCH THƯỚC FILE ---
+    // SỬA: Lấy file input bằng querySelector để đảm bảo tìm thấy dù không có name
+    const fileInputElement = form.querySelector('input[type="file"]');
+    let fileInput = fileInputElement?.files?.[0];
 
-  const HARD_LIMIT_BYTES = 15728640; // 15MB: Cho phép user chọn file từ đt thoải mái
-  const FINAL_LIMIT_BYTES = 5242880; // 5MB: Giới hạn an toàn trước khi gửi payload lên Google Apps Script
+    const HARD_LIMIT_BYTES = 15728640; // 15MB: Cho phép user chọn file từ đt thoải mái
+    const FINAL_LIMIT_BYTES = 5242880; // 5MB: Giới hạn an toàn trước khi gửi payload lên Google Apps Script
 
-  if (fileInput) {
-    // Chặn tức thì nếu file khổng lồ (> 15MB) để tránh treo trình duyệt khi vẽ Canvas
-    if (fileInput.size > HARD_LIMIT_BYTES) {
-      hideLoading();
-      showSwal("error", "Kích thước file quá lớn (Vượt quá 15MB). Vui lòng chọn file khác.");
-      addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
-      return; // Ngăn chặn việc gửi form
-    }
-
-    // Tiến hành nén ngầm nếu dung lượng > 4MB
-    try {
-      fileInput = await compressImage(fileInput, 4, 0.9);
-    } catch (err) {
-      console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
-    }
-
-    // Kiểm tra lại lần cuối sau khi nén
-    if (fileInput.size > FINAL_LIMIT_BYTES) {
-      hideLoading();
-      showSwal("error", "Kích thước file sau khi tự động nén vẫn vượt quá 5MB. Vui lòng chọn file nhỏ hơn.");
-      addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
-      return;
-    }
-  }
-  // ------------------------------------------
-  let data = {};
-  let file = null;
-
-  // 1. Tùy theo formId mà build object data và lấy file
-  switch (formId) {
-    case "registrationForm_1":
-      let chiSoStr = form.chi_so.value.trim();
-
-      // Bỏ dấu chấm phân cách nghìn
-      chiSoStr = chiSoStr.replace(/\./g, "");
-
-      // Chuyển thành số
-      let chiSoNum = parseFloat(chiSoStr);
-
-      data = {
-        company: form.c_ty.value.trim(),
-        chi_so: chiSoNum,   // ✅ luôn là Number
-        ngay_ghi: form.ngay_ghi.value.trim(),
-        ghi_chu: form.ghi_chu.value.trim(),
-      };
-      file = fileInput;
-      break;
-
-    case "registrationForm_2":  // Form kiểu khác
-      data = {
-        company: form.c_ty.value.trim(),
-        ngay_nghi: form.ngay_nghi.value.trim(),
-        ngay_lam_db: form.ngay_lam_db.value.trim(),
-        ghi_chu: form.ghi_chu.value.trim(),
-      };
-      file = fileInput;
-
-      // ✅ KIỂM TRA DỮ LIỆU BẮT BUỘC CHO FORM 2
-      if (!data.ngay_nghi && !data.ngay_lam_db) {
+    if (fileInput) {
+      // Chặn tức thì nếu file khổng lồ (> 15MB) để tránh treo trình duyệt khi vẽ Canvas
+      if (fileInput.size > HARD_LIMIT_BYTES) {
         hideLoading();
-        showSwal("error", "Vui lòng nhập Ngày nghỉ HOẶC Ngày làm đặc biệt.");
-        // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("form2_validation_error", { email: userEmail, error: "Missing both ngay_nghi and ngay_lam_db" });
+        showSwal("error", "Kích thước file quá lớn (Vượt quá 15MB). Vui lòng chọn file khác.");
+        addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
+        return; // Ngăn chặn việc gửi form
+      }
+
+      // Tiến hành nén ngầm nếu dung lượng > 4MB
+      try {
+        fileInput = await compressImage(fileInput, 4, 0.9);
+      } catch (err) {
+        console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
+      }
+
+      // Kiểm tra lại lần cuối sau khi nén
+      if (fileInput.size > FINAL_LIMIT_BYTES) {
+        hideLoading();
+        showSwal("error", "Kích thước file sau khi tự động nén vẫn vượt quá 5MB. Vui lòng chọn file nhỏ hơn.");
+        addLog("file_size_error", { email: userEmail, formId, fileName: fileInput.name, sizeBytes: fileInput.size });
         return;
       }
-      if (data.ngay_nghi && data.ngay_lam_db) {
-        hideLoading();
-        showSwal("error", "Vui lòng chỉ chọn Ngày nghỉ HOẶC Ngày làm đặc biệt.");
+    }
+    // ------------------------------------------
+    let data = {};
+    let file = null;
+
+    // 1. Tùy theo formId mà build object data và lấy file
+    switch (formId) {
+      case "registrationForm_1":
+        let chiSoStr = form.chi_so.value.trim();
+
+        // Bỏ dấu chấm phân cách nghìn
+        chiSoStr = chiSoStr.replace(/\./g, "");
+
+        // Chuyển thành số
+        let chiSoNum = parseFloat(chiSoStr);
+
+        data = {
+          company: form.c_ty.value.trim(),
+          chi_so: chiSoNum,   // ✅ luôn là Number
+          ngay_ghi: form.ngay_ghi.value.trim(),
+          ghi_chu: form.ghi_chu.value.trim(),
+        };
+        file = fileInput;
+        break;
+
+      case "registrationForm_2":  // Form kiểu khác
+        data = {
+          company: form.c_ty.value.trim(),
+          ngay_nghi: form.ngay_nghi.value.trim(),
+          ngay_lam_db: form.ngay_lam_db.value.trim(),
+          ghi_chu: form.ghi_chu.value.trim(),
+        };
+        file = fileInput;
+
+        // ✅ KIỂM TRA DỮ LIỆU BẮT BUỘC CHO FORM 2
+        if (!data.ngay_nghi && !data.ngay_lam_db) {
+          hideLoading();
+          showSwal("error", "Vui lòng nhập Ngày nghỉ HOẶC Ngày làm đặc biệt.");
+          // ⭐️ BỔ SUNG LOG ⭐️
+          addLog("form2_validation_error", { email: userEmail, error: "Missing both ngay_nghi and ngay_lam_db" });
+          return;
+        }
+        if (data.ngay_nghi && data.ngay_lam_db) {
+          hideLoading();
+          showSwal("error", "Vui lòng chỉ chọn Ngày nghỉ HOẶC Ngày làm đặc biệt.");
+          // ⭐️ BỔ SUNG LOG ⭐️
+          addLog("form2_validation_error", { email: userEmail, error: "Both ngay_nghi and ngay_lam_db submitted" });
+          return;
+        }
+        break;
+      // sau này thêm form khác thì thêm case mới
+      default:
         // ⭐️ BỔ SUNG LOG ⭐️
-        addLog("form2_validation_error", { email: userEmail, error: "Both ngay_nghi and ngay_lam_db submitted" });
-        return;
+        addLog("form_unknown_id", { email: userEmail, formId });
+        break;
+    }
+
+    // --- LOGIC MỚI: KIỂM TRA FILE ĐÍNH KÈM VÀ YÊU CẦU XÁC NHẬN ---
+    // Đã kiểm tra kích thước file, bây giờ kiểm tra việc đính kèm.
+    hideLoading(); // Ẩn loading kiểm tra dữ liệu trước khi hiện confirm
+    // BƯỚC 1: Lấy đúng input file cho form hiện tại
+    const currentForm = document.getElementById(formId);
+    // Tìm input file có id="file" HOẶC id="file_2" bên trong form
+    const filesInput = currentForm.querySelector('#file, #file_2');
+
+    // BƯỚC 2: Kiểm tra thiếu file (ĐÃ BỎ ĐIỀU KIỆN LOẠI TRỪ TRƯỚC ĐÓ)
+    if (filesInput && filesInput.files.length === 0) {
+      const isConfirmed = await showConfirmSwal(
+        "Thiếu File Đính Kèm",
+        "Bạn chưa đính kèm thông báo. Bạn có chắc chắn muốn gửi báo cáo này không?",
+        "Có, tôi chắc chắn gửi",
+        "Không, tôi sẽ đính kèm"
+      );
+
+      if (isConfirmed) {
+        // Tiếp tục gửi báo cáo
+        showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
+        await handleSubmit(form, data, file, collectionName, folderId, formId);
+      } else {
+        showSwal("info", "Đã hủy gửi báo cáo.", "Vui lòng kiểm tra lại thông báo.");
+        // ⭐️ BỔ SUNG LOG ⭐️
+        addLog("form_submit_canceled", { email: userEmail, formId, reason: "No file confirmation" });
       }
-      break;
-    // sau này thêm form khác thì thêm case mới
-    default:
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("form_unknown_id", { email: userEmail, formId });
-      break;
-  }
-
-  // --- LOGIC MỚI: KIỂM TRA FILE ĐÍNH KÈM VÀ YÊU CẦU XÁC NHẬN ---
-  // Đã kiểm tra kích thước file, bây giờ kiểm tra việc đính kèm.
-  hideLoading(); // Ẩn loading kiểm tra dữ liệu trước khi hiện confirm
-  // BƯỚC 1: Lấy đúng input file cho form hiện tại
-  const currentForm = document.getElementById(formId);
-  // Tìm input file có id="file" HOẶC id="file_2" bên trong form
-  const filesInput = currentForm.querySelector('#file, #file_2');
-
-  // BƯỚC 2: Kiểm tra thiếu file (ĐÃ BỎ ĐIỀU KIỆN LOẠI TRỪ TRƯỚC ĐÓ)
-  if (filesInput && filesInput.files.length === 0) {
-    const isConfirmed = await showConfirmSwal(
-      "Thiếu File Đính Kèm",
-      "Bạn chưa đính kèm thông báo. Bạn có chắc chắn muốn gửi báo cáo này không?",
-      "Có, tôi chắc chắn gửi",
-      "Không, tôi sẽ đính kèm"
-    );
-
-
-    if (isConfirmed) {
-      // Tiếp tục gửi báo cáo
+    } else {
+      // Nếu CÓ file đính kèm, tiến hành gửi ngay lập tức
       showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
       await handleSubmit(form, data, file, collectionName, folderId, formId);
-    } else {
-      showSwal("info", "Đã hủy gửi báo cáo.", "Vui lòng kiểm tra lại thông báo.");
-      // ⭐️ BỔ SUNG LOG ⭐️
-      addLog("form_submit_canceled", { email: userEmail, formId, reason: "No file confirmation" });
     }
-  } else {
-    // Nếu CÓ file đính kèm, tiến hành gửi ngay lập tức
-    showLoading("Đang xử lý báo cáo..."); // Hiện loading lại khi bắt đầu xử lý
-    await handleSubmit(form, data, file, collectionName, folderId, formId);
+  } catch (err) {
+    console.error(`❌ Lỗi hệ thống khi gửi form ${formId}:`, err);
+    showSwal("error", "Lỗi gửi báo cáo", err.message || "Lỗi hệ thống");
+    hideLoading();
   }
 }
 window.submitForm = submitForm;
@@ -1832,6 +1837,7 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
 
           // --- Người dùng chọn GHI ĐÈ ---
           if (swalResult.isConfirmed) {
+            showLoading("Đang ghi đè bản ghi reset...");
             try {
               let fileUrl = existingData.fileUrl || "";
               let fileId = existingData.fileId || "";
@@ -1895,6 +1901,7 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
 
           // --- Người dùng chọn THÊM MỚI ---
           if (swalResult.isDenied) {
+            showLoading("Đang thêm bản ghi reset mới...");
             try {
               if (file) {
                 const uploaded = await uploadFileToDrive(file, data.company || "NoCompany", folderId, formId, data);
@@ -2409,12 +2416,20 @@ export function showLoading(msg = "Đang xử lý, vui lòng chờ...") {
       loadingTimer = setTimeout(() => {
         modal.style.display = "flex";
         isShowingLoading = true;
+        loadingTimer = null; // Đặt về null khi timer đã chạy xong
       }, 300);
     } else if (isShowingLoading) {
       // Nếu đã hiện rồi thì chỉ cập nhật text
       modal.style.display = "flex";
     }
   }
+
+  // Vô hiệu hóa nút gửi để tránh click đúp hoặc spam
+  document.querySelectorAll('button[type="submit"], .submit-btn').forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+  });
 }
 
 // Ẩn modal loading
@@ -2428,6 +2443,13 @@ export function hideLoading() {
     modal.style.display = "none";
     isShowingLoading = false;
   }
+
+  // Kích hoạt lại nút gửi
+  document.querySelectorAll('button[type="submit"], .submit-btn').forEach(btn => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  });
 }
 
 // Alert thông báo (Giữ nguyên)

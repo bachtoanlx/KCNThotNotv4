@@ -131,18 +131,24 @@ import { collection, getDocs, addDoc, deleteDoc, doc, query, where, getDoc, setD
     const originalSubmitForm = window.submitForm;
     if (originalSubmitForm) {
         window.submitForm = async function(e, formId, collectionName, folderId) {
-            await originalSubmitForm(e, formId, collectionName, folderId);
-            // Nếu form đã được reset (file input rỗng), xóa preview
-            if (fileInput && fileInput.files.length === 0) {
-                currentImageBase64 = null;
-                if (customFileName) {
-                    customFileName.textContent = "Không có tệp nào được chọn";
-                    customFileName.style.color = "#666";
-                    customFileName.style.fontStyle = "italic";
-                    customFileName.style.fontWeight = "normal";
-                    customFileName.style.textDecoration = "none";
-                    customFileName.style.cursor = "default";
-                    customFileName.title = "";
+            try {
+                await originalSubmitForm(e, formId, collectionName, folderId);
+            } catch (err) {
+                console.error("Lỗi submitForm:", err);
+                hideLoading();
+            } finally {
+                // Nếu form đã được reset (file input rỗng), xóa preview
+                if (fileInput && fileInput.files.length === 0) {
+                    currentImageBase64 = null;
+                    if (customFileName) {
+                        customFileName.textContent = "Không có tệp nào được chọn";
+                        customFileName.style.color = "#666";
+                        customFileName.style.fontStyle = "italic";
+                        customFileName.style.fontWeight = "normal";
+                        customFileName.style.textDecoration = "none";
+                        customFileName.style.cursor = "default";
+                        customFileName.title = "";
+                    }
                 }
             }
         };
