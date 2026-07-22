@@ -2,7 +2,7 @@
 
 import { db, auth, getRole } from "./script.js";
 import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import { getAIKnowledgeBase } from "./chatbot-firebase-queries.js?v=6";
+import { getAIKnowledgeBase } from "./chatbot-firebase-queries.js?v=7";
 
 let cachedAIKnowledge = [];
 let currentUserRole = "guest";
@@ -51,10 +51,10 @@ const OVERRIDE_KEY = typeof localStorage !== 'undefined' ? localStorage.getItem(
 const GEMINI_API_KEY = OVERRIDE_KEY || DIRECT_API_KEY;
 
 // Model ưu tiên gửi lên Proxy (Proxy sẽ tự fallback sang model khác nếu bị quota)
-const PREFERRED_MODEL = 'gemini-2.5-flash';
+const PREFERRED_MODEL = 'gemini-3.6-flash';
 
 // Các model + endpoint dùng cho chế độ gọi trực tiếp (USE_PROXY = false)
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
 const GEMINI_API_BASES = [
     'https://generativelanguage.googleapis.com/v1beta',
     'https://generativelanguage.googleapis.com/v1'

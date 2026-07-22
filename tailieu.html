@@ -29,7 +29,7 @@
             padding: 0 8px;
             /* Đưa padding-top và padding-bottom về 0, giữ lề 2 bên 8px */
             box-sizing: border-box;
-            margin: 0 auto 40px auto;
+            margin: 0 auto;
             /* Đưa margin-top về 0 */
             flex: 1;
             position: relative;
@@ -748,8 +748,9 @@
 
         .card-footer {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            gap: 8px;
             margin-top: auto;
         }
 
@@ -773,6 +774,28 @@
         .btn-view-doc:hover {
             background: linear-gradient(135deg, #1e293b, #4338ca);
             box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-delete-chunk {
+            background: rgba(239, 68, 68, 0.08);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-delete-chunk:hover {
+            background: rgba(239, 68, 68, 0.18);
+            border-color: #dc2626;
             transform: translateY(-1px);
         }
 
@@ -1365,7 +1388,7 @@
             width: 92%;
             max-width: 580px;
             border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.06);
             border: 1px solid rgba(226, 232, 240, 0.8);
             overflow: hidden;
             display: flex;
@@ -2215,7 +2238,7 @@
             <polyline points="22 13 12 3 2 13"></polyline>
         </svg>
     </button>
-    <button id="docChatTrigger" class="doc-chat-trigger">🤖 Hỏi AI</button>
+    <button id="docChatTrigger" class="doc-chat-trigger" style="display: none;">🤖 Hỏi AI</button>
 
     <div id="docChatPanel" class="doc-chat-panel">
         <div class="doc-chat-header">
@@ -2479,9 +2502,12 @@
 
     <div id="footer-placeholder"></div>
 
+    <!-- Nút cấu hình AI cho Admin dạng Floating Action Button ở góc dưới bên phải -->
+    <button class="admin-ai-settings-btn" id="adminAiSettingsBtnMain" style="display: none; position: fixed; bottom: 24px; right: 24px; z-index: 1000; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);" onclick="openAiSettingsModal()">⚙️ Cấu hình AI</button>
+
     <!-- Thư viện Firebase và Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="tailieu.js?v=2026"></script>
+    <script type="module" src="tailieu.js?v=2026_v6"></script>
 </body>
 
 </html>
