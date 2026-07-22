@@ -382,11 +382,30 @@
             return buildReportSearchString(item).includes(lowerCaseQuery);
         });
         
-        // Sắp xếp
+        // Sắp xếp theo:
+        // 1. Ngày ghi mới nhất lên đầu (desc)
+        // 2. Nếu cùng ngày, xếp theo Tên công ty (alphabet) để gom các dòng cùng công ty nằm liền kề
+        // 3. Nếu cùng ngày và cùng công ty, xếp theo thời điểm gửi (createdAt) mới nhất lên đầu
         filteredData.sort((a, b) => {
             const dateA = new Date(getRecordDate(a) || 0);
             const dateB = new Date(getRecordDate(b) || 0);
-            return dateB - dateA; // Mới nhất lên đầu
+            const diffDate = dateB - dateA;
+            if (diffDate !== 0) {
+                return diffDate;
+            }
+            
+            // Trùng ngày ghi: So sánh tên công ty (Alphabet A-Z)
+            const companyA = (a.company || "").toLowerCase();
+            const companyB = (b.company || "").toLowerCase();
+            const diffCompany = companyA.localeCompare(companyB);
+            if (diffCompany !== 0) {
+                return diffCompany; 
+            }
+            
+            // Trùng ngày ghi và cùng công ty: Sắp xếp theo thời gian gửi (createdAt) mới nhất lên đầu
+            const timeA = a._createdAtMillis || (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
+            const timeB = b._createdAtMillis || (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
+            return timeB - timeA;
         });
         
         // ⭐️ BỎ LOGIC slice VÌ ĐÃ LIMIT Ở FIREBASE
