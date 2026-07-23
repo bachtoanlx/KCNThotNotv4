@@ -2093,13 +2093,13 @@
             }
 
             .doc-reader-left {
-                flex: 5;
+                flex: 0 0 auto !important;
                 border-right: none;
-                border-bottom: 1px solid #e2e8f0;
+                border-bottom: 1px solid #cbd5e1;
             }
 
             .doc-reader-right {
-                flex: 5;
+                flex: 1 !important;
             }
         }
 
@@ -2382,13 +2382,14 @@
                         <p>Tệp tin không thể hiển thị trực tiếp. Vui lòng tải về để xem.</p>
                         <a href="" id="btnDownloadFallback" class="btn-view-doc">📥 Tải tệp tin</a>
                     </div>
-                    <div id="docReaderMobileFallback" class="reader-frame-fallback" style="display: none; color: #1e293b; padding: 20px 10px; flex-direction: column; justify-content: center; height: 100%;">
-                        <div style="font-size: 40px; margin-bottom: 8px;">📄</div>
-                        <div id="mobileDocName" style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 8px; max-width: 90%; word-break: break-all;">Tên tài liệu</div>
-                        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px; max-width: 260px; line-height: 1.4;">Trình duyệt di động không thể hiển thị tài liệu trực tiếp tại đây. Bạn hãy chọn mở ở tab mới hoặc tải về máy để xem tốt nhất.</p>
-                        <div style="display: flex; gap: 10px; width: 100%; max-width: 260px; justify-content: center;">
-                            <a href="" id="btnMobileOpenNewTab" target="_blank" class="btn-view-doc" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; background: linear-gradient(135deg, #273668, #4f46e5); color: white; border-radius: 6px; text-decoration: none; font-weight: 600; border: none;">🌐 Tab Mới</a>
-                            <a href="" id="btnMobileDownload" download="" class="btn-view-doc" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; font-weight: 600;">📥 Tải Về</a>
+                    <div id="docReaderMobileFallback" class="reader-frame-fallback" style="display: none; color: #1e293b; padding: 10px 12px; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; width: 100%; box-sizing: border-box; flex-wrap: nowrap; min-height: auto; height: auto;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                            <span style="font-size: 20px; flex-shrink: 0;">📄</span>
+                            <div id="mobileDocName" style="font-size: 12px; font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Tên tài liệu">Tên tài liệu</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                            <a href="" id="btnMobileOpenNewTab" target="_blank" class="btn-view-doc" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-size: 11px; background: linear-gradient(135deg, #273668, #4f46e5); color: white; border-radius: 6px; text-decoration: none; font-weight: 600; border: none; white-space: nowrap;">🌐 Tab Mới</a>
+                            <a href="" id="btnMobileDownload" download="" class="btn-view-doc" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; font-size: 11px; background: #ffffff; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap;">📥 Tải Về</a>
                         </div>
                     </div>
                 </div>
@@ -2516,7 +2517,7 @@
 
     <!-- Thư viện Firebase và Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="tailieu.js?v=2026_v9"></script>
+    <script type="module" src="tailieu.js?v=2026_v11"></script>
 </body>
 
 </html>

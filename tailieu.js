@@ -1850,6 +1850,34 @@ async function openDocumentSecurely(documentId) {
     // Kết xuất thông tin tri thức / metadata tài liệu bên phải
     renderReaderRightPane(documentId);
 
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        if (loaderEl) loaderEl.style.display = "none";
+        if (mobileFallbackEl) {
+            mobileFallbackEl.style.display = "flex";
+            const docData = allDocuments[documentId] || {};
+            const fileName = docData.title || docData.fileName || "Tài liệu";
+            
+            const mobileDocName = document.getElementById("mobileDocName");
+            if (mobileDocName) mobileDocName.textContent = fileName;
+            
+            const openNewTabBtn = document.getElementById("btnMobileOpenNewTab");
+            if (openNewTabBtn) {
+                openNewTabBtn.href = `https://drive.google.com/file/d/${documentId}/view?usp=drivesdk`;
+            }
+            
+            const downloadBtn = document.getElementById("btnMobileDownload");
+            if (downloadBtn) {
+                downloadBtn.removeAttribute("href");
+                downloadBtn.onclick = (e) => {
+                    e.preventDefault();
+                    downloadFileSecurely(documentId, fileName);
+                };
+            }
+        }
+        return; // Dừng xử lý tải trước tệp Base64 trên thiết bị di động
+    }
+
     try {
         // 1. Tạo ticketId ngẫu nhiên (UUID v4 client-side đơn giản)
         const ticketId = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
@@ -1866,7 +1894,7 @@ async function openDocumentSecurely(documentId) {
             createdAt: new Date().toISOString()
         });
 
-        // 3. Gọi Web App để lấy nội dung file dưới dạng Base64 (dùng POST để tránh lỗi CORS/403 trên trình duyệt nhiều tài khoản)
+        // 3. Gọi Web App để lấy nội dung file dưới dạng Base64
         const formData = new URLSearchParams();
         formData.append("action", "viewFile");
         formData.append("ticketId", ticketId);
@@ -1896,32 +1924,12 @@ async function openDocumentSecurely(documentId) {
         currentOpenDocBlobUrl = fileUrl;
         currentOpenDocName = data.fileName;
 
-        // 5. Mở xem trực tiếp nếu xem được (PDF, Ảnh, Text), hoặc hiển thị fallback tải về
+        // 5. Mở xem trực tiếp nếu xem được (PDF, Ảnh, Text), hoặc hiển thị fallback tải về (Desktop)
         const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/plain'];
 
         if (loaderEl) loaderEl.style.display = "none";
 
-        const isMobile = window.innerWidth <= 768;
-
-        if (isMobile && viewableTypes.includes(data.mimeType)) {
-            // Trên thiết bị di động, hiển thị bảng fallback di động thay vì nạp iframe (tránh lỗi hiển thị của trình duyệt di động)
-            const mobileFallbackEl = document.getElementById("docReaderMobileFallback");
-            if (mobileFallbackEl) {
-                mobileFallbackEl.style.display = "flex";
-                
-                const mobileDocName = document.getElementById("mobileDocName");
-                if (mobileDocName) mobileDocName.textContent = data.fileName;
-                
-                const openNewTabBtn = document.getElementById("btnMobileOpenNewTab");
-                if (openNewTabBtn) openNewTabBtn.href = fileUrl;
-                
-                const downloadBtn = document.getElementById("btnMobileDownload");
-                if (downloadBtn) {
-                    downloadBtn.href = fileUrl;
-                    downloadBtn.download = data.fileName;
-                }
-            }
-        } else if (viewableTypes.includes(data.mimeType)) {
+        if (viewableTypes.includes(data.mimeType)) {
             if (frameEl) {
                 frameEl.src = fileUrl;
                 frameEl.style.display = "block";
@@ -1943,6 +1951,81 @@ async function openDocumentSecurely(documentId) {
     }
 }
 window.openDocumentSecurely = openDocumentSecurely;
+
+// Tải tài liệu bảo mật trực tiếp trên di động khi người dùng bấm "Tải Về"
+async function downloadFileSecurely(documentId, fileName) {
+    const user = auth.currentUser;
+    if (!user || !user.email) {
+        showSwal("warning", "Yêu cầu đăng nhập: Vui lòng đăng nhập hệ thống để tải tài liệu gốc.");
+        return;
+    }
+
+    window.Swal.fire({
+        title: "Đang chuẩn bị tệp...",
+        text: "Hệ thống đang tải tài liệu từ Google Drive bảo mật. Vui lòng chờ.",
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => window.Swal.showLoading()
+    });
+
+    try {
+        // 1. Tạo ticketId ngẫu nhiên (UUID v4 client-side đơn giản)
+        const ticketId = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+
+        // 2. Ghi ticket lên Firestore bảng download_tickets
+        const expiresAt = new Date(Date.now() + 60 * 1000);
+        await setDoc(doc(db, "download_tickets", ticketId), {
+            email: user.email,
+            documentId: documentId,
+            expiresAt: expiresAt.toISOString(),
+            used: false,
+            createdAt: new Date().toISOString()
+        });
+
+        // 3. Gọi Web App để lấy nội dung file dưới dạng Base64
+        const formData = new URLSearchParams();
+        formData.append("action", "viewFile");
+        formData.append("ticketId", ticketId);
+        const response = await fetch(GAS_API_URL, {
+            method: "POST",
+            body: formData
+        });
+        if (!response.ok) {
+            throw new Error(`Lỗi kết nối máy chủ (HTTP ${response.status})`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || "Không thể tải tài liệu.");
+        }
+
+        // 4. Giải mã Base64 thành Blob
+        const byteCharacters = atob(data.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const fileBlob = new Blob([byteArray], { type: data.mimeType });
+        const fileUrl = URL.createObjectURL(fileBlob);
+
+        // 5. Kích hoạt tải xuống tự động bằng liên kết ảo
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.download = data.fileName || fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.Swal.close();
+    } catch (e) {
+        console.error("Lỗi tải tài liệu:", e);
+        showSwal("error", "Lỗi tải tài liệu: " + (e.message || "Không thể tải tài liệu gốc."));
+    }
+}
+window.downloadFileSecurely = downloadFileSecurely;
 
 
 // Trạng thái đang tải dữ liệu
