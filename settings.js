@@ -2414,6 +2414,7 @@ function setupSystemManagement() {
     listenSystemUsers();
     setupBackupRestore();
     setupResetCache();
+    setupDutyEmailManagement();
 }
 
 function setupResetCache() {
@@ -2437,6 +2438,94 @@ function setupResetCache() {
                 };
             }
         });
+    }
+}
+
+function setupDutyEmailManagement() {
+    loadDutyEmailConfig();
+
+    const form = document.getElementById("dutyEmailConfigForm");
+    if (!form) return;
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const enabled = document.getElementById("dutyEmailEnabled").checked;
+        const recipientsRaw = document.getElementById("dutyEmailRecipients").value.trim();
+        const sendDay = parseInt(document.getElementById("dutyEmailSendDay").value);
+        const sendTime = document.getElementById("dutyEmailSendTime").value;
+
+        // Xác thực
+        let recipients = [];
+        if (recipientsRaw) {
+            recipients = recipientsRaw.split(',')
+                .map(email => email.trim())
+                .filter(Boolean);
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+
+            if (invalidEmails.length > 0) {
+                showSwal("error", "Định dạng email không hợp lệ", `Các email sau không đúng định dạng:<br><b>${invalidEmails.join("<br>")}</b>`);
+                return;
+            }
+        } else if (enabled) {
+            showSwal("error", "Thiếu thông tin", "Vui lòng nhập ít nhất một email nhận tin khi kích hoạt tính năng.");
+            return;
+        }
+
+        if (!sendTime && enabled) {
+            showSwal("error", "Thiếu thông tin", "Vui lòng chọn giờ gửi email.");
+            return;
+        }
+
+        try {
+            showLoading("Đang lưu cấu hình email...");
+            const configData = {
+                enabled,
+                recipients,
+                sendDay,
+                sendTime,
+                updatedAt: serverTimestamp(),
+                updatedBy: auth.currentUser?.email || "admin"
+            };
+
+            await setDoc(doc(db, "settings", "duty_email_config"), configData, { merge: true });
+            hideLoading();
+            showSwal("success", "Thành công", "Đã lưu cài đặt gửi email lịch trực tuần.");
+            addLog("admin_update_duty_email_config", { 
+                email: auth.currentUser?.email || "admin",
+                enabled,
+                recipientCount: recipients.length
+            });
+        } catch (err) {
+            hideLoading();
+            showSwal("error", "Lỗi lưu cấu hình", err.message);
+        }
+    });
+}
+
+async function loadDutyEmailConfig() {
+    try {
+        const docRef = doc(db, "settings", "duty_email_config");
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            if (document.getElementById("dutyEmailEnabled")) document.getElementById("dutyEmailEnabled").checked = data.enabled || false;
+            if (document.getElementById("dutyEmailRecipients")) {
+                document.getElementById("dutyEmailRecipients").value = Array.isArray(data.recipients) ? data.recipients.join(", ") : "";
+            }
+            if (document.getElementById("dutyEmailSendDay")) document.getElementById("dutyEmailSendDay").value = data.sendDay !== undefined ? data.sendDay : "1";
+            if (document.getElementById("dutyEmailSendTime")) document.getElementById("dutyEmailSendTime").value = data.sendTime || "08:00";
+        } else {
+            // Mặc định
+            if (document.getElementById("dutyEmailEnabled")) document.getElementById("dutyEmailEnabled").checked = false;
+            if (document.getElementById("dutyEmailRecipients")) document.getElementById("dutyEmailRecipients").value = "";
+            if (document.getElementById("dutyEmailSendDay")) document.getElementById("dutyEmailSendDay").value = "1";
+            if (document.getElementById("dutyEmailSendTime")) document.getElementById("dutyEmailSendTime").value = "08:00";
+        }
+    } catch (err) {
+        console.error("Lỗi tải cấu hình email lịch trực:", err);
     }
 }
 
@@ -2624,6 +2713,9 @@ function setupBackupRestore() {
                 const conf2 = await getDoc(doc(db, "settings", "reportConfig"));
                 if (conf2.exists()) backupData["settings_reportConfig"] = conf2.data();
 
+                const confEmail = await getDoc(doc(db, "settings", "duty_email_config"));
+                if (confEmail.exists()) backupData["settings_dutyEmailConfig"] = confEmail.data();
+
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
                 const downloadAnchorNode = document.createElement('a');
                 downloadAnchorNode.setAttribute("href", dataStr);
@@ -2690,6 +2782,7 @@ function setupBackupRestore() {
 
                     if (data["config_reportConfig"]) await setDoc(doc(db, "config", "reportConfig"), data["config_reportConfig"]);
                     if (data["settings_reportConfig"]) await setDoc(doc(db, "settings", "reportConfig"), data["settings_reportConfig"]);
+                    if (data["settings_dutyEmailConfig"]) await setDoc(doc(db, "settings", "duty_email_config"), data["settings_dutyEmailConfig"]);
 
                     addLog("restore_completed", { email: auth.currentUser?.email });
                     hideLoading();

@@ -162,7 +162,11 @@
         #shifts-content-placeholder input[type="time"],
         #shifts-content-placeholder button,
         #schedule-content-placeholder input[type="text"],
-        #schedule-content-placeholder button {
+        #schedule-content-placeholder button,
+        #dutyEmailConfigForm input[type="text"],
+        #dutyEmailConfigForm input[type="time"],
+        #dutyEmailConfigForm select,
+        #dutyEmailConfigForm button {
             height: 33px;
             box-sizing: border-box;
         }
@@ -239,7 +243,11 @@
             #shifts-content-placeholder input[type="time"],
             #shifts-content-placeholder button,
             #schedule-content-placeholder input[type="text"],
-            #schedule-content-placeholder button {
+            #schedule-content-placeholder button,
+            #dutyEmailConfigForm input[type="text"],
+            #dutyEmailConfigForm input[type="time"],
+            #dutyEmailConfigForm select,
+            #dutyEmailConfigForm button {
                 height: 27px !important;
                 padding-top: 4px !important;
                 padding-bottom: 4px !important;
@@ -875,6 +883,76 @@
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Cài đặt gửi email lịch trực tuần cho Lãnh đạo -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">📧 Gửi Email Lịch Trực Tuần Cho Lãnh Đạo</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                                    Tự động gửi báo cáo lịch trực tuần đến ban lãnh đạo. Nhập danh sách email nhận và tùy chỉnh lịch gửi.
+                                </p>
+                                <form id="dutyEmailConfigForm" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Trạng thái hoạt động:</label>
+                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; width: fit-content;">
+                                            <input type="checkbox" id="dutyEmailEnabled"> Kích hoạt tự động gửi email
+                                        </label>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Danh sách Email nhận (Cách nhau bằng dấu phẩy):</label>
+                                        <input type="text" id="dutyEmailRecipients" placeholder="Ví dụ: lanhdao1@kcn.vn, lanhdao2@kcn.vn"
+                                            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày gửi trong tuần:</label>
+                                            <select id="dutyEmailSendDay" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
+                                                <option value="1">Thứ Hai</option>
+                                                <option value="2">Thứ Ba</option>
+                                                <option value="3">Thứ Tư</option>
+                                                <option value="4">Thứ Năm</option>
+                                                <option value="5">Thứ Sáu</option>
+                                                <option value="6">Thứ Bảy</option>
+                                                <option value="0">Chủ nhật</option>
+                                            </select>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ gửi:</label>
+                                            <select id="dutyEmailSendTime" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
+                                                <option value="00:00">00:00</option>
+                                                <option value="01:00">01:00</option>
+                                                <option value="02:00">02:00</option>
+                                                <option value="03:00">03:00</option>
+                                                <option value="04:00">04:00</option>
+                                                <option value="05:00">05:00</option>
+                                                <option value="06:00">06:00</option>
+                                                <option value="07:00">07:00</option>
+                                                <option value="08:00" selected>08:00</option>
+                                                <option value="09:00">09:00</option>
+                                                <option value="10:00">10:00</option>
+                                                <option value="11:00">11:00</option>
+                                                <option value="12:00">12:00</option>
+                                                <option value="13:00">13:00</option>
+                                                <option value="14:00">14:00</option>
+                                                <option value="15:00">15:00</option>
+                                                <option value="16:00">16:00</option>
+                                                <option value="17:00">17:00</option>
+                                                <option value="18:00">18:00</option>
+                                                <option value="19:00">19:00</option>
+                                                <option value="20:00">20:00</option>
+                                                <option value="21:00">21:00</option>
+                                                <option value="22:00">22:00</option>
+                                                <option value="23:00">23:00</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                                        <button type="submit" style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; height: 33px; box-sizing: border-box;">
+                                            💾 Lưu cài đặt email
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
 
 
