@@ -2496,7 +2496,9 @@ function setupDutyEmailManagement() {
             addLog("admin_update_duty_email_config", { 
                 email: auth.currentUser?.email || "admin",
                 enabled,
-                recipientCount: recipients.length
+                recipients: recipients,
+                sendDay,
+                sendTime
             });
         } catch (err) {
             hideLoading();

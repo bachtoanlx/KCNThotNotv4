@@ -179,7 +179,9 @@ import { initMenu } from "./menu.js";
       "admin_create_document_link": "Thêm liên kết tài liệu",
       "admin_update_document_link": "Sửa liên kết tài liệu",
       "admin_delete_document_link": "Xóa liên kết tài liệu",
-      "view_document_secured": "Xem tài liệu bảo mật"
+      "view_document_secured": "Xem tài liệu bảo mật",
+      "admin_update_duty_email_config": "Cấu hình gửi email lịch trực",
+      "debug_ai_knowledge": "Lỗi chẩn đoán quy chế AI"
   };
 
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
@@ -833,6 +835,29 @@ import { initMenu } from "./menu.js";
                     break;
                 case "admin_update_ai_config":
                     details = `Cập nhật cấu hình AI (từ khóa viết tắt, tham số chatbot).`;
+                    break;
+                case "admin_update_duty_email_config":
+                    {
+                        const statusText = log.enabled ? `<span style="color: green; font-weight: bold;">BẬT</span>` : `<span style="color: red; font-weight: bold;">TẮT</span>`;
+                        const sendDayNames = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+                        const dayName = sendDayNames[log.sendDay !== undefined ? log.sendDay : 1] || "N/A";
+                        const recipientsStr = Array.isArray(log.recipients) ? log.recipients.join(", ") : "N/A";
+                        details = `
+                            <b>Trạng thái:</b> ${statusText}<br>
+                            <b>Thời gian gửi:</b> ${dayName} lúc ${log.sendTime || "N/A"}<br>
+                            <b>Email nhận tin:</b> ${recipientsStr}
+                        `;
+                    }
+                    break;
+                case "debug_ai_knowledge":
+                    {
+                        const errorMsg = log.error || "N/A";
+                        details = `
+                            <span style="color: red; font-weight: bold;">Lỗi:</span> ${errorMsg}<br>
+                            <b>Vai trò quét:</b> ${log.role || "N/A"}<br>
+                            <b>Thời gian lỗi:</b> ${log.timestamp || "N/A"}
+                        `;
+                    }
                     break;
                 case "admin_create_document_link":
                     details = `<b>Thêm liên kết tài liệu:</b> ${log.title || "N/A"}`;
