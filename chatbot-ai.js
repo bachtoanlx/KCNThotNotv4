@@ -10,7 +10,7 @@ let currentUserRole = "guest";
 // Theo dõi vai trò người dùng hiện tại để phân quyền quy chế RAG
 if (auth) {
     auth.onAuthStateChanged(async (user) => {
-        if (user) {
+        if (user && user.email) {
             try {
                 currentUserRole = await getRole(user.email);
             } catch (e) {

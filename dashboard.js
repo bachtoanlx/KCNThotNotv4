@@ -78,6 +78,7 @@ onAuth(async (user) => {
   userRole = await getRole(user.email);
 
   await loadQcvnConfig();
+  await loadCompanyConfigs(); // Tải cấu hình ngày nghỉ mặc định của các doanh nghiệp
   setupDashboardListeners();
 });
 
@@ -192,6 +193,12 @@ function setupDashboardListeners() {
 
     // 5. Tải dữ liệu lưu lượng xả thải 7 ngày gần nhất để vẽ biểu đồ
     loadFlowDataAndRenderChart();
+
+    // 6. Lắng nghe báo cáo chỉ số (Index - reports_1) gần nhất
+    setupLatestIndexReportsListener();
+
+    // 7. Lắng nghe báo cáo ngày nghỉ/làm việc đặc biệt (Index_2 - reports_2) gần nhất
+    setupLatestIndex2ReportsListener();
 
   } catch (err) {
     console.error("Lỗi khởi tạo Dashboard:", err);
@@ -601,4 +608,300 @@ function calculateMonthlyConsumption(reports) {
       chemicalsEl.innerHTML = `<div style="color: #64748b; font-style: italic; font-size: 0.75rem; text-align: center; margin-top: 10px;">Chưa tiêu thụ hóa chất</div>`;
     }
   }
+}
+
+// ============================================================
+// LẮNG NGHE BÁO CÁO INDEX & INDEX_2 GẦN NHẤT
+// ============================================================
+function setupLatestIndexReportsListener() {
+  const qIndex1 = query(
+    collection(db, "reports_1"),
+    orderBy("ngay_ghi", "desc"),
+    limit(100)
+  );
+
+  onSnapshot(qIndex1, (snapshot) => {
+    const tableBody = document.getElementById("latest-index-table-body");
+    const dateLabel = document.getElementById("latest-index-date");
+
+    if (!tableBody || !dateLabel) return;
+
+    if (snapshot.empty) {
+      dateLabel.textContent = "Chưa có dữ liệu";
+      tableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">🟢 Chưa có báo cáo chỉ số nào.</td></tr>`;
+      return;
+    }
+
+    const records = snapshot.docs.map(doc => doc.data());
+    const maxDate = records[0].ngay_ghi;
+
+    if (!maxDate) {
+      dateLabel.textContent = "Chưa có dữ liệu";
+      tableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">Không tìm thấy ngày hợp lệ.</td></tr>`;
+      return;
+    }
+
+    // Lọc các bản ghi trùng với maxDate
+    const latestRecords = records.filter(r => r.ngay_ghi === maxDate);
+
+    // Loại bỏ bản ghi trùng lặp hoàn toàn (cùng công ty, chỉ số và ghi chú)
+    const uniqueMap = new Map();
+    latestRecords.forEach(r => {
+      const compKey = `${r.company || "unknown"}_${r.chi_so || 0}_${r.ghi_chu || ""}`;
+      if (!uniqueMap.has(compKey)) {
+        uniqueMap.set(compKey, r);
+      }
+    });
+
+    const uniqueRecords = Array.from(uniqueMap.values());
+    uniqueRecords.sort((a, b) => (a.company || "").localeCompare(b.company || ""));
+
+    dateLabel.textContent = formatDateString(maxDate);
+
+    tableBody.innerHTML = uniqueRecords.map(r => {
+      const formattedVal = (r.chi_so !== undefined && r.chi_so !== null)
+        ? new Intl.NumberFormat("de-DE").format(r.chi_so)
+        : "—";
+      const noteHtml = r.ghi_chu ? ` <span style="font-weight: normal; font-size: 0.72rem; color: #64748b; font-style: italic;">(${r.ghi_chu})</span>` : "";
+      return `
+        <tr>
+          <td><strong>${r.company || "Chưa rõ"}</strong>${noteHtml}</td>
+          <td style="color: var(--primary-color); font-weight: bold; text-align: center;">${formattedVal}</td>
+        </tr>
+      `;
+    }).join("");
+  }, (err) => {
+    console.error("Lỗi khi lắng nghe báo cáo chỉ số gần nhất:", err);
+  });
+}
+
+let allMasterCompanies = [];
+let allCompanyConfigs = [];
+let oldDefaultHolidays = {};
+
+async function loadCompanyConfigs() {
+  try {
+    const [masterSnap, configSnap, settingsSnap] = await Promise.all([
+      getDocs(collection(db, "companies_master")),
+      getDocs(collection(db, "company_configs")),
+      getDoc(doc(db, "settings", "reportConfig"))
+    ]);
+
+    allMasterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
+    if (allMasterCompanies.length === 0) {
+      allMasterCompanies = ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam', 'Honoroad', 'Petec', 'Trường Hải', 'Tân Cảng', 'VNPT'];
+    }
+
+    allCompanyConfigs = configSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    
+    if (settingsSnap.exists()) {
+      oldDefaultHolidays = settingsSnap.data().defaultHolidays || {};
+    }
+  } catch (err) {
+    console.error("Lỗi khi tải cấu hình ngày nghỉ mặc định:", err);
+  }
+}
+
+function isCompanyDefaultHoliday(company, dateStr) {
+  const dateObj = new Date(dateStr + "T00:00:00");
+  const dayOfWeek = dateObj.getDay();
+
+  // 1. Kiểm tra cấu hình lịch sử từ company_configs
+  const configs = allCompanyConfigs.filter(c => c.company === company);
+  if (configs.length > 0) {
+    configs.sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate));
+    const validConfig = configs.find(c => c.effectiveDate <= dateStr) || configs[configs.length - 1];
+    if (validConfig && validConfig.defaultHolidays) {
+      return validConfig.defaultHolidays.includes(dayOfWeek);
+    }
+  }
+
+  // 2. Fallback sang settings/reportConfig cũ
+  const defaultHolidaySetting = oldDefaultHolidays[company];
+  if (defaultHolidaySetting === 'sat-sun' || defaultHolidaySetting === 'sat_sun') {
+    return (dayOfWeek === 0 || dayOfWeek === 6);
+  } else if (defaultHolidaySetting === 'sun' || defaultHolidaySetting === 'sun_only') {
+    return (dayOfWeek === 0);
+  } else if (defaultHolidaySetting === 'sat') {
+    return (dayOfWeek === 6);
+  }
+
+  return false;
+}
+
+function setupLatestIndex2ReportsListener() {
+  const qIndex2 = query(
+    collection(db, "reports_2"),
+    orderBy("createdAt", "desc"),
+    limit(150)
+  );
+
+  onSnapshot(qIndex2, (snapshot) => {
+    const tableBody = document.getElementById("latest-index2-table-body");
+
+    if (!tableBody) return;
+
+    if (snapshot.empty && allMasterCompanies.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">🟢 Chưa có báo cáo ngày nghỉ nào.</td></tr>`;
+      return;
+    }
+
+    const records = snapshot.docs.map(doc => doc.data());
+
+    // 1. Thu thập tất cả các ngày nghỉ / ngày làm việc đặc biệt từ reports_2
+    const manualDateSet = new Set();
+    records.forEach(r => {
+      if (r.ngay_nghi) {
+        r.ngay_nghi.split(",").map(d => d.trim()).forEach(d => {
+          if (d) manualDateSet.add(d);
+        });
+      }
+      if (r.ngay_lam_db) {
+        manualDateSet.add(r.ngay_lam_db.trim());
+      }
+    });
+
+    // 2. Quét ngược từ hôm nay trở về trước (tối đa 30 ngày) để tìm các ngày có sự kiện (báo cáo thủ công hoặc ngày nghỉ mặc định)
+    const top5Dates = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = formatISODate(d);
+
+      // Kiểm tra xem ngày này có báo cáo thủ công không
+      const hasManual = manualDateSet.has(dateStr);
+
+      // Kiểm tra xem ngày này có là ngày nghỉ mặc định của công ty nào không
+      let hasDefaultHoliday = false;
+      for (const comp of allMasterCompanies) {
+        if (isCompanyDefaultHoliday(comp, dateStr)) {
+          hasDefaultHoliday = true;
+          break;
+        }
+      }
+
+      if (hasManual || hasDefaultHoliday) {
+        top5Dates.push(dateStr);
+        if (top5Dates.length === 5) {
+          break;
+        }
+      }
+    }
+
+    if (top5Dates.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">Không tìm thấy ngày nghỉ/làm ĐB nào.</td></tr>`;
+      return;
+    }
+
+    const htmlRows = [];
+
+    top5Dates.forEach(dateStr => {
+      const dateObj = new Date(dateStr + "T00:00:00");
+      const dayOfWeek = dateObj.getDay();
+
+      // Gom tất cả các bản ghi thủ công cho ngày này
+      const manualRecords = records.filter(r => {
+        const dates = (r.ngay_nghi || r.ngay_lam_db || "").split(",").map(d => d.trim());
+        return dates.includes(dateStr);
+      });
+
+      // Loại bỏ trùng lặp thủ công (cùng công ty, ngày nghỉ/làm việc, ghi chú)
+      const manualMap = new Map();
+      manualRecords.forEach(r => {
+        const compKey = `${r.company || "unknown"}_${r.ngay_nghi || ""}_${r.ngay_lam_db || ""}_${r.ghi_chu || ""}`;
+        if (!manualMap.has(compKey)) {
+          manualMap.set(compKey, r);
+        }
+      });
+      const uniqueManual = Array.from(manualMap.values());
+
+      // Tạo map để tra cứu nhanh báo cáo thủ công
+      const companyStatusMap = new Map();
+      uniqueManual.forEach(r => {
+        const comp = r.company;
+        if (comp) {
+          companyStatusMap.set(comp, r);
+        }
+      });
+
+      const dayCompanies = [];
+
+      // 1. Thêm các công ty có báo cáo thủ công cho ngày này
+      uniqueManual.forEach(r => {
+        const comp = r.company;
+        let statusHtml = "";
+        let desc = "";
+        if (r.ngay_nghi) {
+          statusHtml = `<span style="color: #dc2626; font-weight: bold;">Nghỉ</span>`;
+        } else if (r.ngay_lam_db) {
+          statusHtml = `<span style="color: #16a34a; font-weight: bold;">Làm ĐB</span>`;
+        }
+        if (r.ghi_chu) {
+          desc = ` - Ghi chú: ${r.ghi_chu}`;
+        }
+        dayCompanies.push({ company: comp, statusHtml, desc, isDefault: false });
+      });
+
+      // 2. Duyệt qua tất cả các công ty cấu hình để tìm ngày nghỉ mặc định (nếu chưa có báo cáo thủ công)
+      allMasterCompanies.forEach(comp => {
+        if (!companyStatusMap.has(comp)) {
+          if (isCompanyDefaultHoliday(comp, dateStr)) {
+            const statusHtml = `<span style="color: #64748b; font-weight: 500;">Nghỉ</span>`;
+            dayCompanies.push({ company: comp, statusHtml, desc: "", isDefault: true });
+          }
+        }
+      });
+
+      // Sắp xếp các công ty theo alphabet cho ngày này
+      dayCompanies.sort((a, b) => a.company.localeCompare(b.company));
+
+      dayCompanies.forEach(item => {
+        const formattedDate = formatDateString(dateStr);
+        let dayName = getDayOfWeekName(dateStr);
+        if (item.isDefault) {
+          dayName += " - mặc định";
+        }
+        htmlRows.push(`
+          <tr>
+            <td><strong>${item.company}</strong></td>
+            <td>${item.statusHtml} 📅 ${formattedDate} (${dayName})${item.desc}</td>
+          </tr>
+        `);
+      });
+    });
+
+    if (htmlRows.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">Không có ngày nghỉ nào trong các ngày gần đây.</td></tr>`;
+    } else {
+      tableBody.innerHTML = htmlRows.join("");
+    }
+  }, (err) => {
+    console.error("Lỗi khi lắng nghe báo cáo index_2 gần nhất:", err);
+  });
+}
+
+function getLatestDateFromRecord(r) {
+  const dateStr = r.ngay_nghi || r.ngay_lam_db || "";
+  if (!dateStr) return null;
+  const dates = dateStr.split(",").map(d => d.trim()).filter(d => d);
+  if (dates.length === 0) return null;
+  dates.sort();
+  return dates[dates.length - 1]; // Trả về ngày lớn nhất dạng YYYY-MM-DD
+}
+
+function getDayOfWeekName(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDay();
+  const dayNames = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+  return dayNames[day] || "";
+}
+
+function formatISODate(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }

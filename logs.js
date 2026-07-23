@@ -181,7 +181,9 @@ import { initMenu } from "./menu.js";
       "admin_delete_document_link": "Xóa liên kết tài liệu",
       "view_document_secured": "Xem tài liệu bảo mật",
       "admin_update_duty_email_config": "Cấu hình gửi email lịch trực",
-      "debug_ai_knowledge": "Lỗi chẩn đoán quy chế AI"
+      "debug_ai_knowledge": "Lỗi chẩn đoán quy chế AI",
+      "send_duty_email_success": "Gửi email lịch trực thành công",
+      "send_duty_email_failed": "Gửi email lịch trực thất bại"
   };
 
   let rawLogs = []; // Dữ liệu thô từ Firestore (theo ngày)
@@ -856,6 +858,33 @@ import { initMenu } from "./menu.js";
                             <span style="color: red; font-weight: bold;">Lỗi:</span> ${errorMsg}<br>
                             <b>Vai trò quét:</b> ${log.role || "N/A"}<br>
                             <b>Thời gian lỗi:</b> ${log.timestamp || "N/A"}
+                        `;
+                    }
+                    break;
+                case "send_duty_email_success":
+                    {
+                        let parsed = {};
+                        try {
+                            parsed = typeof log.details === "string" ? JSON.parse(log.details) : (log.details || log);
+                        } catch(e) {}
+                        const recs = parsed.recipients || log.recipients || "N/A";
+                        const week = parsed.weekStart || log.weekStart || "N/A";
+                        details = `
+                            <span style="color: green; font-weight: bold;">Gửi thành công</span><br>
+                            <b>Tuần trực:</b> ${week}<br>
+                            <b>Email nhận tin:</b> ${recs}
+                        `;
+                    }
+                    break;
+                case "send_duty_email_failed":
+                    {
+                        let parsed = {};
+                        try {
+                            parsed = typeof log.details === "string" ? JSON.parse(log.details) : (log.details || log);
+                        } catch(e) {}
+                        const errMsg = parsed.error || log.error || "N/A";
+                        details = `
+                            <span style="color: red; font-weight: bold;">Gửi thất bại:</span> ${errMsg}
                         `;
                     }
                     break;

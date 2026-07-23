@@ -193,6 +193,7 @@
 
     /* Responsive */
     @media (max-width: 992px) {
+
       .dashboard-row-split,
       .dashboard-row-equal {
         grid-template-columns: 1fr;
@@ -220,7 +221,8 @@
 
   <div id="pageContent" style="display:none;">
     <!-- Tiêu đề trang -->
-    <div class="dashboard-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+    <div class="dashboard-header-row"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
       <div>
         <h2 style="color: var(--primary-color); display: flex; align-items: center; gap: 8px; margin: 0 0 5px 0;">
           📊 Trang Tổng Quan Hệ Thống
@@ -230,7 +232,8 @@
         </p>
       </div>
       <div>
-        <button onclick="window.location.reload();" class="btn-action btn-secondary" style="height: 33px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+        <button onclick="window.location.reload();" class="btn-action btn-secondary"
+          style="height: 33px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
           🔄 Tải lại dữ liệu
         </button>
       </div>
@@ -238,14 +241,15 @@
 
     <!-- Khung cuộn nội dung độc lập -->
     <div class="main-layout-container" style="display: flex; flex-direction: column; gap: 15px; padding-bottom: 25px;">
-      
+
       <!-- Hàng 1: Thẻ KPI Tóm Tắt -->
       <div class="dashboard-kpi-grid">
         <!-- KPI 1: Ca Trực -->
         <div class="kpi-card" id="kpi-shift-card">
           <div>
             <div class="kpi-title">Ca trực gần nhất</div>
-            <div class="kpi-value" id="kpi-shift-name" style="font-size: 1.25rem; font-weight: 800; margin-top: 5px;">Đang tải...</div>
+            <div class="kpi-value" id="kpi-shift-name" style="font-size: 1.25rem; font-weight: 800; margin-top: 5px;">
+              Đang tải...</div>
           </div>
           <div class="kpi-desc" id="kpi-shift-desc">
             👤 Đang xác định...
@@ -289,33 +293,42 @@
       <!-- Hàng 1B: Chỉ Số Tiêu Thụ Tháng Hiện Tại -->
       <div class="dashboard-panel">
         <div class="panel-header" style="margin-bottom: 8px;">
-          <div class="panel-title">📊 Số liệu tiêu thụ lũy kế tháng này (<span id="consumption-month-label">tháng này</span>)</div>
+          <div class="panel-title">📊 Số liệu tiêu thụ lũy kế tháng này (<span id="consumption-month-label">tháng
+              này</span>)</div>
           <div style="font-size: 0.72rem; color: #64748b;" id="consumption-report-count">Dựa trên 0 báo cáo ca</div>
         </div>
         <div class="water-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
           <!-- Điện năng -->
-          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+          <div class="water-kpi-item"
+            style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
             <div style="font-size: 1.5rem; margin-bottom: 2px;">⚡</div>
             <div class="water-kpi-name" style="font-size: 0.75rem;">Điện năng tiêu thụ</div>
-            <div class="water-kpi-val" id="monthly-val-electricity" style="font-size: 1.2rem; font-weight: 800; color: #d97706;">— kWh</div>
+            <div class="water-kpi-val" id="monthly-val-electricity"
+              style="font-size: 1.2rem; font-weight: 800; color: #d97706;">— kWh</div>
           </div>
           <!-- Nước cấp -->
-          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+          <div class="water-kpi-item"
+            style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
             <div style="font-size: 1.5rem; margin-bottom: 2px;">💧</div>
             <div class="water-kpi-name" style="font-size: 0.75rem;">Nước cấp sử dụng</div>
-            <div class="water-kpi-val" id="monthly-val-water" style="font-size: 1.2rem; font-weight: 800; color: #2563eb;">— m³</div>
+            <div class="water-kpi-val" id="monthly-val-water"
+              style="font-size: 1.2rem; font-weight: 800; color: #2563eb;">— m³</div>
           </div>
           <!-- Lưu lượng xả thải -->
-          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
+          <div class="water-kpi-item"
+            style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px;">
             <div style="font-size: 1.5rem; margin-bottom: 2px;">📤</div>
             <div class="water-kpi-name" style="font-size: 0.75rem;">Nước thải xả ra</div>
-            <div class="water-kpi-val" id="monthly-val-flow" style="font-size: 1.2rem; font-weight: 800; color: #059669;">— m³</div>
+            <div class="water-kpi-val" id="monthly-val-flow"
+              style="font-size: 1.2rem; font-weight: 800; color: #059669;">— m³</div>
           </div>
           <!-- Hóa chất tiêu hao -->
-          <div class="water-kpi-item" style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 10px; min-height: 100px;">
+          <div class="water-kpi-item"
+            style="display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 10px; min-height: 100px;">
             <div style="font-size: 1.5rem; margin-bottom: 2px;">🧪</div>
             <div class="water-kpi-name" style="font-size: 0.75rem; margin-bottom: 5px;">Hóa chất đã dùng</div>
-            <div id="monthly-val-chemicals" style="font-size: 0.75rem; font-weight: bold; width: 100%; text-align: center; color: var(--text-color); max-height: 70px; overflow-y: auto;">
+            <div id="monthly-val-chemicals"
+              style="font-size: 0.75rem; font-weight: bold; width: 100%; text-align: center; color: var(--text-color); max-height: 70px; overflow-y: auto;">
               —
             </div>
           </div>
@@ -339,11 +352,13 @@
         <div class="dashboard-panel">
           <div class="panel-header">
             <div class="panel-title">💧 Chỉ tiêu nước thải ca gần nhất</div>
-            <div style="font-size: 0.72rem; color: #64748b; font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="window.location.href='canhbao.html'">
+            <div
+              style="font-size: 0.72rem; color: #64748b; font-weight: bold; cursor: pointer; text-decoration: underline;"
+              onclick="window.location.href='canhbao.html'">
               Chi tiết chuẩn QCVN ➔
             </div>
           </div>
-          
+
           <div class="water-kpi-grid" id="water-indicators-container">
             <!-- pH -->
             <div class="water-kpi-item">
@@ -385,7 +400,8 @@
         <div class="dashboard-panel">
           <div class="panel-header">
             <div class="panel-title">🚨 Cảnh báo tồn kho hóa chất</div>
-            <div style="font-size: 0.72rem; color: #dc2626; font-weight: bold;" id="low-stock-alert-text">Đang quét kho...</div>
+            <div style="font-size: 0.72rem; color: #dc2626; font-weight: bold;" id="low-stock-alert-text">Đang quét
+              kho...</div>
           </div>
           <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
             <table class="mini-list-table">
@@ -398,7 +414,8 @@
               </thead>
               <tbody id="low-stock-table-body">
                 <tr>
-                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải danh sách tồn kho...</td>
+                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải danh sách tồn
+                    kho...</td>
                 </tr>
               </tbody>
             </table>
@@ -409,7 +426,8 @@
         <div class="dashboard-panel">
           <div class="panel-header">
             <div class="panel-title">⚙️ Bảo trì thiết bị trong 7 ngày tới</div>
-            <div style="font-size: 0.72rem; color: var(--primary-color); font-weight: bold;" id="upcoming-maint-text">Đang kiểm tra lịch...</div>
+            <div style="font-size: 0.72rem; color: var(--primary-color); font-weight: bold;" id="upcoming-maint-text">
+              Đang kiểm tra lịch...</div>
           </div>
           <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
             <table class="mini-list-table">
@@ -422,7 +440,66 @@
               </thead>
               <tbody id="upcoming-maint-table-body">
                 <tr>
-                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải lịch bảo trì...</td>
+                  <td colspan="3" style="text-align: center; color: #64748b; padding: 15px;">Đang tải lịch bảo trì...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hàng 4: Thống kê báo cáo Index & Index_2 gần nhất -->
+      <div class="dashboard-row-equal">
+        <!-- Báo cáo chỉ số (Index) gần nhất -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">📊 Chỉ số nước thải gần nhất (<span id="latest-index-date">Đang tải...</span>)
+            </div>
+            <div
+              style="font-size: 0.72rem; color: var(--primary-color); font-weight: bold; cursor: pointer; text-decoration: underline;"
+              onclick="window.location.href='datatable.html'">
+              Chi tiết ➔
+            </div>
+          </div>
+          <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
+            <table class="mini-list-table">
+              <thead>
+                <tr>
+                  <th style="width: 50%; text-align: left;">Tên công ty</th>
+                  <th style="width: 50%; text-align: center;">Chỉ số ghi nhận (m³)</th>
+                </tr>
+              </thead>
+              <tbody id="latest-index-table-body">
+                <tr>
+                  <td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">Đang tải danh sách...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Báo cáo ngày nghỉ/làm việc đặc biệt (Index_2) gần nhất -->
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <div class="panel-title">📅 Top 05 Ngày nghỉ & Làm Đặc biệt gần nhất</div>
+            <div
+              style="font-size: 0.72rem; color: var(--primary-color); font-weight: bold; cursor: pointer; text-decoration: underline;"
+              onclick="window.location.href='datatable_2.html'">
+              Chi tiết ➔
+            </div>
+          </div>
+          <div style="flex: 1; overflow-y: auto; overflow-x: hidden; max-height: 250px;">
+            <table class="mini-list-table">
+              <thead>
+                <tr>
+                  <th style="width: 40%; text-align: left;">Tên công ty</th>
+                  <th style="width: 60%; text-align: left;">Trạng thái & Ngày cụ thể</th>
+                </tr>
+              </thead>
+              <tbody id="latest-index2-table-body">
+                <tr>
+                  <td colspan="2" style="text-align: center; color: #64748b; padding: 15px;">Đang tải danh sách...</td>
                 </tr>
               </tbody>
             </table>
