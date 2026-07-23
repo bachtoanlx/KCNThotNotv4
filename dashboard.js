@@ -687,7 +687,9 @@ async function loadCompanyConfigs() {
       getDoc(doc(db, "settings", "reportConfig"))
     ]);
 
-    allMasterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
+    const masterCompanies = masterSnap.docs.map(doc => doc.data().company).filter(Boolean);
+    const configCompanies = configSnap.docs.map(doc => doc.data().company).filter(Boolean);
+    allMasterCompanies = [...new Set([...masterCompanies, ...configCompanies])];
     if (allMasterCompanies.length === 0) {
       allMasterCompanies = ['NTSF', 'Ấn Độ Dương', 'Đại Tây Dương', 'Amicogen', 'Cá Việt Nam', 'Honoroad', 'Petec', 'Trường Hải', 'Tân Cảng', 'VNPT'];
     }
