@@ -1855,24 +1855,9 @@ async function openDocumentSecurely(documentId) {
         if (loaderEl) loaderEl.style.display = "none";
         if (mobileFallbackEl) {
             mobileFallbackEl.style.display = "flex";
-            const docData = allDocuments[documentId] || {};
-            const fileName = docData.title || docData.fileName || "Tài liệu";
-            
-            const mobileDocName = document.getElementById("mobileDocName");
-            if (mobileDocName) mobileDocName.textContent = fileName;
-            
             const openNewTabBtn = document.getElementById("btnMobileOpenNewTab");
             if (openNewTabBtn) {
                 openNewTabBtn.href = `https://drive.google.com/file/d/${documentId}/view?usp=drivesdk`;
-            }
-            
-            const downloadBtn = document.getElementById("btnMobileDownload");
-            if (downloadBtn) {
-                downloadBtn.removeAttribute("href");
-                downloadBtn.onclick = (e) => {
-                    e.preventDefault();
-                    downloadFileSecurely(documentId, fileName);
-                };
             }
         }
         return; // Dừng xử lý tải trước tệp Base64 trên thiết bị di động
@@ -3746,6 +3731,11 @@ function initDocumentReader() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        } else if (currentOpenDocId) {
+            // Trường hợp tệp chưa được tải về RAM (ví dụ trên di động)
+            const docData = allDocuments[currentOpenDocId] || {};
+            const fileName = docData.title || docData.fileName || "Tài liệu";
+            downloadFileSecurely(currentOpenDocId, fileName);
         }
     };
 
