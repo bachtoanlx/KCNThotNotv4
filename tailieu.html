@@ -2382,6 +2382,15 @@
                         <p>Tệp tin không thể hiển thị trực tiếp. Vui lòng tải về để xem.</p>
                         <a href="" id="btnDownloadFallback" class="btn-view-doc">📥 Tải tệp tin</a>
                     </div>
+                    <div id="docReaderMobileFallback" class="reader-frame-fallback" style="display: none; color: #1e293b; padding: 20px 10px; flex-direction: column; justify-content: center; height: 100%;">
+                        <div style="font-size: 40px; margin-bottom: 8px;">📄</div>
+                        <div id="mobileDocName" style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 8px; max-width: 90%; word-break: break-all;">Tên tài liệu</div>
+                        <p style="font-size: 12px; color: #64748b; margin-bottom: 16px; max-width: 260px; line-height: 1.4;">Trình duyệt di động không thể hiển thị tài liệu trực tiếp tại đây. Bạn hãy chọn mở ở tab mới hoặc tải về máy để xem tốt nhất.</p>
+                        <div style="display: flex; gap: 10px; width: 100%; max-width: 260px; justify-content: center;">
+                            <a href="" id="btnMobileOpenNewTab" target="_blank" class="btn-view-doc" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; background: linear-gradient(135deg, #273668, #4f46e5); color: white; border-radius: 6px; text-decoration: none; font-weight: 600; border: none;">🌐 Tab Mới</a>
+                            <a href="" id="btnMobileDownload" download="" class="btn-view-doc" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; font-size: 12px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; font-weight: 600;">📥 Tải Về</a>
+                        </div>
+                    </div>
                 </div>
                 <!-- Nửa bên phải: Thông tin & Hỏi đáp AI -->
                 <div class="doc-reader-right">
@@ -2507,7 +2516,7 @@
 
     <!-- Thư viện Firebase và Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="tailieu.js?v=2026_v6"></script>
+    <script type="module" src="tailieu.js?v=2026_v9"></script>
 </body>
 
 </html>
