@@ -2,7 +2,7 @@ import { initMenu } from "./menu.js"; // Giữ nguyên
 import { auth, addLog, showSwal, db, collection, query, getDocs, where, orderBy, limit, loadTemplate, getRole } from "./script.js";
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 // Import AI chatbot functions
-import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData } from "./chatbot-ai.js?v=17";
+import { getAIResponse, detectDataQuery, resetConversation, hasValidAPIKey, formatDataResponse, getWelcomeMessage, searchAIKnowledge, initDynamicChatbotData, isQueryAmbiguous, routeIntentWithAI } from "./chatbot-ai.js?v=41";
 
 
 
@@ -22,8 +22,11 @@ import {
     getCompanyHolidayConfig,
     getDefaultHolidays,
     syncDeltaReports1,
-    syncDeltaReports2
-} from "./chatbot-firebase-queries.js?v=6";
+    syncDeltaReports2,
+    getEmployeeWeeklySchedule,
+    getEmployeeFullContext,
+    getSystemLogsContext
+} from "./chatbot-firebase-queries.js?v=12";
 
 // load menu
 loadTemplate("menu-placeholder", "menu.html", () => {
@@ -259,9 +262,49 @@ loadTemplate("footer-placeholder", "footer.html");
         const lowerMsg = userMessage.toLowerCase();
 
         // ====== AI-POWERED CHATBOT ======
-        // Bước 1: Kiểm tra xem có cần truy vấn database không
-        const dataQuery = detectDataQuery(userMessage);
-        console.log('🔍 detectDataQuery result:', dataQuery);
+        // Bước 1: Luôn gọi AI Router để phân tích ý định ngôn ngữ tự nhiên tối đa
+        let dataQuery = null;
+        console.log("🧠 Kích hoạt AI Router để định tuyến ý định...");
+        const aiRoute = await routeIntentWithAI(userMessage);
+
+        if (aiRoute && aiRoute.intent && aiRoute.intent !== 'chat') {
+            const keywords = ['lịch', 'trực', 'làm', 'ngày nào', 'khi nào', 'ca nào', 'ca trực', 'lịch trực', 'làm việc'];
+            const hasActKeyword = keywords.some(kw => userMessage.toLowerCase().includes(kw));
+            const nameOnly = (aiRoute.intent === 'personal_schedule') && !hasActKeyword;
+
+            const removeAccentsLocal = (str) => {
+                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+            };
+
+            const cleanMsg = removeAccentsLocal(userMessage.toLowerCase());
+            const fullClean = aiRoute.employee ? removeAccentsLocal(aiRoute.employee.toLowerCase()) : '';
+            const isExactName = fullClean ? cleanMsg.includes(fullClean) : false;
+
+            dataQuery = {
+                type: aiRoute.intent,
+                query: userMessage,
+                company: aiRoute.companies?.[0] || null,
+                companies: aiRoute.companies || [],
+                employee: aiRoute.employee || null,
+                timeframe: aiRoute.timeframe || 'billing',
+                targetDateExact: aiRoute.targetDateExact || null,
+                nameOnly: nameOnly,
+                isExactName: isExactName,
+                isInactiveEmployee: aiRoute.isInactiveEmployee || false,
+                candidates: aiRoute.candidates || [],
+                source: 'ai'
+            };
+        }
+        
+        // Nếu AI Router không trả kết quả (lỗi mạng/offline) -> Dùng Local Parser làm dự phòng (Fallback)
+        if (!dataQuery) {
+            console.log("⚠️ Không có kết quả AI Router. Sử dụng Local Parser dự phòng...");
+            dataQuery = detectDataQuery(userMessage);
+            if (dataQuery) {
+                dataQuery.source = 'local';
+            }
+        }
+        console.log('🔍 dataQuery result:', dataQuery);
         let contextData = null;
 
         // --- XỬ LÝ QUY TẮC REDIRECT CHO LỊCH SỬ LƯU LƯỢNG CỤ THỂ ĐÃ BỊ LOẠI BỎ ĐỂ ĐỒNG BỘ UX ---
@@ -288,6 +331,83 @@ loadTemplate("footer-placeholder", "footer.html");
 
                     case 'ambiguous':
                         contextData = { ambiguousData: dataQuery };
+                        break;
+
+                    case 'company_typo':
+                        contextData = { company_typo: dataQuery };
+                        break;
+
+                    case 'comparison':
+                        if (dataQuery.companies && dataQuery.companies.length > 0) {
+                            const results = [];
+                            const targetDate = dataQuery.targetDateExact ? new Date(dataQuery.targetDateExact) : null;
+                            for (const comp of dataQuery.companies) {
+                                const stats = await getAdvancedStatistics(dataQuery.timeframe || 'billing', comp, targetDate);
+                                if (stats && stats.companyData) {
+                                    results.push(stats.companyData);
+                                }
+                            }
+                            // Lấy nhãn kỳ từ lần gọi đầu tiên
+                            let periodLabel = 'Hiện tại';
+                            if (dataQuery.companies.length > 0) {
+                                const firstStats = await getAdvancedStatistics(dataQuery.timeframe || 'billing', dataQuery.companies[0], targetDate);
+                                if (firstStats && firstStats.periodLabel) {
+                                    periodLabel = firstStats.periodLabel;
+                                }
+                            }
+                            contextData = { 
+                                comparison: {
+                                    companies: results,
+                                    timeframe: dataQuery.timeframe || 'billing',
+                                    periodLabel: periodLabel
+                                }
+                            };
+                        } else {
+                            // Nếu không ghi rõ công ty nào, lấy thống kê KCN
+                            const stats = await getAdvancedStatistics(dataQuery.timeframe || 'billing', null, dataQuery.targetDateExact ? new Date(dataQuery.targetDateExact) : null);
+                            contextData = { 
+                                comparison: {
+                                    kcnStats: stats,
+                                    timeframe: dataQuery.timeframe || 'billing'
+                                }
+                            };
+                        }
+                        break;
+
+                    case 'personal_schedule':
+                        if (dataQuery.employee) {
+                            if (dataQuery.source === 'ai') {
+                                // AI Query: Lấy toàn bộ lịch sử phân ca + đổi ca để AI phân tích toàn diện
+                                const fullContext = await getEmployeeFullContext(dataQuery.employee);
+                                contextData = { personal_schedule_ai: fullContext };
+                            } else {
+                                // Local Query: Chạy local ngay lập tức để tiết kiệm và hiển thị nhanh
+                                const todayStr = new Date().toISOString().split('T')[0];
+                                const personalSchedule = await getEmployeeWeeklySchedule(dataQuery.employee, todayStr);
+                                contextData = {
+                                    personal_schedule: {
+                                        employee: dataQuery.employee,
+                                        schedule: personalSchedule,
+                                        startDate: todayStr,
+                                        nameOnly: dataQuery.nameOnly,
+                                        isExactName: dataQuery.isExactName
+                                    }
+                                };
+                            }
+                        }
+                        break;
+
+                    case 'employee_multiple':
+                        contextData = { employee_multiple: dataQuery };
+                        break;
+
+                    case 'clarify':
+                        contextData = { clarify: dataQuery };
+                        break;
+
+                    case 'system_logs':
+                        const logsContext = await getSystemLogsContext(dataQuery.employee, dataQuery.targetDateExact);
+                        contextData = { system_logs: logsContext };
                         break;
 
                     case 'companyList':

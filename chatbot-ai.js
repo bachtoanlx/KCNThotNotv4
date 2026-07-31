@@ -20,7 +20,7 @@ if (auth) {
         } else {
             currentUserRole = "guest";
         }
-        
+
         // Cập nhật lại cachedAIKnowledge theo vai trò mới của người dùng
         try {
             cachedAIKnowledge = await getAIKnowledgeBase(currentUserRole);
@@ -63,19 +63,35 @@ const buildGeminiUrl = (base, model) => `${base}/models/${model}:generateContent
 
 const isValidAPIKey = (USE_PROXY && PROXY_URL) || (GEMINI_API_KEY && GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY_HERE' && GEMINI_API_KEY.startsWith('AIza'));
 
-// System prompt ngắn gọn (Fallback bảo mật, thông tin thực tế tải từ Firestore)
-let SYSTEM_CONTEXT = `Bạn là trợ lý ảo. Trả lời ngắn gọn, thân thiện bằng tiếng Việt.`;
+// System prompt ngắn gọn (Tải động từ Firestore nhưng cấu hình sẵn khung hướng dẫn phân tích)
+let SYSTEM_CONTEXT = `Bạn là trợ lý ảo của KCN Thốt Nốt. Trả lời ngắn gọn, thân thiện bằng tiếng Việt.
+Bạn được cung cấp dữ liệu thực tế từ hệ thống Firestore (lịch trực, chỉ số nước, thống kê xả thải, nhật ký hệ thống...) qua context để trả lời câu hỏi một cách chính xác nhất.
+
+QUY TẮC HIỂN THỊ VÀ PHÂN TÍCH DỮ LIỆU:
+- Tuyệt đối không tự bịa đặt thông tin. Nếu dữ liệu hệ thống trống hoặc không tìm thấy, hãy thông báo rõ ràng là không tìm thấy.
+- Đối với dữ liệu nhân sự (personal_schedule_ai):
+  - Hãy kiểm tra danh sách 'work_patterns' (chứa lịch sử phân ca) và 'shift_swaps' (đổi ca).
+  - Nếu nhân sự đã nghỉ việc (tất cả quy tắc phân ca đều có patternEndDate trong quá khứ hoặc note ghi 'Nghỉ việc/thôi việc'): Hãy nêu rõ thời gian họ bắt đầu làm việc (patternStartDate) và ngày kết thúc/nghỉ việc (patternEndDate), đồng thời khẳng định rõ hiện tại họ đã nghỉ việc.
+  - Nếu họ đang làm việc (có ít nhất 1 quy tắc có patternEndDate là null hoặc trong tương lai): Hãy liệt kê lịch trực sắp tới của họ rõ ràng và chi tiết.
+  - Hãy trả lời tự nhiên, bao phủ toàn bộ câu hỏi của người dùng (ví dụ: giải đáp cả lịch trực và câu hỏi họ "còn làm việc hay không").
+- Đối với nhật ký hệ thống (system_logs):
+  - Đọc danh sách logs được cung cấp trong context.
+  - Tổng hợp ngắn gọn các hoạt động của nhân sự đó (ví dụ: đăng nhập, thêm/sửa thiết bị, cập nhật cấu hình, báo cáo sự cố...) kèm theo mốc thời gian rõ ràng (đổi sang định dạng Việt Nam DD/MM/YYYY HH:mm).
+  - Nếu người dùng hỏi về một nhân sự đã bị xóa tài khoản khỏi CSDL (như Tạ Minh Ngô), hãy tìm kiếm vết hoạt động của họ trong logs (ví dụ: email 'taminhngo.vl...' hoặc dữ liệu log liên quan) để nhận định: họ đã từng làm việc/thao tác gì trên hệ thống và thời điểm hoạt động cuối cùng của họ là khi nào.
+- Đối với so sánh xả thải: Trình bày dạng danh sách gạch đầu dòng có số liệu thực tế xả thải, định mức khoán và chênh lệch rõ ràng.
+- Sử dụng emoji sinh động để người dùng dễ đọc.`;
 
 
 export let WELCOME_MESSAGE_MEMBER = `Xin chào! Tôi là trợ lý ảo hỗ trợ bạn.`;
 
 export let WELCOME_MESSAGE_GUEST = `Xin chào! Tôi là trợ lý ảo hỗ trợ bạn. Vui lòng đăng nhập để sử dụng đầy đủ tính năng.`;
 
+
 export function getWelcomeMessage() {
     if (auth && auth.currentUser && auth.currentUser.email) {
         const username = auth.currentUser.email.split('@')[0];
         let msg = WELCOME_MESSAGE_MEMBER;
-        
+
         if (msg.startsWith("Xin chào!")) {
             return msg.replace("Xin chào!", `Xin chào ${username} !`);
         } else if (msg.startsWith("Xin chào")) {
@@ -94,9 +110,46 @@ let conversationHistory = [
 
 let companyNameMap = {};
 let staticResponsesMap = {};
+export let employeeNamesList = [];
+export let allEmployeeNamesList = [];
 
 function removeAccents(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
+let fuseInstance = null;
+
+export function findClosestCompany(queryText) {
+    if (!fuseInstance && typeof window !== 'undefined' && window.Fuse && companyNameMap) {
+        const uniqueCompanies = [...new Set(Object.values(companyNameMap))];
+        if (uniqueCompanies.length > 0) {
+            fuseInstance = new window.Fuse(uniqueCompanies, { 
+                includeScore: true, 
+                threshold: 0.5 
+            });
+        }
+    }
+    if (fuseInstance) {
+        // Loại bỏ các từ khóa nhiễu để việc so khớp tên công ty chính xác hơn
+        const cleanQuery = queryText.toLowerCase()
+            .replace(/lịch sử/g, '')
+            .replace(/xả thải/g, '')
+            .replace(/chỉ số/g, '')
+            .replace(/đồng hồ/g, '')
+            .replace(/ngày nghỉ/g, '')
+            .replace(/công ty/g, '')
+            .replace(/doanh nghiệp/g, '')
+            .trim();
+        
+        const results = fuseInstance.search(cleanQuery || queryText);
+        if (results.length > 0) {
+            return {
+                company: results[0].item,
+                score: results[0].score
+            };
+        }
+    }
+    return null;
 }
 
 export async function initDynamicChatbotData() {
@@ -104,6 +157,7 @@ export async function initDynamicChatbotData() {
         let masterSnap = null;
         let configSnap = null;
         let aiConfigSnap = null;
+        let patternsSnap = null;
 
         // Tải độc lập để tránh lỗi chặn quyền truy cập của một bảng làm hỏng cả quá trình
         try {
@@ -124,10 +178,28 @@ export async function initDynamicChatbotData() {
             console.warn("⚠️ Không thể tải ai_config:", e.message);
         }
 
+        try {
+            patternsSnap = await getDocs(collection(db, "work_patterns"));
+        } catch (e) {
+            console.warn("⚠️ Không thể tải work_patterns:", e.message);
+        }
+
         if (aiConfigSnap && aiConfigSnap.exists()) {
             const aiData = aiConfigSnap.data();
             if (aiData.systemContext) {
-                SYSTEM_CONTEXT = aiData.systemContext;
+                SYSTEM_CONTEXT = aiData.systemContext + "\n\n" + `QUY TẮC HIỂN THỊ VÀ PHÂN TÍCH DỮ LIỆU:
+- Tuyệt đối không tự bịa đặt thông tin. Nếu dữ liệu hệ thống trống hoặc không tìm thấy, hãy thông báo rõ ràng là không tìm thấy.
+- Đối với dữ liệu nhân sự (personal_schedule_ai):
+  - Hãy kiểm tra danh sách 'work_patterns' (chứa lịch sử phân ca) và 'shift_swaps' (đổi ca).
+  - Nếu nhân sự đã nghỉ việc (tất cả quy tắc phân ca đều có patternEndDate trong quá khứ hoặc note ghi 'Nghỉ việc/thôi việc'): Hãy nêu rõ thời gian họ bắt đầu làm việc (patternStartDate) và ngày kết thúc/nghỉ việc (patternEndDate), đồng thời khẳng định rõ hiện tại họ đã nghỉ việc.
+  - Nếu họ đang làm việc (có ít nhất 1 quy tắc có patternEndDate là null hoặc trong tương lai): Hãy liệt kê lịch trực sắp tới của họ rõ ràng và chi tiết.
+  - Hãy trả về tự nhiên, bao phủ toàn bộ câu hỏi của người dùng (ví dụ: giải đáp cả lịch trực và câu hỏi họ "còn làm việc hay không").
+- Đối với nhật ký hệ thống (system_logs):
+  - Đọc danh sách logs được cung cấp trong context.
+  - Tổng hợp ngắn gọn các hoạt động của nhân sự đó (ví dụ: đăng nhập, thêm/sửa thiết bị, cập nhật cấu hình, báo cáo sự cố...) kèm theo mốc thời gian rõ ràng (đổi sang định dạng Việt Nam DD/MM/YYYY HH:mm).
+  - Nếu người dùng hỏi về một nhân sự đã bị xóa tài khoản khỏi CSDL (như Tạ Minh Ngô), hãy tìm kiếm vết hoạt động của họ trong logs (ví dụ: email 'taminhngo.vl...' hoặc dữ liệu log liên quan) để nhận định: họ đã từng làm việc/thao tác gì trên hệ thống và thời điểm hoạt động cuối cùng của họ là khi nào.
+- Đối với so sánh xả thải: Trình bày dạng danh sách gạch đầu dòng có số liệu thực tế xả thải, định mức khoán và chênh lệch rõ ràng.
+- Sử dụng emoji sinh động để người dùng dễ đọc.`;
                 // Cập nhật lại prompt trong history đầu tiên nếu cuộc gọi reset chưa diễn ra
                 if (conversationHistory.length > 0 && conversationHistory[0].role === "user") {
                     conversationHistory[0].parts[0].text = SYSTEM_CONTEXT;
@@ -163,7 +235,7 @@ export async function initDynamicChatbotData() {
                     const manualMap = typeof aiData.companyAbbreviations === 'string'
                         ? JSON.parse(aiData.companyAbbreviations)
                         : aiData.companyAbbreviations;
-                    
+
                     Object.keys(manualMap).forEach(key => {
                         newMap[key.toLowerCase()] = manualMap[key];
                     });
@@ -171,6 +243,24 @@ export async function initDynamicChatbotData() {
             }
 
             companyNameMap = newMap;
+
+            if (patternsSnap) {
+                const allNames = patternsSnap.docs.map(doc => doc.data().displayName).filter(Boolean);
+                allEmployeeNamesList = [...new Set(allNames)];
+
+                const todayStr = new Date().toISOString().split('T')[0];
+                const activeNames = patternsSnap.docs
+                    .filter(doc => {
+                        const data = doc.data();
+                        if (data.patternEndDate && data.patternEndDate < todayStr) return false;
+                        return true;
+                    })
+                    .map(doc => doc.data().displayName)
+                    .filter(Boolean);
+                employeeNamesList = [...new Set(activeNames)];
+                console.log("👥 [AI Chatbot] Đã nạp danh sách nhân viên đang làm việc:", employeeNamesList);
+                console.log("👥 [AI Chatbot] Đã nạp toàn bộ danh sách nhân viên (cả nghỉ việc):", allEmployeeNamesList);
+            }
 
             const latestConfigs = {};
             configs.sort((a, b) => (a.effectiveDate || "").localeCompare(b.effectiveDate || ""));
@@ -215,14 +305,14 @@ export async function getAIResponse(userMessage, contextData = null) {
         'giới thiệu': staticResponsesMap['giới thiệu'] || '🏢 Thông tin giới thiệu về Khu công nghiệp.',
         'địa chỉ': staticResponsesMap['địa chỉ'] || '📍 Vui lòng tham khảo thông tin địa chỉ trên trang liên hệ chính thức.',
         'giờ làm việc': staticResponsesMap['giờ làm việc'] || '⏰ Giờ làm việc hành chính từ Thứ 2 đến Thứ 6.',
-        'liên hệ hỗ trợ': staticResponsesMap['liên hệ hỗ trợ'] || '📞 Vui lòng liên hệ Văn phòng Quản lý để được hỗ trợ.',
+        'liên hệ hỗ trợ': staticResponsesMap['liên hệ hỗ trợ'] || '📞 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được hỗ trợ.',
         'hỗ trợ': staticResponsesMap['hỗ trợ'] || '📞 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được hỗ trợ.',
         'liên hệ': staticResponsesMap['liên hệ'] || '📞 Vui lòng tham khảo thông tin liên hệ chính thức.',
         'xin chào': auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST,
         'hello': 'Hello! Xin chào bạn.',
         'cám ơn': 'Rất vui được giúp bạn! 😊',
         'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
-        'chức năng': auth.currentUser 
+        'chức năng': auth.currentUser
             ? (staticResponsesMap['chức năng_member'] || 'Hỗ trợ tra cứu thông tin hệ thống (chỉ số, lịch trực, thống kê...).')
             : (staticResponsesMap['chức năng_guest'] || 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về Khu công nghiệp. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.'),
     };
@@ -375,7 +465,10 @@ export async function getAIResponse(userMessage, contextData = null) {
                 }
                 return `KCN - ${titlePart}`;
             }).join(', ');
-            finalAiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px;">(Nguồn tham khảo: ${sources}) - AI tổng hợp</span>`;
+            finalAiResponse += `\n\n<span style="font-size: 11px; color: #64748b; display: block; margin-top: 10px; font-style: italic;">(Nguồn tham khảo: ${sources}) - AI tổng hợp</span>`;
+        } else {
+            // Chú thích chung cho câu trả lời tự do của AI
+            finalAiResponse += `\n\n<span style="font-size: 11px; color: #888; display: block; margin-top: 10px; font-style: italic;">✨ Ý kiến phân tích/gợi ý của trợ lý AI - Vui lòng đối soát lại số liệu thực tế.</span>`;
         }
 
 
@@ -469,13 +562,13 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
                 if (!d.hasData) return responseText + `⚠️ Công ty **${d.company}** bị thiếu chỉ số mốc đầu kỳ (${d.startMark}), không thể tính toán.`;
                 responseText += `- Công ty: **${d.company}**\n`;
                 responseText += `- Tổng lưu lượng: **${d.total.toLocaleString('vi-VN')} m³**\n`;
-                if (d.avg !== null) responseText += `- Trung bình: **${d.avg.toLocaleString('vi-VN', {maximumFractionDigits: 1})} m³/ngày** (Tính trên ${d.workingDays} ngày làm việc)\n`;
+                if (d.avg !== null) responseText += `- Trung bình: **${d.avg.toLocaleString('vi-VN', { maximumFractionDigits: 1 })} m³/ngày** (Tính trên ${d.workingDays} ngày làm việc)\n`;
                 if (d.quota !== null) responseText += `- Khối lượng khoán: **${d.quota.toLocaleString('vi-VN')} m³**\n`;
             } else if (stats.tong_luong_xa_thai_kcn !== undefined) {
                 responseText += `- Tổng KCN: **${stats.tong_luong_xa_thai_kcn.toLocaleString('vi-VN')} m³** (Từ ${stats.so_cong_ty_co_du_lieu} công ty)\n\n`;
                 if (stats.topConsumers && stats.topConsumers.length > 0) {
                     responseText += `🏆 **Top xả thải nhiều nhất:**\n`;
-                    stats.topConsumers.forEach((c, i) => { responseText += `${i+1}. **${c.company}**: ${c.total.toLocaleString('vi-VN')} m³\n`; });
+                    stats.topConsumers.forEach((c, i) => { responseText += `${i + 1}. **${c.company}**: ${c.total.toLocaleString('vi-VN')} m³\n`; });
                 }
             }
             return responseText;
@@ -519,19 +612,19 @@ function getFallbackResponse(userMessage, contextData, errorMessage = null) {
     }
 
     const responses = {
-        'giới thiệu': '🏢 Khu công nghiệp (KCN) Thốt Nốt là trung tâm công nghiệp trọng điểm tại cửa ngõ phía Bắc TP. Cần Thơ, giáp ranh tỉnh An Giang. Với quy mô lên tới 600 ha, đây là hạt nhân thu hút đầu tư, tập trung chế biến nông - thủy sản và logistics, tận dụng vị trí đắc địa tiếp giáp sông Hậu. Nằm tiếp giáp trung tâm vùng nguyên liệu nông nghiệp trù phú miền Tây (An Giang, Đồng Tháp, Cần Thơ) và mặt tiền sông Hậu, vô cùng thuận lợi cho vận tải thủy nội địa và xuất nhập khẩu. Được định hướng trở thành trung tâm công nghiệp, tiểu thủ công nghiệp trọng điểm – đặc biệt tập trung chế biến lương thực, thủy sản (cá tra, gạo) và các ngành công nghiệp phụ trợ, kho bãi.\n\n🔗 Bạn có thể xem chi tiết tại: <a href="https://www.google.com/search?q=t%E1%BB%95ng+quan+kcn+th%E1%BB%91t+n%E1%BB%91t&sca_esv=a05e7dbab888ec56&sxsrf=APpeQnuqPq_BOimAI5s5zkWwc1s1TcMluA%3A1782308889386&source=hp&ei=GeA7aoLBFJKnvr0PoJ2CsA4&iflsig=ABILxe8AAAAAajvuKUK9g1RrNljrWhNCiIgxR4cVWIoM&ved=0ahUKEwjCseqBgqCVAxWSk68BHaCOAOYQ4dUDCDc&uact=5&oq=t%E1%BB%95ng+quan+kcn+th%E1%BB%91t+n%E1%BB%91t&gs_lp=Egdnd3Mtd2l6Ihx04buVbmcgcXVhbiBrY24gdGjhu5F0IG7hu5F0MgUQIRigATIFECEYoAEyBRAhGJ8FMgUQIRifBTIFECEYnwUyBRAhGJ8FMgUQIRifBTIFECEYnwVIhEFQ_wZYwz9wDXgAkAEDmAHCAaABpR-qAQQxLjMxuAEDyAEA-AEBmAIioALcF6gCCsICDRAjGPAFGJ4GGOoCGCfCAgcQIxjqAhgnwgINECMYngYY8AUY6gIYJ8ICChAjGJ4GGPAFGCfCAg4QABiABBiKBRixAxiDAcICCxAAGIAEGLEDGIMBwgIIEAAYgAQYsQPCAgUQLhiABMICERAuGIAEGLEDGIMBGMcBGNEDwgIOEC4YgAQYigUYsQMYgwHCAggQLhiABBixA8ICBRAAGIAEwgIEEAAYA8ICCxAuGIAEGLEDGIMBwgIMEAAYgAQYChgLGLEDwgIEECMYJ8ICChAjGIAEGIoFGCfCAgQQIRgVmAMi8QWIi3SKmIdYvJIHBzEyLjIxLjGgB5HXAbIHBjEuMjEuMbgHjRfCBwsxLjE1LjE2LjEuMcgHigGACAE&sclient=gws-wiz" target="_blank" style="color: #034892; font-weight: bold; text-decoration: underline;">Tổng quan KCN Thốt Nốt</a>',
-        'địa chỉ': '📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.',
-        'giờ làm việc': '⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).',
-        'liên hệ hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.',
-        'hỗ trợ': '📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.',
-        'liên hệ': '📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408',
+        'giới thiệu': staticResponsesMap['giới thiệu'] || '🏢 Thông tin giới thiệu về Khu công nghiệp.',
+        'địa chỉ': staticResponsesMap['địa chỉ'] || '📍 Vui lòng tham khảo thông tin địa chỉ trên trang liên hệ chính thức.',
+        'giờ làm việc': staticResponsesMap['giờ làm việc'] || '⏰ Giờ làm việc hành chính từ Thứ 2 đến Thứ 6.',
+        'liên hệ hỗ trợ': staticResponsesMap['liên hệ hỗ trợ'] || '📞 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được hỗ trợ.',
+        'hỗ trợ': staticResponsesMap['hỗ trợ'] || '📞 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được hỗ trợ.',
+        'liên hệ': staticResponsesMap['liên hệ'] || '📞 Vui lòng tham khảo thông tin liên hệ chính thức.',
         'xin chào': auth.currentUser ? WELCOME_MESSAGE_MEMBER : WELCOME_MESSAGE_GUEST,
         'hello': 'Hello! Xin chào bạn.',
         'cám ơn': 'Rất vui được giúp bạn! 😊',
         'tạm biệt': 'Tạm biệt! Chúc bạn một ngày tốt lành.',
-        'chức năng': auth.currentUser 
-            ? 'Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...'
-            : 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.',
+        'chức năng': auth.currentUser
+            ? (staticResponsesMap['chức năng_member'] || 'Hỗ trợ tra cứu thông tin hệ thống (chỉ số, lịch trực, thống kê...).')
+            : (staticResponsesMap['chức năng_guest'] || 'Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về Khu công nghiệp. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật.'),
     };
 
     for (const [key, value] of Object.entries(responses)) {
@@ -563,24 +656,24 @@ export function searchAIKnowledge(queryText) {
 
     // 1. Ưu tiên tìm kiếm chính xác (Exact matching) có chấm điểm (Scoring)
     const scoredMatches = [];
-    
+
     allowedKnowledge.forEach(item => {
         const title = (item.title || "").toLowerCase();
         const content = (item.content || "").toLowerCase();
         const keywords = (item.keywords || "").toLowerCase();
-        
+
         let score = 0;
-        
+
         const keywordMatch = keywords.split(',').some(k => {
             const trimmedKey = k.trim();
             return trimmedKey && (lowerQuery.includes(trimmedKey) || trimmedKey.includes(lowerQuery));
         });
-        
+
         // Trọng số xếp hạng
         if (keywordMatch) score += 30; // Ưu tiên tuyệt đối: Trúng Keyword do admin cấu hình
         if (title.includes(lowerQuery)) score += 20; // Ưu tiên 2: Xuất hiện trong Tiêu đề
         if (content.includes(lowerQuery)) score += 10; // Ưu tiên 3: Xuất hiện trong Nội dung
-        
+
         if (score > 0) {
             scoredMatches.push({ item, score });
         }
@@ -612,21 +705,293 @@ export function searchAIKnowledge(queryText) {
     return results.slice(0, 3).map(r => r.item);
 }
 
+export function findEmployeeInList(message, nameList) {
+    const lowerMsg = message.toLowerCase().trim();
+    const cleanMsg = removeAccents(lowerMsg);
+    
+    let found = [];
+    const sortedEmployees = [...nameList].sort((a, b) => b.length - a.length);
+    
+    for (const emp of sortedEmployees) {
+        const lowerEmp = emp.toLowerCase();
+        const noAccentEmp = removeAccents(lowerEmp);
+        
+        // 1. Khớp nguyên tên đầy đủ
+        if (lowerMsg.includes(lowerEmp) || cleanMsg.includes(noAccentEmp)) {
+            found.push(emp);
+            continue;
+        }
+        
+        // 2. Khớp các biến thể viết tắt phổ biến (Họ + Tên, hoặc Tên Lót + Tên)
+        const parts = emp.split(/\s+/);
+        if (parts.length >= 3) {
+            const short1 = removeAccents((parts[parts.length - 2] + " " + parts[parts.length - 1]).toLowerCase()); // hoai viet
+            const short2 = removeAccents((parts[0] + " " + parts[parts.length - 1]).toLowerCase()); // truong viet
+            const regex1 = new RegExp('\\b' + short1 + '\\b');
+            const regex2 = new RegExp('\\b' + short2 + '\\b');
+            if (regex1.test(cleanMsg) || regex2.test(cleanMsg)) {
+                found.push(emp);
+                continue;
+            }
+        }
+        
+        // 3. Nếu người dùng gõ từ 2 chữ trở lên và tên nhân viên chứa từ đó (ví dụ: gõ "hoài việt" khớp "Trương Hoài Việt")
+        const msgWords = lowerMsg.split(/\s+/);
+        if (msgWords.length >= 2) {
+            if (lowerEmp.includes(lowerMsg) || noAccentEmp.includes(cleanMsg)) {
+                found.push(emp);
+                continue;
+            }
+        }
+        
+        // 4. Khớp tên gọi riêng lẻ (chữ cuối cùng)
+        const lastName = parts[parts.length - 1].toLowerCase();
+        const noAccentLastName = removeAccents(lastName);
+        const regexLastName = new RegExp('\\b' + noAccentLastName + '\\b');
+        if (regexLastName.test(cleanMsg)) {
+            if (noAccentLastName === 'duong') {
+                const occurrencesMsg = (cleanMsg.match(/\bduong\b/g) || []).length;
+                let occurrencesCompany = 0;
+                if (cleanMsg.includes('an do duong')) occurrencesCompany++;
+                if (cleanMsg.includes('dai tay duong')) occurrencesCompany++;
+                
+                if (occurrencesMsg > occurrencesCompany) {
+                    found.push(emp);
+                }
+            } else {
+                found.push(emp);
+            }
+        }
+    }
+    return [...new Set(found)];
+}
+
+export function isQueryAmbiguous(message) {
+    const lowerMsg = message.toLowerCase().trim();
+    
+    // Luôn đi AI Router nếu hỏi về nhật ký hệ thống (logs) hoặc hoạt động của nhân sự
+    const logKeywords = ['log', 'nhật ký', 'hành động', 'hoạt động', 'vết', 'dấu vết', 'lịch sử hoạt động', 'lịch sử thao tác'];
+    if (logKeywords.some(kw => lowerMsg.includes(kw))) {
+        return true;
+    }
+    
+    // 1. Chỉ đi local nếu chứa TÊN ĐẦY ĐỦ CHÍNH XÁC của nhân sự đang hoạt động
+    if (employeeNamesList.length > 0) {
+        const hasFullActiveEmployee = employeeNamesList.some(emp => {
+            return lowerMsg.includes(emp.toLowerCase());
+        });
+        if (hasFullActiveEmployee) {
+            const wordCount = lowerMsg.split(/\s+/).length;
+            if (wordCount <= 3) return true; // Câu hỏi quá ngắn vẫn cần AI Router
+            return false;
+        }
+    }
+    
+    // 2. Chỉ đi local nếu chứa TÊN ĐẦY ĐỦ CHÍNH XÁC của công ty
+    if (typeof companyNameMap !== 'undefined' && companyNameMap) {
+        const uniqueComps = [...new Set(Object.values(companyNameMap))];
+        const hasFullCompany = uniqueComps.some(comp => {
+            return lowerMsg.includes(comp.toLowerCase());
+        });
+        if (hasFullCompany) {
+            const wordCount = lowerMsg.split(/\s+/).length;
+            if (wordCount <= 3) return true; // Câu hỏi quá ngắn vẫn cần AI Router
+            return false;
+        }
+    }
+    
+    // Bỏ qua các câu lệnh nút bấm hoặc câu lệnh cố định rõ ràng (luôn chạy local)
+    const unambiguousCommands = [
+        'xem lịch trực tuần này', 'danh sách ca trực hôm nay', 'lịch trực hôm nay',
+        'tổng xả thải tháng này', 'xem từng công ty', 'chỉ số nước', 'quy trình ghi chỉ số',
+        'lịch nghỉ', 'quy định nghỉ phép', 'danh sách vượt khoán', 'quy định xử phạt vượt khoán',
+        'xem lịch trực của', 'đúng, xem thông tin', 'không, xem danh sách công ty',
+        'chỉ số mới nhất của', 'lịch sử xả thải', 'lịch nghỉ của'
+    ];
+    if (unambiguousCommands.some(cmd => lowerMsg.includes(cmd))) {
+        return false;
+    }
+    
+    // Mọi trường hợp khác (viết tắt, gõ thiếu, mơ hồ, nhân sự nghỉ việc...) -> Đi AI Router xử lý thông minh
+    return true;
+}
+
+/**
+ * Sử dụng Gemini làm bộ định tuyến ý định (Intent Router) khi câu hỏi mơ hồ
+ */
+export async function routeIntentWithAI(message, history) {
+    try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+        if (!idToken) {
+            console.warn("👤 AI Router: Người dùng chưa đăng nhập, không gọi AI Router");
+            return null;
+        }
+
+        // Tạo context động danh sách công ty và nhân viên
+        const compsList = [...new Set(Object.values(companyNameMap))].join(', ');
+        const empsList = employeeNamesList.join(', ');
+        const allEmpsList = allEmployeeNamesList.join(', ');
+        const todayStr = new Date().toISOString().split('T')[0]; // Định dạng YYYY-MM-DD
+        const todayLocale = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        const routerPrompt = `Bạn là bộ định tuyến ý định (Intent Router) của hệ thống Quản lý KCN Thốt Nốt. 
+Nhiệm vụ của bạn là phân loại câu hỏi của người dùng và trích xuất các thực thể (Entity) dưới dạng JSON.
+
+THỜI GIAN HỆ THỐNG HIỆN TẠI (RẤT QUAN TRỌNG):
+- Hôm nay là: ${todayLocale} (Định dạng YYYY-MM-DD là: ${todayStr})
+- Hãy sử dụng ngày này làm mốc để quy đổi các mốc thời gian tương đối như "hôm nay", "ngày mai", "hôm qua", "tuần này", "tuần tới", "24/7", "ngày 24/7",... sang ngày cụ thể YYYY-MM-DD.
+- Năm mặc định luôn là năm của ngày hệ thống hiện tại (${new Date().getFullYear()}). Không được tự ý giả định năm khác.
+
+DANH SÁCH Ý ĐỊNH (intents):
+1. 'companyData': Tra cứu chỉ số nước/đồng hồ xả thải mới nhất của 1 công ty.
+2. 'history': Xem lịch sử, nhật ký xả thải của 1 công ty.
+3. 'statistics': Thống kê lưu lượng xả thải toàn KCN (tuần/tháng/kỳ hiện tại).
+4. 'holidayData': Lịch nghỉ phép, ngày nghỉ của công ty/doanh nghiệp.
+5. 'specialWorkday': Lịch làm việc đặc biệt, làm bù ngày nghỉ của công ty.
+6. 'companyList': Xem danh sách các công ty trong KCN.
+7. 'autoplan': Lịch trực chung KCN (ai trực ngày gác hôm nay/ngày mai).
+8. 'personal_schedule': Lịch trực/làm việc/ca trực của một nhân viên cụ thể.
+9. 'comparison': So sánh lượng nước xả thải/tiêu thụ giữa các công ty hoặc giữa các khoảng thời gian.
+10. 'system_logs': Tra cứu nhật ký hệ thống, log hành động, lịch sử thao tác của nhân sự (kể cả nhân sự đã bị xóa/đã nghỉ như Tạ Minh Ngô, Trương Hoài Việt) hoặc hoạt động trong một ngày cụ thể (ví dụ: "Trần Nguyễn Dương đã hành động gì ngày 23/7", "Trương Hoài Việt có hành động cuối ngày nào", "Tạ Minh Ngô đã làm những gì").
+11. 'clarify': Ý định mơ hồ, trùng khớp nhiều hơn một công ty hoặc nhân sự (ví dụ: gõ "Dương" vừa có thể là "Ấn Độ Dương", "Đại Tây Dương", hoặc "Trần Nguyễn Dương").
+12. 'chat': Chào hỏi, trò chuyện tự do hoặc câu hỏi không liên quan tới dữ liệu KCN.
+
+DANH SÁCH CÔNG TY TRÊN HỆ THỐNG: [ ${compsList} ]
+DANH SÁCH NHÂN SỰ ĐANG LÀM VIỆC: [ ${empsList} ]
+DANH SÁCH TOÀN BỘ NHÂN SỰ (CẢ NGƯỜI ĐÃ NGHỈ): [ ${allEmpsList} ]
+
+HÃY PHÂN TÍCH TIN NHẮN SAU VÀ TRẢ VỀ ĐẦU RA JSON:
+Tin nhắn: "${message}"
+
+Cấu trúc JSON bắt buộc phải trả về:
+{
+  "intent": "tên_ý_định",
+  "companies": ["tên_công_ty_đầy_đủ_trong_hệ_thống"], // mảng chứa các công ty được nhắc đến (nếu có)
+  "employee": "tên_nhân_sự_đầy_đủ_trong_hệ_thống", // tên nhân sự đầy đủ chính xác lấy từ DANH SÁCH TOÀN BỘ NHÂN SỰ
+  "timeframe": "week" | "month" | "billing" | "year", // mặc định là "billing"
+  "targetDateExact": "YYYY-MM-DD", // ngày cụ thể được nhắc đến (nếu có)
+  "isInactiveEmployee": true | false, // Đặt thành true NẾU tên nhân sự này KHÔNG CÓ trong DANH SÁCH NHÂN SỰ ĐANG LÀM VIỆC
+  "candidates": ["tên_đối_tượng_1", "tên_đối_tượng_2"] // Chỉ điền trường này nếu intent là 'clarify'. Chứa danh sách các công ty hoặc nhân sự trong hệ thống có thể trùng khớp với từ khóa mơ hồ mà người dùng gõ.
+}
+
+Chú ý:
+- Nếu người dùng viết tắt, gõ thiếu hoặc gõ không dấu tên nhân sự (ví dụ: "hoài việt" -> "Trương Hoài Việt", "Nguyễn Dương" -> "Trần Nguyễn Dương", "đông" -> "Lê Lâm Đông"), bạn phải ánh xạ về tên đầy đủ chính xác tương ứng trong DANH SÁCH TOÀN BỘ NHÂN SỰ (CẢ NGƯỜI ĐÃ NGHỈ).
+- Nếu người dùng hỏi về lịch trực/lịch làm của một người không nằm trong DANH SÁCH NHÂN SỰ ĐANG LÀM VIỆC (ví dụ: Tạ Minh Ngô, Trương Hoài Việt), hãy bắt buộc đặt intent là "personal_schedule", điền tên đầy đủ của họ từ DANH SÁCH TOÀN BỘ NHÂN SỰ vào trường "employee" và đặt "isInactiveEmployee": true.
+- Nếu người dùng hỏi về hoạt động, log hành động, thao tác, lịch sử thao tác của nhân sự (kể cả nhân sự cũ/đã bị xóa như Tạ Minh Ngô), hãy bắt buộc đặt intent là "system_logs", điền tên của nhân sự đó vào trường "employee".
+- Nếu người dùng chỉ nhập tên của một nhân sự (ví dụ: "Nguyễn Dương", "Trần Nguyễn Dương", "Trần Dương") mà không ghi kèm hành động hay động từ nào khác, hãy bắt buộc đặt ý định là "personal_schedule" và điền trường "employee" với tên đầy đủ của nhân sự đó trong hệ thống.
+- Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ nằm trong thẻ \`\`\`json ... \`\`\`. Không viết bất kỳ lời giải thích nào khác.`;
+
+        const payload = [
+            { role: "user", parts: [{ text: routerPrompt }] }
+        ];
+
+        // Gọi qua Proxy
+        const formData = new URLSearchParams();
+        formData.append("action", "chatAI");
+        formData.append("idToken", idToken);
+        formData.append("data", JSON.stringify({
+            model: PREFERRED_MODEL,
+            contents: payload
+        }));
+
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) return null;
+        const resData = await response.json();
+        
+        const textResponse = resData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textResponse) return null;
+
+        console.log("🔍 AI Router Response Raw:", textResponse);
+        const jsonMatch = textResponse.match(/```json\s*([\s\S]*?)\s*```/) || textResponse.match(/({[\s\S]*})/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[1].trim());
+            console.log("🎯 AI Router Parsed Intent:", parsed);
+            return parsed;
+        }
+        return null;
+    } catch (e) {
+        console.error("❌ Lỗi gọi AI Router:", e);
+        return null;
+    }
+}
+
 /**
  * Kiểm tra xem câu hỏi có cần truy vấn database không
  */
 export function detectDataQuery(message) {
     const lowerMsg = message.toLowerCase().trim();
 
+    // Kiểm tra xem tin nhắn có chứa tên nhân viên nào không
+    let matchingEmployees = [];
+    if (employeeNamesList.length > 0) {
+        const cleanMsg = removeAccents(lowerMsg);
+        for (const emp of employeeNamesList) {
+            const lowerEmp = emp.toLowerCase();
+            const noAccentEmp = removeAccents(lowerEmp);
+            
+            // 1. Khớp nguyên tên
+            if (lowerMsg.includes(lowerEmp) || cleanMsg.includes(noAccentEmp)) {
+                matchingEmployees.push(emp);
+                continue;
+            }
+            
+            // 2. Khớp các biến thể rút gọn (ví dụ: Trần Nguyễn Dương -> Nguyễn Dương, Trần Dương)
+            const parts = emp.split(/\s+/);
+            if (parts.length >= 3) {
+                const short1 = removeAccents((parts[parts.length - 2] + " " + parts[parts.length - 1]).toLowerCase()); // nguyen duong
+                const short2 = removeAccents((parts[0] + " " + parts[parts.length - 1]).toLowerCase()); // tran duong
+                const regex1 = new RegExp('\\b' + short1 + '\\b');
+                const regex2 = new RegExp('\\b' + short2 + '\\b');
+                if (regex1.test(cleanMsg) || regex2.test(cleanMsg)) {
+                    matchingEmployees.push(emp);
+                    continue;
+                }
+            }
+            
+            // 3. Khớp tên gọi riêng (chữ cuối cùng)
+            const lastName = parts[parts.length - 1].toLowerCase();
+            const noAccentLastName = removeAccents(lastName);
+            const regexLastName = new RegExp('\\b' + noAccentLastName + '\\b');
+            if (regexLastName.test(cleanMsg)) {
+                if (noAccentLastName === 'duong') {
+                    const occurrencesMsg = (cleanMsg.match(/\bduong\b/g) || []).length;
+                    let occurrencesCompany = 0;
+                    if (cleanMsg.includes('an do duong')) occurrencesCompany++;
+                    if (cleanMsg.includes('dai tay duong')) occurrencesCompany++;
+                    if (occurrencesMsg > occurrencesCompany) {
+                        matchingEmployees.push(emp);
+                    }
+                } else {
+                    matchingEmployees.push(emp);
+                }
+            }
+        }
+        matchingEmployees = [...new Set(matchingEmployees)];
+    }
+
+    if (matchingEmployees.length > 1) {
+        return {
+            type: 'employee_multiple',
+            query: message,
+            employees: matchingEmployees
+        };
+    }
+
+    const foundEmployee = matchingEmployees.length === 1 ? matchingEmployees[0] : null;
+
     // Các từ khóa chỉ định câu hỏi dạng Quy chế/Kiến thức/Hướng dẫn (RAG) rõ ràng
     const informationalKeywords = [
-        'quy định', 'quy chế', 'tiêu chuẩn', 'phạt', 'cách pha', 'quy trình', 
-        'hướng dẫn', 'định nghĩa', 'là gì', 'thế nào', 'làm sao', 'liên hệ', 
+        'quy định', 'quy chế', 'tiêu chuẩn', 'phạt', 'cách pha', 'quy trình',
+        'hướng dẫn', 'định nghĩa', 'là gì', 'thế nào', 'làm sao', 'liên hệ',
         'địa chỉ', 'giờ làm', 'chức năng', 'hỗ trợ'
     ];
 
     const strongInformationalKeywords = [
-        'là gì', 'định nghĩa', 'cách pha', 'nguyên lý', 'vì sao', 'tại sao', 
+        'là gì', 'định nghĩa', 'cách pha', 'nguyên lý', 'vì sao', 'tại sao',
         'ý nghĩa', 'có tác dụng gì', 'như thế nào', 'khái niệm'
     ];
 
@@ -637,8 +1002,8 @@ export function detectDataQuery(message) {
     const wordCount = lowerMsg.split(/\s+/).length;
     if (wordCount <= 4) {
         if (lowerMsg === 'xả thải' || lowerMsg === 'nước thải' || lowerMsg === 'lưu lượng' || lowerMsg === 'số liệu') {
-            return { 
-                type: 'ambiguous', 
+            return {
+                type: 'ambiguous',
                 query: message,
                 message: 'Ý bạn muốn tra cứu số liệu thống kê hay xem quy định về xả thải?',
                 options: [
@@ -648,8 +1013,8 @@ export function detectDataQuery(message) {
             };
         }
         if (lowerMsg === 'lịch trực' || lowerMsg === 'trực' || lowerMsg === 'ca trực') {
-            return { 
-                type: 'ambiguous', 
+            return {
+                type: 'ambiguous',
                 query: message,
                 message: 'Ý bạn muốn xem lịch phân công trực hay xem quy chế tổ chức ca trực?',
                 options: [
@@ -659,8 +1024,8 @@ export function detectDataQuery(message) {
             };
         }
         if (lowerMsg === 'chỉ số' || lowerMsg === 'số nước' || lowerMsg === 'ghi nước' || lowerMsg === 'đồng hồ') {
-            return { 
-                type: 'ambiguous', 
+            return {
+                type: 'ambiguous',
                 query: message,
                 message: 'Ý bạn muốn tra cứu chỉ số nước hiện tại của một nhà máy hay tìm hiểu cách ghi chỉ số?',
                 options: [
@@ -670,8 +1035,8 @@ export function detectDataQuery(message) {
             };
         }
         if (lowerMsg === 'nghỉ' || lowerMsg === 'ngày nghỉ' || lowerMsg === 'lịch nghỉ' || lowerMsg === 'phép') {
-            return { 
-                type: 'ambiguous', 
+            return {
+                type: 'ambiguous',
                 query: message,
                 message: 'Ý bạn muốn kiểm tra lịch nghỉ phép của KCN hay quy định về ngày nghỉ?',
                 options: [
@@ -681,8 +1046,8 @@ export function detectDataQuery(message) {
             };
         }
         if (lowerMsg === 'phạt' || lowerMsg === 'vượt khoán') {
-            return { 
-                type: 'ambiguous', 
+            return {
+                type: 'ambiguous',
                 query: message,
                 message: 'Ý bạn muốn xem danh sách các đơn vị vượt khoán tháng này hay xem quy định phạt?',
                 options: [
@@ -719,6 +1084,22 @@ export function detectDataQuery(message) {
     }
 
     const patterns = [
+        {
+            type: 'comparison',
+            customCheck: (msg) => {
+                const keywords = [
+                    'so sánh', 'khác biệt', 'khác nhau', 'chênh lệch', 'hơn kém',
+                    'nhiều hơn', 'ít hơn', 'cao hơn', 'thấp hơn'
+                ];
+                if (keywords.some(kw => msg.includes(kw))) {
+                    const isFlowRelated = [
+                        'xả', 'dùng', 'tiêu thụ', 'nước', 'chỉ số', 'lưu lượng', 'khối', 'm3', 'm³'
+                    ].some(kw => msg.includes(kw));
+                    if (isFlowRelated) return true;
+                }
+                return false;
+            }
+        },
         {
             type: 'statistics',
             customCheck: (msg) => {
@@ -764,7 +1145,11 @@ export function detectDataQuery(message) {
                 if (msg.includes('bao nhiêu') && (msg.includes('số') || msg.includes('đồng hồ') || msg.includes('ghi'))) return true;
                 if (msg.includes('mấy') && (msg.includes('số') || msg.includes('ghi'))) return true;
                 const hasCompany = Object.keys(companyNameMap).some(n => msg.includes(n));
-                if (hasCompany && (msg.includes('số') || msg.includes('chỉ') || msg.includes('ghi') || msg.includes('đồng hồ') || msg.includes('mới nhất') || msg.includes('hiện tại'))) return true;
+                if (hasCompany) {
+                    if (msg.includes('số') || msg.includes('chỉ') || msg.includes('ghi') || msg.includes('đồng hồ') || msg.includes('mới nhất') || msg.includes('hiện tại')) return true;
+                    const words = msg.split(/\s+/);
+                    if (words.length <= 4 || msg.includes('xem') || msg.includes('thông tin') || msg.includes('chi tiết') || msg.includes('tra cứu')) return true;
+                }
                 return false;
             }
         },
@@ -807,7 +1192,8 @@ export function detectDataQuery(message) {
                 'tất cả công ty', 'danh sách doanh nghiệp', 'các doanh nghiệp', 'bao nhiêu doanh nghiệp',
                 'có những công ty nào', 'tên công ty', 'nhóm công ty', 'phân nhóm', 'tên các doanh nghiệp',
                 'nhà máy nào', 'các nhà máy', 'các đơn vị', 'danh sách đơn vị',
-                'bao nhiêu đơn vị', 'những ai', 'gồm những ai', 'bao nhiêu bên'
+                'bao nhiêu đơn vị', 'những ai', 'gồm những ai', 'bao nhiêu bên',
+                'xem từng công ty', 'từng công ty'
             ]
         },
         {
@@ -829,6 +1215,8 @@ export function detectDataQuery(message) {
                 'lịch trực bảo vệ', 'ca gác', 'lịch gác bảo vệ'
             ],
             customCheck: (msg) => {
+                if (foundEmployee) return false; // Nhường cho personal_schedule
+                
                 const direct = [
                     'autoplan', 'lịch trực', 'lịch làm việc', 'ai trực', 'ca làm', 'ca trực',
                     'người trực', 'ca ai', 'ca của ai', 'ai làm', 'phân công', 'ca kíp', 'lịch ca',
@@ -838,6 +1226,31 @@ export function detectDataQuery(message) {
                 if ((msg.includes('ca') || msg.includes('kíp') || msg.includes('gác')) && (msg.includes('ai') || msg.includes('nào') || msg.includes('người'))) return true;
                 if (msg.includes('trực') && (msg.includes('ai') || msg.includes('nào') || msg.includes('ngày') || msg.includes('hôm nay') || msg.includes('ngày mai'))) return true;
                 if (msg.includes('gác') && (msg.includes('hôm nay') || msg.includes('ngày mai') || msg.includes('ngày') || msg.includes('kcn'))) return true;
+                return false;
+            }
+        },
+        {
+            type: 'personal_schedule',
+            customCheck: (msg) => {
+                if (foundEmployee) {
+                    const cleanMsg = removeAccents(msg).trim();
+                    const cleanEmp = removeAccents(foundEmployee.toLowerCase());
+                    if (cleanMsg === cleanEmp) return true;
+                    
+                    const parts = foundEmployee.split(/\s+/);
+                    if (parts.length >= 3) {
+                        const short1 = removeAccents((parts[parts.length - 2] + " " + parts[parts.length - 1]).toLowerCase()); // nguyen duong
+                        const short2 = removeAccents((parts[0] + " " + parts[parts.length - 1]).toLowerCase()); // tran duong
+                        if (cleanMsg === short1 || cleanMsg === short2) return true;
+                    }
+                    const lastName = removeAccents(parts[parts.length - 1].toLowerCase()); // duong
+                    if (cleanMsg === lastName) return true;
+                    
+                    const keywords = ['lịch', 'trực', 'làm', 'ngày nào', 'khi nào', 'ca nào', 'ca trực', 'lịch trực', 'làm việc'];
+                    if (keywords.some(kw => msg.includes(kw))) {
+                        return true;
+                    }
+                }
                 return false;
             }
         }
@@ -858,13 +1271,47 @@ export function detectDataQuery(message) {
 
         if (hasKeyword) {
             const result = { type: pattern.type, query: message };
+            if (pattern.type === 'personal_schedule') {
+                result.employee = foundEmployee;
+                
+                const keywords = ['lịch', 'trực', 'làm', 'ngày nào', 'khi nào', 'ca nào', 'ca trực', 'lịch trực', 'làm việc'];
+                const hasActKeyword = keywords.some(kw => lowerMsg.includes(kw));
+                result.nameOnly = !hasActKeyword;
 
-            const sortedCompanyKeywords = Object.entries(companyNameMap).sort((a, b) => b[0].length - a[0].length);
-            for (const [lowerName, realName] of sortedCompanyKeywords) {
-                if (lowerMsg.includes(lowerName)) { result.company = realName; break; }
+                const cleanMsg = removeAccents(lowerMsg);
+                const fullClean = removeAccents(foundEmployee.toLowerCase());
+                result.isExactName = cleanMsg.includes(fullClean);
             }
 
-            if (pattern.type === 'statistics') {
+            const sortedCompanyKeywords = Object.entries(companyNameMap).sort((a, b) => b[0].length - a[0].length);
+            let foundExact = false;
+            let foundCompanies = [];
+            for (const [lowerName, realName] of sortedCompanyKeywords) {
+                if (lowerMsg.includes(lowerName)) { 
+                    if (!foundCompanies.includes(realName)) {
+                        foundCompanies.push(realName);
+                    }
+                    foundExact = true; 
+                }
+            }
+            if (foundExact) {
+                result.company = foundCompanies[0];
+                result.companies = foundCompanies;
+            }
+
+            if (!foundExact && ['companyData', 'history', 'holidayData', 'comparison'].includes(pattern.type)) {
+                const closest = findClosestCompany(message);
+                if (closest && closest.score < 0.5) {
+                    return {
+                        type: 'company_typo',
+                        query: message,
+                        intendedType: pattern.type,
+                        closestCompany: closest.company
+                    };
+                }
+            }
+
+            if (pattern.type === 'statistics' || pattern.type === 'comparison') {
                 const specificWeekMatch = lowerMsg.match(/tuần\s*(\d+)/);
                 const specificMonthMatch = lowerMsg.match(/tháng\s*(\d+)/);
                 const specificYearMatch = lowerMsg.match(/năm\s*(\d{4})/);
@@ -948,6 +1395,170 @@ export function formatDataResponse(contextData, userMessage) {
         return html;
     }
 
+    // ===== KIỂM TRA SAI CHÍNH TẢ TÊN CÔNG TY =====
+    if (contextData.company_typo) {
+        const typo = contextData.company_typo;
+        let intendedQuery = typo.intendedType === 'history'
+            ? `Lịch sử xả thải ${typo.closestCompany}`
+            : (typo.intendedType === 'holidayData' ? `Lịch nghỉ của ${typo.closestCompany}` : `Chỉ số mới nhất của ${typo.closestCompany}`);
+        
+        let html = `<p>⚠️ Không tìm thấy công ty nào khớp chính xác tên trong câu hỏi của bạn. Có phải ý bạn là <strong>${typo.closestCompany}</strong> không?</p>`;
+        html += `<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+        html += `<button class="suggestion-btn" data-query="${intendedQuery}">Đúng, xem thông tin</button>`;
+        html += `<button class="suggestion-btn" data-query="Xem từng công ty">Không, xem danh sách công ty</button>`;
+        html += `</div>`;
+        return html;
+    }
+
+    // ===== KIỂM TRA NHIỀU NHÂN SỰ TRÙNG TÊN =====
+    if (contextData.employee_multiple) {
+        const mul = contextData.employee_multiple;
+        let html = `<p>👥 Hệ thống tìm thấy nhiều nhân sự khớp với tên bạn nhập. Ý bạn muốn hỏi về ai?</p>`;
+        html += `<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+        mul.employees.forEach(emp => {
+            html += `<button class="suggestion-btn" data-query="Lịch trực của ${emp}">${emp}</button>`;
+        });
+        html += `</div>`;
+        return html;
+    }
+
+    // ===== SO SÁNH LƯU LƯỢNG XẢ THẢI =====
+    if (contextData.comparison) {
+        const compData = contextData.comparison;
+        
+        const timeframeLabels = {
+            'week': 'Tuần này',
+            'month': 'Tháng này',
+            'billing': 'Kỳ thanh toán hiện hành',
+            'year': 'Năm nay'
+        };
+        const tfLabel = timeframeLabels[compData.timeframe] || 'Kỳ này';
+
+        if (compData.companies && compData.companies.length > 0) {
+            let r = `📊 **So sánh xả thải (${compData.periodLabel || tfLabel}):**\n\n`;
+            
+            compData.companies.forEach(c => {
+                const totalStr = c.total !== null ? `**${c.total.toLocaleString('vi-VN')} m³**` : 'N/A';
+                const quotaStr = c.quota !== null && c.quota > 0 ? `**${c.quota.toLocaleString('vi-VN')} m³**` : 'Không khoán';
+                
+                let pctStr = '';
+                let statusStr = 'Trong hạn mức';
+                
+                if (c.total !== null && c.quota !== null && c.quota > 0) {
+                    const pct = (c.total / c.quota) * 100;
+                    pctStr = ` (${pct.toFixed(1)}%)`;
+                    if (pct > 100) {
+                        statusStr = `🔴 **Vượt khoán**${pctStr}`;
+                    } else if (pct > 90) {
+                        statusStr = `🟡 *Cảnh báo*${pctStr}`;
+                    } else {
+                        statusStr = `Trong hạn mức${pctStr}`;
+                    }
+                }
+                
+                r += `• 🏢 **${c.company}**:\n`;
+                r += `  - Thực tế xả: ${totalStr}\n`;
+                r += `  - Định mức khoán: ${quotaStr}\n`;
+                r += `  - Trạng thái: ${statusStr}\n\n`;
+            });
+            
+            // Tính chênh lệch nếu có 2 công ty
+            if (compData.companies.length === 2) {
+                const c1 = compData.companies[0];
+                const c2 = compData.companies[1];
+                if (c1.total !== null && c2.total !== null) {
+                    const diff = Math.abs(c1.total - c2.total);
+                    const larger = c1.total > c2.total ? c1.company : c2.company;
+                    const smaller = c1.total > c2.total ? c2.company : c1.company;
+                    r += `⚖️ **Chênh lệch**: **${larger}** xả nhiều hơn **${smaller}** là **${diff.toLocaleString('vi-VN')} m³**.\n`;
+                }
+            }
+            
+            r += `\n*(${compData.timeframe === 'billing' ? 'Định mức khoán = Hệ số khoán × Số ngày làm việc thực tế' : 'Định mức khoán = Hệ số khoán × Số ngày làm việc'})*\n`;
+            r += `\n<br><button class="suggestion-btn" data-query="Tổng xả thải tháng này" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; outline: 1px solid #cbd5e1; margin-top: 5px;">💧 Xem tổng xả thải KCN</button>`;
+            return r;
+        } else if (compData.kcnStats) {
+            const stats = compData.kcnStats;
+            let r = `📊 **Thống kê so sánh xả thải toàn KCN (${stats.periodLabel || tfLabel}):**\n\n`;
+            r += `💧 **Tổng lượng xả thải KCN:** ${stats.tong_luong_xa_thai_kcn.toLocaleString('vi-VN')} m³ _(${stats.so_cong_ty_co_du_lieu} công ty có dữ liệu)_\n\n`;
+            
+            if (stats.topConsumers && stats.topConsumers.length > 0) {
+                r += `🏆 **Xếp hạng các công ty xả thải nhiều nhất:**\n`;
+                stats.topConsumers.forEach((c, idx) => {
+                    const totalStr = c.total !== null ? `${c.total.toLocaleString('vi-VN')} m³` : 'N/A';
+                    const quotaStr = c.quota !== null && c.quota > 0 ? `${c.quota.toLocaleString('vi-VN')} m³` : 'Không';
+                    let status = '';
+                    if (c.total !== null && c.quota !== null && c.quota > 0) {
+                        const pct = (c.total / c.quota) * 100;
+                        if (pct > 100) status = ' (🔴 Vượt)';
+                        else if (pct > 90) status = ' (🟡 Cảnh báo)';
+                    }
+                    r += `${idx + 1}. **${c.company}**: ${totalStr} / Khoán: ${quotaStr}${status}\n`;
+                });
+            }
+            
+            r += `\n<br><button class="suggestion-btn" data-query="Xem từng công ty" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; outline: 1px solid #cbd5e1; margin-top: 5px;">🏭 Xem từng công ty</button>`;
+            return r;
+        }
+    }
+
+    // ===== LỊCH TRỰC CÁ NHÂN =====
+    if (contextData.personal_schedule) {
+        const ps = contextData.personal_schedule;
+
+        // Nếu nhân sự đã nghỉ việc hoặc không nằm trong danh sách đang làm việc
+        if (ps.isInactive) {
+            let html = `<p>⚠️ Nhân sự <b>${ps.employee}</b> không nằm trong danh sách nhân sự làm việc hiện hành của KCN Thốt Nốt (có thể đã nghỉ việc hoặc chưa được cấu hình lịch làm việc).</p>`;
+            html += `<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+            html += `<button class="suggestion-btn" data-query="Lịch trực tuần này">Xem lịch trực chung tuần này</button>`;
+            html += `<button class="suggestion-btn" data-query="Danh sách ca trực hôm nay">Danh sách ca trực hôm nay</button>`;
+            html += `</div>`;
+            return html;
+        }
+
+        // Nếu người dùng chỉ gõ tên không kèm ngữ cảnh
+        if (ps.nameOnly) {
+            let html = `<p>🙋‍♂️ Có phải ý bạn đang đề cập đến <b>${ps.employee}</b> là nhân viên vận hành?</p>`;
+            html += `<p>Bạn muốn thực hiện thao tác nào tiếp theo?</p>`;
+            html += `<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+            html += `<button class="suggestion-btn" data-query="Lịch trực của ${ps.employee}">📅 Xem lịch trực sắp tới của ${ps.employee}</button>`;
+            html += `<button class="suggestion-btn" data-query="Lịch trực hôm nay">👥 Xem ca trực hôm nay</button>`;
+            html += `</div>`;
+            return html;
+        }
+
+        // Tạo prefix xác nhận nếu người dùng viết tắt tên nhân sự
+        let prefix = '';
+        if (ps.isExactName === false) {
+            prefix = `<p>💡 <i>Ý bạn là nhân sự <b>${ps.employee}</b>:</i></p>\n\n`;
+        }
+
+        if (!ps.schedule || ps.schedule.length === 0) {
+            let r = prefix + `📅 **Lịch trực của ${ps.employee} (7 ngày tới):**\n\n`;
+            r += `Hiện tại không có lịch trực nào được phân công cho **${ps.employee}** từ ngày ${ps.startDate.split('-').reverse().join('/')} đến 7 ngày tiếp theo.\n`;
+            r += `\n<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+            r += `<button class="suggestion-btn" data-query="Lịch trực tuần này">Xem lịch trực tuần này</button>`;
+            r += `<button class="suggestion-btn" data-query="Lịch trực hôm nay">Xem lịch trực hôm nay</button>`;
+            r += `</div>`;
+            return r;
+        } else {
+            let r = prefix + `📅 **Lịch trực của ${ps.employee} (7 ngày tới):**\n\n`;
+            ps.schedule.forEach(item => {
+                const dateParts = item.date.split('-');
+                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                const noteStr = item.note ? ` _(${item.note})_` : '';
+                r += `• **${item.dayLabel} (${formattedDate})**:\n`;
+                r += `  - Nhóm: **${item.shiftGroup}**\n`;
+                r += `  - Ca trực: \`${item.startTime} - ${item.endTime}\`${noteStr}\n\n`;
+            });
+            r += `\n<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+            r += `<button class="suggestion-btn" data-query="Lịch trực tuần này">Xem lịch trực tuần này</button>`;
+            r += `<button class="suggestion-btn" data-query="Lịch trực hôm nay">Xem lịch trực hôm nay</button>`;
+            r += `</div>`;
+            return r;
+        }
+    }
+
 
     // ===== THỐNG KÊ NÂNG CAO =====
     if (contextData.advancedStats) {
@@ -1006,7 +1617,7 @@ export function formatDataResponse(contextData, userMessage) {
         r += `📋 **Chỉ số mới nhất của ${d.company}**\n\n`;
         r += `📅 Ngày ghi: **${d.ngay_ghi_hien_tai || 'N/A'}**\n`;
         r += `🔢 Chỉ số: **${(d.chi_so_dong_ho_hien_tai || 0).toLocaleString('vi-VN')}**\n`;
-        
+
         // Dùng link HTML trực tiếp dẫn qua trang chủ (chứa bảng thống kê) thay vì tạo nút bấm gây vòng lặp chat
         r += `\n<br><a href="datatable.html" target="_blank" style="display: inline-block; padding: 6px 12px; background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; border-radius: 20px; font-size: 13px; font-weight: 500; text-decoration: none; margin-top: 5px;">📊 Xem Lịch sử chỉ số ↗</a>`;
         return r;
@@ -1019,7 +1630,13 @@ export function formatDataResponse(contextData, userMessage) {
         if (list.group1.length) r += `🔵 **Nhóm 1 (Đồng hồ):** ${list.group1.join(', ')}\n`;
         if (list.group2.length) r += `🟢 **Nhóm 2 (Hóa đơn):** ${list.group2.join(', ')}\n`;
         if (list.group3.length) r += `🟡 **Nhóm 3 (Khoán):** ${list.group3.join(', ')}\n`;
-        r += `\n[BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]\n[BUTTON]Tổng xả thải tháng này[/BUTTON]`;
+        r += `\nBạn muốn xem chi tiết thông tin của công ty nào?\n`;
+        if (list.group1.length) {
+            list.group1.slice(0, 4).forEach(comp => {
+                r += `[BUTTON]Chỉ số mới nhất của ${comp}[/BUTTON]\n`;
+            });
+        }
+        r += `[BUTTON]Tổng xả thải tháng này[/BUTTON]`;
         return r;
     }
 
@@ -1065,7 +1682,7 @@ export function formatDataResponse(contextData, userMessage) {
             ? (() => {
                 const p = contextData.targetDate.split('-');
                 return `ngày ${p[2]}/${p[1]}/${p[0]}`;
-              })()
+            })()
             : 'hôm nay';
 
         if (!schedule) {
@@ -1074,6 +1691,22 @@ export function formatDataResponse(contextData, userMessage) {
 
         let r = `📅 **Lịch trực ${dateLabel}:**\n\n${schedule}\n\n[BUTTON]Ngày mai ai trực?[/BUTTON]`;
         return r;
+    }
+
+    // ===== LÀM RÕ Ý ĐỊNH MƠ HỒ (CLARIFY) =====
+    if (contextData.clarify) {
+        const cl = contextData.clarify;
+        if (cl.candidates && cl.candidates.length > 0) {
+            let html = `<p>🔍 Hệ thống tìm thấy nhiều đối tượng trùng khớp với từ khóa của bạn. Ý bạn muốn hỏi về đối tượng nào sau đây?</p>`;
+            html += `<div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">`;
+            cl.candidates.forEach(cand => {
+                const isEmployee = allEmployeeNamesList.includes(cand);
+                const icon = isEmployee ? '🙋‍♂️' : '🏭';
+                html += `<button class="suggestion-btn" data-query="${cand}">${icon} ${cand}</button>`;
+            });
+            html += `</div>`;
+            return html;
+        }
     }
 
     // ===== LỖI =====

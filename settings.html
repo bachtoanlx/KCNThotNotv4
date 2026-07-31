@@ -1018,6 +1018,15 @@
                             <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">⚙️ Cấu hình Lời chào & Chỉ dẫn AI</h3>
                             <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Tùy chỉnh Prompt hệ thống (chỉ dẫn hành vi cho AI) và các câu chào mừng kèm câu hỏi gợi ý khi khách hoặc thành viên mở chatbot.</p>
                             
+                            <!-- Hướng dẫn định dạng AI -->
+                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; color: #1e3a8a; line-height: 1.5;">
+                                <strong>💡 Hướng dẫn cấu hình:</strong>
+                                <ul style="margin: 5px 0 0 18px; padding: 0;">
+                                    <li>Sử dụng cấu trúc <code>[BUTTON]Câu hỏi gợi ý[/BUTTON]</code> để tạo nút bấm nhanh trong nội dung Lời chào.</li>
+                                    <li>Phần <strong>Từ viết tắt</strong> và <strong>Câu trả lời nhanh</strong> phải nhập đúng định dạng JSON chuẩn (ví dụ: các khóa và chuỗi ký tự phải đặt trong dấu nháy kép <code>"</code>).</li>
+                                </ul>
+                            </div>
+                            
                             <form id="aiGlobalConfigForm" style="display: flex; flex-direction: column; gap: 12px;">
                                 <div>
                                     <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Chỉ dẫn Hệ thống (System Prompt):</label>
@@ -1116,7 +1125,7 @@
             <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
                 <label class="modal-label">Ngày áp dụng:</label> <input type="date" id="editPatternStartDate"
                     class="modal-input flex-1">
-                <label class="modal-label ml-10" style="min-width: unset;">Đến ngày:</label> <input type="date"
+                <label class="modal-label ml-10" style="min-width: unset;">Đến hết ngày:</label> <input type="date"
                     id="editPatternEndDate" title="Để trống nếu áp dụng vô thời hạn" class="modal-input flex-1">
             </div>
             <div class="input-row d-flex flex-wrap gap-10 align-center mb-15">
@@ -1564,7 +1573,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="settings.js?v=8"></script>
+    <script type="module" src="settings.js?v=9"></script>
 
 </body>
 

@@ -907,7 +907,7 @@ export async function calculateAndCacheSchedule(dateStr) {
             const start = new Date(r.patternStartDate + 'T00:00:00');
             const end = r.patternEndDate ? new Date(r.patternEndDate + 'T00:00:00') : null;
             if (checkDate < start) return false;
-            if (end && checkDate >= end) return false;
+            if (end && checkDate > end) return false;
             return true;
         };
 
@@ -973,6 +973,278 @@ export async function calculateAndCacheSchedule(dateStr) {
     } catch (error) {
         console.error("Lỗi tính toán lịch:", error);
         return null;
+    }
+}
+
+/**
+ * Lấy lịch trực trong 7 ngày tới của một nhân viên cụ thể
+ */
+export async function getEmployeeWeeklySchedule(employeeName, startDateStr) {
+    try {
+        const [patternsSnap, swapsSnap] = await Promise.all([
+            getDocs(collection(db, "work_patterns")),
+            getDocs(collection(db, "shift_swaps"))
+        ]);
+        
+        const patterns = patternsSnap.docs.map(d => d.data());
+        const swaps = swapsSnap.docs.map(d => d.data());
+        
+        const schedule = [];
+        const start = new Date(startDateStr + "T00:00:00");
+        
+        const dayNames = {
+            1: "Chủ nhật",
+            2: "Thứ 2",
+            3: "Thứ 3",
+            4: "Thứ 4",
+            5: "Thứ 5",
+            6: "Thứ 6",
+            7: "Thứ 7"
+        };
+        
+        for (let i = 0; i < 7; i++) {
+            const checkDate = new Date(start);
+            checkDate.setDate(start.getDate() + i);
+            const checkDateStr = checkDate.toISOString().split('T')[0];
+            const dayOfWeek = checkDate.getDay() === 0 ? 8 : checkDate.getDay() + 1; // 2=T2, 8=CN
+            
+            const isRuleActive = (r) => {
+                const sDate = new Date(r.patternStartDate + 'T00:00:00');
+                const eDate = r.patternEndDate ? new Date(r.patternEndDate + 'T00:00:00') : null;
+                if (checkDate < sDate) return false;
+                if (eDate && checkDate > eDate) return false;
+                return true;
+            };
+            
+            const swapsToday = swaps.filter(s => s.date === checkDateStr);
+            
+            // 1. Kiểm tra nhóm Hành chính
+            patterns.filter(p => p.type === 'administrative').forEach(r => {
+                if (isRuleActive(r) && r.workDaysOfWeek && r.workDaysOfWeek.includes(dayOfWeek)) {
+                    let name = r.displayName;
+                    let swapped = false;
+                    let swappedWith = '';
+                    const swap = swapsToday.find(s => s.user1 === name);
+                    if (swap) {
+                        name = swap.user2;
+                        swapped = true;
+                        swappedWith = swap.user1;
+                    }
+                    const swapIn = swapsToday.find(s => s.user2 === name && s.user1 === r.displayName);
+                    if (swapIn) {
+                        name = swapIn.user2;
+                        swapped = true;
+                        swappedWith = swapIn.user1;
+                    }
+                    
+                    if (name === employeeName) {
+                        schedule.push({
+                            date: checkDateStr,
+                            dayLabel: dayNames[checkDate.getDay() + 1],
+                            shiftGroup: r.shiftGroup || 'Hành chính',
+                            startTime: r.startTime,
+                            endTime: r.endTime,
+                            note: swapped ? `Trực thay ${swappedWith}` : ''
+                        });
+                    }
+                }
+            });
+            
+            // 2. Kiểm tra nhóm xoay ca
+            const shiftRules = patterns.filter(p => p.type === 'shift_rotation');
+            const shiftGroups = {};
+            shiftRules.forEach(r => {
+                const g = r.shiftGroup || "Vận hành";
+                if (!shiftGroups[g]) shiftGroups[g] = [];
+                shiftGroups[g].push(r);
+            });
+            
+            for (const group in shiftGroups) {
+                const groupRules = shiftGroups[group];
+                groupRules.sort((a,b) => {
+                    if (a.patternStartDate !== b.patternStartDate) return new Date(a.patternStartDate) - new Date(b.patternStartDate);
+                    if (a.startTime !== b.startTime) return (a.startTime || "").localeCompare(b.startTime || "");
+                    return (a.displayName || "").localeCompare(b.displayName || "");
+                });
+                
+                const groupRefDate = new Date(groupRules[0].patternStartDate + 'T00:00:00');
+                const membersToday = groupRules.filter(isRuleActive);
+                
+                if (membersToday.length > 0) {
+                    const n = membersToday.length;
+                    const diffDays = Math.round((checkDate - groupRefDate) / (1000 * 60 * 60 * 24));
+                    const idx = (diffDays % n + n) % n;
+                    const worker = membersToday[idx];
+                    
+                    if (worker) {
+                        let name = worker.displayName;
+                        let swapped = false;
+                        let swappedWith = '';
+                        const swap = swapsToday.find(s => s.user1 === name);
+                        if (swap) {
+                            name = swap.user2;
+                            swapped = true;
+                            swappedWith = swap.user1;
+                        }
+                        
+                        if (name === employeeName) {
+                            schedule.push({
+                                date: checkDateStr,
+                                dayLabel: dayNames[checkDate.getDay() + 1],
+                                shiftGroup: group,
+                                startTime: worker.startTime,
+                                endTime: worker.endTime,
+                                note: swapped ? `Trực thay ${swappedWith}` : ''
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        return schedule;
+    } catch (error) {
+        console.error('Error fetching employee weekly schedule:', error);
+        return [];
+    }
+}
+
+/**
+ * Lấy toàn bộ ngữ cảnh dữ liệu của một nhân sự (gồm lịch sử phân ca và đổi ca)
+ */
+export async function getEmployeeFullContext(employeeName) {
+    try {
+        const [patternsSnap, swapsSnap] = await Promise.all([
+            getDocs(collection(db, "work_patterns")),
+            getDocs(collection(db, "shift_swaps"))
+        ]);
+
+        const targetNameLower = employeeName.toLowerCase().trim();
+        const removeAccentsLocal = (str) => {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+        };
+        const targetNameNoAccent = removeAccentsLocal(targetNameLower);
+
+        // Lọc trong bộ nhớ: case-insensitive và accent-insensitive
+        const patterns = patternsSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => {
+                if (!p.displayName) return false;
+                const nameLower = p.displayName.toLowerCase().trim();
+                const nameNoAccent = removeAccentsLocal(nameLower);
+                return nameLower === targetNameLower || nameNoAccent === targetNameNoAccent;
+            });
+
+        const swaps = swapsSnap.docs
+            .map(d => d.data())
+            .filter(s => {
+                const u1 = (s.user1 || "").toLowerCase().trim();
+                const u2 = (s.user2 || "").toLowerCase().trim();
+                const u1NoAccent = removeAccentsLocal(u1);
+                const u2NoAccent = removeAccentsLocal(u2);
+                return u1 === targetNameLower || u1NoAccent === targetNameNoAccent ||
+                       u2 === targetNameLower || u2NoAccent === targetNameNoAccent;
+            });
+
+        return {
+            employee: employeeName,
+            work_patterns: patterns,
+            shift_swaps: swaps,
+            currentDate: new Date().toISOString().split('T')[0]
+        };
+    } catch (e) {
+        console.error("❌ Lỗi lấy full context nhân sự:", e);
+        return { employee: employeeName, error: e.message };
+    }
+}
+
+/**
+ * Lấy nhật ký hệ thống (logs) liên quan đến nhân sự hoặc thời gian cụ thể
+ */
+export async function getSystemLogsContext(employeeName, targetDateExact = null) {
+    try {
+        let logs = [];
+        
+        const removeAccentsLocal = (str) => {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+        };
+        
+        let searchWords = [];
+        if (employeeName) {
+            const cleanName = removeAccentsLocal(employeeName.toLowerCase().trim());
+            searchWords = cleanName.split(/\s+/).filter(w => w.length >= 2);
+        }
+
+        if (targetDateExact) {
+            // Lọc theo ngày cụ thể (từ 00:00:00 đến 23:59:59)
+            const startOfDay = new Date(targetDateExact + 'T00:00:00');
+            const endOfDay = new Date(targetDateExact + 'T23:59:59');
+            const q = query(collection(db, "logs"), 
+                where("createdAt", ">=", startOfDay),
+                where("createdAt", "<=", endOfDay),
+                orderBy("createdAt", "desc")
+            );
+            const snapshot = await getDocs(q);
+            logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else if (employeeName) {
+            // Lấy song song logs mới nhất và query prefix cho email của nhân viên
+            const cleanName = removeAccentsLocal(employeeName.toLowerCase().trim());
+            const prefix = cleanName.replace(/\s+/g, ''); // "taminhngo"
+            const lastName = searchWords[searchWords.length - 1]; // "ngo"
+            
+            const [snapLatest, snapPrefix, snapLastName] = await Promise.all([
+                getDocs(query(collection(db, "logs"), orderBy("createdAt", "desc"), limit(250))),
+                getDocs(query(collection(db, "logs"), where("email", ">=", prefix), where("email", "<=", prefix + "\uf8ff"), limit(100))),
+                lastName ? getDocs(query(collection(db, "logs"), where("email", ">=", lastName), where("email", "<=", lastName + "\uf8ff"), limit(100))) : Promise.resolve({ docs: [] })
+            ]);
+            
+            const allDocs = [...snapLatest.docs, ...snapPrefix.docs, ...snapLastName.docs];
+            const uniqueMap = new Map();
+            allDocs.forEach(d => uniqueMap.set(d.id, { id: d.id, ...d.data() }));
+            logs = Array.from(uniqueMap.values());
+        } else {
+            // Mặc định lấy 150 logs mới nhất
+            const snapshot = await getDocs(query(collection(db, "logs"), orderBy("createdAt", "desc"), limit(150)));
+            logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+        
+        // Định dạng logs và lọc chính xác trong bộ nhớ
+        let formattedLogs = logs.map(data => {
+            return {
+                id: data.id,
+                action: data.action,
+                email: data.email || null,
+                createdAt: data.createdAt ? (typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate().toISOString() : new Date(data.createdAt).toISOString()) : null,
+                details: { ...data, createdAt: undefined, action: undefined, id: undefined }
+            };
+        });
+        
+        if (employeeName) {
+            const searchLower = employeeName.toLowerCase();
+            const searchClean = removeAccentsLocal(searchLower);
+            // Lọc lại trong bộ nhớ để chắc chắn
+            formattedLogs = formattedLogs.filter(log => {
+                const logStr = JSON.stringify(log).toLowerCase();
+                const logClean = removeAccentsLocal(logStr);
+                
+                if (logClean.includes(searchClean)) return true;
+                if (searchWords.length > 0 && searchWords.some(word => logClean.includes(word))) return true;
+                return false;
+            });
+        }
+        
+        // Sắp xếp logs theo ngày giảm dần
+        formattedLogs.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+        
+        return {
+            queryEmployee: employeeName,
+            queryDate: targetDateExact,
+            matchedLogsCount: formattedLogs.length,
+            logs: formattedLogs.slice(0, 35) // Giới hạn 35 logs cho AI
+        };
+    } catch (e) {
+        console.error("❌ Lỗi lấy system logs:", e);
+        return { error: e.message };
     }
 }
 

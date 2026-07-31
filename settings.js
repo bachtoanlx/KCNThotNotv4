@@ -2818,80 +2818,91 @@ async function loadAIGlobalConfig() {
     try {
         const docRef = doc(db, "settings", "ai_config");
         const snap = await getDoc(docRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            if (document.getElementById("aiConfigSystemContext")) document.getElementById("aiConfigSystemContext").value = data.systemContext || "";
-            if (document.getElementById("aiConfigWelcomeGuest")) document.getElementById("aiConfigWelcomeGuest").value = data.welcomeGuest || "";
-            if (document.getElementById("aiConfigWelcomeMember")) document.getElementById("aiConfigWelcomeMember").value = data.welcomeMember || "";
-            if (document.getElementById("aiConfigCompanyAbbreviations")) {
-                document.getElementById("aiConfigCompanyAbbreviations").value = data.companyAbbreviations 
-                    ? (typeof data.companyAbbreviations === 'string' ? data.companyAbbreviations : JSON.stringify(data.companyAbbreviations, null, 4))
-                    : "";
-            }
-            if (document.getElementById("aiConfigStaticResponses")) {
-                document.getElementById("aiConfigStaticResponses").value = data.staticResponses
-                    ? (typeof data.staticResponses === 'string' ? data.staticResponses : JSON.stringify(data.staticResponses, null, 4))
-                    : "";
-            }
-        } else {
-            // Fill default values from code variables if document doesn't exist
-            if (document.getElementById("aiConfigSystemContext")) {
-                document.getElementById("aiConfigSystemContext").value = `Bạn là trợ lý ảo của KCN Thốt Nốt (Khu Công Nghiệp Thốt Nốt, Cần Thơ).
+
+        const defaultSystemContext = `Bạn là trợ lý ảo của KCN Thốt Nốt (Khu Công Nghiệp Thốt Nốt, Cần Thơ).
 Trả lời ngắn gọn, thân thiện bằng tiếng Việt.
 Địa chỉ: KV Thới Hòa 1, P. Thốt Nốt, TP Cần Thơ. Giờ làm việc: 7:30-17:00 (T2-T6).
 Chức năng hệ thống: quản lý lưu lượng nước xả thải, lịch trực, ngày nghỉ các doanh nghiệp trong KCN.
 Khi trả lời về số liệu từ [Dữ liệu hệ thống]: đọc đúng giá trị, KHÔNG tự tính toán. Đơn vị nước: m³.
 Sau khi trả lời, gợi ý 1-2 câu hỏi tiếp theo bằng [BUTTON]...[/BUTTON].`;
-            }
-            if (document.getElementById("aiConfigWelcomeGuest")) {
-                document.getElementById("aiConfigWelcomeGuest").value = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+
+        const defaultWelcomeGuest = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
 
 Bạn có thể tìm hiểu thông tin cơ bản về KCN Thốt Nốt, hoặc thử một trong các gợi ý sau:
 [BUTTON]Giới thiệu về KCN Thốt Nốt[/BUTTON]
 [BUTTON]Địa chỉ KCN ở đâu?[/BUTTON]
 [BUTTON]Giờ làm việc của KCN?[/BUTTON]
 [BUTTON]Liên hệ hỗ trợ kỹ thuật[/BUTTON]`;
-            }
-            if (document.getElementById("aiConfigWelcomeMember")) {
-                document.getElementById("aiConfigWelcomeMember").value = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
+
+        const defaultWelcomeMember = `Xin chào! Tôi là trợ lý ảo của KCN Thốt Nốt.
 
 Bạn có thể hỏi tôi bất cứ điều gì, hoặc thử một trong các gợi ý sau:
 [BUTTON]Hôm nay ai trực?[/BUTTON]
 [BUTTON]Tổng xả thải tháng này?[/BUTTON]
 [BUTTON]Chỉ số mới nhất của NTSF[/BUTTON]`;
-            }
+
+        const defaultCompanyAbbreviations = {
+            "ấn độ": "Ấn Độ Dương",
+            "an do": "Ấn Độ Dương",
+            "add": "Ấn Độ Dương",
+            "đại tây": "Đại Tây Dương",
+            "dai tay": "Đại Tây Dương",
+            "dtd": "Đại Tây Dương",
+            "cá việt nam": "Cá Việt Nam",
+            "ca viet nam": "Cá Việt Nam",
+            "ca vn": "Cá Việt Nam",
+            "ngân hàng": "Agribank",
+            "ngan hang": "Agribank",
+            "agri": "Agribank",
+            "ntsf": "NTSF",
+            "amicogen": "Amicogen"
+        };
+
+        const defaultStaticResponses = {
+            "giới thiệu": "🏢 Khu công nghiệp (KCN) Thốt Nốt là trung tâm công nghiệp trọng điểm tại cửa ngõ phía Bắc TP. Cần Thơ, giáp ranh tỉnh An Giang...",
+            "địa chỉ": "📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.",
+            "giờ làm việc": "⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).",
+            "liên hệ hỗ trợ": "📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.",
+            "hỗ trợ": "📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.",
+            "liên hệ": "📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408",
+            "hello": "Hello! Xin chào bạn.",
+            "cám ơn": "Rất vui được giúp bạn! 😊",
+            "tạm biệt": "Tạm biệt! Chúc bạn một ngày tốt lành.",
+            "chức năng_member": "Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...",
+            "chức năng_guest": "Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật."
+        };
+
+        if (snap.exists()) {
+            const data = snap.data();
+            if (document.getElementById("aiConfigSystemContext")) document.getElementById("aiConfigSystemContext").value = data.systemContext || defaultSystemContext;
+            if (document.getElementById("aiConfigWelcomeGuest")) document.getElementById("aiConfigWelcomeGuest").value = data.welcomeGuest || defaultWelcomeGuest;
+            if (document.getElementById("aiConfigWelcomeMember")) document.getElementById("aiConfigWelcomeMember").value = data.welcomeMember || defaultWelcomeMember;
             if (document.getElementById("aiConfigCompanyAbbreviations")) {
-                document.getElementById("aiConfigCompanyAbbreviations").value = JSON.stringify({
-                    "ấn độ": "Ấn Độ Dương",
-                    "an do": "Ấn Độ Dương",
-                    "add": "Ấn Độ Dương",
-                    "đại tây": "Đại Tây Dương",
-                    "dai tay": "Đại Tây Dương",
-                    "dtd": "Đại Tây Dương",
-                    "cá việt nam": "Cá Việt Nam",
-                    "ca viet nam": "Cá Việt Nam",
-                    "ca vn": "Cá Việt Nam",
-                    "ngân hàng": "Agribank",
-                    "ngan hang": "Agribank",
-                    "agri": "Agribank",
-                    "ntsf": "NTSF",
-                    "amicogen": "Amicogen"
-                }, null, 4);
+                document.getElementById("aiConfigCompanyAbbreviations").value = data.companyAbbreviations 
+                    ? (typeof data.companyAbbreviations === 'string' ? data.companyAbbreviations : JSON.stringify(data.companyAbbreviations, null, 4))
+                    : JSON.stringify(defaultCompanyAbbreviations, null, 4);
             }
             if (document.getElementById("aiConfigStaticResponses")) {
-                document.getElementById("aiConfigStaticResponses").value = JSON.stringify({
-                    "giới thiệu": "🏢 Khu công nghiệp (KCN) Thốt Nốt là trung tâm công nghiệp trọng điểm tại cửa ngõ phía Bắc TP. Cần Thơ, giáp ranh tỉnh An Giang...",
-                    "địa chỉ": "📍 Địa chỉ KCN Thốt Nốt: KV Thới Hòa 1, P. Thốt Nốt, Q. Thốt Nốt, TP. Cần Thơ.",
-                    "giờ làm việc": "⏰ Giờ làm việc văn phòng KCN Thốt Nốt: 7:30 - 17:00 (Thứ 2 - Thứ 6).",
-                    "liên hệ hỗ trợ": "📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865. Số điện thoại văn phòng KCN: 02923.854.408.",
-                    "hỗ trợ": "📞 Hỗ trợ kỹ thuật: Mr Toàn - 0946.000.865.",
-                    "liên hệ": "📞 Số điện thoại liên hệ KCN Thốt Nốt: 02923.854.408",
-                    "hello": "Hello! Xin chào bạn.",
-                    "cám ơn": "Rất vui được giúp bạn! 😊",
-                    "tạm biệt": "Tạm biệt! Chúc bạn một ngày tốt lành.",
-                    "chức năng_member": "Tôi hỗ trợ tra cứu: Chỉ số đồng hồ doanh nghiệp, Thông báo nghỉ, Thống kê Lưu lượng, Phân công công việc...",
-                    "chức năng_guest": "Trợ lý ảo hỗ trợ tìm hiểu thông tin cơ bản về KCN Thốt Nốt. Vui lòng đăng nhập để tra cứu số liệu kỹ thuật."
-                }, null, 4);
+                document.getElementById("aiConfigStaticResponses").value = data.staticResponses
+                    ? (typeof data.staticResponses === 'string' ? data.staticResponses : JSON.stringify(data.staticResponses, null, 4))
+                    : JSON.stringify(defaultStaticResponses, null, 4);
+            }
+        } else {
+            // Fill default values from code variables if document doesn't exist
+            if (document.getElementById("aiConfigSystemContext")) {
+                document.getElementById("aiConfigSystemContext").value = defaultSystemContext;
+            }
+            if (document.getElementById("aiConfigWelcomeGuest")) {
+                document.getElementById("aiConfigWelcomeGuest").value = defaultWelcomeGuest;
+            }
+            if (document.getElementById("aiConfigWelcomeMember")) {
+                document.getElementById("aiConfigWelcomeMember").value = defaultWelcomeMember;
+            }
+            if (document.getElementById("aiConfigCompanyAbbreviations")) {
+                document.getElementById("aiConfigCompanyAbbreviations").value = JSON.stringify(defaultCompanyAbbreviations, null, 4);
+            }
+            if (document.getElementById("aiConfigStaticResponses")) {
+                document.getElementById("aiConfigStaticResponses").value = JSON.stringify(defaultStaticResponses, null, 4);
             }
         }
     } catch (err) {

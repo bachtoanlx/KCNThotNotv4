@@ -1,104 +1,121 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-  <!-- PWA & Mobile Fullscreen -->
-  <link rel='manifest' href='manifest.json'>
-  <meta name='theme-color' content='#273668'>
-  <meta name='apple-mobile-web-app-capable' content='yes'>
-  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
-  <meta name='apple-mobile-web-app-title' content='QL KCN'>
-  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lịch làm việc</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="autoplan.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- PWA & Mobile Fullscreen -->
+    <link rel='manifest' href='manifest.json'>
+    <meta name='theme-color' content='#273668'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+    <meta name='apple-mobile-web-app-title' content='QL KCN'>
+    <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch làm việc</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="autoplan.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
+
 <body class="autoplan-page">
-  <div id="menu-placeholder"></div>
-  <div id="loading-placeholder"></div>
+    <div id="menu-placeholder"></div>
+    <div id="loading-placeholder"></div>
 
-  <div id="notLogged" style="display:none;">
-    <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
-  </div>
-  
-  <!-- MODAL CÔNG VIỆC CÁ NHÂN -->
-  <div id="personalScheduleModal" class="modal-overlay">
-    <div class="personal-schedule-content modal-xl">
-        <span class="close" id="closeModal">&times;</span>
-        <h2>Công việc Sắp tới của bạn</h2>
-        <hr>
-        <div id="personalScheduleDetails">
-            <p>Đang tải lịch...</p>
-        </div>
+    <div id="notLogged" style="display:none;">
+        <a href="trangchu.html">❌ Bạn cần đăng nhập để truy cập trang này.</a>
+    </div>
 
-        <div style="text-align:center; margin-top: 20px;">
-            <button id="closeModalBottom" class="btn-action btn-info">Đóng</button>
+    <!-- MODAL CÔNG VIỆC CÁ NHÂN -->
+    <div id="personalScheduleModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-xl">
+            <span class="close" id="closeModal">&times;</span>
+            <h2>Công việc Sắp tới của bạn</h2>
+            <hr>
+            <div id="personalScheduleDetails">
+                <p>Đang tải lịch...</p>
+            </div>
+
+            <div style="text-align:center; margin-top: 20px;">
+                <button id="closeModalBottom" class="btn-action btn-info">Đóng</button>
+            </div>
         </div>
     </div>
-  </div>
 
-  <!-- MODAL XEM LỊCH THÁNG -->
-  <div id="monthScheduleModal" class="modal-overlay">
-      <div class="personal-schedule-content modal-xl month-schedule-content">
-          <span class="close" id="closeMonthScheduleModal">&times;</span>
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
-              <button id="prevMonthBtn" style="padding: 5px 15px; cursor: pointer; background: var(--primary-color); color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-left: 30px;">&lt; Tháng trước</button>
-              <h2 id="monthScheduleTitle" style="color: var(--primary-color); margin: 0;">Lịch Tháng</h2>
-              <button id="nextMonthBtn" style="padding: 5px 15px; cursor: pointer; background: var(--primary-color); color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-right: 30px;">Tháng sau &gt;</button>
-          </div>
-          <div id="monthCalendarContainer">
-              <!-- Lưới lịch tháng sẽ được vẽ vào đây -->
-          </div>
-      </div>
-  </div>
-
-  <div id="pageContent" style="display:none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-          <h2 style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
-              <button id="monthViewBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; line-height: 1;" title="Xem lịch tháng">📆</button>
-              Lịch làm việc trong tuần
-          </h2>
-          <div style="display: flex; gap: 5px; align-items: center;">
-              <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
-          </div>
-      </div>
-
-      <div class="card-body" style="padding-top: 5px;">
-          <div class="search-container" style="margin-bottom: 8px; margin-top: 0;">
-              <input type="text" id="globalSearchInput" placeholder="🔍 Tìm kiếm công việc, nhân viên, ghi chú..." style="width: 100%; padding: 8px; box-sizing: border-box; font-size: 14px;">
-          </div>
-
-          <div class="table-responsive-wrapper">
-              <table id="scheduleTable">
-                <thead>
-                    <tr>
-                    <th>Thứ & Ngày</th>
-                    <th>Người làm</th>
-                    <th>Công việc</th>
-                    </tr>
-                </thead>
-                <tbody id="scheduleBody"></tbody>
-              </table>
-          </div>
-
-          <div id="weekNavigator">
-            <button id="todayWeekBtn">Tuần hiện tại</button>
-            <div class="week-nav-group">
-              <button id="firstWeekBtn" title="Tuần đầu tiên của năm">|&lt;</button>
-              <button id="prevWeekBtn" title="Tuần trước">&lt;&lt;</button>
-              <span id="weekNumberDisplay"></span>
-              <button id="nextWeekBtn" title="Tuần kế tiếp">&gt;&gt;</button>
-              <button id="lastWeekBtn" title="Tuần cuối cùng của năm">&gt;|</button>
+    <!-- MODAL XEM LỊCH THÁNG -->
+    <div id="monthScheduleModal" class="modal-overlay">
+        <div class="personal-schedule-content modal-xl month-schedule-content">
+            <span class="close" id="closeMonthScheduleModal">&times;</span>
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                <button id="prevMonthBtn"
+                    style="padding: 5px 15px; cursor: pointer; background: var(--primary-color); color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-left: 30px;">&lt;
+                    Tháng trước</button>
+                <h2 id="monthScheduleTitle" style="color: var(--primary-color); margin: 0;">Lịch Tháng</h2>
+                <button id="nextMonthBtn"
+                    style="padding: 5px 15px; cursor: pointer; background: var(--primary-color); color: white; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; margin-right: 30px;">Tháng
+                    sau &gt;</button>
             </div>
-          </div>
-      </div>
-  </div> 
+            <div id="monthCalendarContainer">
+                <!-- Lưới lịch tháng sẽ được vẽ vào đây -->
+            </div>
+        </div>
+    </div>
 
-  <div id="footer-placeholder"></div>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-  <script type="module" src="autoplan.js"></script>
+    <div id="pageContent" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h2 style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+                <button id="monthViewBtn"
+                    style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; line-height: 1;"
+                    title="Xem lịch tháng">📆</button>
+                Lịch làm việc trong tuần
+            </h2>
+            <div style="display: flex; gap: 5px; align-items: center;">
+                <button id="printScheduleBtn"
+                    style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;"
+                    title="In lịch tuần này">🖨️</button>
+            </div>
+        </div>
+
+        <div class="card-body" style="padding-top: 5px;">
+            <div class="search-container"
+                style="margin-bottom: 8px; margin-top: 0; display: flex; gap: 8px; align-items: center; width: 100%;">
+                <input type="text" id="globalSearchInput"
+                    placeholder="🔍 Tìm nhân viên, công việc hoặc nhập ngày cụ thể ..."
+                    style="flex: 1; padding: 8px; box-sizing: border-box; font-size: 14px; height: 38px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="date" id="jumpToDateInput" title="Chọn ngày để nhảy tới tuần trực"
+                    style="padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 150px; background-color: #fcfcfc; height: 38px; flex-shrink: 0;">
+            </div>
+
+            <div class="table-responsive-wrapper">
+                <table id="scheduleTable">
+                    <thead>
+                        <tr>
+                            <th>Thứ & Ngày</th>
+                            <th>Người làm</th>
+                            <th>Công việc</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleBody"></tbody>
+                </table>
+            </div>
+
+            <div id="weekNavigator">
+                <button id="todayWeekBtn">Tuần hiện tại</button>
+                <div class="week-nav-group">
+                    <button id="firstWeekBtn" title="Tuần đầu tiên của năm">|&lt;</button>
+                    <button id="prevWeekBtn" title="Tuần trước">&lt;&lt;</button>
+                    <span id="weekNumberDisplay"></span>
+                    <button id="nextWeekBtn" title="Tuần kế tiếp">&gt;&gt;</button>
+                    <button id="lastWeekBtn" title="Tuần cuối cùng của năm">&gt;|</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script type="module" src="autoplan.js"></script>
 
 </body>
+
 </html>

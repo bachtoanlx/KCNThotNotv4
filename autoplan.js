@@ -87,7 +87,7 @@ function checkAllDataLoadedAndRender(email, role) {
     
     if (initialLoadComplete) {
         try {
-            renderSchedule(searchVal, currentlyViewedDate);
+            renderSchedule(searchVal, currentlyViewedDate, false);
         } catch (e) {
             console.error("Lỗi khi render lịch tuần:", e);
         }
@@ -97,7 +97,7 @@ function checkAllDataLoadedAndRender(email, role) {
     if (rulesLoaded && patternsLoaded && swapsLoaded && maintRulesLoaded) {
         initialLoadComplete = true; 
         try {
-            renderSchedule(searchVal, currentlyViewedDate);
+            renderSchedule(searchVal, currentlyViewedDate, true);
         } catch (e) {
             console.error("Lỗi khi render lịch tuần:", e);
         }
@@ -176,7 +176,7 @@ function setupRealtimeListeners(email, role) {
 
 
 // --- HÀM 4: renderSchedule ---
-async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
+async function renderSchedule(searchQuery = "", referenceDate = new Date(), scrollToToday = false) {
     scheduleBody.innerHTML = "";
     
     const lowerCaseQuery = searchQuery.toLowerCase().trim();
@@ -372,6 +372,27 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
     const [year, weekNo] = getWeekNumber(referenceDate);
     document.getElementById('weekNumberDisplay').textContent = `Tuần ${weekNo} / ${year}`;
+
+    // Đồng bộ lại value của jumpToDateInput khi hiển thị
+    const jumpToDateInput = document.getElementById('jumpToDateInput');
+    if (jumpToDateInput) {
+        const localYear = referenceDate.getFullYear();
+        const localMonth = String(referenceDate.getMonth() + 1).padStart(2, '0');
+        const localDay = String(referenceDate.getDate()).padStart(2, '0');
+        const localIsoStr = `${localYear}-${localMonth}-${localDay}`;
+        if (jumpToDateInput.value !== localIsoStr) {
+            jumpToDateInput.value = localIsoStr;
+        }
+    }
+
+    if (scrollToToday) {
+        setTimeout(() => {
+            const todayRow = document.querySelector('.today-row');
+            if (todayRow) {
+                todayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 150);
+    }
 }
 
 // --- LOGIC GIAO DIỆN & MODAL ---
@@ -393,12 +414,76 @@ document.getElementById("closeModalBottom").onclick = () => {
     personalScheduleModal.style.display = "none";
 };
 
-// Tìm kiếm
+// Hàm thử chuyển đổi chuỗi tìm kiếm thành đối tượng Date
+function tryParseDate(str) {
+    if (!str) return null;
+    str = str.trim();
+    
+    // 1. Dạng YYYY-MM-DD hoặc YYYY/MM/DD
+    let m = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (m) {
+        const y = parseInt(m[1], 10);
+        const month = parseInt(m[2], 10) - 1;
+        const d = parseInt(m[3], 10);
+        const date = new Date(y, month, d);
+        if (!isNaN(date.getTime())) return date;
+    }
+
+    // 2. Dạng DD/MM/YYYY hoặc DD-MM-YYYY
+    m = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+    if (m) {
+        const d = parseInt(m[1], 10);
+        const month = parseInt(m[2], 10) - 1;
+        const y = parseInt(m[3], 10);
+        const date = new Date(y, month, d);
+        if (!isNaN(date.getTime())) return date;
+    }
+
+    // 3. Dạng DD/MM hoặc DD-MM (tự động lấy năm hiện tại)
+    m = str.match(/^(\d{1,2})[-/](\d{1,2})$/);
+    if (m) {
+        const d = parseInt(m[1], 10);
+        const month = parseInt(m[2], 10) - 1;
+        const y = new Date().getFullYear();
+        const date = new Date(y, month, d);
+        if (!isNaN(date.getTime())) return date;
+    }
+    
+    return null;
+}
+
+// Tìm kiếm & tự động nhảy tuần nếu nhập ngày cụ thể
 const globalSearchInput = document.getElementById('globalSearchInput');
 globalSearchInput.addEventListener('input', function() {
     const query = this.value.toLowerCase().trim();
-    renderSchedule(query, currentlyViewedDate);
+    const parsedDate = tryParseDate(query);
+    if (parsedDate) {
+        currentlyViewedDate = parsedDate;
+    }
+    renderSchedule(this.value, currentlyViewedDate, false);
 });
+
+// Chọn ngày trực tiếp bằng Date Picker
+const jumpToDateInput = document.getElementById('jumpToDateInput');
+if (jumpToDateInput) {
+    jumpToDateInput.addEventListener('change', function() {
+        if (this.value) {
+            const selectedDate = new Date(this.value);
+            if (!isNaN(selectedDate.getTime())) {
+                currentlyViewedDate = selectedDate;
+                
+                // Điền định dạng DD/MM/YYYY vào ô tìm kiếm để làm nổi bật ngày vừa chọn
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const year = selectedDate.getFullYear();
+                const dateStr = `${day}/${month}/${year}`;
+                
+                globalSearchInput.value = dateStr;
+                renderSchedule(dateStr, currentlyViewedDate, true);
+            }
+        }
+    });
+}
 
 // In lịch tuần
 document.getElementById('printScheduleBtn').addEventListener('click', () => {
@@ -419,7 +504,7 @@ if (weekNav) {
             case 'lastWeekBtn': currentlyViewedDate = new Date(currentYear, 11, 31); break;
             default: return;
         }
-        renderSchedule(globalSearchInput.value, currentlyViewedDate);
+        renderSchedule(globalSearchInput.value, currentlyViewedDate, true);
     });
 }
 
