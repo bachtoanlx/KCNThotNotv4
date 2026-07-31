@@ -370,6 +370,19 @@
             justify-content: center;
         }
 
+        .chat-toggle.bounce {
+            animation: gentleBounce 0.6s ease-in-out 3; /* Nhảy 3 lần, mỗi lần 0.6 giây */
+        }
+
+        @keyframes gentleBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-12px); /* Nhảy lên cao 12px */
+            }
+        }
+
         .chat-container.hidden {
             transform: translateX(400px);
             opacity: 0;
@@ -513,8 +526,9 @@
             /* Giảm ~20% (từ 4rem) */
             animation: retroBlink 1s steps(2, start) infinite;
             position: relative;
-            top: -8px;
+            top: -5px; /* Điều chỉnh lại trục giữa chính xác */
             margin: 0 -2px;
+            line-height: 1;
         }
 
         @keyframes retroBlink {
@@ -549,7 +563,8 @@
 
             .digital-clock .colon {
                 font-size: 3rem;
-                top: -6px;
+                top: -4px; /* Điều chỉnh lại trục giữa cho mobile */
+                line-height: 1;
             }
         }
 
@@ -673,6 +688,88 @@
             background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
         }
+
+        /* QUICK LINKS GLASSMORPHISM STYLE */
+        .quick-links-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 10px auto 25px auto;
+            width: 98%;
+            max-width: 500px;
+            flex-wrap: nowrap; /* Ép luôn nằm cùng 1 hàng */
+        }
+
+        .quick-link-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 95px;
+            height: 95px;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            border-radius: 14px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            flex-shrink: 0; /* Không cho phép co lại quá mức */
+            box-sizing: border-box;
+            padding: 5px;
+        }
+
+        .quick-link-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.50);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.25);
+        }
+
+        .quick-link-card .link-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            transition: transform 0.2s ease;
+        }
+
+        .quick-link-card:hover .link-icon {
+            transform: scale(1.15);
+        }
+
+        .quick-link-card .link-label {
+            font-size: 12.5px;
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            line-height: 1.2;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .quick-links-container {
+                gap: 8px;
+            }
+            .quick-link-card {
+                width: 78px;
+                height: 78px;
+                border-radius: 10px;
+                padding: 4px;
+            }
+            .quick-link-card .link-icon {
+                font-size: 1.4rem;
+                margin-bottom: 4px;
+            }
+            .quick-link-card .link-label {
+                font-size: 10.5px;
+            }
+        }
     </style>
 
 <body>
@@ -699,6 +796,26 @@
                 <div class="time-part seconds-part">
                     <span class="digit" id="sec1">0</span><span class="digit" id="sec2">0</span>
                 </div>
+            </div>
+
+            <!-- LIÊN KẾT NHANH -->
+            <div class="quick-links-container" id="quickLinksContainer" style="display: none;">
+                <a href="index.html" class="quick-link-card">
+                    <span class="link-icon">📤</span>
+                    <span class="link-label">Gửi chỉ số</span>
+                </a>
+                <a href="dashboard.html" class="quick-link-card">
+                    <span class="link-icon">📊</span>
+                    <span class="link-label">Tổng quan</span>
+                </a>
+                <a href="autoplan.html" class="quick-link-card">
+                    <span class="link-icon">📅</span>
+                    <span class="link-label">Lịch trực</span>
+                </a>
+                <a href="baocao.html" class="quick-link-card">
+                    <span class="link-icon">📝</span>
+                    <span class="link-label">Báo cáo ca</span>
+                </a>
             </div>
 
             <!-- Inline login box (ẩn mặc định, sẽ tự hiện nếu chưa đăng nhập) -->

@@ -646,12 +646,15 @@ loadTemplate("footer-placeholder", "footer.html");
     auth.onAuthStateChanged(async (user) => {
         const homeLoginBox = document.querySelector('.home-login-box');
         const chatDisclaimer = document.querySelector('.chat-disclaimer');
+        const quickLinksContainer = document.getElementById('quickLinksContainer');
 
         if (user) {
             await initializeChatbot();
             // Ẩn box đăng nhập nhanh nếu đã đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'none';
             if (chatDisclaimer) chatDisclaimer.style.display = 'block';
+            // Hiện các liên kết nhanh
+            if (quickLinksContainer) quickLinksContainer.style.display = 'flex';
 
             // Chạy đồng bộ ngầm IndexedDB cho reports_1 và reports_2
             console.log("🔄 Khởi chạy đồng bộ ngầm IndexedDB...");
@@ -670,6 +673,8 @@ loadTemplate("footer-placeholder", "footer.html");
             // Hiện box đăng nhập nhanh nếu chưa đăng nhập
             if (homeLoginBox) homeLoginBox.style.display = 'block';
             if (chatDisclaimer) chatDisclaimer.style.display = 'none';
+            // Ẩn các liên kết nhanh
+            if (quickLinksContainer) quickLinksContainer.style.display = 'none';
             
             // Tải cấu hình chào mừng và proxy cho khách vãng lai
             await initializeChatbot();
@@ -735,3 +740,15 @@ loadTemplate("footer-placeholder", "footer.html");
     setInterval(updateClock, 1000);
     updateClock();
 })();
+
+// Hiệu ứng nhảy nhẹ 3 lần cho nút chatbox sau 3 giây
+setTimeout(() => {
+    const chatToggle = document.getElementById('chatToggle');
+    if (chatToggle) {
+        chatToggle.classList.add('bounce');
+        // Xóa class sau khi chạy xong animation (2 giây) để có thể tái sử dụng nếu cần
+        setTimeout(() => {
+            chatToggle.classList.remove('bounce');
+        }, 2000);
+    }
+}, 3000);

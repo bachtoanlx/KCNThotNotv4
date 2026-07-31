@@ -1145,7 +1145,7 @@ tr.rule-child-row.completed-level-2 > td:first-child::before {
   .autoplan-page nav.navbar, 
   .autoplan-page #footer-placeholder, 
   .autoplan-page #adminTabsContainer, 
-  .autoplan-page #globalSearchInput, 
+  .autoplan-page .search-container, 
   .autoplan-page #printScheduleBtn {
     display: none !important;
   }
