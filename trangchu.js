@@ -649,12 +649,13 @@ loadTemplate("footer-placeholder", "footer.html");
         const quickLinksContainer = document.getElementById('quickLinksContainer');
 
         if (user) {
-            await initializeChatbot();
-            // Ẩn box đăng nhập nhanh nếu đã đăng nhập
+            // Cập nhật giao diện lập tức không chờ đợi
             if (homeLoginBox) homeLoginBox.style.display = 'none';
             if (chatDisclaimer) chatDisclaimer.style.display = 'block';
-            // Hiện các liên kết nhanh
             if (quickLinksContainer) quickLinksContainer.style.display = 'flex';
+
+            // Khởi chạy chatbot ngầm (không chặn luồng UI)
+            initializeChatbot().catch(err => console.error("Lỗi khởi tạo chatbot:", err));
 
             // Chạy đồng bộ ngầm IndexedDB cho reports_1 và reports_2
             console.log("🔄 Khởi chạy đồng bộ ngầm IndexedDB...");
@@ -670,14 +671,13 @@ loadTemplate("footer-placeholder", "footer.html");
                 console.warn("❌ Đồng bộ ngầm reports_2 thất bại:", err);
             });
         } else {
-            // Hiện box đăng nhập nhanh nếu chưa đăng nhập
+            // Cập nhật giao diện lập tức không chờ đợi
             if (homeLoginBox) homeLoginBox.style.display = 'block';
             if (chatDisclaimer) chatDisclaimer.style.display = 'none';
-            // Ẩn các liên kết nhanh
             if (quickLinksContainer) quickLinksContainer.style.display = 'none';
             
-            // Tải cấu hình chào mừng và proxy cho khách vãng lai
-            await initializeChatbot();
+            // Tải cấu hình chào mừng và proxy cho khách vãng lai ngầm
+            initializeChatbot().catch(err => console.error("Lỗi khởi tạo chatbot khách:", err));
         }
         
         // Luôn hiển thị hoặc cập nhật tin nhắn chào mừng phù hợp với quyền hạn của user
