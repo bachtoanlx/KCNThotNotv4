@@ -2415,6 +2415,7 @@ function setupSystemManagement() {
     setupBackupRestore();
     setupResetCache();
     setupDutyEmailManagement();
+    setupReportAlertManagement();
 }
 
 function setupResetCache() {
@@ -2528,6 +2529,83 @@ async function loadDutyEmailConfig() {
         }
     } catch (err) {
         console.error("Lỗi tải cấu hình email lịch trực:", err);
+    }
+}
+
+function setupReportAlertManagement() {
+    loadReportAlertConfig();
+
+    const form = document.getElementById("reportAlertConfigForm");
+    if (!form) return;
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const enabled = document.getElementById("reportAlertEnabled").checked;
+        const recipientsRaw = document.getElementById("reportAlertRecipients").value.trim();
+
+        // Xác thực
+        let recipients = [];
+        if (recipientsRaw) {
+            recipients = recipientsRaw.split(',')
+                .map(email => email.trim())
+                .filter(Boolean);
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+
+            if (invalidEmails.length > 0) {
+                showSwal("error", "Định dạng email không hợp lệ", `Các email sau không đúng định dạng:<br><b>${invalidEmails.join("<br>")}</b>`);
+                return;
+            }
+        } else if (enabled) {
+            showSwal("error", "Thiếu thông tin", "Vui lòng nhập ít nhất một email nhận cảnh báo khi kích hoạt tính năng.");
+            return;
+        }
+
+        try {
+            showLoading("Đang lưu cấu hình cảnh báo...");
+            const configData = {
+                enabled,
+                recipients,
+                updatedAt: serverTimestamp(),
+                updatedBy: auth.currentUser?.email || "admin"
+            };
+
+            await setDoc(doc(db, "settings", "report_email_config"), configData, { merge: true });
+            hideLoading();
+            showSwal("success", "Thành công", "Đã lưu cài đặt gửi email cảnh báo báo cáo mới.");
+            addLog("admin_update_report_email_config", { 
+                email: auth.currentUser?.email || "admin",
+                enabled,
+                recipients: recipients
+            });
+        } catch (err) {
+            hideLoading();
+            showSwal("error", "Lỗi lưu cấu hình", err.message);
+        }
+    });
+}
+
+async function loadReportAlertConfig() {
+    try {
+        const docRef = doc(db, "settings", "report_email_config");
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+            const data = snap.data();
+            if (document.getElementById("reportAlertEnabled")) document.getElementById("reportAlertEnabled").checked = data.enabled || false;
+            if (document.getElementById("reportAlertRecipients")) {
+                document.getElementById("reportAlertRecipients").value = Array.isArray(data.recipients) ? data.recipients.join(", ") : "";
+            }
+        } else {
+            // Mặc định
+            if (document.getElementById("reportAlertEnabled")) document.getElementById("reportAlertEnabled").checked = false;
+            if (document.getElementById("reportAlertRecipients")) {
+                document.getElementById("reportAlertRecipients").value = "";
+            }
+        }
+    } catch (err) {
+        console.error("Lỗi tải cấu hình email cảnh báo báo cáo mới:", err);
     }
 }
 
@@ -2718,6 +2796,9 @@ function setupBackupRestore() {
                 const confEmail = await getDoc(doc(db, "settings", "duty_email_config"));
                 if (confEmail.exists()) backupData["settings_dutyEmailConfig"] = confEmail.data();
 
+                const confReportEmail = await getDoc(doc(db, "settings", "report_email_config"));
+                if (confReportEmail.exists()) backupData["settings_reportEmailConfig"] = confReportEmail.data();
+
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
                 const downloadAnchorNode = document.createElement('a');
                 downloadAnchorNode.setAttribute("href", dataStr);
@@ -2785,6 +2866,7 @@ function setupBackupRestore() {
                     if (data["config_reportConfig"]) await setDoc(doc(db, "config", "reportConfig"), data["config_reportConfig"]);
                     if (data["settings_reportConfig"]) await setDoc(doc(db, "settings", "reportConfig"), data["settings_reportConfig"]);
                     if (data["settings_dutyEmailConfig"]) await setDoc(doc(db, "settings", "duty_email_config"), data["settings_dutyEmailConfig"]);
+                    if (data["settings_reportEmailConfig"]) await setDoc(doc(db, "settings", "report_email_config"), data["settings_reportEmailConfig"]);
 
                     addLog("restore_completed", { email: auth.currentUser?.email });
                     hideLoading();

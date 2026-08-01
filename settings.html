@@ -2,13 +2,13 @@
 <html lang="vi">
 
 <head>
-  <!-- PWA & Mobile Fullscreen -->
-  <link rel='manifest' href='manifest.json'>
-  <meta name='theme-color' content='#273668'>
-  <meta name='apple-mobile-web-app-capable' content='yes'>
-  <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
-  <meta name='apple-mobile-web-app-title' content='QL KCN'>
-  <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
+    <!-- PWA & Mobile Fullscreen -->
+    <link rel='manifest' href='manifest.json'>
+    <meta name='theme-color' content='#273668'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'>
+    <meta name='apple-mobile-web-app-title' content='QL KCN'>
+    <link rel='apple-touch-icon' href='https://cdn-icons-png.flaticon.com/512/6846/6846274.png'>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cài Đặt Hệ Thống</title>
@@ -67,7 +67,8 @@
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
-            z-index: 1; /* Hiển thị phía trên hình chìm */
+            z-index: 1;
+            /* Hiển thị phía trên hình chìm */
         }
 
         .settings-tab-btn:hover {
@@ -323,8 +324,10 @@
         .table-container thead {
             background-color: transparent !important;
         }
+
         /* CSS cho nội dung kiến thức và từ khóa rút gọn */
-        .ai-content-wrapper, .ai-keywords-wrapper {
+        .ai-content-wrapper,
+        .ai-keywords-wrapper {
             display: block;
             white-space: nowrap;
             overflow: hidden;
@@ -334,17 +337,23 @@
             border-radius: 4px;
             padding: 2px 4px;
         }
+
         .ai-content-wrapper {
             max-width: 300px;
         }
+
         .ai-keywords-wrapper {
             max-width: 130px;
         }
-        .ai-content-wrapper:hover, .ai-keywords-wrapper:hover {
+
+        .ai-content-wrapper:hover,
+        .ai-keywords-wrapper:hover {
             background-color: #f1f5f9;
             color: #1e3a8a;
         }
-        .ai-content-wrapper.expanded, .ai-keywords-wrapper.expanded {
+
+        .ai-content-wrapper.expanded,
+        .ai-keywords-wrapper.expanded {
             white-space: normal;
             overflow: visible;
             text-overflow: clip;
@@ -380,6 +389,7 @@
         }
 
         @media (max-width: 768px) {
+
             #addAiKnowledgeBtn,
             #aiGlobalConfigForm button[type="submit"] {
                 height: 27px !important;
@@ -838,24 +848,27 @@
                         </div>
                         <div id="system-content-placeholder">
                             <!-- Phân quyền người dùng -->
-                            <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người dùng</h3>
+                            <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">👥 Phân quyền Người dùng
+                            </h3>
                             <div class="table-container"
                                 style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px; margin-bottom: 20px;">
-                                <table id="usersTable"
-                                    style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <table id="usersTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
                                     <thead
                                         style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
                                         <tr>
                                             <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Email</th>
-                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập cuối</th>
-                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Thiết bị tin cậy</th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Đăng nhập cuối
+                                            </th>
+                                            <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Thiết bị tin cậy
+                                            </th>
                                             <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Vai trò</th>
                                             <th style="padding: 8px; border-bottom: 1px solid #cbd5e1;">Hành động</th>
                                         </tr>
                                     </thead>
                                     <tbody id="usersTableBody">
                                         <tr>
-                                            <td colspan="5" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...</td>
+                                            <td colspan="5" style="padding: 15px; color: #64748b;">Đang tải dữ liệu...
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -888,26 +901,36 @@
                             <!-- Cài đặt gửi email lịch trực tuần cho Lãnh đạo -->
                             <div
                                 style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
-                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">📧 Gửi Email Lịch Trực Tuần Cho Lãnh Đạo</h3>
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">📧 Gửi Email Lịch trực
+                                    Tuần</h3>
                                 <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
-                                    Tự động gửi báo cáo lịch trực tuần đến ban lãnh đạo. Nhập danh sách email nhận và tùy chỉnh lịch gửi.
+                                    Tự động gửi báo cáo lịch trực tuần đến ban lãnh đạo. Nhập danh sách email nhận và
+                                    tùy chỉnh lịch gửi.
                                 </p>
-                                <form id="dutyEmailConfigForm" style="display: flex; flex-direction: column; gap: 12px;">
+                                <form id="dutyEmailConfigForm"
+                                    style="display: flex; flex-direction: column; gap: 12px;">
                                     <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Trạng thái hoạt động:</label>
-                                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; width: fit-content;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Trạng thái hoạt
+                                            động:</label>
+                                        <label
+                                            style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; width: fit-content;">
                                             <input type="checkbox" id="dutyEmailEnabled"> Kích hoạt tự động gửi email
                                         </label>
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 4px;">
-                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Danh sách Email nhận (Cách nhau bằng dấu phẩy):</label>
-                                        <input type="text" id="dutyEmailRecipients" placeholder="Ví dụ: lanhdao1@kcn.vn, lanhdao2@kcn.vn"
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Danh sách Email
+                                            nhận (Cách nhau bằng dấu phẩy):</label>
+                                        <input type="text" id="dutyEmailRecipients"
+                                            placeholder="Ví dụ: lanhdao1@kcn.vn, lanhdao2@kcn.vn"
                                             style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 100%; box-sizing: border-box;">
                                     </div>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                                    <div
+                                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
                                         <div style="display: flex; flex-direction: column; gap: 4px;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày gửi trong tuần:</label>
-                                            <select id="dutyEmailSendDay" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Ngày gửi
+                                                trong tuần:</label>
+                                            <select id="dutyEmailSendDay"
+                                                style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
                                                 <option value="1">Thứ Hai</option>
                                                 <option value="2">Thứ Ba</option>
                                                 <option value="3">Thứ Tư</option>
@@ -918,8 +941,10 @@
                                             </select>
                                         </div>
                                         <div style="display: flex; flex-direction: column; gap: 4px;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ gửi:</label>
-                                            <select id="dutyEmailSendTime" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #333;">Giờ
+                                                gửi:</label>
+                                            <select id="dutyEmailSendTime"
+                                                style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; height: 33px; box-sizing: border-box;">
                                                 <option value="00:00">00:00</option>
                                                 <option value="01:00">01:00</option>
                                                 <option value="02:00">02:00</option>
@@ -948,12 +973,51 @@
                                         </div>
                                     </div>
                                     <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
-                                        <button type="submit" style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; height: 33px; box-sizing: border-box;">
+                                        <button type="submit"
+                                            style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; height: 33px; box-sizing: border-box;">
                                             💾 Lưu cài đặt email
                                         </button>
                                     </div>
                                 </form>
                             </div>
+
+                            <!-- Cài đặt gửi email cảnh báo báo cáo mới -->
+                            <div
+                                style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; margin-bottom: 20px;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">📧 Email Cảnh báo khi
+                                    phát
+                                    hiện báo cáo mới</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                                    Tự động phát hiện khi có báo cáo mới (trong reports_1 hoặc 2) và gửi email tổng hợp
+                                    sau 30 phút kể từ báo cáo đầu tiên của đợt.
+                                </p>
+                                <form id="reportAlertConfigForm"
+                                    style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Trạng thái hoạt
+                                            động:</label>
+                                        <label
+                                            style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; width: fit-content;">
+                                            <input type="checkbox" id="reportAlertEnabled"> Kích hoạt tự động gửi email
+                                            cảnh báo
+                                        </label>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <label style="font-weight: 600; font-size: 13px; color: #333;">Danh sách Email
+                                            nhận cảnh báo (Cách nhau bằng dấu phẩy):</label>
+                                        <input type="text" id="reportAlertRecipients"
+                                            placeholder="Ví dụ: admin@kcn.vn, lanhdao@kcn.vn"
+                                            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; width: 100%; box-sizing: border-box;">
+                                    </div>
+                                    <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                                        <button type="submit"
+                                            style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; height: 33px; box-sizing: border-box;">
+                                            💾 Lưu cài đặt cảnh báo
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
 
 
                             <!-- Làm mới Bộ nhớ đệm (IndexedDB) -->
@@ -976,16 +1040,19 @@
 
                     <!-- Tab 5: Thông tin AI (RAG Knowledge Base) -->
                     <div id="tab-ai" class="settings-tab-pane">
-                        <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div class="settings-header"
+                            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div>
                                 <h2>Quản lý Quy chế & Kiến thức AI (RAG)</h2>
-                                <p class="note">Cung cấp dữ liệu quy chế chính xác để AI học và trả lời người dùng, tránh rò rỉ dữ liệu.</p>
+                                <p class="note">Cung cấp dữ liệu quy chế chính xác để AI học và trả lời người dùng,
+                                    tránh rò rỉ dữ liệu.</p>
                             </div>
-                            <button id="addAiKnowledgeBtn" style="background: #2ecc71; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                            <button id="addAiKnowledgeBtn"
+                                style="background: #2ecc71; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;">
                                 <span>➕</span> Thêm kiến thức mới
                             </button>
                         </div>
-                        
+
                         <!-- Tìm kiếm Quy chế AI -->
                         <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                             <div style="flex: 1;">
@@ -995,63 +1062,105 @@
                             </div>
                         </div>
 
-                            <div class="table-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
-                                <table id="aiKnowledgeTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                    <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
-                                        <tr>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">Tiêu đề</th>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">Nội dung quy chế</th>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 15%;">Từ khóa</th>
-                                            <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 15%;">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="aiKnowledgeTableBody">
-                                        <tr>
-                                            <td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">Đang tải danh sách kiến thức...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="table-container"
+                            style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                            <table id="aiKnowledgeTable"
+                                style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead
+                                    style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                    <tr>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">
+                                            Tiêu đề</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 35%;">
+                                            Nội dung quy chế</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 15%;">
+                                            Từ khóa</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 15%;">
+                                            Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aiKnowledgeTableBody">
+                                    <tr>
+                                        <td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">Đang
+                                            tải danh sách kiến thức...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
                         <!-- Cấu hình Prompt & Lời chào AI -->
-                        <div style="margin-top: 25px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
-                            <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">⚙️ Cấu hình Lời chào & Chỉ dẫn AI</h3>
-                            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Tùy chỉnh Prompt hệ thống (chỉ dẫn hành vi cho AI) và các câu chào mừng kèm câu hỏi gợi ý khi khách hoặc thành viên mở chatbot.</p>
-                            
+                        <div
+                            style="margin-top: 25px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
+                            <h3
+                                style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em; display: flex; align-items: center; gap: 8px;">
+                                ⚙️ Cấu hình Lời chào & Chỉ dẫn AI</h3>
+                            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Tùy chỉnh Prompt hệ thống (chỉ
+                                dẫn hành vi cho AI) và các câu chào mừng kèm câu hỏi gợi ý khi khách hoặc thành viên mở
+                                chatbot.</p>
+
                             <!-- Hướng dẫn định dạng AI -->
-                            <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; color: #1e3a8a; line-height: 1.5;">
+                            <div
+                                style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; color: #1e3a8a; line-height: 1.5;">
                                 <strong>💡 Hướng dẫn cấu hình:</strong>
                                 <ul style="margin: 5px 0 0 18px; padding: 0;">
-                                    <li>Sử dụng cấu trúc <code>[BUTTON]Câu hỏi gợi ý[/BUTTON]</code> để tạo nút bấm nhanh trong nội dung Lời chào.</li>
-                                    <li>Phần <strong>Từ viết tắt</strong> và <strong>Câu trả lời nhanh</strong> phải nhập đúng định dạng JSON chuẩn (ví dụ: các khóa và chuỗi ký tự phải đặt trong dấu nháy kép <code>"</code>).</li>
+                                    <li>Sử dụng cấu trúc <code>[BUTTON]Câu hỏi gợi ý[/BUTTON]</code> để tạo nút bấm
+                                        nhanh trong nội dung Lời chào.</li>
+                                    <li>Phần <strong>Từ viết tắt</strong> và <strong>Câu trả lời nhanh</strong> phải
+                                        nhập đúng định dạng JSON chuẩn (ví dụ: các khóa và chuỗi ký tự phải đặt trong
+                                        dấu nháy kép <code>"</code>).</li>
                                 </ul>
                             </div>
-                            
+
                             <form id="aiGlobalConfigForm" style="display: flex; flex-direction: column; gap: 12px;">
                                 <div>
-                                    <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Chỉ dẫn Hệ thống (System Prompt):</label>
-                                    <textarea id="aiConfigSystemContext" style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;" placeholder="Chỉ dẫn hành vi của AI..."></textarea>
+                                    <label
+                                        style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Chỉ
+                                        dẫn Hệ thống (System Prompt):</label>
+                                    <textarea id="aiConfigSystemContext"
+                                        style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;"
+                                        placeholder="Chỉ dẫn hành vi của AI..."></textarea>
                                 </div>
                                 <div>
-                                    <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Từ viết tắt và gọi tắt tên công ty (Định dạng JSON):</label>
-                                    <textarea id="aiConfigCompanyAbbreviations" style="width: 100%; height: 100px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;" placeholder='VD: { "ntsf": "NTSF", "agri": "Agribank", "add": "Ấn Độ Dương" }'></textarea>
+                                    <label
+                                        style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Từ
+                                        viết tắt và gọi tắt tên công ty (Định dạng JSON):</label>
+                                    <textarea id="aiConfigCompanyAbbreviations"
+                                        style="width: 100%; height: 100px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;"
+                                        placeholder='VD: { "ntsf": "NTSF", "agri": "Agribank", "add": "Ấn Độ Dương" }'></textarea>
                                 </div>
                                 <div>
-                                    <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Câu trả lời nhanh tĩnh (Định dạng JSON):</label>
-                                    <textarea id="aiConfigStaticResponses" style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;" placeholder='VD: { "địa chỉ": "Địa chỉ...", "giới thiệu": "Giới thiệu..." }'></textarea>
+                                    <label
+                                        style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Câu
+                                        trả lời nhanh tĩnh (Định dạng JSON):</label>
+                                    <textarea id="aiConfigStaticResponses"
+                                        style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: monospace; line-height: 1.5; resize: vertical;"
+                                        placeholder='VD: { "địa chỉ": "Địa chỉ...", "giới thiệu": "Giới thiệu..." }'></textarea>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div>
-                                        <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Lời chào Khách vãng lai (Guest):</label>
-                                        <textarea id="aiConfigWelcomeGuest" style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; line-height: 1.5; resize: vertical;" placeholder="Chào mừng khách vãng lai..."></textarea>
+                                        <label
+                                            style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Lời
+                                            chào Khách vãng lai (Guest):</label>
+                                        <textarea id="aiConfigWelcomeGuest"
+                                            style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; line-height: 1.5; resize: vertical;"
+                                            placeholder="Chào mừng khách vãng lai..."></textarea>
                                     </div>
                                     <div>
-                                        <label style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Lời chào Thành viên đăng nhập (Member):</label>
-                                        <textarea id="aiConfigWelcomeMember" style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; line-height: 1.5; resize: vertical;" placeholder="Chào mừng thành viên..."></textarea>
+                                        <label
+                                            style="font-weight: bold; font-size: 13px; color: #475569; display: block; margin-bottom: 5px;">Lời
+                                            chào Thành viên đăng nhập (Member):</label>
+                                        <textarea id="aiConfigWelcomeMember"
+                                            style="width: 100%; height: 120px; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; line-height: 1.5; resize: vertical;"
+                                            placeholder="Chào mừng thành viên..."></textarea>
                                     </div>
                                 </div>
                                 <div style="display: flex; justify-content: flex-end;">
-                                    <button type="submit" style="background: #3498db; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+                                    <button type="submit"
+                                        style="background: #3498db; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
                                         💾 Lưu cấu hình AI
                                     </button>
                                 </div>
@@ -1061,16 +1170,19 @@
 
                     <!-- Tab 6: Liên kết tài liệu -->
                     <div id="tab-documents" class="settings-tab-pane">
-                        <div class="settings-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div class="settings-header"
+                            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div>
                                 <h2>Quản lý Liên kết & Tài liệu nhanh</h2>
-                                <p class="note">Thêm các đường liên kết tài liệu từ bên ngoài để người dùng truy cập nhanh ở Trang chủ.</p>
+                                <p class="note">Thêm các đường liên kết tài liệu từ bên ngoài để người dùng truy cập
+                                    nhanh ở Trang chủ.</p>
                             </div>
-                            <button id="addDocLinkBtn" style="background: #2ecc71; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                            <button id="addDocLinkBtn"
+                                style="background: #2ecc71; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;">
                                 <span>➕</span> Thêm liên kết mới
                             </button>
                         </div>
-                        
+
                         <!-- Tìm kiếm Tài liệu -->
                         <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                             <div style="flex: 1;">
@@ -1080,21 +1192,36 @@
                             </div>
                         </div>
 
-                        <div class="table-container" style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <div class="table-container"
+                            style="max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
                             <table id="docLinkTable" style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                                <thead style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
+                                <thead
+                                    style="background: #f8fafc; position: sticky; top: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); z-index: 1;">
                                     <tr>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 25%;">Tên tài liệu / Liên kết</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 15%;">Phân loại</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 30%;">Mô tả</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 12%;">Đối tượng</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 8%;">Thứ tự</th>
-                                        <th style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 10%;">Hành động</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 25%;">
+                                            Tên tài liệu / Liên kết</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 15%;">
+                                            Phân loại</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: left; width: 30%;">
+                                            Mô tả</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 12%;">
+                                            Đối tượng</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 8%;">
+                                            Thứ tự</th>
+                                        <th
+                                            style="padding: 10px; border-bottom: 1px solid #cbd5e1; text-align: center; width: 10%;">
+                                            Hành động</th>
                                     </tr>
                                 </thead>
                                 <tbody id="docLinkTableBody">
                                     <tr>
-                                        <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Đang tải danh sách liên kết tài liệu...</td>
+                                        <td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Đang
+                                            tải danh sách liên kết tài liệu...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1263,8 +1390,9 @@
             </div>
             <div class="input-row d-flex align-center gap-10 mb-15">
                 <label class="modal-label" style="min-width: 120px; color: #27ae60;">Ngày bắt đầu:</label>
-                <input type="date" id="editRuleStartDate" title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)"
-                    class="modal-input flex-1" style="background-color: #ebf5fb;">
+                <input type="date" id="editRuleStartDate"
+                    title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)" class="modal-input flex-1"
+                    style="background-color: #ebf5fb;">
                 <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
                 <input type="date" id="editRuleEndDate" title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)"
                     class="modal-input flex-1" style="background-color: #fdf2e9;">
@@ -1400,8 +1528,8 @@
                 <div class="input-row d-flex align-center gap-10 mb-15">
                     <label class="modal-label" style="min-width: 120px; color: #27ae60;">Ngày bắt đầu:</label>
                     <input type="date" id="addRuleStartDate"
-                        title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)" class="modal-input flex-1"
-                        style="background-color: #ebf5fb;">
+                        title="Ngày bắt đầu quy tắc định kỳ (để trống nếu áp dụng ngay lập tức)"
+                        class="modal-input flex-1" style="background-color: #ebf5fb;">
                     <label class="modal-label" style="min-width: 120px; color: #d35400;">Ngày kết thúc:</label>
                     <input type="date" id="addRuleEndDate"
                         title="Ngày kết thúc quy tắc định kỳ (để trống nếu vô thời hạn)" class="modal-input flex-1"

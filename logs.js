@@ -181,6 +181,9 @@ import { initMenu } from "./menu.js";
       "admin_delete_document_link": "Xóa liên kết tài liệu",
       "view_document_secured": "Xem tài liệu bảo mật",
       "admin_update_duty_email_config": "Cấu hình gửi email lịch trực",
+      "admin_update_report_email_config": "Cấu hình gửi email cảnh báo báo cáo",
+      "send_report_email_success": "Gửi email cảnh báo báo cáo mới thành công",
+      "send_report_email_failed": "Gửi email cảnh báo báo cáo mới thất bại",
       "debug_ai_knowledge": "Lỗi chẩn đoán quy chế AI",
       "send_duty_email_success": "Gửi email lịch trực thành công",
       "send_duty_email_failed": "Gửi email lịch trực thất bại"
@@ -851,6 +854,16 @@ import { initMenu } from "./menu.js";
                         `;
                     }
                     break;
+                case "admin_update_report_email_config":
+                    {
+                        const statusText = log.enabled ? `<span style="color: green; font-weight: bold;">BẬT</span>` : `<span style="color: red; font-weight: bold;">TẮT</span>`;
+                        const recipientsStr = Array.isArray(log.recipients) ? log.recipients.join(", ") : "N/A";
+                        details = `
+                            <b>Trạng thái:</b> ${statusText}<br>
+                            <b>Email nhận tin:</b> ${recipientsStr}
+                        `;
+                    }
+                    break;
                 case "debug_ai_knowledge":
                     {
                         const errorMsg = log.error || "N/A";
@@ -877,6 +890,33 @@ import { initMenu } from "./menu.js";
                     }
                     break;
                 case "send_duty_email_failed":
+                    {
+                        let parsed = {};
+                        try {
+                            parsed = typeof log.details === "string" ? JSON.parse(log.details) : (log.details || log);
+                        } catch(e) {}
+                        const errMsg = parsed.error || log.error || "N/A";
+                        details = `
+                            <span style="color: red; font-weight: bold;">Gửi thất bại:</span> ${errMsg}
+                        `;
+                    }
+                    break;
+                case "send_report_email_success":
+                    {
+                        let parsed = {};
+                        try {
+                            parsed = typeof log.details === "string" ? JSON.parse(log.details) : (log.details || log);
+                        } catch(e) {}
+                        const recs = parsed.recipients || log.recipients || "N/A";
+                        const count = parsed.reportCount || log.reportCount || 0;
+                        details = `
+                            <span style="color: green; font-weight: bold;">Gửi thành công</span><br>
+                            <b>Số lượng báo cáo:</b> ${count}<br>
+                            <b>Email nhận tin:</b> ${recs}
+                        `;
+                    }
+                    break;
+                case "send_report_email_failed":
                     {
                         let parsed = {};
                         try {
@@ -1281,7 +1321,7 @@ import { initMenu } from "./menu.js";
                   "Báo cáo Chỉ số": ["indicator_entry", "indicator_edit", "indicator_delete", "deleteReport", "deleteReport_failure", "deleteReport_not_found", "deleteReport_file_skipped", "meter_reset_confirmed", "meter_reset_canceled", "meter_reset_canceled_sameday", "duplicate_date_accepted"],
                   "Thông báo Nghỉ & ĐB": ["form2_submit_success", "form2_submit_partial_error", "form2_submit_no_dates", "form2_submit_skipped_only", "form2_special_workday_meaningless", "overwrite_manual_holiday_success", "overwrite_manual_holiday_error", "overwrite_manual_holiday_skipped", "add_holiday_error"],
                   "Quản lý File & Drive": ["updateFile", "report_upload_success", "report_upload_failure", "report_delete_success", "report_delete_failure", "file_creation_success", "file_creation_failure", "file_creation_connection_error", "file_size_error", "drive_upload_success", "drive_upload_failure", "drive_delete_failure", "drive_delete_success", "drive_delete_unauthorized", "drive_cleanup_success", "drive_cleanup_fail", "upload", "delete", "create_report_file"],
-                  "Hệ thống & Cài đặt": ["system_config_update", "backup_created", "restore_completed", "user_role_update", "apps_script_add_user_success", "add_user_email", "hourly_schedule_sent", "daily_schedule_failed", "addDoc_failure", "addDoc_success", "addDoc_unauthorized", "getReportsByDate_failure", "admin_manual_edit", "admin_manual_delete"]
+                  "Hệ thống & Cài đặt": ["system_config_update", "backup_created", "restore_completed", "user_role_update", "apps_script_add_user_success", "add_user_email", "hourly_schedule_sent", "daily_schedule_failed", "addDoc_failure", "addDoc_success", "addDoc_unauthorized", "getReportsByDate_failure", "admin_manual_edit", "admin_manual_delete", "admin_update_report_email_config", "send_report_email_success", "send_report_email_failed"]
               };
 
               let optionsHtml = '';
