@@ -804,6 +804,15 @@ tr.rule-child-row.completed-level-2 > td:first-child::before {
     background-color: #eaf3ff !important;
 }
 
+/* Chiều cao chuẩn chung cho ô tìm kiếm và Date Picker trong Autoplan */
+.search-container input[type="text"],
+.search-container input[type="date"] {
+  height: 33px !important;
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+  box-sizing: border-box !important;
+}
+
 /* === GIAO DIỆN DẠNG THẺ CHO MÀN HÌNH NHỎ === */
 @media (max-width: 768px) {
   /* 
@@ -822,6 +831,14 @@ tr.rule-child-row.completed-level-2 > td:first-child::before {
   /* Khắc phục khe hở: Xóa padding-top của card-body để thanh tìm kiếm nằm sát lên trên */
   .autoplan-page .card-body {
     padding-top: 0 !important;
+  }
+
+  /* Thiết lập chiều cao chuẩn chung cho ô tìm kiếm trên mobile */
+  .search-container input[type="text"],
+  .search-container input[type="date"] {
+    height: 27px !important;
+    padding: 4px 8px !important;
+    font-size: 12px !important;
   }
 
   /* 1. Cố định KHỐI bọc Tiêu đề "Lịch làm việc" và các nút trên cùng */
