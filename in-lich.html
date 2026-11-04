@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In Lịch Trực & Kế Hoạch Công Việc - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    :root {
+      --primary-color: #273668;
+      --accent-color: #2ecc71;
+      --border-color: #333;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Times New Roman', Times, serif;
+      background-color: #eef2f5;
+      color: #111;
+      font-size: 14px;
+    }
+
+    /* === THANH ĐIỀU KHIỂN (KHÔNG IN) === */
+    .control-panel {
+      background: #ffffff;
+      padding: 16px 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      border-bottom: 2px solid #273668;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .control-header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      color: #273668;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: #273668;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background-color: #1a2547;
+    }
+
+    .btn-success {
+      background-color: #27ae60;
+      color: #ffffff;
+      font-size: 15px;
+      padding: 9px 20px;
+    }
+    .btn-success:hover {
+      background-color: #219653;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: #f1f2f6;
+      color: #2f3542;
+      border: 1px solid #ced6e0;
+    }
+    .btn-secondary:hover {
+      background-color: #e4e7ea;
+    }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-group label {
+      font-weight: 500;
+      color: #444;
+      font-size: 13px;
+    }
+
+    .filter-group input[type="date"],
+    .filter-group select {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      padding: 4px 10px;
+      background: #f1f2f6;
+      border: 1px solid #dcdde1;
+      border-radius: 14px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #333;
+    }
+    .chip-btn:hover {
+      background: #dfe4ea;
+    }
+
+    .status-summary {
+      font-size: 13px;
+      font-weight: 600;
+      color: #2980b9;
+      margin-left: auto;
+    }
+
+    /* === KHU VỰC TRÌNH BÀY TRANG IN TRÊN MÀN HÌNH (PREVIEW WYSIWYG) === */
+    .print-preview-container {
+      max-width: 1000px;
+      margin: 25px auto;
+      padding: 0 15px 40px;
+    }
+
+    /* Mỗi tuần là 1 trang giấy */
+    .week-sheet {
+      background: #ffffff;
+      width: 100%;
+      min-height: 297mm; /* Chuẩn A4 portrait */
+      margin: 0 auto 30px;
+      padding: 18mm 16mm 16mm 16mm;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      break-after: page;
+      position: relative;
+    }
+
+    /* Header văn bản hành chính */
+    .sheet-header {
+      margin-bottom: 15px;
+    }
+
+    .agency-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .agency-left {
+      width: 48%;
+      font-size: 12.5px;
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+    .agency-left .line-1 {
+      font-size: 11.5px;
+    }
+    .agency-left .line-2 {
+      font-weight: bold;
+    }
+    .agency-left .line-sep {
+      width: 100px;
+      height: 1px;
+      background: #000;
+      margin: 4px auto 0;
+    }
+
+    .agency-right {
+      width: 48%;
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+    .agency-right .line-1 {
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .agency-right .line-2 {
+      font-weight: bold;
+      font-style: italic;
+    }
+    .agency-right .line-sep {
+      width: 130px;
+      height: 1px;
+      background: #000;
+      margin: 4px auto 0;
+    }
+
+    .title-block {
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    .sheet-main-title {
+      font-size: 18px;
+      font-weight: bold;
+      text-transform: uppercase;
+      color: #000;
+      margin: 0 0 4px 0;
+      letter-spacing: 0.5px;
+    }
+
+    .sheet-sub-title {
+      font-size: 14px;
+      font-style: italic;
+      color: #333;
+      margin: 0;
+    }
+
+    /* Bảng lịch tuần */
+    .schedule-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1.5px solid #000;
+      margin-bottom: 15px;
+      flex: 1;
+    }
+
+    .schedule-table th,
+    .schedule-table td {
+      border: 1px solid #000;
+      padding: 7px 8px;
+      vertical-align: top;
+      font-size: 13.5px;
+      line-height: 1.35;
+    }
+
+    .schedule-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+      font-size: 13px;
+      padding: 8px 6px;
+    }
+
+    .schedule-table td.col-day {
+      width: 17%;
+      font-weight: bold;
+      text-align: center;
+      background-color: #fafafa;
+    }
+
+    .schedule-table td.col-people {
+      width: 35%;
+      font-size: 13px;
+    }
+
+    .schedule-table td.col-jobs {
+      width: 48%;
+      font-size: 13px;
+    }
+
+    .worker-line {
+      margin-bottom: 4px;
+      line-height: 1.35;
+    }
+    .worker-line:last-child {
+      margin-bottom: 0;
+    }
+
+    .job-item {
+      margin-bottom: 5px;
+      line-height: 1.3;
+    }
+    .job-item:last-child {
+      margin-bottom: 0;
+    }
+    .job-note {
+      font-size: 12px;
+      color: #444;
+      font-style: italic;
+      padding-left: 12px;
+    }
+
+    /* Phần chữ ký ở cuối trang */
+    .sheet-footer {
+      margin-top: 15px;
+      padding-top: 5px;
+    }
+
+    .signature-row {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      font-size: 13.5px;
+    }
+
+    .sig-col {
+      width: 45%;
+    }
+
+    .sig-title {
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .sig-hint {
+      font-style: italic;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .sig-space {
+      height: 60px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      font-family: sans-serif;
+    }
+
+    /* === QUY TẮC IN ẤN CHUYÊN DỤNG (MEDIA PRINT) === */
+    @media print {
+      body {
+        background: #ffffff !important;
+        font-size: 13px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .print-preview-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .week-sheet {
+        min-height: 275mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 5mm 6mm 5mm 6mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+      }
+
+      .week-sheet:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+
+      .schedule-table {
+        border: 1.5px solid #000 !important;
+      }
+
+      .schedule-table th,
+      .schedule-table td {
+        border: 1px solid #000 !important;
+        padding: 5px 6px !important;
+      }
+
+      .schedule-table th {
+        background-color: #eee !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .schedule-table td.col-day {
+        background-color: #f7f7f7 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .sig-space {
+        height: 50px !important;
+      }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm 8mm 8mm 8mm;
+    }
+
+    /* Khi chọn chế độ Landscape (Khổ ngang) */
+    body.orientation-landscape {
+      font-size: 13px;
+    }
+    body.orientation-landscape .print-preview-container {
+      max-width: 1200px;
+    }
+    body.orientation-landscape .week-sheet {
+      min-height: 195mm;
+      padding: 12mm 16mm;
+    }
+    @media print {
+      body.orientation-landscape .week-sheet {
+        min-height: 190mm !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BỘ ĐIỀU KHIỂN & CÔNG CỤ (CHỈ HIỆN TRÊN MÀN HÌNH, TỰ ẨN KHI BẤM IN) -->
+  <div class="control-panel no-print">
+    <div class="control-header">
+      <h1>🖨️ In Lịch Trực & Kế Hoạch Tuần</h1>
+      <div class="control-actions">
+        <a href="autoplan.html" class="btn btn-secondary">⬅️ Về Lịch Làm Việc</a>
+        <button id="previewBtn" class="btn btn-primary">👁️ Tải lại dữ liệu</button>
+        <button id="printBtn" class="btn btn-success">🖨️ IN LỊCH / XUẤT PDF</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="startDate">Từ ngày:</label>
+        <input type="date" id="startDate">
+      </div>
+      <div class="filter-group">
+        <label for="endDate">Đến ngày:</label>
+        <input type="date" id="endDate">
+      </div>
+
+      <div class="quick-chips">
+        <button class="chip-btn" id="chipThisWeek">Tuần này</button>
+        <button class="chip-btn" id="chipNextWeek">Tuần sau</button>
+        <button class="chip-btn" id="chipTwoWeeks">2 Tuần</button>
+        <button class="chip-btn" id="chipThisMonth">Tháng này</button>
+        <button class="chip-btn" id="chipNextMonth">Tháng sau</button>
+      </div>
+
+      <div class="filter-group" style="margin-left: 10px;">
+        <label for="pageOrientation">Khổ in:</label>
+        <select id="pageOrientation">
+          <option value="portrait" selected>📄 A4 Dọc</option>
+          <option value="landscape">📑 A4 Ngang</option>
+        </select>
+      </div>
+
+      <div class="filter-group" style="margin-left: 5px;">
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+          <input type="checkbox" id="showSignatures" checked> Hiện chữ ký duyệt
+        </label>
+      </div>
+
+      <div class="status-summary" id="statusSummary">
+        Đang tải dữ liệu...
+      </div>
+    </div>
+  </div>
+
+  <!-- VÙNG HIỂN THỊ CÁC TRANG TUẦN ĐỂ XEM TRƯỚC VÀ IN -->
+  <div class="print-preview-container" id="printSheetsContainer">
+    <div class="empty-state">
+      <h3>⏳ Đang tải dữ liệu lịch trực từ hệ thống...</h3>
+      <p style="color: #666;">Vui lòng đợi giây lát.</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script type="module">
+    import { db, onAuth, showSwal, showLoading, hideLoading } from "./script.js";
+    import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { getWeekNumber, computeDaySchedule } from "./autoplan-core.js";
+
+    let allRulesData = [];
+    let allPatternsData = [];
+    let allSwapsData = [];
+    let isDataLoaded = false;
+
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const statusSummary = document.getElementById("statusSummary");
+    const printContainer = document.getElementById("printSheetsContainer");
+    const showSignaturesCheckbox = document.getElementById("showSignatures");
+
+    // Format ngày DD/MM/YYYY
+    function formatDateVN(date) {
+      const d = String(date.getDate()).padStart(2, '0');
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const y = date.getFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    // Format ngày YYYY-MM-DD cho input date
+    function formatISODate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // Lấy ngày Thứ Hai của tuần chứa date
+    function getMondayOfWeek(d) {
+      const date = new Date(d);
+      date.setHours(0, 0, 0, 0);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(date.setDate(diff));
+    }
+
+    // Lấy ngày Chủ Nhật của tuần chứa date
+    function getSundayOfWeek(d) {
+      const mon = getMondayOfWeek(d);
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      sun.setHours(23, 59, 59, 999);
+      return sun;
+    }
+
+    // Thiết lập ngày mặc định (Đọc từ URL hoặc Tuần hiện tại)
+    function initDefaultDates() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dateParam = urlParams.get('date');
+      const baseDate = dateParam ? new Date(dateParam) : new Date();
+
+      const monday = getMondayOfWeek(baseDate);
+      const sunday = getSundayOfWeek(baseDate);
+
+      startDateInput.value = formatISODate(monday);
+      endDateInput.value = formatISODate(sunday);
+    }
+
+    // Tải dữ liệu từ Firestore
+    async function loadAllData() {
+      showLoading("Đang tải dữ liệu phân ca và lịch làm việc...");
+      try {
+        const [rulesSnap, patternsSnap, swapsSnap] = await Promise.all([
+          getDocs(query(collection(db, "work_rules"))),
+          getDocs(query(collection(db, "work_patterns"))),
+          getDocs(query(collection(db, "shift_swaps")))
+        ]);
+
+        allRulesData = rulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        allPatternsData = patternsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        allSwapsData = swapsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        isDataLoaded = true;
+        hideLoading();
+        renderAllWeekSheets();
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+        hideLoading();
+        showSwal("error", "Lỗi tải dữ liệu", "Không thể nạp dữ liệu từ máy chủ: " + error.message);
+      }
+    }
+
+    // Tính toán và tạo toàn bộ các trang in theo tuần
+    function renderAllWeekSheets() {
+      if (!isDataLoaded) return;
+
+      const startVal = startDateInput.value;
+      const endVal = endDateInput.value;
+
+      if (!startVal || !endVal) {
+        printContainer.innerHTML = `
+          <div class="empty-state">
+            <h3>⚠️ Vui lòng chọn khoảng thời gian</h3>
+            <p>Chọn Ngày bắt đầu và Ngày kết thúc để hệ thống tạo danh sách các trang in.</p>
+          </div>
+        `;
+        statusSummary.textContent = "Chưa chọn ngày";
+        return;
+      }
+
+      const rawStartDate = new Date(startVal + 'T00:00:00');
+      const rawEndDate = new Date(endVal + 'T23:59:59');
+
+      if (rawStartDate > rawEndDate) {
+        printContainer.innerHTML = `
+          <div class="empty-state" style="color: #c0392b;">
+            <h3>❌ Khoảng ngày không hợp lệ</h3>
+            <p>Ngày bắt đầu không được lớn hơn ngày kết thúc!</p>
+          </div>
+        `;
+        statusSummary.textContent = "Ngày không hợp lệ";
+        return;
+      }
+
+      // Làm tròn về Thứ 2 đầu tiên và Chủ Nhật cuối cùng
+      const startMonday = getMondayOfWeek(rawStartDate);
+      const endSunday = getSundayOfWeek(rawEndDate);
+
+      // Thu thập danh sách các Thứ Hai của từng tuần
+      const weeks = [];
+      let currentMonday = new Date(startMonday);
+
+      while (currentMonday <= endSunday) {
+        weeks.push(new Date(currentMonday));
+        currentMonday.setDate(currentMonday.getDate() + 7);
+      }
+
+      if (weeks.length === 0) {
+        printContainer.innerHTML = `
+          <div class="empty-state">
+            <h3>Không có tuần nào trong khoảng thời gian đã chọn</h3>
+          </div>
+        `;
+        statusSummary.textContent = "0 tuần";
+        return;
+      }
+
+      statusSummary.textContent = `Tổng cộng: ${weeks.length} tuần (${weeks.length} trang in A4)`;
+
+      // Render từng trang tuần
+      let sheetsHtml = "";
+      const showSignatures = showSignaturesCheckbox.checked;
+
+      weeks.forEach((weekMonday, index) => {
+        const weekSunday = new Date(weekMonday);
+        weekSunday.setDate(weekMonday.getDate() + 6);
+
+        const [year, weekNo] = getWeekNumber(weekMonday);
+        const fromDateStr = formatDateVN(weekMonday);
+        const toDateStr = formatDateVN(weekSunday);
+
+        // Sinh 7 dòng cho 7 ngày trong tuần
+        let rowsHtml = "";
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+          const dayDate = new Date(weekMonday);
+          dayDate.setDate(weekMonday.getDate() + dayOffset);
+
+          const thuText = dayDate.getDay() === 0 ? "Chủ Nhật" : "Thứ " + (dayDate.getDay() + 1);
+          const dateVN = formatDateVN(dayDate);
+
+          const { people, jobs } = computeDaySchedule(dayDate, allPatternsData, allRulesData, allSwapsData);
+
+          const peopleHtml = people.length
+            ? people.map(p => `<div class="worker-line">${p}</div>`).join("")
+            : `<span style="color:#777;">-</span>`;
+
+          const jobsHtml = jobs.length
+            ? jobs.join("")
+            : `<span style="color:#777;">-</span>`;
+
+          rowsHtml += `
+            <tr>
+              <td class="col-day">
+                ${thuText}<br>
+                <span style="font-weight: normal; font-size: 12.5px;">(${dateVN})</span>
+              </td>
+              <td class="col-people">${peopleHtml}</td>
+              <td class="col-jobs">${jobsHtml}</td>
+            </tr>
+          `;
+        }
+
+        // Chữ ký
+        const signatureHtml = showSignatures ? `
+          <div class="sheet-footer">
+            <div class="signature-row">
+              <div class="sig-col">
+                <div class="sig-title">NGƯỜI LẬP LỊCH</div>
+                <div class="sig-hint">(Ký và ghi rõ họ tên)</div>
+                <div class="sig-space"></div>
+              </div>
+              <div class="sig-col">
+                <div class="sig-title">LÃNH ĐẠO / TRƯỞNG CA DUYỆT</div>
+                <div class="sig-hint">(Ký và ghi rõ họ tên)</div>
+                <div class="sig-space"></div>
+              </div>
+            </div>
+          </div>
+        ` : "";
+
+        sheetsHtml += `
+          <div class="week-sheet" id="week-page-${index + 1}">
+            <div>
+              <div class="sheet-header">
+                <div class="agency-row">
+                  <div class="agency-left">
+                    <div class="line-1">BAN QUẢN LÝ CÁC KHU CHẾ XUẤT & CN CẦN THƠ</div>
+                    <div class="line-2">TRUNG TÂM XÂY DỰNG HẠ TẦNG KCN THỐT NỐT</div>
+                    <div class="line-sep"></div>
+                  </div>
+                  <div class="agency-right">
+                    <div class="line-1">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                    <div class="line-2">Độc lập - Tự do - Hạnh phúc</div>
+                    <div class="line-sep"></div>
+                  </div>
+                </div>
+
+                <div class="title-block">
+                  <h2 class="sheet-main-title">LỊCH TRỰC VẬN HÀNH & KẾ HOẠCH CÔNG VIỆC</h2>
+                  <p class="sheet-sub-title">TUẦN ${weekNo} (Từ ngày ${fromDateStr} đến ngày ${toDateStr} năm ${year})</p>
+                </div>
+              </div>
+
+              <table class="schedule-table">
+                <thead>
+                  <tr>
+                    <th style="width: 17%;">Thứ & Ngày</th>
+                    <th style="width: 35%;">Ca trực / Người thực hiện</th>
+                    <th style="width: 48%;">Nội dung công việc</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            ${signatureHtml}
+          </div>
+        `;
+      });
+
+      printContainer.innerHTML = sheetsHtml;
+    }
+
+    // Sự kiện nút chip chọn nhanh
+    document.getElementById("chipThisWeek").onclick = () => {
+      const now = new Date();
+      startDateInput.value = formatISODate(getMondayOfWeek(now));
+      endDateInput.value = formatISODate(getSundayOfWeek(now));
+      renderAllWeekSheets();
+    };
+
+    document.getElementById("chipNextWeek").onclick = () => {
+      const nextWeekDate = new Date();
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      startDateInput.value = formatISODate(getMondayOfWeek(nextWeekDate));
+      endDateInput.value = formatISODate(getSundayOfWeek(nextWeekDate));
+      renderAllWeekSheets();
+    };
+
+    document.getElementById("chipTwoWeeks").onclick = () => {
+      const now = new Date();
+      const nextWeekDate = new Date();
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      startDateInput.value = formatISODate(getMondayOfWeek(now));
+      endDateInput.value = formatISODate(getSundayOfWeek(nextWeekDate));
+      renderAllWeekSheets();
+    };
+
+    document.getElementById("chipThisMonth").onclick = () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      startDateInput.value = formatISODate(getMondayOfWeek(firstDay));
+      endDateInput.value = formatISODate(getSundayOfWeek(lastDay));
+      renderAllWeekSheets();
+    };
+
+    document.getElementById("chipNextMonth").onclick = () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      startDateInput.value = formatISODate(getMondayOfWeek(firstDay));
+      endDateInput.value = formatISODate(getSundayOfWeek(lastDay));
+      renderAllWeekSheets();
+    };
+
+    // Sự kiện thay đổi ngày & checkbox
+    startDateInput.onchange = renderAllWeekSheets;
+    endDateInput.onchange = renderAllWeekSheets;
+    showSignaturesCheckbox.onchange = renderAllWeekSheets;
+    document.getElementById("previewBtn").onclick = renderAllWeekSheets;
+
+    const pageOrientationSelect = document.getElementById("pageOrientation");
+    pageOrientationSelect.onchange = () => {
+      const isLandscape = pageOrientationSelect.value === 'landscape';
+      document.body.classList.toggle('orientation-landscape', isLandscape);
+      let pageStyleEl = document.getElementById('dynamicPageStyle');
+      if (!pageStyleEl) {
+        pageStyleEl = document.createElement('style');
+        pageStyleEl.id = 'dynamicPageStyle';
+        document.head.appendChild(pageStyleEl);
+      }
+      pageStyleEl.innerHTML = `@page { size: A4 ${isLandscape ? 'landscape' : 'portrait'}; margin: 8mm 8mm 8mm 8mm; }`;
+    };
+
+    // Nút in
+    document.getElementById("printBtn").onclick = () => {
+      window.print();
+    };
+
+    // Khởi chạy khi load
+    initDefaultDates();
+    onAuth(user => {
+      if (user) {
+        loadAllData();
+      } else {
+        printContainer.innerHTML = `
+          <div class="empty-state">
+            <h3>❌ Yêu cầu đăng nhập</h3>
+            <p>Bạn cần đăng nhập vào hệ thống để tải dữ liệu lịch trực.</p>
+            <a href="trangchu.html" class="btn btn-primary" style="margin-top: 10px;">Về trang đăng nhập</a>
+          </div>
+        `;
+        statusSummary.textContent = "Chưa đăng nhập";
+      }
+    });
+  </script>
+</body>
+</html>
