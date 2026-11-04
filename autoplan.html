@@ -392,8 +392,7 @@
           Lịch làm việc trong tuần
       </h2>
       <div style="display: flex; gap: 5px; align-items: center;">
-          <a href="in-lich.html" id="openPrintPageBtn" style="text-decoration: none; font-size: 13px; font-weight: 600; background: #273668; color: white; padding: 5px 12px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;" title="Mở trang in lịch nhiều tuần tùy chọn">🖨️ In nhiều tuần</a>
-          <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In nhanh tuần hiện tại">🖨️</button>
+          <button id="printScheduleBtn" style="background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 10px; margin: 0; color: #333;" title="In lịch tuần này">🖨️</button>
       </div>
   </div>
 
@@ -3009,11 +3008,7 @@ async function renderSchedule(searchQuery = "", referenceDate = new Date()) {
 
     const [year, weekNo] = getWeekNumber(referenceDate);
     document.getElementById('weekNumberDisplay').textContent = `Tuần ${weekNo} / ${year}`;
-    const openPrintBtn = document.getElementById('openPrintPageBtn');
-    if (openPrintBtn) {
-        const iso = `${referenceDate.getFullYear()}-${String(referenceDate.getMonth() + 1).padStart(2, '0')}-${String(referenceDate.getDate()).padStart(2, '0')}`;
-        openPrintBtn.href = `in-lich.html?date=${iso}`;
-    }
+
     
 }
 
