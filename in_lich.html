@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In Lịch Trực & Kế Hoạch Công Việc - KCN Thốt Nốt</title>
+  <link rel="stylesheet" href="in_lich.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+<body>
+
+  <!-- KHỐI ĐIỀU KHIỂN DÀNH CHO MÀN HÌNH (ẨN KHI IN) -->
+  <header class="print-toolbar no-print">
+    <div class="toolbar-header">
+      <h1 class="toolbar-title">
+        <span>🖨️ In Lịch Trực & Kế Hoạch Công Việc</span>
+      </h1>
+      <div class="toolbar-actions">
+        <a href="autoplan.html" class="btn-action btn-back" title="Quay lại bảng lịch làm việc chính">
+          <span>◀ Về Lịch Làm Việc</span>
+        </a>
+        <button id="btnRefreshData" class="btn-action btn-refresh" title="Tải lại dữ liệu mới nhất từ hệ thống">
+          <span>🔄 Tải lại dữ liệu</span>
+        </button>
+        <button id="btnPrintSchedule" class="btn-action btn-print" title="Mở hộp thoại In hoặc Lưu thành file PDF">
+          <span>🖨️ In Lịch (Xuất PDF)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- CÁC TÙY CHỌN BỘ LỌC THỜI GIAN VÀ KHỔ IN -->
+    <div class="toolbar-controls">
+      <div class="control-group">
+        <label for="startDateInput">Từ ngày:</label>
+        <input type="date" id="startDateInput">
+      </div>
+
+      <div class="control-group">
+        <label for="endDateInput">Đến ngày:</label>
+        <input type="date" id="endDateInput">
+      </div>
+
+      <div class="control-group quick-buttons">
+        <button type="button" class="btn-quick" id="btnQuickCurrentWeek">Tuần này</button>
+        <button type="button" class="btn-quick" id="btnQuickNextWeek">Tuần sau</button>
+        <button type="button" class="btn-quick" id="btnQuickTwoWeeks">2 tuần tới</button>
+        <button type="button" class="btn-quick" id="btnQuickCurrentMonth">Tháng này</button>
+        <button type="button" class="btn-quick" id="btnQuickNextMonth">Tháng sau</button>
+        <button type="button" class="btn-quick" id="btnQuickFourWeeks">4 tuần</button>
+      </div>
+
+      <div class="control-group" style="margin-left: auto;">
+        <label for="pageOrientationSelect">Khổ giấy in:</label>
+        <select id="pageOrientationSelect">
+          <option value="portrait">Khổ Dọc (A4 Portrait)</option>
+          <option value="landscape">Khổ Ngang (A4 Landscape)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="fontSizeSelect">Cỡ chữ in:</label>
+        <select id="fontSizeSelect">
+          <option value="normal" selected>Vừa (Chuẩn)</option>
+          <option value="small">Nhỏ (Nhiều việc)</option>
+          <option value="large">Lớn</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: #fff;">
+          <input type="checkbox" id="showSignaturesCheckbox" checked> Hiện ô ký tên
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: #fff;">
+          <input type="checkbox" id="includeAdminJobsCheckbox"> Kèm #CV Admin
+        </label>
+      </div>
+    </div>
+
+    <!-- DÒNG TRẠNG THÁI HIỂN THỊ KẾT QUẢ TÍNH TOÁN TUẦN -->
+    <div class="toolbar-status">
+      <span id="rangeSummaryText">⏳ Đang khởi tạo dữ liệu...</span>
+      <span id="pageCountBadge" style="font-weight: bold; color: #fff;"></span>
+    </div>
+  </header>
+
+  <!-- THÔNG BÁO KHI CHƯA ĐĂNG NHẬP -->
+  <div id="notLogged" style="display:none; padding: 40px; text-align: center; font-size: 16px; color: #c0392b; font-weight: bold;">
+    ❌ Bạn cần đăng nhập để truy cập trang in lịch này. Vui lòng đăng nhập từ <a href="trangchu.html">Trang chủ</a> hoặc <a href="autoplan.html">Lịch làm việc</a>.
+  </div>
+
+  <!-- CONTAINER XEM TRƯỚC VÀ IN TẤT CẢ CÁC TRANG TUẦN -->
+  <main id="printPreviewContainer" class="preview-container">
+    <div style="text-align: center; padding: 50px 20px; color: #666;">
+      <p style="font-size: 16px;">Đang tải và chuẩn bị dữ liệu lịch làm việc...</p>
+    </div>
+  </main>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+
+  <script type="module">
+    import { auth, db, onAuth, showLoading, hideLoading, showSwal } from "./script.js";
+    import { collection, getDocs, query } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+    import { 
+      getWeekNumber, 
+      getWeekOfMonth, 
+      getDaysDifference, 
+      isRuleActiveOnDate, 
+      sortShiftRules, 
+      ruleMatchesDate 
+    } from "./autoplan-core.js";
+
+    // Trạng thái dữ liệu
+    let allRulesData = [];
+    let allPatternsData = [];
+    let allSwapsData = [];
+    let isDataLoaded = false;
+
+    // Elements
+    const notLogged = document.getElementById("notLogged");
+    const printPreviewContainer = document.getElementById("printPreviewContainer");
+    const startDateInput = document.getElementById("startDateInput");
+    const endDateInput = document.getElementById("endDateInput");
+    const pageOrientationSelect = document.getElementById("pageOrientationSelect");
+    const fontSizeSelect = document.getElementById("fontSizeSelect");
+    const showSignaturesCheckbox = document.getElementById("showSignaturesCheckbox");
+    const includeAdminJobsCheckbox = document.getElementById("includeAdminJobsCheckbox");
+    const rangeSummaryText = document.getElementById("rangeSummaryText");
+    const pageCountBadge = document.getElementById("pageCountBadge");
+    const btnPrintSchedule = document.getElementById("btnPrintSchedule");
+    const btnRefreshData = document.getElementById("btnRefreshData");
+
+    // =========================================================================
+    // 1. CÁC HÀM TIỆN ÍCH NGÀY THÁNG
+    // =========================================================================
+
+    // Chuyển Date thành YYYY-MM-DD theo giờ địa phương (tránh lệch timezone UTC)
+    function formatLocalYMD(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Định dạng hiển thị DD/MM/YYYY
+    function formatDisplayDate(d) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+
+    // Tìm Thứ Hai của tuần chứa ngày d
+    function getMondayOfWeek(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diff = day === 0 ? -6 : 1 - day; // Nếu CN (0) thì trừ 6 ngày, T2 (1) thì giữ nguyên
+      date.setDate(date.getDate() + diff);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    // Tìm Chủ Nhật của tuần chứa ngày d
+    function getSundayOfWeek(d) {
+      const monday = getMondayOfWeek(d);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return sunday;
+    }
+
+    // Tính danh sách các ngày Thứ Hai của các tuần nằm trong khoảng từ start đến end
+    function getWeeksInRange(startDateStr, endDateStr) {
+      if (!startDateStr || !endDateStr) return [];
+
+      const start = new Date(startDateStr + 'T00:00:00');
+      const end = new Date(endDateStr + 'T00:00:00');
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
+        return [];
+      }
+
+      const startMonday = getMondayOfWeek(start);
+      const endSunday = getSundayOfWeek(end);
+
+      const weeks = [];
+      let cur = new Date(startMonday);
+
+      while (cur <= endSunday) {
+        weeks.push(new Date(cur));
+        cur.setDate(cur.getDate() + 7);
+      }
+
+      return weeks;
+    }
+
+    // =========================================================================
+    // 2. TẢI DỮ LIỆU TỪ FIRESTORE
+    // =========================================================================
+    async function loadAllScheduleData() {
+      try {
+        showLoading("Đang tải dữ liệu phân ca và quy tắc công việc...");
+
+        const [rulesSnap, patternsSnap, swapsSnap] = await Promise.all([
+          getDocs(query(collection(db, "work_rules"))),
+          getDocs(query(collection(db, "work_patterns"))),
+          getDocs(query(collection(db, "shift_swaps")))
+        ]);
+
+        allRulesData = rulesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        allPatternsData = patternsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        allSwapsData = swapsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        isDataLoaded = true;
+        hideLoading();
+        renderAllPrintPages();
+      } catch (error) {
+        hideLoading();
+        console.error("Lỗi khi tải dữ liệu lịch:", error);
+        showSwal("error", "Lỗi tải dữ liệu", "Không thể tải dữ liệu từ Firestore: " + error.message);
+      }
+    }
+
+    // =========================================================================
+    // 3. TÍNH TOÁN CA TRỰC VÀ CÔNG VIỆC CHO MỘT NGÀY CỤ THỂ
+    //    (Tái hiện chuẩn 100% logic thuật toán của autoplan.html)
+    // =========================================================================
+    function computeDaySchedule(d, includeAdminJobs) {
+      const yesterday = new Date(d);
+      yesterday.setDate(d.getDate() - 1);
+
+      const isoDate = formatLocalYMD(d);
+      const swapsForDate = allSwapsData.filter(s => s.date === isoDate);
+
+      let people = [];
+      const dayOfWeek = d.getDay() === 0 ? 8 : d.getDay() + 1; // 2..8
+
+      // ----- 1) LỊCH CỐ ĐỊNH (administrative) -----
+      const adminRules = allPatternsData.filter(p => p.type === 'administrative');
+      adminRules.forEach(rule => {
+        if (!isRuleActiveOnDate(rule, d) || !Array.isArray(rule.workDaysOfWeek)) {
+          return;
+        }
+
+        const startTime = rule.startTime || "00:00";
+        const endTime = rule.endTime || "00:00";
+
+        const [startH, startM] = (startTime || "00:00").split(':').map(Number);
+        const [endH, endM] = (endTime || "00:00").split(':').map(Number);
+        let isNightShift = false;
+
+        if ((endH < startH) || (endH === startH && endM < startM)) {
+          isNightShift = true;
+        } else if (rule.isNextDay === true && startH === endH && startM === endM) {
+          isNightShift = true; // Ca 24h
+        }
+
+        if (rule.workDaysOfWeek.includes(dayOfWeek)) {
+          let displayName = rule.displayName || rule.user || "Chưa đặt tên";
+
+          // Kiểm tra hoán đổi ca
+          const swap = swapsForDate.find(s => s.user1 === displayName);
+          let swapBadge = "";
+          if (swap) {
+            displayName = swap.user2;
+            swapBadge = ` <span class="swap-badge">🔄 (Thay ${swap.user1})</span>`;
+          }
+
+          const groupTag = rule.shiftGroup ? ` <span class="shift-group-tag">[${rule.shiftGroup}]</span>` : ` <span class="shift-group-tag">[Hành chính]</span>`;
+          const timeText = isNightShift ? `${startTime} – ${endTime} hôm sau` : `${startTime} – ${endTime}`;
+
+          people.push(`
+            <div class="shift-person-item">
+              • <span class="person-name">${displayName}</span> <span class="shift-time">(${timeText})</span>${groupTag}${swapBadge}
+            </div>
+          `);
+        }
+      });
+
+      // ----- 2) LỊCH XOAY CA (shift_rotation) -----
+      const allShiftRules = allPatternsData.filter(p => p.type === 'shift_rotation');
+      if (allShiftRules.length > 0) {
+        const shiftGroups = {};
+        allShiftRules.forEach(rule => {
+          const group = rule.shiftGroup || "Vận hành";
+          if (!shiftGroups[group]) shiftGroups[group] = [];
+          shiftGroups[group].push(rule);
+        });
+
+        for (const group in shiftGroups) {
+          const groupRules = shiftGroups[group];
+          const sortedGroupRules = [...groupRules].sort(sortShiftRules);
+          const groupRefDate = new Date(sortedGroupRules[0].patternStartDate + 'T00:00:00');
+
+          const membersYesterday = groupRules
+            .filter(rule => isRuleActiveOnDate(rule, yesterday))
+            .sort(sortShiftRules);
+
+          const membersToday = groupRules
+            .filter(rule => isRuleActiveOnDate(rule, d))
+            .sort(sortShiftRules);
+
+          let workerYesterday = null, isNightYesterday = false, workerYesterdayName = null;
+
+          if (membersYesterday.length > 0) {
+            const n_yesterday = membersYesterday.length;
+            const daysSinceYesterday = getDaysDifference(yesterday, groupRefDate);
+            const workerIndexYesterday = (daysSinceYesterday % n_yesterday + n_yesterday) % n_yesterday;
+
+            workerYesterday = membersYesterday[workerIndexYesterday];
+            workerYesterdayName = workerYesterday ? workerYesterday.displayName : null;
+            if (workerYesterday) {
+              const [startH, startM] = (workerYesterday.startTime || "00:00").split(':').map(Number);
+              const [endH, endM] = (workerYesterday.endTime || "00:00").split(':').map(Number);
+
+              if ((endH < startH) || (endH === startH && endM < startM)) {
+                isNightYesterday = true;
+              } else if (workerYesterday.isNextDay === true && startH === endH && startM === endM) {
+                isNightYesterday = true;
+              }
+            }
+          }
+
+          if (membersToday.length > 0) {
+            const n_today = membersToday.length;
+            const daysSinceToday = getDaysDifference(d, groupRefDate);
+            const workerIndexToday = (daysSinceToday % n_today + n_today) % n_today;
+            const workerToday = membersToday[workerIndexToday];
+
+            if (workerToday) {
+              let isNightToday = false;
+              const [startH, startM] = (workerToday.startTime || "00:00").split(':').map(Number);
+              const [endH, endM] = (workerToday.endTime || "00:00").split(':').map(Number);
+
+              if ((endH < startH) || (endH === startH && endM < startM)) {
+                isNightToday = true;
+              } else if (workerToday.isNextDay === true && startH === endH && startM === endM) {
+                isNightToday = true;
+              }
+
+              if (!isNightYesterday || workerYesterdayName !== workerToday.displayName) {
+                let displayName = workerToday.displayName || workerToday.user || "Chưa đặt tên";
+
+                // Kiểm tra hoán đổi ca
+                const swap = swapsForDate.find(s => s.user1 === displayName);
+                let swapBadge = "";
+                if (swap) {
+                  displayName = swap.user2;
+                  swapBadge = ` <span class="swap-badge">🔄 (Thay ${swap.user1})</span>`;
+                }
+
+                const groupTag = Object.keys(shiftGroups).length > 1 ? ` <span class="shift-group-tag">[${group}]</span>` : "";
+                const timeText = `${workerToday.startTime || "00:00"} – ${workerToday.endTime || "00:00"}${isNightToday ? " hôm sau" : ""}`;
+
+                people.push(`
+                  <div class="shift-person-item">
+                    • <span class="person-name">${displayName}</span> <span class="shift-time">(${timeText})</span>${groupTag}${swapBadge}
+                  </div>
+                `);
+              }
+            }
+          }
+        }
+      }
+
+      // ----- 3) TỔNG HỢP CÔNG VIỆC TRONG NGÀY -----
+      let jobsForDay = [];
+      const matchingJobs = allRulesData.filter(rule => {
+        if (!includeAdminJobs && rule.is_admin_job) return false;
+        return ruleMatchesDate(rule, d);
+      });
+
+      matchingJobs.forEach(r => {
+        const timeStr = r.time ? ` <span class="job-time">(${r.time})</span>` : "";
+        let noteDisplay = (r.note || "");
+        if (noteDisplay.startsWith("[CVAdmin]")) noteDisplay = noteDisplay.replace("[CVAdmin]", "<strong style='color:#c0392b;'>[CV Admin]</strong> ");
+        else if (noteDisplay.startsWith("[CVChung]")) noteDisplay = noteDisplay.replace("[CVChung]", "<strong style='color:#2980b9;'>[CV Chung]</strong> ");
+        else if (r.is_admin_job) noteDisplay = `<strong style='color:#c0392b;'>[CV Admin]</strong> ` + noteDisplay;
+
+        const noteStr = noteDisplay ? `<div class="job-note-text">↳ 📝 Ghi chú: ${noteDisplay}</div>` : "";
+        const targetTag = (r.is_common_job && r.targetGroup && r.targetGroup !== 'all') ? `<span class="job-target-tag">[Nhóm: ${r.targetGroup}]</span> ` : "";
+
+        jobsForDay.push(`
+          <div class="job-item-entry">
+            • ${targetTag}<span>${r.job}</span>${timeStr}${noteStr}
+          </div>
+        `);
+      });
+
+      return { people, jobsForDay };
+    }
+
+    // =========================================================================
+    // 4. KẾT XUẤT CÁC TRANG TUẦN RA GIAO DIỆN IN
+    // =========================================================================
+    function renderAllPrintPages() {
+      if (!isDataLoaded) return;
+
+      const startDateStr = startDateInput.value;
+      const endDateStr = endDateInput.value;
+
+      if (!startDateStr || !endDateStr) {
+        printPreviewContainer.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #888;">
+            <p>Vui lòng chọn khoảng thời gian cần in ở thanh công cụ phía trên.</p>
+          </div>
+        `;
+        rangeSummaryText.textContent = "Chưa chọn khoảng thời gian";
+        pageCountBadge.textContent = "";
+        return;
+      }
+
+      const weeks = getWeeksInRange(startDateStr, endDateStr);
+
+      if (weeks.length === 0) {
+        printPreviewContainer.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #e74c3c;">
+            <p>⚠️ Khoảng thời gian không hợp lệ! Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.</p>
+          </div>
+        `;
+        rangeSummaryText.textContent = "Khoảng thời gian không hợp lệ";
+        pageCountBadge.textContent = "0 trang";
+        return;
+      }
+
+      const totalWeeks = weeks.length;
+      const startDisplay = formatDisplayDate(new Date(startDateStr + 'T00:00:00'));
+      const endDisplay = formatDisplayDate(new Date(endDateStr + 'T00:00:00'));
+
+      rangeSummaryText.textContent = `📅 Khoảng thời gian: từ ${startDisplay} đến ${endDisplay} (Bao phủ ${totalWeeks} tuần)`;
+      pageCountBadge.textContent = `📑 ${totalWeeks} trang in (1 tuần / trang)`;
+
+      const includeAdminJobs = includeAdminJobsCheckbox.checked;
+      const showSignatures = showSignaturesCheckbox.checked;
+      const today = new Date();
+      const printDateStr = `Cần Thơ, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`;
+
+      let htmlOutput = "";
+
+      weeks.forEach((monday, index) => {
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const [year, weekNo] = getWeekNumber(monday);
+        const pageNumber = index + 1;
+        const weekStartFormatted = formatDisplayDate(monday);
+        const weekEndFormatted = formatDisplayDate(sunday);
+
+        // Tạo 7 hàng cho 7 ngày từ Thứ Hai đến Chủ Nhật
+        let tableRowsHtml = "";
+        const dayNames = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"];
+
+        for (let i = 0; i < 7; i++) {
+          const currentDay = new Date(monday);
+          currentDay.setDate(monday.getDate() + i);
+
+          const dayTitle = dayNames[i];
+          const dateStr = formatDisplayDate(currentDay);
+          const { people, jobsForDay } = computeDaySchedule(currentDay, includeAdminJobs);
+
+          tableRowsHtml += `
+            <tr>
+              <td class="col-day">
+                <div class="day-title">${dayTitle}</div>
+                <div class="day-date">${dateStr}</div>
+              </td>
+              <td class="col-people">
+                ${people.length ? people.join('') : '<span style="color:#888; font-style:italic;">- Không có lịch ca -</span>'}
+              </td>
+              <td class="col-jobs">
+                ${jobsForDay.length ? jobsForDay.join('') : '<span style="color:#888; font-style:italic;">- Không có công việc định kỳ -</span>'}
+              </td>
+            </tr>
+          `;
+        }
+
+        // Khối chữ ký phê duyệt (nếu bật)
+        const signaturesHtml = showSignatures ? `
+          <div class="doc-date-sign">${printDateStr}</div>
+          <div class="signatures-container">
+            <div class="sign-col">
+              <div class="sign-title">NGƯỜI LẬP BẢNG</div>
+              <div class="sign-subtitle">(Ký, ghi rõ họ tên)</div>
+            </div>
+            <div class="sign-col">
+              <div class="sign-title">TRƯỞNG CA TRỰC</div>
+              <div class="sign-subtitle">(Ký, ghi rõ họ tên)</div>
+            </div>
+            <div class="sign-col">
+              <div class="sign-title">PHỤ TRÁCH NMXLNT / LÃNH ĐẠO</div>
+              <div class="sign-subtitle">(Ký, ghi rõ họ tên)</div>
+            </div>
+          </div>
+        ` : `
+          <div class="doc-date-sign">${printDateStr}</div>
+        `;
+
+        htmlOutput += `
+          <section class="print-week-page" data-page="${pageNumber}">
+            <div class="screen-page-badge no-print">Trang ${pageNumber} / ${totalWeeks} (Tuần ${weekNo})</div>
+            
+            <!-- HEADER VĂN BẢN -->
+            <div>
+              <div class="doc-header">
+                <div class="doc-header-left">
+                  <div>TRUNG TÂM XÂY DỰNG HẠ TẦNG KCN THỐT NỐT</div>
+                  <div class="unit-sub">NHÀ MÁY XỬ LÝ NƯỚC THẢI TẬP TRUNG</div>
+                  <div class="unit-line"></div>
+                </div>
+                <div class="doc-header-right">
+                  <div>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
+                  <div class="motto">Độc lập - Tự do - Hạnh phúc</div>
+                  <div class="motto-line"></div>
+                </div>
+              </div>
+
+              <div class="doc-title-block">
+                <h2 class="doc-title">BẢNG PHÂN CÔNG LỊCH TRỰC VẬN HÀNH & KẾ HOẠCH CÔNG VIỆC</h2>
+                <div class="doc-subtitle">TUẦN ${weekNo} - NĂM ${year}</div>
+                <div class="doc-date-range">(Từ Thứ Hai, ngày ${weekStartFormatted} đến Chủ Nhật, ngày ${weekEndFormatted})</div>
+              </div>
+
+              <!-- BẢNG LỊCH TRỰC TUẦN -->
+              <div class="table-wrapper">
+                <table class="print-table">
+                  <thead>
+                    <tr>
+                      <th class="col-day">Thứ & Ngày</th>
+                      <th class="col-people">Ca Trực & Nhân Viên Thực Hiện</th>
+                      <th class="col-jobs">Nội Dung Công Việc & Ghi Chú</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${tableRowsHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- CHÂN TRANG & CHỮ KÝ -->
+            <div class="doc-footer">
+              ${signaturesHtml}
+              <div class="doc-page-number">
+                Hệ thống Quản lý KCN Thốt Nốt | Tuần ${weekNo}/${year} (Trang ${pageNumber} / ${totalWeeks})
+              </div>
+            </div>
+          </section>
+        `;
+      });
+
+      printPreviewContainer.innerHTML = htmlOutput;
+    }
+
+    // =========================================================================
+    // 5. CÁC NÚT CHỌN NHANH THỜI GIAN
+    // =========================================================================
+    function setQuickDates(start, end) {
+      startDateInput.value = formatLocalYMD(start);
+      endDateInput.value = formatLocalYMD(end);
+      renderAllPrintPages();
+    }
+
+    // Nút "Tuần này"
+    document.getElementById("btnQuickCurrentWeek").addEventListener("click", () => {
+      const now = new Date();
+      const mon = getMondayOfWeek(now);
+      const sun = getSundayOfWeek(now);
+      setQuickDates(mon, sun);
+    });
+
+    // Nút "Tuần sau"
+    document.getElementById("btnQuickNextWeek").addEventListener("click", () => {
+      const nextWeekDate = new Date();
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      const mon = getMondayOfWeek(nextWeekDate);
+      const sun = getSundayOfWeek(nextWeekDate);
+      setQuickDates(mon, sun);
+    });
+
+    // Nút "2 tuần tới"
+    document.getElementById("btnQuickTwoWeeks").addEventListener("click", () => {
+      const now = new Date();
+      const mon = getMondayOfWeek(now);
+      const nextSun = new Date(mon);
+      nextSun.setDate(mon.getDate() + 13);
+      setQuickDates(mon, nextSun);
+    });
+
+    // Nút "Tháng này"
+    document.getElementById("btnQuickCurrentMonth").addEventListener("click", () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setQuickDates(firstDay, lastDay);
+    });
+
+    // Nút "Tháng sau"
+    document.getElementById("btnQuickNextMonth").addEventListener("click", () => {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      setQuickDates(firstDay, lastDay);
+    });
+
+    // Nút "4 tuần tới"
+    document.getElementById("btnQuickFourWeeks").addEventListener("click", () => {
+      const now = new Date();
+      const mon = getMondayOfWeek(now);
+      const fourthSun = new Date(mon);
+      fourthSun.setDate(mon.getDate() + 27);
+      setQuickDates(mon, fourthSun);
+    });
+
+    // =========================================================================
+    // 6. SỰ KIỆN ĐIỀU KHIỂN & KHỞI TẠO
+    // =========================================================================
+    startDateInput.addEventListener("change", renderAllPrintPages);
+    endDateInput.addEventListener("change", renderAllPrintPages);
+    showSignaturesCheckbox.addEventListener("change", renderAllPrintPages);
+    includeAdminJobsCheckbox.addEventListener("change", renderAllPrintPages);
+
+    // Thay đổi khổ giấy In (Dọc / Ngang)
+    pageOrientationSelect.addEventListener("change", (e) => {
+      if (e.target.value === "landscape") {
+        document.body.classList.add("landscape-mode");
+      } else {
+        document.body.classList.remove("landscape-mode");
+      }
+    });
+
+    // Thay đổi cỡ chữ
+    fontSizeSelect.addEventListener("change", (e) => {
+      document.body.classList.remove("font-size-small", "font-size-large");
+      if (e.target.value === "small") {
+        document.body.classList.add("font-size-small");
+      } else if (e.target.value === "large") {
+        document.body.classList.add("font-size-large");
+      }
+    });
+
+    // Nút Print
+    btnPrintSchedule.addEventListener("click", () => {
+      window.print();
+    });
+
+    // Nút Refresh
+    btnRefreshData.addEventListener("click", () => {
+      loadAllScheduleData();
+    });
+
+    // Khởi tạo mặc định: Tuần này
+    function initDefaultDates() {
+      const now = new Date();
+      const mon = getMondayOfWeek(now);
+      const sun = getSundayOfWeek(now);
+      startDateInput.value = formatLocalYMD(mon);
+      endDateInput.value = formatLocalYMD(sun);
+    }
+
+    // Kiểm tra đăng nhập
+    onAuth(user => {
+      if (user) {
+        notLogged.style.display = "none";
+        printPreviewContainer.style.display = "flex";
+        initDefaultDates();
+        loadAllScheduleData();
+      } else {
+        notLogged.style.display = "block";
+        printPreviewContainer.style.display = "none";
+        hideLoading();
+      }
+    });
+  </script>
+</body>
+</html>

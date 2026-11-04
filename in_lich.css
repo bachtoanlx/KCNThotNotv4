@@ -1,0 +1,570 @@
+/* ==========================================================================
+   in_lich.css - Phong cách trang In Lịch Trực Tuần & Kế hoạch Công việc
+   Dự án Quản lý KCN Thốt Nốt (NMXLNT)
+   ========================================================================== */
+
+:root {
+  --primary-color: #273668;
+  --secondary-color: #3498db;
+  --accent-color: #2ecc71;
+  --bg-color: #eef2f7;
+  --paper-bg: #ffffff;
+  --border-color: #333333;
+  --light-border: #d0d7de;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  font-family: 'Times New Roman', Times, serif;
+  color: #222;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   TOOLBAR ĐIỀU KHIỂN TRÊN MÀN HÌNH (Ẩn khi in)
+   ========================================================================== */
+.print-toolbar {
+  background: linear-gradient(135deg, #1e2b52 0%, #273668 100%);
+  color: #ffffff;
+  padding: 14px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.toolbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-print {
+  background-color: #2ecc71;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.4);
+}
+.btn-print:hover {
+  background-color: #27ae60;
+  transform: translateY(-1px);
+}
+
+.btn-back {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.btn-back:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-refresh {
+  background-color: #3498db;
+  color: #ffffff;
+}
+.btn-refresh:hover {
+  background-color: #2980b9;
+}
+
+/* Khối bộ lọc & tùy chọn */
+.toolbar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0e6ed;
+}
+
+.control-group input[type="date"],
+.control-group select {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  font-family: inherit;
+  background-color: #fff;
+  color: #333;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-quick {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-quick:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.toolbar-status {
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: rgba(52, 152, 219, 0.2);
+  border-left: 4px solid #3498db;
+  border-radius: 4px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   KHUNG XEM TRƯỚC BẢN IN (PREVIEW CONTAINER)
+   ========================================================================== */
+.preview-container {
+  padding: 25px 15px 50px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Một trang A4 đại diện cho 1 tuần */
+.print-week-page {
+  background-color: var(--paper-bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--light-border);
+  border-radius: 4px;
+  padding: 25mm 20mm 20mm 20mm;
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  page-break-after: always;
+  break-after: page;
+}
+
+/* Chế độ khổ ngang */
+body.landscape-mode .print-week-page {
+  width: 297mm;
+  min-height: 210mm;
+  padding: 18mm 18mm 15mm 18mm;
+}
+
+/* Huy hiệu trang hiển thị trên màn hình */
+.screen-page-badge {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: #eef2f7;
+  color: #555;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  border: 1px solid #dcdfe6;
+}
+
+/* ==========================================================================
+   NỘI DUNG VĂN BẢN TRÊN TRANG IN
+   ========================================================================== */
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.doc-header-left {
+  width: 48%;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+.doc-header-left .unit-sub {
+  font-weight: normal;
+  font-size: 12px;
+}
+.doc-header-left .unit-line {
+  border-bottom: 1px solid #000;
+  width: 100px;
+  margin: 3px auto 0 auto;
+}
+
+.doc-header-right {
+  width: 48%;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.3;
+}
+.doc-header-right .motto {
+  font-weight: normal;
+  font-size: 12px;
+  font-style: italic;
+}
+.doc-header-right .motto-line {
+  border-bottom: 1px solid #000;
+  width: 140px;
+  margin: 3px auto 0 auto;
+}
+
+.doc-title-block {
+  text-align: center;
+  margin: 10px 0 16px 0;
+}
+
+.doc-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+}
+
+.doc-subtitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #111;
+  margin: 0 0 2px 0;
+}
+
+.doc-date-range {
+  font-size: 13px;
+  font-style: italic;
+  color: #333;
+}
+
+/* ==========================================================================
+   BẢNG LỊCH TRỰC TUẦN
+   ========================================================================== */
+.table-wrapper {
+  flex: 1;
+  margin-bottom: 15px;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.print-table th,
+.print-table td {
+  border: 1px solid var(--border-color);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.print-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+  text-align: center;
+  color: #000;
+  font-size: 13px;
+}
+
+.col-day {
+  width: 16%;
+  text-align: center;
+  font-weight: 600;
+}
+.col-day .day-title {
+  font-size: 13px;
+  font-weight: bold;
+}
+.col-day .day-date {
+  font-size: 12px;
+  color: #333;
+  font-weight: normal;
+}
+
+.col-people {
+  width: 34%;
+}
+
+.col-jobs {
+  width: 50%;
+}
+
+/* Định dạng từng dòng ca trực & công việc */
+.shift-person-item {
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.shift-person-item:last-child {
+  margin-bottom: 0;
+}
+
+.person-name {
+  font-weight: bold;
+}
+.shift-time {
+  color: #222;
+}
+.shift-group-tag {
+  font-size: 11px;
+  color: #555;
+  font-style: italic;
+}
+.swap-badge {
+  font-size: 11px;
+  color: #d35400;
+  font-weight: bold;
+}
+
+.job-item-entry {
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.job-item-entry:last-child {
+  margin-bottom: 0;
+}
+.job-time {
+  font-weight: bold;
+  color: #000;
+}
+.job-note-text {
+  font-size: 11.5px;
+  color: #555;
+  font-style: italic;
+  padding-left: 12px;
+  margin-top: 1px;
+}
+.job-target-tag {
+  font-size: 11.5px;
+  font-weight: bold;
+  color: #6c3483;
+}
+
+/* ==========================================================================
+   CHỮ KÝ VÀ CHÂN TRANG
+   ========================================================================== */
+.doc-footer {
+  margin-top: 10px;
+}
+
+.doc-date-sign {
+  text-align: right;
+  font-style: italic;
+  font-size: 13px;
+  margin-bottom: 10px;
+  padding-right: 20px;
+}
+
+.signatures-container {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  font-size: 13px;
+}
+
+.sign-col {
+  flex: 1;
+  padding: 0 5px;
+}
+
+.sign-title {
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.sign-subtitle {
+  font-style: italic;
+  font-size: 12px;
+  color: #444;
+  margin-bottom: 50px; /* Chừa khoảng trống để ký tên */
+}
+
+.sign-name {
+  font-weight: bold;
+}
+
+.doc-page-number {
+  text-align: center;
+  font-size: 11px;
+  color: #777;
+  margin-top: 12px;
+  border-top: 1px dotted #ccc;
+  padding-top: 4px;
+}
+
+/* ==========================================================================
+   CÁC CỠ CHỮ TÙY CHỈNH KHI IN
+   ========================================================================== */
+body.font-size-small .print-week-page {
+  font-size: 12px;
+}
+body.font-size-small .print-table th,
+body.font-size-small .print-table td {
+  padding: 4px 6px;
+  font-size: 11.5px;
+}
+body.font-size-small .doc-title {
+  font-size: 16px;
+}
+
+body.font-size-large .print-week-page {
+  font-size: 15px;
+}
+body.font-size-large .print-table th,
+body.font-size-large .print-table td {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+body.font-size-large .doc-title {
+  font-size: 20px;
+}
+
+/* ==========================================================================
+   THIẾT LẬP KHI IN (@media print)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  body.landscape-mode {
+    @page {
+      size: A4 landscape;
+      margin: 8mm 12mm 8mm 12mm;
+    }
+  }
+
+  html, body {
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  .print-toolbar,
+  .screen-page-badge {
+    display: none !important;
+  }
+
+  .preview-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    display: block !important;
+  }
+
+  .print-week-page {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 98vh !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  .print-week-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .print-table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  .print-table th {
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .table-wrapper {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
