@@ -26,8 +26,8 @@ export function isRuleActiveOnDate(rule, d) {
     const startDate = new Date(rule.patternStartDate + 'T00:00:00');
     const endDate = rule.patternEndDate ? new Date(rule.patternEndDate + 'T00:00:00') : null;
     if (checkDate < startDate) return false;
-    // Dùng >= để đảm bảo quy tắc kết thúc ngay từ đầu ngày endDate
-    if (endDate && checkDate >= endDate) return false;
+    // Dùng > để đảm bảo quy tắc có hiệu lực đến hết ngày endDate (inclusive)
+    if (endDate && checkDate > endDate) return false;
     return true;
 }
 
@@ -49,6 +49,9 @@ export function sortShiftRules(a, b) {
 export function ruleMatchesDate(rule, d) {
     const isoDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+    if (rule.ruleStartDate && rule.ruleStartDate !== "") {
+        if (isoDate < rule.ruleStartDate) return false;
+    }
     if (rule.ruleEndDate && rule.ruleEndDate !== "") {
         if (isoDate > rule.ruleEndDate) return false;
     }
