@@ -1,4 +1,4 @@
-import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db, loadCompanyDropdown, loadTemplate } from "./script.js";
+import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showConfirmSwal, db, loadCompanyDropdown, loadTemplate, prepareFileForUpload } from "./script.js";
     import { initMenu } from "./menu.js";
     import { collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
@@ -121,22 +121,30 @@ import { onAuth, getRole, addReport, showLoading, hideLoading, showSwal, showCon
             fileInput.click();
         });
 
-        fileInput.addEventListener('change', function(event) {
+        fileInput.addEventListener('change', async function(event) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentImageBase64 = e.target.result;
-                    // Cập nhật giao diện khi có file
+                // Hiển thị ngay trạng thái đang xử lý nếu file lớn
+                customFileName.textContent = file.size > 819200 ? `⏳ Đang chuẩn bị: ${file.name}...` : file.name;
+                customFileName.style.color = "#007bff";
+                customFileName.style.fontStyle = "normal";
+                customFileName.style.fontWeight = "bold";
+                customFileName.style.textDecoration = "underline";
+                customFileName.style.cursor = "pointer";
+                customFileName.title = "Nhấn để xem ảnh lớn";
+
+                try {
+                    // Tiền xử lý ngay lúc chọn file (Nén chuẩn A4 2400px / 0.85 + Tạo sẵn Base64)
+                    const preparedFile = await prepareFileForUpload(file, 0.8, 0.85, 2400);
+                    if (fileInput.files[0] !== file) return; // Tránh ghi đè nếu user đã chọn nhanh file khác
+
+                    currentImageBase64 = preparedFile._dataUrl;
+                    const sizeKB = Math.round(preparedFile.size / 1024);
+                    customFileName.textContent = `${file.name} (${sizeKB} KB)`;
+                } catch (err) {
+                    console.warn("Lỗi tiền xử lý ảnh:", err);
                     customFileName.textContent = file.name;
-                    customFileName.style.color = "#007bff";
-                    customFileName.style.fontStyle = "normal";
-                    customFileName.style.fontWeight = "bold";
-                    customFileName.style.textDecoration = "underline";
-                    customFileName.style.cursor = "pointer";
-                    customFileName.title = "Nhấn để xem ảnh lớn";
                 }
-                reader.readAsDataURL(file);
             } else {
                 // Reset về trạng thái ban đầu
                 currentImageBase64 = null;

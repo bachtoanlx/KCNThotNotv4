@@ -1088,6 +1088,64 @@ export async function addLog(action, data = {}) {
 // ====== Google Drive API ======
 const DRIVE_API_URL = "https://script.google.com/macros/s/AKfycbwuNTOBpbG2Zla8V6MLRLVY_xoRPhqZS6DT6YImnw9YCOZhJARQ1mSrNLEPZvM33PwqaA/exec"; // 🔗 thay link Apps Script
 
+// Helper giải phóng bộ nhớ Base64/DataURL sau khi đã tải xong lên Drive
+export function releaseFileMemory(file) {
+  if (!file) return;
+  try {
+    file._base64Data = null;
+    file._dataUrl = null;
+    file._preparedPromise = null;
+  } catch (e) {}
+}
+
+// Helper gọi fetch tới Google Apps Script có Timeout (AbortController) + Tự động Retry khi nghẽn mạng/GAS quá tải
+async function fetchGASWithRetry(body, maxRetries = 2, timeoutMs = 25000, onRetryCallback = null) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      if (attempt > 0 && typeof onRetryCallback === "function") {
+        onRetryCallback(attempt);
+      }
+
+      const res = await fetch(DRIVE_API_URL, {
+        method: "POST",
+        body,
+        signal: controller.signal
+      });
+      clearTimeout(timerId);
+
+      // Đọc dưới dạng text trước để bắt trường hợp GAS bị quá tải trả về trang lỗi HTML thay vì JSON
+      const rawText = await res.text();
+      let result;
+      try {
+        result = JSON.parse(rawText);
+      } catch (parseErr) {
+        throw new Error("Máy chủ Google Drive đang bận tạm thời (Non-JSON response).");
+      }
+
+      return result;
+    } catch (err) {
+      clearTimeout(timerId);
+      const isAbort = err.name === "AbortError";
+      lastError = isAbort
+        ? new Error(`Kết nối tải tệp quá thời gian chờ (${Math.round(timeoutMs / 1000)}s).`)
+        : err;
+
+      // Nếu vẫn còn lượt thử lại, chờ ngắn (1.2s) để GAS/mạng 4G hồi phục rồi tự động gửi lại
+      if (attempt < maxRetries) {
+        console.warn(`[GAS Retry ${attempt + 1}/${maxRetries}] Lỗi tạm thời: ${lastError.message}. Đang tự động thử lại...`);
+        await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 // Sửa đổi: Thêm tham số folderId, formId, và data
 async function uploadFileToDrive(file, company, folderId, formId, data) {
   const user = auth.currentUser;
@@ -1095,8 +1153,11 @@ async function uploadFileToDrive(file, company, folderId, formId, data) {
 
   if (!user) throw new Error("Chưa đăng nhập");
 
-  const idToken = await user.getIdToken();
-  const base64 = await toBase64(file);
+  // Chạy song song lấy idToken và lấy chuỗi Base64 (tận dụng _base64Data đã tạo sẵn lúc chọn file nếu có)
+  const [idToken, base64] = await Promise.all([
+    user.getIdToken(),
+    file._base64Data ? Promise.resolve(file._base64Data) : toBase64(file)
+  ]);
 
   const body = new URLSearchParams();
   body.append("idToken", idToken);
@@ -1109,13 +1170,18 @@ async function uploadFileToDrive(file, company, folderId, formId, data) {
   body.append("formId", formId);     // Thêm ID form
   body.append("data", JSON.stringify(data)); // Gửi toàn bộ dữ liệu form
 
-  const res = await fetch(DRIVE_API_URL, { method: "POST", body });
-  const result = await res.json();
+  const result = await fetchGASWithRetry(body, 2, 25000, (attempt) => {
+    showLoading(`Mạng chậm, hệ thống đang tự động gửi lại ảnh (lần ${attempt + 1})...`);
+  });
+
   if (result.error) {
     // ⭐️ BỔ SUNG LOG ⭐️
     addLog("drive_upload_failure", { email: userEmail, file: file.name, error: result.error });
     throw new Error(result.error);
   }
+
+  // Giải phóng ngay chuỗi Base64 trong RAM sau khi đã tải lên Drive thành công
+  releaseFileMemory(file);
 
   // ⭐️ BỔ SUNG LOG ⭐️
   addLog("drive_upload_success", { email: userEmail, file: file.name, fileId: result.id, url: result.link });
@@ -1139,8 +1205,7 @@ async function deleteFileFromDrive(fileId) {
   body.append("action", "delete");
   body.append("fileId", fileId);
 
-  const res = await fetch(DRIVE_API_URL, { method: "POST", body });
-  const data = await res.json();
+  const data = await fetchGASWithRetry(body, 1, 15000);
   if (data.error) {
     // ⭐️ BỔ SUNG LOG ⭐️
     addLog("drive_delete_failure", { email: userEmail, fileId, error: data.error });
@@ -1153,65 +1218,128 @@ async function deleteFileFromDrive(fileId) {
 }
 
 function toBase64(file) {
+  if (file && file._base64Data) {
+    return Promise.resolve(file._base64Data);
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(",")[1];
+      file._dataUrl = dataUrl;
+      file._base64Data = base64;
+      resolve(base64);
+    };
     reader.onerror = (error) => reject(error);
   });
 }
 
-// ================== HÀM NÉN ẢNH (CANVAS API) ==================
+// ================== HÀM NÉN ẢNH CHUẨN IN ẤN A4 (CANVAS API) ==================
 /**
- * Nén hình ảnh trực tiếp trên trình duyệt
+ * Nén hình ảnh trực tiếp trên trình duyệt (tối ưu cho đối chiếu và in khổ A4 > 215 DPI)
  * @param {File} file - File ảnh gốc
- * @param {number} thresholdMB - Ngưỡng dung lượng (MB) để bắt đầu nén (VD: 4)
- * @param {number} quality - Chất lượng nén từ 0.0 đến 1.0 (VD: 0.9)
+ * @param {number} thresholdMB - Ngưỡng dung lượng (MB) để bắt đầu nén (Mặc định: 0.8MB = 800KB)
+ * @param {number} quality - Chất lượng nén từ 0.0 đến 1.0 (Mặc định: 0.85)
+ * @param {number} maxDim - Cạnh dài tối đa tính bằng pixel (Mặc định: 2400px chuẩn in A4)
  * @returns {Promise<File>} Trả về file đã nén hoặc file gốc
  */
-export async function compressImage(file, thresholdMB = 4, quality = 0.9) {
+export async function compressImage(file, thresholdMB = 0.8, quality = 0.85, maxDim = 2400) {
+  if (!file) return file;
+  if (file._isPreCompressed) return file;
+
   const thresholdBytes = thresholdMB * 1024 * 1024;
 
-  // Nếu không phải ảnh hoặc dung lượng <= 4MB thì giữ nguyên file gốc
+  // Nếu không phải ảnh hoặc dung lượng <= ngưỡng (800KB) thì giữ nguyên 100% file gốc để bảo toàn chất lượng
   if (!file.type.startsWith('image/') || file.size <= thresholdBytes) {
+    file._isPreCompressed = true;
     return file;
   }
 
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
     img.onload = () => {
-      URL.revokeObjectURL(img.src);
+      URL.revokeObjectURL(objectUrl);
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Tối ưu kích thước: Thu nhỏ kích thước ảnh nếu quá lớn (Max cạnh 2560px - Mức 2K để giữ độ nét cao)
-      const MAX_DIM = 2560;
+      // Thu nhỏ kích thước ảnh nếu vượt quá maxDim (2400px - đảm bảo mật độ > 215 DPI khi in full trang A4)
       let { width, height } = img;
-      if (width > height && width > MAX_DIM) {
-        height = Math.round(height * (MAX_DIM / width));
-        width = MAX_DIM;
-      } else if (height > MAX_DIM) {
-        width = Math.round(width * (MAX_DIM / height));
-        height = MAX_DIM;
+      if (width > height && width > maxDim) {
+        height = Math.round(height * (maxDim / width));
+        width = maxDim;
+      } else if (height > maxDim) {
+        width = Math.round(width * (maxDim / height));
+        height = maxDim;
       }
 
       canvas.width = width;
       canvas.height = height;
+
+      // Bật thuật toán nội suy chất lượng cao (Bicubic/Lanczos) để giữ chữ và số đồng hồ sắc nét
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Đổ nền trắng trước khi vẽ để tránh lỗi nền đen nếu ảnh gốc là PNG trong suốt
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Chuyển Canvas thành File JPEG để ép dung lượng xuống mức thấp
+      // Chuyển Canvas thành File JPEG
       canvas.toBlob(blob => {
+        // Giải phóng ngay bộ nhớ đệm GPU/RAM của Canvas và Image trên thiết bị di động
+        canvas.width = 0;
+        canvas.height = 0;
+        img.src = "";
+
         if (!blob) return reject(new Error("Lỗi khi chuyển đổi Canvas sang Blob"));
+
+        // Nếu file gốc đã là JPEG và sau khi vẽ lại dung lượng không giảm, giữ nguyên file gốc
+        if (file.type === 'image/jpeg' && blob.size >= file.size) {
+          file._isPreCompressed = true;
+          return resolve(file);
+        }
+
         const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
           type: "image/jpeg",
           lastModified: Date.now()
         });
+        compressedFile._isPreCompressed = true;
         resolve(compressedFile);
       }, 'image/jpeg', quality);
     };
-    img.onerror = (err) => reject(new Error("Lỗi khi load ảnh để nén: " + err));
+    img.onerror = (err) => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Lỗi khi load ảnh để nén: " + err));
+    };
   });
+}
+
+/**
+ * Tiền xử lý file ngay khi người dùng vừa chọn ảnh (Nén chuẩn A4 + Tạo sẵn chuỗi Base64 trong bộ nhớ)
+ * Giúp thời gian nén và đọc file khi bấm nút "Gửi thông tin" giảm về 0ms.
+ */
+export function prepareFileForUpload(file, thresholdMB = 0.8, quality = 0.85, maxDim = 2400) {
+  if (!file) return Promise.resolve(null);
+  if (file._preparedPromise) return file._preparedPromise;
+
+  const promise = (async () => {
+    let processedFile = file;
+    try {
+      processedFile = await compressImage(file, thresholdMB, quality, maxDim);
+    } catch (err) {
+      console.warn("Nén ảnh tiền xử lý thất bại, dùng file gốc:", err);
+      processedFile = file;
+    }
+    // Tạo sẵn chuỗi Base64 và DataURL một lần duy nhất cho cả Preview lẫn Upload
+    await toBase64(processedFile);
+    return processedFile;
+  })();
+
+  file._preparedPromise = promise;
+  return promise;
 }
 
 // ====== REPORTS ======
@@ -1276,9 +1404,9 @@ export async function submitForm(e, formId, collectionName, folderId) {
         return; // Ngăn chặn việc gửi form
       }
 
-      // Tiến hành nén ngầm nếu dung lượng > 4MB
+      // Lấy kết quả nén chuẩn in A4 (0.8MB, quality 0.85, max 2400px) đã tiền xử lý từ lúc chọn file (hoặc xử lý ngay nếu chưa)
       try {
-        fileInput = await compressImage(fileInput, 4, 0.9);
+        fileInput = await prepareFileForUpload(fileInput, 0.8, 0.85, 2400);
       } catch (err) {
         console.warn("Nén ảnh thất bại, sử dụng file gốc:", err);
       }
@@ -2207,9 +2335,10 @@ export async function handleSubmit(form, data, file = null, collectionName, fold
       form.reset();
       if (form.ngay_ghi) form.ngay_ghi.value = new Date().toLocaleDateString('en-CA');
 
-      // Đợi một chút rồi hỏi bật thông báo nếu họ chưa bật
+      // Chỉ hỏi bật thông báo tối đa 1 lần trong phiên làm việc để tránh làm gián đoạn khi gửi liên tiếp nhiều công ty
       setTimeout(() => {
-        if (Notification.permission === 'default') {
+        if (Notification.permission === 'default' && !sessionStorage.getItem('notif_prompted_once')) {
+          sessionStorage.setItem('notif_prompted_once', 'true');
           requestNotificationPermission();
         }
       }, 2500);
