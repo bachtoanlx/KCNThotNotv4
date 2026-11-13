@@ -1,4 +1,4 @@
-import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth, loadTemplate, clearAppCache } from "./script.js";
+import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth, loadTemplate, clearLocalDB } from "./script.js";
 import { doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { formatISODate } from "./core-calculator.js";
@@ -2418,9 +2418,40 @@ function setupSystemManagement() {
     setupReportAlertManagement();
 }
 
+async function safeClearAppCache(includeIndexedDB = false) {
+    if (typeof window.clearAppCache === "function") {
+        await window.clearAppCache(includeIndexedDB);
+        return;
+    }
+    try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('cached_html_')) localStorage.removeItem(key);
+        }
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const key = sessionStorage.key(i);
+            if (key && (key.startsWith('company_dropdown_') || key.startsWith('role_'))) sessionStorage.removeItem(key);
+        }
+        if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+        }
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.update().catch(() => {})));
+        }
+        if (includeIndexedDB && typeof clearLocalDB === "function") {
+            await clearLocalDB();
+        }
+    } catch (e) {
+        console.warn("Lỗi dọn cache dự phòng:", e);
+    }
+}
+
 function setupResetCache() {
     const refreshCacheBtn = document.getElementById("refreshCacheBtn");
-    if (refreshCacheBtn) {
+    if (refreshCacheBtn && !refreshCacheBtn.dataset.bound) {
+        refreshCacheBtn.dataset.bound = "true";
         refreshCacheBtn.addEventListener('click', async () => {
             const isConfirmed = await showConfirmSwal(
                 "Làm mới thiết bị này",
@@ -2430,14 +2461,15 @@ function setupResetCache() {
             );
             if (isConfirmed) {
                 showLoading("Đang làm mới bộ nhớ đệm...");
-                await clearAppCache(true);
+                await safeClearAppCache(true);
                 window.location.reload();
             }
         });
     }
 
     const forceUpdateUIBtn = document.getElementById("forceUpdateUIBtn");
-    if (forceUpdateUIBtn) {
+    if (forceUpdateUIBtn && !forceUpdateUIBtn.dataset.bound) {
+        forceUpdateUIBtn.dataset.bound = "true";
         forceUpdateUIBtn.addEventListener('click', async () => {
             const isConfirmed = await showConfirmSwal(
                 "⚡ Ép cập nhật Giao diện & Code (Mọi User)",
@@ -2457,7 +2489,7 @@ function setupResetCache() {
                     lastClientUpdateBy: auth.currentUser?.email || "admin",
                     lastClientUpdateAt: serverTimestamp()
                 }, { merge: true });
-                await clearAppCache(false);
+                await safeClearAppCache(false);
                 addLog("admin_force_update_ui", { email: auth.currentUser?.email || "admin", version: newVer });
                 hideLoading();
                 showSwal("success", "Đã phát lệnh cập nhật!", "Mọi máy User sẽ tự động cập nhật giao diện mới.");
@@ -2470,7 +2502,8 @@ function setupResetCache() {
     }
 
     const forceUpdateAllDBBtn = document.getElementById("forceUpdateAllDBBtn");
-    if (forceUpdateAllDBBtn) {
+    if (forceUpdateAllDBBtn && !forceUpdateAllDBBtn.dataset.bound) {
+        forceUpdateAllDBBtn.dataset.bound = "true";
         forceUpdateAllDBBtn.addEventListener('click', async () => {
             const isConfirmed = await showConfirmSwal(
                 "🚀 Làm mới Giao diện + IndexedDB (Mọi User)",
@@ -2492,7 +2525,7 @@ function setupResetCache() {
                     lastClientUpdateBy: auth.currentUser?.email || "admin",
                     lastClientUpdateAt: serverTimestamp()
                 }, { merge: true });
-                await clearAppCache(true);
+                await safeClearAppCache(true);
                 addLog("admin_force_update_all_db", { email: auth.currentUser?.email || "admin", version: newVer });
                 hideLoading();
                 showSwal("success", "Đã phát lệnh làm mới toàn hệ thống!", "Tất cả thiết bị đang tự động đồng bộ lại.");
@@ -2504,6 +2537,9 @@ function setupResetCache() {
         });
     }
 }
+
+// Gắn sự kiện ngay lập tức cho các nút làm mới hệ thống
+setupResetCache();
 
 function setupDutyEmailManagement() {
     loadDutyEmailConfig();
