@@ -874,60 +874,30 @@ export async function clearAppCache(includeIndexedDB = false) {
 }
 window.clearAppCache = clearAppCache;
 
-// Hiển thị thông báo cho User biết máy của họ vừa nhận bản cập nhật mới thành công
-function showUserUpdateBanner(message, isSuccess = true) {
-  const renderToast = () => {
-    if (window.Swal && typeof window.Swal.fire === 'function') {
-      window.Swal.fire({
-        toast: true,
-        position: 'top-end',
-        icon: isSuccess ? 'success' : 'info',
-        title: message,
-        width: '420px',
-        showConfirmButton: false,
-        timer: isSuccess ? 4000 : 2000,
-        timerProgressBar: true
-      });
-      return;
-    }
-    // Dự phòng nếu trang chưa tải xong SweetAlert2
-    const banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;top:16px;right:16px;z-index:999999;background:' + (isSuccess ? '#1e293b' : '#034892') + ';color:#fff;padding:12px 18px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.25);font-family:sans-serif;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity 0.3s;';
-    banner.textContent = message;
-    document.body.appendChild(banner);
-    setTimeout(() => {
-      banner.style.opacity = '0';
-      setTimeout(() => banner.remove(), 300);
-    }, isSuccess ? 4000 : 2000);
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(renderToast, 400), { once: true });
-  } else {
-    setTimeout(renderToast, 400);
-  }
-}
-
+// Hiển thị 1 thông báo ngắn gọn duy nhất sau khi máy User đã tự động cập nhật xong
 function checkAndShowPostUpdateNotice() {
   try {
-    const updateType = sessionStorage.getItem('KCN_UPDATE_APPLIED_NOTICE');
-    if (!updateType) return;
+    if (!sessionStorage.getItem('KCN_UPDATE_APPLIED_NOTICE')) return;
     sessionStorage.removeItem('KCN_UPDATE_APPLIED_NOTICE');
 
-    const msg = updateType === 'full'
-      ? '🚀 Hệ thống vừa cập nhật phiên bản mới và đồng bộ lại dữ liệu!'
-      : '✨ Hệ thống đã được cập nhật lên phiên bản mới nhất!';
-    showUserUpdateBanner(msg, true);
+    const notify = () => {
+      if (window.Swal && typeof window.Swal.fire === 'function') {
+        showSwal("success", "Đã cập nhật phiên bản mới!");
+      }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(notify, 300), { once: true });
+    } else {
+      setTimeout(notify, 300);
+    }
   } catch (e) {}
 }
 
-// Kiểm tra và hiển thị thông báo nếu máy User vừa tự động tải lại sau khi nhận bản cập nhật
 checkAndShowPostUpdateNotice();
 
 // Kiểm tra tự động qua file tĩnh version.json (hoạt động ngay cả khi chưa đăng nhập)
 async function checkStaticVersionUpdate() {
   try {
-    // Luôn ép Service Worker kiểm tra bản mới ngầm khi mở trang
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(r => r.update().catch(() => {}));
@@ -946,23 +916,18 @@ async function checkStaticVersionUpdate() {
       const reloadGuardKey = `KCN_RELOADED_STATIC_${remoteVer}`;
       if (sessionStorage.getItem(reloadGuardKey) === 'true') return;
 
-      console.log(`[AutoUpdate] Phát hiện phiên bản code mới (${remoteVer}), đang tự động cập nhật...`);
-      const clearDB = Boolean(remote.clearIndexedDB);
-      await clearAppCache(clearDB);
+      await clearAppCache(Boolean(remote.clearIndexedDB));
       localStorage.setItem('KCN_STATIC_VERSION', remoteVer);
       sessionStorage.setItem(reloadGuardKey, 'true');
-      sessionStorage.setItem('KCN_UPDATE_APPLIED_NOTICE', clearDB ? 'full' : 'ui');
+      sessionStorage.setItem('KCN_UPDATE_APPLIED_NOTICE', '1');
       window.location.reload();
     }
-  } catch (e) {
-    // Bỏ qua nếu đang offline hoặc chưa có version.json
-  }
+  } catch (e) {}
 }
 
-// Chạy kiểm tra ngay khi nạp script.js
 checkStaticVersionUpdate();
 
-// Lắng nghe lệnh "Ép cập nhật toàn bộ máy User" theo thời gian thực từ Admin qua Firestore (config/reportConfig)
+// Lắng nghe lệnh cập nhật từ Admin qua Firestore (config/reportConfig)
 function listenRemoteVersionUpdate() {
   if (remoteVersionUnsubscribe) {
     remoteVersionUnsubscribe();
@@ -987,15 +952,13 @@ function listenRemoteVersionUpdate() {
       const reloadGuardKey = `KCN_RELOADED_REMOTE_${combinedVer}`;
       if (sessionStorage.getItem(reloadGuardKey) === 'true') return;
 
-      console.log(`[RemoteUpdate] Đang đồng bộ phiên bản mới (${combinedVer})...`);
       if (remoteCacheVer) localStorage.setItem('KCN_REMOTE_CACHE_VER', remoteCacheVer);
       if (remoteDbVer) localStorage.setItem('KCN_REMOTE_DB_VER', remoteDbVer);
       sessionStorage.setItem(reloadGuardKey, 'true');
-      sessionStorage.setItem('KCN_UPDATE_APPLIED_NOTICE', needDbClear ? 'full' : 'ui');
+      sessionStorage.setItem('KCN_UPDATE_APPLIED_NOTICE', '1');
 
-      showUserUpdateBanner('🔄 Có bản cập nhật mới từ Quản trị viên, đang tự động làm mới...', false);
       await clearAppCache(needDbClear);
-      setTimeout(() => window.location.reload(), 900);
+      window.location.reload();
     }
   }, (err) => {
     console.warn("Lỗi lắng nghe phiên bản từ xa:", err);
@@ -3244,9 +3207,6 @@ export function loadTemplate(placeholderId, url, callback) {
         }
         container.innerHTML = html;
         if (typeof callback === "function") callback();
-        if (hasRenderedFromCache && url.includes("menu.html")) {
-          showUserUpdateBanner("✨ Giao diện Menu vừa được cập nhật mới!", true);
-        }
       }
     })
     .catch(err => {

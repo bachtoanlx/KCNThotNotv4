@@ -1023,25 +1023,18 @@
                             <!-- Làm mới Bộ nhớ đệm (IndexedDB) & Phát hành Bản cập nhật cho toàn bộ User -->
                             <div
                                 style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
-                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🔄 Đồng bộ & Phát hành Cập nhật cho Mọi Thiết bị</h3>
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🔄 Đồng bộ & Cập nhật Hệ thống</h3>
                                 <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
-                                    Khi bạn cập nhật code trên GitHub, hệ thống đã tự động ưu tiên tải file mới. Tuy nhiên, nếu muốn <b>ép toàn bộ máy cá nhân của tất cả User đang hoạt động</b> phải xóa bộ nhớ đệm cũ và cập nhật ngay lập tức (vẫn bảo toàn trạng thái đăng nhập và thiết bị tin cậy của họ), hãy sử dụng các nút bên dưới:
+                                    Làm mới bộ nhớ đệm cục bộ trên máy này hoặc phát lệnh để mọi thiết bị của User tự động cập nhật giao diện và dữ liệu mới nhất.
                                 </p>
                                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                     <button id="refreshCacheBtn"
-                                        style="background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
-                                        title="Chỉ xóa bộ nhớ đệm và IndexedDB trên máy bạn đang ngồi">
+                                        style="background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
                                         <span>🔄</span> Làm mới máy này
                                     </button>
-                                    <button id="forceUpdateUIBtn"
-                                        style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
-                                        title="Ép mọi máy User xóa cache Menu/Giao diện/Code cũ và tải lại code mới nhất (giữ nguyên IndexedDB)">
-                                        <span>⚡</span> Ép cập nhật Giao diện & Code (Mọi User)
-                                    </button>
-                                    <button id="forceUpdateAllDBBtn"
-                                        style="background: #d97706; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
-                                        title="Ép mọi máy User xóa cả cache Giao diện lẫn IndexedDB cũ để đồng bộ lại dữ liệu từ Firebase">
-                                        <span>🚀</span> Làm mới Giao diện + IndexedDB (Mọi User)
+                                    <button id="forceUpdateAllBtn"
+                                        style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                                        <span>🚀</span> Cập nhật cho mọi thiết bị
                                     </button>
                                 </div>
                             </div>
@@ -1711,7 +1704,7 @@
     <div id="footer-placeholder"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script type="module" src="settings.js?v=11"></script>
+    <script type="module" src="settings.js?v=12"></script>
 
 </body>
 
