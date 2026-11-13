@@ -2,13 +2,39 @@
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging-compat.js');
 
+const CACHE_NAME = 'kcn-app-cache-v3';
+
 // 🚀 Ép Service Worker cài đặt và chiếm quyền điều khiển ngay lập tức
 self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', function(event) {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(name) {
+          if (name !== CACHE_NAME) {
+            return caches.delete(name);
+          }
+        })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    })
+  );
+});
+
+// Cho phép trang chính gửi lệnh xóa cache hoặc kích hoạt SW mới ngay lập tức
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'CLEAR_ALL_CACHES') {
+    caches.keys().then(function(names) {
+      return Promise.all(names.map(function(name) { return caches.delete(name); }));
+    });
+  }
 });
 
 // Cấu hình Firebase y hệt như trong script.js của bạn
@@ -25,9 +51,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// ====== BỘ NHỚ ĐỆM TĨNH (Stale-While-Revalidate) ======
-const CACHE_NAME = 'kcn-app-cache-v2';
-
+// ====== BỘ NHỚ ĐỆM TĨNH (Network-First: Luôn lấy Code mới nhất khi có mạng, dự phòng Cache khi Offline) ======
 self.addEventListener('fetch', function(event) {
   const request = event.request;
   
@@ -38,10 +62,14 @@ self.addEventListener('fetch', function(event) {
   // Bỏ qua các request tới domain khác (như Firebase Firestore, API ngoài)
   if (url.origin !== self.location.origin) return;
 
+  // Bỏ qua cache đối với version.json hoặc các request có gắn tham số chống cache (?t=...)
+  if (url.pathname.endsWith('/version.json') || url.searchParams.has('t')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(request).then(function(cachedResponse) {
-      // Tải từ mạng để cập nhật cache ngầm (Revalidate)
-      const fetchPromise = fetch(request).then(function(networkResponse) {
+    fetch(request, { cache: 'no-cache' })
+      .then(function(networkResponse) {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then(function(cache) {
@@ -49,12 +77,10 @@ self.addEventListener('fetch', function(event) {
           });
         }
         return networkResponse;
-      }).catch(err => {
+      })
+      .catch(function() {
         console.warn('Offline mode: Using cache for', request.url);
-      });
-
-      // Trả về bản cache ngay lập tức nếu có, nếu không thì chờ mạng
-      return cachedResponse || fetchPromise;
-    })
+        return caches.match(request);
+      })
   );
 });

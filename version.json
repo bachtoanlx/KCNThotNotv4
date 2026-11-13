@@ -1,0 +1,6 @@
+{
+  "version": "4.1.0",
+  "clearIndexedDB": false,
+  "updatedAt": "2026-11-13",
+  "note": "Đổi số version này mỗi khi bạn muốn ép toàn bộ trình duyệt cập nhật code mới ngay từ file tĩnh. Đặt clearIndexedDB = true nếu muốn ép xóa và tải lại cả IndexedDB."
+}

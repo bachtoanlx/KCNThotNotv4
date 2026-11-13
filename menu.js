@@ -28,25 +28,62 @@ export function initMenu() {
   const navLinks = document.querySelector(".nav-links");
 
   // Xử lý đóng/mở menu chính khi nhấn nút hamburger
-  hamburger.addEventListener("click", () => {
-    navLinks.classList.toggle("active");
-  });
+  if (hamburger && navLinks) {
+    hamburger.addEventListener("click", () => {
+      navLinks.classList.toggle("active");
+    });
+  }
 
-  // Tự động đóng menu trên mobile khi chạm/click ra ngoài khu vực menu
-  document.addEventListener("click", (event) => {
-    if (hamburger && navLinks && !hamburger.contains(event.target) && !navLinks.contains(event.target)) {
-      navLinks.classList.remove("active");
-      document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
-    }
-  });
+  // Chỉ đăng ký các sự kiện cấp document/window 1 lần duy nhất để tránh trùng lặp khi menu tự làm mới ngầm
+  if (!window._kcnMenuGlobalBound) {
+    window._kcnMenuGlobalBound = true;
 
-  // Tự động đóng menu khi cuộn trang (lướt màn hình)
-  window.addEventListener("scroll", () => {
-    if (window.innerWidth <= 820 && navLinks && navLinks.classList.contains("active")) {
-      navLinks.classList.remove("active");
-      document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
-    }
-  }, { passive: true });
+    // Tự động đóng menu trên mobile khi chạm/click ra ngoài khu vực menu
+    document.addEventListener("click", (event) => {
+      const curHamburger = document.querySelector(".hamburger");
+      const curNavLinks = document.querySelector(".nav-links");
+      if (curHamburger && curNavLinks && !curHamburger.contains(event.target) && !curNavLinks.contains(event.target)) {
+        curNavLinks.classList.remove("active");
+        document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
+      }
+    });
+
+    // Tự động đóng menu khi cuộn trang (lướt màn hình)
+    window.addEventListener("scroll", () => {
+      const curNavLinks = document.querySelector(".nav-links");
+      if (window.innerWidth <= 820 && curNavLinks && curNavLinks.classList.contains("active")) {
+        curNavLinks.classList.remove("active");
+        document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
+      }
+    }, { passive: true });
+
+    // Reset trạng thái menu khi resize cửa sổ
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 820) {
+        const curNavLinks = document.querySelector(".nav-links");
+        if (curNavLinks) curNavLinks.classList.remove('active');
+        document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
+      }
+    });
+
+    // Xử lý sự kiện click trên các mục của menu cài đặt nhanh
+    document.addEventListener("click", (e) => {
+      const menuItem = e.target.closest(".quick-menu-item");
+      if (menuItem) {
+        const isSettingsPage = window.location.pathname.toLowerCase().includes("settings.html");
+        if (isSettingsPage) {
+          e.preventDefault();
+          const tabName = menuItem.getAttribute("data-tab");
+          const tabBtn = document.querySelector(`.settings-tab-btn[data-target="${tabName}"]`);
+          if (tabBtn) {
+            tabBtn.click();
+            const newUrl = window.location.pathname + "?tab=" + tabName.replace("tab-", "");
+            window.history.pushState({ path: newUrl }, "", newUrl);
+          }
+        }
+      }
+    });
+  }
 
   // Xử lý click cho tất cả dropdown trên mobile (ví dụ: Tác vụ, Thống kê BC)
   const dropdowns = document.querySelectorAll('.dropdown');
@@ -66,21 +103,6 @@ export function initMenu() {
         drop.classList.toggle('active');
       }
     });
-  });
-
-  /*
-   * =========================================================================
-   * == BỔ SUNG ĐOẠN CODE NÀY ĐỂ RESET TRẠNG THÁI MENU KHI RESIZE CỬA SỔ ==
-   * =========================================================================
-   */
-  window.addEventListener('resize', () => {
-    // Nếu chiều rộng cửa sổ lớn hơn 820px (chuyển sang desktop)
-    if (window.innerWidth > 820) {
-      // Xóa class 'active' khỏi menu chính
-      navLinks.classList.remove('active');
-      // Xóa class 'active' khỏi tất cả dropdown nếu có
-      document.querySelectorAll('.dropdown.active').forEach(d => d.classList.remove('active'));
-    }
   });
 
 
@@ -229,25 +251,6 @@ export function initMenu() {
       }
     });
   }
-
-  // Xử lý sự kiện click trên các mục của menu cài đặt nhanh
-  document.addEventListener("click", (e) => {
-    const menuItem = e.target.closest(".quick-menu-item");
-    if (menuItem) {
-      const isSettingsPage = window.location.pathname.toLowerCase().includes("settings.html");
-      if (isSettingsPage) {
-        e.preventDefault();
-        const tabName = menuItem.getAttribute("data-tab");
-        const tabBtn = document.querySelector(`.settings-tab-btn[data-target="${tabName}"]`);
-        if (tabBtn) {
-          tabBtn.click();
-          // Cập nhật đường dẫn URL mà không tải lại trang
-          const newUrl = window.location.pathname + "?tab=" + tabName.replace("tab-", "");
-          window.history.pushState({ path: newUrl }, "", newUrl);
-        }
-      }
-    }
-  });
 
   // Tải trước (Prefetch) các trang khi người dùng di chuột qua các liên kết menu
   const prefetchLinks = () => {

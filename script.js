@@ -516,15 +516,23 @@ export async function checkAndUpdateUserDevice(userEmailSafe) {
 
 // Khởi tạo FCM ngầm cho tất cả các trang khi user đăng nhập thành công
 let currentUserSnapshotUnsubscribe = null;
+let remoteVersionUnsubscribe = null;
 
 onAuthStateChanged(auth, async (user) => {
   if (currentUserSnapshotUnsubscribe) {
     currentUserSnapshotUnsubscribe();
     currentUserSnapshotUnsubscribe = null;
   }
+  if (remoteVersionUnsubscribe) {
+    remoteVersionUnsubscribe();
+    remoteVersionUnsubscribe = null;
+  }
 
   if (user) {
     const userEmailSafe = user.email ? user.email.toLowerCase() : "unknown";
+
+    // Lắng nghe tín hiệu ép cập nhật phiên bản / làm mới IndexedDB từ Admin theo thời gian thực
+    listenRemoteVersionUpdate();
 
     try {
       await checkAndUpdateUserDevice(userEmailSafe);
@@ -761,35 +769,50 @@ export async function notifyAdmins(title, body) {
 }
 
 export async function clearLocalDB() {
-  // Xóa KCN_LocalDB (logs, reports, sync_info)
+  // Xóa KCN_LocalDB (logs, reports, sync_info) an toàn với mọi phiên bản schema
   await new Promise((resolve) => {
-    const req = indexedDB.open('KCN_LocalDB');
-    req.onsuccess = (e) => {
-      const dbLocal = e.target.result;
-      try {
-        const tx = dbLocal.transaction(['logs', 'reports_1', 'reports_2', 'shift_reports', 'sync_info'], 'readwrite');
-        tx.objectStore('logs').clear();
-        tx.objectStore('reports_1').clear();
-        tx.objectStore('reports_2').clear();
-        tx.objectStore('shift_reports').clear();
-        tx.objectStore('sync_info').clear();
-        tx.oncomplete = () => {
-          localStorage.removeItem('lastBgSync_logs');
-          localStorage.removeItem('lastBgSync_reports_1');
-          localStorage.removeItem('lastBgSync_reports_2');
-          localStorage.removeItem('synced_years_shift_reports');
+    try {
+      const req = indexedDB.open('KCN_LocalDB');
+      req.onsuccess = (e) => {
+        const dbLocal = e.target.result;
+        try {
+          const targetStores = ['logs', 'reports_1', 'reports_2', 'shift_reports', 'sync_info']
+            .filter(name => dbLocal.objectStoreNames.contains(name));
+          if (targetStores.length === 0) {
+            dbLocal.close();
+            return resolve();
+          }
+          const tx = dbLocal.transaction(targetStores, 'readwrite');
+          targetStores.forEach(name => tx.objectStore(name).clear());
+          tx.oncomplete = () => {
+            dbLocal.close();
+            // Xóa tất cả các khóa mốc đồng bộ trong localStorage
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const k = localStorage.key(i);
+              if (k && (k.startsWith('lastBgSync_') || k.startsWith('synced_years_'))) {
+                localStorage.removeItem(k);
+              }
+            }
+            resolve();
+          };
+          tx.onerror = () => {
+            dbLocal.close();
+            resolve();
+          };
+        } catch (err) {
+          console.warn("Lỗi dọn dẹp cache IndexedDB:", err);
+          try { dbLocal.close(); } catch (_) {}
           resolve();
-        };
-        tx.onerror = () => { resolve(); };
-      } catch (err) {
-        console.warn("Lỗi dọn dẹp cache IndexedDB:", err);
-        resolve();
-      }
-    };
-    req.onerror = () => { resolve(); };
+        }
+      };
+      req.onerror = () => { resolve(); };
+      req.onblocked = () => { resolve(); };
+    } catch (e) {
+      resolve();
+    }
   });
 
-  // Xóa toàn bộ cache tài liệu tri thức (tailieu_cache_v1) để tránh rò rỉ dữ liệu giữa các user trên máy chung
+  // Xóa toàn bộ cache tài liệu tri thức (tailieu_cache_v1)
   await new Promise((resolve) => {
     try {
       const deleteReq = indexedDB.deleteDatabase('tailieu_cache_v1');
@@ -800,6 +823,127 @@ export async function clearLocalDB() {
       console.warn("Lỗi xóa cache tài liệu:", e);
       resolve();
     }
+  });
+}
+
+/**
+ * Dọn dẹp bộ nhớ đệm Giao diện (Menu, Modal, Footer, Dropdown, Service Worker Cache)
+ * và tùy chọn dọn cả IndexedDB nhưng BẢO TOÀN 100% trạng thái đăng nhập, thiết bị tin cậy và kịch bản tính toán.
+ * @param {boolean} includeIndexedDB - Nếu true, xóa và đồng bộ lại cả KCN_LocalDB & tailieu_cache_v1
+ */
+export async function clearAppCache(includeIndexedDB = false) {
+  try {
+    // 1. Xóa các HTML template cũ (Menu, Modal, Footer) trong localStorage
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('cached_html_')) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    // 2. Xóa cache danh sách công ty và vai trò trong sessionStorage (giữ lại trạng thái đếm phiên thiết bị)
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key && (key.startsWith('company_dropdown_') || key.startsWith('role_'))) {
+        sessionStorage.removeItem(key);
+      }
+    }
+
+    // 3. Xóa Cache Storage của Service Worker và ép cập nhật Service Worker mới nhất
+    if ('caches' in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    }
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => {
+        if (reg.active) {
+          reg.active.postMessage({ type: 'CLEAR_ALL_CACHES' });
+        }
+        return reg.update().catch(() => {});
+      }));
+    }
+
+    // 4. Nếu yêu cầu làm mới cả IndexedDB (Báo cáo, Nhật ký, Tài liệu)
+    if (includeIndexedDB) {
+      await clearLocalDB();
+    }
+  } catch (err) {
+    console.warn("Lỗi khi dọn bộ nhớ đệm ứng dụng:", err);
+  }
+}
+
+// Kiểm tra tự động qua file tĩnh version.json (hoạt động ngay cả khi chưa đăng nhập)
+async function checkStaticVersionUpdate() {
+  try {
+    // Luôn ép Service Worker kiểm tra bản mới ngầm khi mở trang
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.update().catch(() => {}));
+      }).catch(() => {});
+    }
+
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!remote || !remote.version) return;
+
+    const remoteVer = String(remote.version);
+    const localVer = localStorage.getItem('KCN_STATIC_VERSION');
+
+    if (localVer !== remoteVer) {
+      const reloadGuardKey = `KCN_RELOADED_STATIC_${remoteVer}`;
+      if (sessionStorage.getItem(reloadGuardKey) === 'true') return;
+
+      console.log(`[AutoUpdate] Phát hiện phiên bản code mới (${remoteVer}), đang tự động cập nhật...`);
+      await clearAppCache(Boolean(remote.clearIndexedDB));
+      localStorage.setItem('KCN_STATIC_VERSION', remoteVer);
+      sessionStorage.setItem(reloadGuardKey, 'true');
+      window.location.reload();
+    }
+  } catch (e) {
+    // Bỏ qua nếu đang offline hoặc chưa có version.json
+  }
+}
+
+// Chạy kiểm tra ngay khi nạp script.js
+checkStaticVersionUpdate();
+
+// Lắng nghe lệnh "Ép cập nhật toàn bộ máy User" theo thời gian thực từ Admin qua Firestore (config/reportConfig)
+function listenRemoteVersionUpdate() {
+  if (remoteVersionUnsubscribe) {
+    remoteVersionUnsubscribe();
+    remoteVersionUnsubscribe = null;
+  }
+
+  remoteVersionUnsubscribe = onSnapshot(doc(db, "config", "reportConfig"), async (docSnap) => {
+    if (!docSnap.exists()) return;
+    const data = docSnap.data();
+
+    const remoteCacheVer = data.clientCacheVersion ? String(data.clientCacheVersion) : null;
+    const remoteDbVer = data.clientDbVersion ? String(data.clientDbVersion) : null;
+
+    const localCacheVer = localStorage.getItem('KCN_REMOTE_CACHE_VER');
+    const localDbVer = localStorage.getItem('KCN_REMOTE_DB_VER');
+
+    const needDbClear = Boolean(remoteDbVer && remoteDbVer !== localDbVer);
+    const needCacheClear = Boolean(remoteCacheVer && remoteCacheVer !== localCacheVer);
+
+    if (needDbClear || needCacheClear) {
+      const combinedVer = `${remoteCacheVer || ''}_${remoteDbVer || ''}`;
+      const reloadGuardKey = `KCN_RELOADED_REMOTE_${combinedVer}`;
+      if (sessionStorage.getItem(reloadGuardKey) === 'true') return;
+
+      console.log(`[RemoteUpdate] Đang đồng bộ phiên bản mới (${combinedVer})...`);
+      if (remoteCacheVer) localStorage.setItem('KCN_REMOTE_CACHE_VER', remoteCacheVer);
+      if (remoteDbVer) localStorage.setItem('KCN_REMOTE_DB_VER', remoteDbVer);
+      sessionStorage.setItem(reloadGuardKey, 'true');
+
+      await clearAppCache(needDbClear);
+      window.location.reload();
+    }
+  }, (err) => {
+    console.warn("Lỗi lắng nghe phiên bản từ xa:", err);
   });
 }
 
@@ -3014,37 +3158,43 @@ export function loadTemplate(placeholderId, url, callback) {
   const container = document.getElementById(placeholderId);
   if (!container) return;
 
-  // Đổi thành v6 để phá bộ nhớ đệm (Cache busting) do vừa thay đổi code html
-  const cacheKey = `cached_html_v6_${url}`;
-  
+  const cacheKey = `cached_html_v7_${url}`;
+  let hasRenderedFromCache = false;
+  let cachedHTML = null;
+
   try {
-    const cachedHTML = localStorage.getItem(cacheKey);
+    cachedHTML = localStorage.getItem(cacheKey);
     if (cachedHTML) {
       container.innerHTML = cachedHTML;
+      hasRenderedFromCache = true;
       if (typeof callback === "function") callback();
-      return;
     }
   } catch (e) {
     console.warn("Lỗi đọc cache template từ localStorage:", e);
   }
 
-  // Bổ sung tham số thời gian để tránh cache HTTP trình duyệt
-  fetch(`${url}?t=${Date.now()}`)
+  // Luôn tải ngầm bản mới nhất từ máy chủ (Background Revalidate) để khi sửa menu.html/modal.html/footer.html là tự cập nhật ngay
+  fetch(`${url}?t=${Date.now()}`, { cache: "no-store" })
     .then(r => {
       if (!r.ok) throw new Error(`HTTP error! status: ${r.status}`);
       return r.text();
     })
     .then(html => {
-      try {
-        localStorage.setItem(cacheKey, html);
-      } catch (e) {
-        console.warn("Lỗi ghi cache template vào localStorage:", e);
+      const isChanged = !cachedHTML || html.trim() !== cachedHTML.trim();
+      if (isChanged) {
+        try {
+          localStorage.setItem(cacheKey, html);
+        } catch (e) {
+          console.warn("Lỗi ghi cache template vào localStorage:", e);
+        }
+        container.innerHTML = html;
+        if (typeof callback === "function") callback();
       }
-      container.innerHTML = html;
-      if (typeof callback === "function") callback();
     })
     .catch(err => {
-      console.error(`Lỗi khi load template ${url}:`, err);
+      if (!hasRenderedFromCache) {
+        console.error(`Lỗi khi load template ${url}:`, err);
+      }
     });
 }
 
