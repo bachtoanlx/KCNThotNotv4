@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Quản lý KCN Thốt Nốt",
   "short_name": "QL KCN",
   "description": "Hệ thống quản lý khu công nghiệp Thốt Nốt",
@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/6846/6846274.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/820/820717.png",
       "sizes": "512x512",
       "type": "image/png"
     }
