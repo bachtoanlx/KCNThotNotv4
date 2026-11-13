@@ -1020,18 +1020,28 @@
 
 
 
-                            <!-- Làm mới Bộ nhớ đệm (IndexedDB) -->
+                            <!-- Làm mới Bộ nhớ đệm (IndexedDB) & Phát hành Bản cập nhật cho toàn bộ User -->
                             <div
                                 style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff;">
-                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🔄 Đồng bộ & Làm mới
-                                    dữ liệu cục bộ</h3>
-                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Hành động này sẽ xóa toàn
-                                    bộ dữ liệu nhật ký hệ thống được lưu đệm cục bộ (IndexedDB) trên thiết bị này và tải
-                                    lại dữ liệu mới nhất từ máy chủ Firebase.</p>
-                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <h3 style="margin: 0 0 15px 0; color: #334155; font-size: 1.1em;">🔄 Đồng bộ & Phát hành Cập nhật cho Mọi Thiết bị</h3>
+                                <p style="font-size: 13px; color: #666; margin-bottom: 15px;">
+                                    Khi bạn cập nhật code trên GitHub, hệ thống đã tự động ưu tiên tải file mới. Tuy nhiên, nếu muốn <b>ép toàn bộ máy cá nhân của tất cả User đang hoạt động</b> phải xóa bộ nhớ đệm cũ và cập nhật ngay lập tức (vẫn bảo toàn trạng thái đăng nhập và thiết bị tin cậy của họ), hãy sử dụng các nút bên dưới:
+                                </p>
+                                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                                     <button id="refreshCacheBtn"
-                                        style="background: #95a5a6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-                                        <span>🔄</span> Làm mới bộ nhớ đệm
+                                        style="background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
+                                        title="Chỉ xóa bộ nhớ đệm và IndexedDB trên máy bạn đang ngồi">
+                                        <span>🔄</span> Làm mới máy này
+                                    </button>
+                                    <button id="forceUpdateUIBtn"
+                                        style="background: #273668; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
+                                        title="Ép mọi máy User xóa cache Menu/Giao diện/Code cũ và tải lại code mới nhất (giữ nguyên IndexedDB)">
+                                        <span>⚡</span> Ép cập nhật Giao diện & Code (Mọi User)
+                                    </button>
+                                    <button id="forceUpdateAllDBBtn"
+                                        style="background: #d97706; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px;"
+                                        title="Ép mọi máy User xóa cả cache Giao diện lẫn IndexedDB cũ để đồng bộ lại dữ liệu từ Firebase">
+                                        <span>🚀</span> Làm mới Giao diện + IndexedDB (Mọi User)
                                     </button>
                                 </div>
                             </div>

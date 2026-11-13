@@ -1,4 +1,4 @@
-import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth, loadTemplate } from "./script.js";
+import { auth, db, onAuth, getRole, showSwal, showLoading, hideLoading, showConfirmSwal, addLog, getCurrentUserEmail, fetchAllUsers, promptForReAuth, loadTemplate, clearAppCache } from "./script.js";
 import { doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { initMenu } from "./menu.js";
 import { formatISODate } from "./core-calculator.js";
@@ -2422,21 +2422,84 @@ function setupResetCache() {
     const refreshCacheBtn = document.getElementById("refreshCacheBtn");
     if (refreshCacheBtn) {
         refreshCacheBtn.addEventListener('click', async () => {
-            const isConfirmed = await showConfirmSwal("Làm mới dữ liệu", "Hành động này sẽ xóa bộ nhớ đệm hiện tại trên thiết bị này và tải lại dữ liệu mới nhất từ máy chủ. Tiếp tục?", "Đồng ý", "Hủy");
+            const isConfirmed = await showConfirmSwal(
+                "Làm mới thiết bị này",
+                "Hành động này sẽ xóa toàn bộ bộ nhớ đệm giao diện và dữ liệu đệm IndexedDB trên thiết bị hiện tại để tải lại mới nhất từ máy chủ (vẫn giữ nguyên đăng nhập và thiết bị tin cậy). Tiếp tục?",
+                "Đồng ý",
+                "Hủy"
+            );
             if (isConfirmed) {
                 showLoading("Đang làm mới bộ nhớ đệm...");
-                const req = indexedDB.open('KCN_LocalDB');
-                req.onsuccess = (e) => {
-                    const dbLocal = e.target.result;
-                    const tx = dbLocal.transaction(['logs', 'sync_info'], 'readwrite');
-                    tx.objectStore('logs').clear(); // Xóa sạch log cũ
-                    tx.objectStore('sync_info').delete('logs'); // Xóa mốc đồng bộ tiến
-                    tx.objectStore('sync_info').delete('logs_oldest'); // Xóa mốc đồng bộ lùi
-                    localStorage.removeItem('lastBgSync_logs'); // Mở khóa cho phép tải ngầm chạy lại
-                    tx.oncomplete = () => {
-                        window.location.reload(); // Tải lại trang
-                    };
-                };
+                await clearAppCache(true);
+                window.location.reload();
+            }
+        });
+    }
+
+    const forceUpdateUIBtn = document.getElementById("forceUpdateUIBtn");
+    if (forceUpdateUIBtn) {
+        forceUpdateUIBtn.addEventListener('click', async () => {
+            const isConfirmed = await showConfirmSwal(
+                "⚡ Ép cập nhật Giao diện & Code (Mọi User)",
+                "Tất cả máy cá nhân của User đang mở web (hoặc mở lại sau đó) sẽ tự động xóa cache Menu/Giao diện/Code cũ và tải bản mới nhất.<br><br><i>(Giữ nguyên 100% trạng thái đăng nhập, thiết bị tin cậy và dữ liệu IndexedDB của User).</i>",
+                "Phát hành ngay",
+                "Hủy",
+                "info"
+            );
+            if (!isConfirmed) return;
+
+            try {
+                showLoading("Đang phát tín hiệu cập nhật đến mọi thiết bị...");
+                const newVer = Date.now().toString();
+                localStorage.setItem('KCN_REMOTE_CACHE_VER', newVer);
+                await setDoc(doc(db, "config", "reportConfig"), {
+                    clientCacheVersion: newVer,
+                    lastClientUpdateBy: auth.currentUser?.email || "admin",
+                    lastClientUpdateAt: serverTimestamp()
+                }, { merge: true });
+                await clearAppCache(false);
+                addLog("admin_force_update_ui", { email: auth.currentUser?.email || "admin", version: newVer });
+                hideLoading();
+                showSwal("success", "Đã phát lệnh cập nhật!", "Mọi máy User sẽ tự động cập nhật giao diện mới.");
+                setTimeout(() => window.location.reload(), 1200);
+            } catch (err) {
+                hideLoading();
+                showSwal("error", "Lỗi phát hành cập nhật", err.message);
+            }
+        });
+    }
+
+    const forceUpdateAllDBBtn = document.getElementById("forceUpdateAllDBBtn");
+    if (forceUpdateAllDBBtn) {
+        forceUpdateAllDBBtn.addEventListener('click', async () => {
+            const isConfirmed = await showConfirmSwal(
+                "🚀 Làm mới Giao diện + IndexedDB (Mọi User)",
+                "Tất cả máy cá nhân của User sẽ tự động xóa cả cache Giao diện lẫn dữ liệu đệm <b>IndexedDB</b> cũ để đồng bộ lại dữ liệu chuẩn từ Firebase.<br><br><i>(Vẫn bảo toàn trạng thái đăng nhập, thiết bị tin cậy và công thức tính toán hóa chất của User).</i>",
+                "Làm mới toàn hệ thống",
+                "Hủy",
+                "warning"
+            );
+            if (!isConfirmed) return;
+
+            try {
+                showLoading("Đang phát tín hiệu làm mới toàn bộ hệ thống...");
+                const newVer = Date.now().toString();
+                localStorage.setItem('KCN_REMOTE_CACHE_VER', newVer);
+                localStorage.setItem('KCN_REMOTE_DB_VER', newVer);
+                await setDoc(doc(db, "config", "reportConfig"), {
+                    clientCacheVersion: newVer,
+                    clientDbVersion: newVer,
+                    lastClientUpdateBy: auth.currentUser?.email || "admin",
+                    lastClientUpdateAt: serverTimestamp()
+                }, { merge: true });
+                await clearAppCache(true);
+                addLog("admin_force_update_all_db", { email: auth.currentUser?.email || "admin", version: newVer });
+                hideLoading();
+                showSwal("success", "Đã phát lệnh làm mới toàn hệ thống!", "Tất cả thiết bị đang tự động đồng bộ lại.");
+                setTimeout(() => window.location.reload(), 1200);
+            } catch (err) {
+                hideLoading();
+                showSwal("error", "Lỗi phát hành cập nhật", err.message);
             }
         });
     }
