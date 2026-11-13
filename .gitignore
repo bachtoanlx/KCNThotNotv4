@@ -7,6 +7,10 @@
 config.js
 api-keys.js
 
+# File mã nguồn Google Apps Script (chứa cấu hình Backend & API Key)
+KCNThotNot.txt
+KCN_KnowledgeSync.txt
+
 # Các file môi trường
 .env
 .env.local
